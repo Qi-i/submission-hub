@@ -27,14 +27,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        const meta = session.user.user_metadata
+        const username = meta?.user_name || meta?.name || session.user.email?.split('@')[0] || 'user'
+        await ensureProfile(session.user.id, username, meta?.avatar_url)
         const profile = await fetchProfile(session.user.id)
         setUser(profile)
       }
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
+        // Auto-create profile for GitHub OAuth users
+        if (event === 'SIGNED_IN') {
+          const meta = session.user.user_metadata
+          const username = meta?.user_name || meta?.name || session.user.email?.split('@')[0] || 'user'
+          await ensureProfile(session.user.id, username, meta?.avatar_url)
+        }
         const profile = await fetchProfile(session.user.id)
         setUser(profile)
       } else {
@@ -62,12 +71,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single()
 
     if (!existing) {
-      await supabase.from('user_profiles').insert({
+      const { error } = await supabase.from('user_profiles').insert({
         id: userId,
         username,
         display_name: username,
         avatar_url: avatarUrl || null,
       } as any)
+      if (error) {
+        // If username conflict, retry with userId suffix
+        if (error.code === '23505') {
+          const uniqueName = `${username}-${userId.slice(0, 4)}`
+          await supabase.from('user_profiles').insert({
+            id: userId,
+            username: uniqueName,
+            display_name: uniqueName,
+            avatar_url: avatarUrl || null,
+          } as any)
+        }
+      }
     }
   }
 
