@@ -14,10 +14,15 @@ function formatDate(d: string | null) {
   return parts.length === 3 ? `${parts[0]}/${parts[1]}/${parts[2]}` : d
 }
 
-function getDeadlineInfo(deadline: string | null) {
+function getDeadlineInfo(deadline: string | null, status: string) {
   if (!deadline) return null
+  // Only show countdown when actively in revision status
+  if (status !== 'revision') {
+    return { text: `✅ 修回已提交`, cls: 'deadline-done' }
+  }
   const dlDays = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000)
   if (dlDays < 0) return { text: `🚨 逾期 ${-dlDays} 天`, cls: 'deadline-overdue' }
+  if (dlDays === 0) return { text: `🚨 今天截止`, cls: 'deadline-danger' }
   if (dlDays <= 3) return { text: `🚨 仅剩 ${dlDays} 天`, cls: 'deadline-danger' }
   if (dlDays <= 10) return { text: `⏳ 剩 ${dlDays} 天`, cls: 'deadline-warn' }
   return { text: `📅 修回剩 ${dlDays} 天`, cls: 'deadline-ok' }
@@ -35,7 +40,7 @@ function getFileStyle(ext: string) {
 
 export default function PaperCard({ paper, currentUsername, allPapers, onClick }: Props) {
   const st = getStatus(paper.status)
-  const deadline = getDeadlineInfo(paper.deadline)
+  const deadline = getDeadlineInfo(paper.deadline, paper.status)
 
   // Duration
   let dateInfo = ''

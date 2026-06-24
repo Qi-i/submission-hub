@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES, getStatus } from '../lib/types'
 import PaperCard from './PaperCard'
@@ -11,6 +12,7 @@ type ViewFilter = 'all' | 'me' | 'author'
 
 export default function Dashboard() {
   const { user, signOut } = useAuth()
+  const { mode, fontSize, setMode, setFontSize } = useTheme()
   const [papers, setPapers] = useState<Paper[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -156,6 +158,38 @@ export default function Dashboard() {
           )}
         </div>
       </header>
+
+      {/* Settings bar */}
+      <div className="settings-bar">
+        <span className="settings-label">主题</span>
+        <div className="settings-group">
+          {(['light', 'dark', 'system'] as const).map(m => (
+            <button
+              key={m}
+              className={`settings-btn ${mode === m ? 'active' : ''}`}
+              onClick={() => setMode(m)}
+            >
+              {m === 'light' ? '☀️ 浅色' : m === 'dark' ? '🌙 深色' : '💻 跟随系统'}
+            </button>
+          ))}
+        </div>
+        <span className="settings-label" style={{ marginLeft: 12 }}>字号</span>
+        <div className="settings-group">
+          {([
+            { key: 'small' as const, label: 'A⁻ 小' },
+            { key: 'medium' as const, label: 'A 中' },
+            { key: 'large' as const, label: 'A⁺ 大' },
+          ]).map(s => (
+            <button
+              key={s.key}
+              className={`settings-btn ${fontSize === s.key ? 'active' : ''}`}
+              onClick={() => setFontSize(s.key)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Stats bar */}
       <div className="stats-bar">
