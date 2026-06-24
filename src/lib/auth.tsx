@@ -74,6 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGithub = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'github',
+      options: {
+        redirectTo: 'https://qi-i.github.io/submission-hub/',
+      },
     })
   }
 
@@ -91,6 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: { data: { username } },
     })
     if (error) return error.message
+    if (data.user && !data.session) {
+      return '注册成功！请检查邮箱完成验证后再登录。'
+    }
     if (data.user) await ensureProfile(data.user.id, username)
     return null
   }
