@@ -1,74 +1,72 @@
+// ── Loose Database type to avoid Supabase createClient type inference issues ──
 export interface Database {
   public: {
     Tables: {
       user_profiles: {
-        Row: {
-          id: string
-          username: string
-          display_name: string | null
-          avatar_url: string | null
-          created_at: string
-        }
-        Insert: {
-          id: string
-          username: string
-          display_name?: string | null
-          avatar_url?: string | null
-          created_at?: string
-        }
-        Update: {
-          username?: string
-          display_name?: string | null
-          avatar_url?: string | null
-        }
+        Row: Record<string, any>
+        Insert: Record<string, any>
+        Update: Record<string, any>
       }
       papers: {
-        Row: {
-          id: string
-          user_id: string
-          title: string
-          title_zh: string | null
-          journal: string | null
-          status: string
-          lang: string
-          quartile_jcr: string | null
-          quartile_cas: string | null
-          quartile_new: string | null
-          quartile_cust: string | null
-          quartile_zh: string[] | null
-          authors: string[] | null
-          submitted_date: string | null
-          resolve_date: string | null
-          deadline: string | null
-          tracking_url: string | null
-          timeline: string | null
-          notes: string | null
-          prev_id: string | null
-          files: { n: string; p: string }[] | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Database['public']['Tables']['papers']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['papers']['Row']>
+        Row: Record<string, any>
+        Insert: Record<string, any>
+        Update: Record<string, any>
       }
       timeline_events: {
-        Row: {
-          id: string
-          paper_id: string
-          user_id: string
-          event_date: string
-          event_label: string
-          event_note: string | null
-          created_at: string
-        }
-        Insert: Omit<Database['public']['Tables']['timeline_events']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['timeline_events']['Row']>
+        Row: Record<string, any>
+        Insert: Record<string, any>
+        Update: Record<string, any>
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Views: Record<string, any>
+    Functions: Record<string, any>
+    Enums: Record<string, any>
   }
+}
+
+// ── Application types ──
+export interface UserProfile {
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  created_at: string
+}
+
+export interface Paper {
+  id: string
+  user_id: string
+  title: string
+  title_zh: string | null
+  journal: string | null
+  status: string
+  lang: string
+  quartile_jcr: string | null
+  quartile_cas: string | null
+  quartile_new: string | null
+  quartile_cust: string | null
+  quartile_zh: string[] | null
+  authors: string[] | null
+  submitted_date: string | null
+  resolve_date: string | null
+  deadline: string | null
+  tracking_url: string | null
+  timeline: string | null
+  notes: string | null
+  prev_id: string | null
+  files: { n: string; p: string }[] | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TimelineEvent {
+  id: string
+  paper_id: string
+  user_id: string
+  event_date: string
+  event_label: string
+  event_note: string | null
+  created_at: string
 }
 
 // ── Status definitions ──
@@ -97,9 +95,3 @@ export const TIMELINE_PRESETS = [
   'Accepted', 'Rejected', 'Withdrawn',
   'Decision Pending', 'Proof Received', 'Published', 'Out for Review',
 ]
-
-export type Paper = Database['public']['Tables']['papers']['Row']
-export type PaperInsert = Database['public']['Tables']['papers']['Insert']
-export type PaperUpdate = Database['public']['Tables']['papers']['Update']
-export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
-export type TimelineEvent = Database['public']['Tables']['timeline_events']['Row']

@@ -75,7 +75,7 @@ export default function Dashboard() {
       try {
         const data = JSON.parse(text)
         if (!Array.isArray(data)) throw new Error()
-        const rows: Paper[] = data.map((d: Record<string, unknown>) => ({
+        const rows = data.map((d: any) => ({
           id: crypto.randomUUID(),
           user_id: user!.id,
           title: d.title || '未命名',
@@ -100,7 +100,7 @@ export default function Dashboard() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }))
-        const { error } = await supabase.from('papers').insert(rows)
+        const { error } = await supabase.from('papers').insert(rows as any)
         if (error) throw error
         await loadPapers()
       } catch {
@@ -260,12 +260,11 @@ export default function Dashboard() {
                 user_id: user!.id,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-              })
+              } as any)
               if (error) { alert('保存失败: ' + error.message); return }
             } else {
-              const { error } = await supabase.from('papers')
-                .update({ ...data, updated_at: new Date().toISOString() })
-                .eq('id', editing.id)
+              const updateData = { ...data, updated_at: new Date().toISOString() }
+              const { error } = await ((supabase.from('papers') as any).update(updateData)).eq('id', editing.id)
               if (error) { alert('更新失败: ' + error.message); return }
             }
             setEditing(null)

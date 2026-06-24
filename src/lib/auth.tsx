@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username,
         display_name: username,
         avatar_url: avatarUrl || null,
-      })
+      } as any)
     }
   }
 
