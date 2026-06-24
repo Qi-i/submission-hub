@@ -1,0 +1,27 @@
+import { AuthProvider, useAuth } from './lib/auth'
+import Login from './components/Login'
+import Dashboard from './components/Dashboard'
+
+function AppContent() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        <span style={{ fontSize: 13 }}>加载中...</span>
+      </div>
+    )
+  }
+
+  if (!user) return <Login />
+  return <Dashboard />
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  )
+}
