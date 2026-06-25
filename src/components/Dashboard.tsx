@@ -4,9 +4,10 @@ import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES, getStatus } from '../lib/types'
+import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperForm'
-import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield } from 'lucide-react'
+import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
 
@@ -14,7 +15,7 @@ type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'dashboard' | 'stats' | 'admin'
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, isDemo, exitDemo } = useAuth()
   const { mode, setMode } = useTheme()
 
   const cycleTheme = () => {
@@ -22,7 +23,7 @@ export default function Dashboard() {
     setMode(next[mode])
   }
   const [papers, setPapers] = useState<Paper[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!isDemo)
   const [search, setSearch] = useState('')
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all')
   const [filterAuthor, setFilterAuthor] = useState('')
@@ -31,6 +32,11 @@ export default function Dashboard() {
   const [tab, setTab] = useState<Tab>('dashboard')
 
   const loadPapers = useCallback(async () => {
+    if (isDemo) {
+      setPapers(DEMO_PAPERS)
+      setLoading(false)
+      return
+    }
     const { data, error } = await supabase
       .from('papers')
       .select('*')
@@ -38,7 +44,7 @@ export default function Dashboard() {
     if (error) console.error('Load papers error:', error)
     else setPapers(data || [])
     setLoading(false)
-  }, [])
+  }, [isDemo])
 
   useEffect(() => { loadPapers() }, [loadPapers])
 
@@ -137,6 +143,16 @@ export default function Dashboard() {
 
   return (
     <div className="app-layout">
+      {/* Demo banner */}
+      {isDemo && (
+        <div className="demo-banner">
+          <span>🎭 演示模式 — 数据为示例，不会保存更改</span>
+          <button className="btn btn-sm btn-ghost" onClick={exitDemo}>
+            <X size={14} /> 退出演示
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="app-header">
         <div className="header-brand">
@@ -154,20 +170,29 @@ export default function Dashboard() {
           >
             {mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON">
-            <Upload size={14} /> 导入
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON">
-            <Download size={14} /> 导出
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}>
-            <Plus size={14} /> 新建投稿
-          </button>
+          {!isDemo && (
+            <>
+              <button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON">
+                <Upload size={14} /> 导入
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON">
+                <Download size={14} /> 导出
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}>
+                <Plus size={14} /> 新建投稿
+              </button>
+            </>
+          )}
           {user && (
             <div className="header-user">
               {user.avatar_url && <img src={user.avatar_url} alt="" />}
               <span>{user.display_name || user.username}</span>
-              <button className="btn btn-ghost btn-sm btn-icon" onClick={signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}>
+              <button
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={isDemo ? exitDemo : signOut}
+                title="退出"
+                style={{ border: 'none', padding: 0, width: 28, height: 28 }}
+              >
                 <LogOut size={14} />
               </button>
             </div>
@@ -275,7 +300,7 @@ export default function Dashboard() {
                   paper={p}
                   currentUsername={user?.username || ''}
                   allPapers={papers}
-                  onClick={() => setEditing(p)}
+                  onClick={isDemo ? undefined : () => setEditing(p)}
                 />
               ))
             )}

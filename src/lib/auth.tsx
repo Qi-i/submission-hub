@@ -2,28 +2,46 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { supabase } from './supabase'
 import type { UserProfile } from './types'
 import { ADMIN_ID } from './types'
+import { DEMO_PROFILE } from './demo-data'
 
 interface AuthState {
   user: UserProfile | null
   loading: boolean
+  isDemo: boolean
   signInWithGithub: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<string | null>
   signUpWithEmail: (email: string, password: string, username: string) => Promise<string | null>
   signOut: () => Promise<void>
+  enterDemo: () => void
+  exitDemo: () => void
 }
 
 const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
+  isDemo: false,
   signInWithGithub: async () => {},
   signInWithEmail: async () => null,
   signUpWithEmail: async () => null,
   signOut: async () => {},
+  enterDemo: () => {},
+  exitDemo: () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isDemo, setIsDemo] = useState(false)
+
+  const enterDemo = () => {
+    setUser(DEMO_PROFILE)
+    setIsDemo(true)
+  }
+
+  const exitDemo = () => {
+    setUser(null)
+    setIsDemo(false)
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -138,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGithub, signInWithEmail, signUpWithEmail, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isDemo, signInWithGithub, signInWithEmail, signUpWithEmail, signOut, enterDemo, exitDemo }}>
       {children}
     </AuthContext.Provider>
   )

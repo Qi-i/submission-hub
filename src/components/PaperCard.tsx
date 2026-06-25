@@ -1,11 +1,12 @@
 import type { Paper } from '../lib/types'
 import { getStatus } from '../lib/types'
+import { isR2File } from '../lib/storage'
 
 interface Props {
   paper: Paper
   currentUsername: string
   allPapers: Paper[]
-  onClick: () => void
+  onClick?: () => void
 }
 
 function formatDate(d: string | null) {
@@ -149,7 +150,19 @@ export default function PaperCard({ paper, currentUsername, allPapers, onClick }
           {(paper.files || []).filter(f => f.p).map((f, i) => {
             const ext = f.p.split('.').pop() || ''
             const fs = getFileStyle(ext)
-            return (
+            const isDownloadable = isR2File(f.p)
+            return isDownloadable ? (
+              <a key={i} href={f.p} target="_blank" rel="noopener noreferrer" title={f.n || f.p.split(/[\\/]/).pop()}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 20, height: 20, fontSize: 12, borderRadius: 4,
+                  background: fs.bg, border: `1px solid ${fs.c}22`, color: fs.c,
+                  textDecoration: 'none', cursor: 'pointer',
+                }}>
+                {fs.icon}
+              </a>
+            ) : (
               <span key={i} title={f.n || f.p.split(/[\\/]/).pop()} style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 20, height: 20, fontSize: 12, borderRadius: 4,

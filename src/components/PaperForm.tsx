@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { X, Save, Trash2, FileText } from 'lucide-react'
+import { X, Save, Trash2, FileText, Loader } from 'lucide-react'
 import type { Paper } from '../lib/types'
 import { STATUSES, JCR_OPTIONS, CAS_OPTIONS, TIMELINE_PRESETS } from '../lib/types'
 import Timeline from './Timeline'
+import { uploadFile } from '../lib/storage'
 
 interface FileItem { n: string; p: string }
 
@@ -105,15 +106,28 @@ export default function PaperForm({ paper, allPapers, currentUsername, onSave, o
     }))
   }
 
-  const handleFileUpload = (idx: number) => {
+  const [uploading, setUploading] = useState<number | null>(null)
+
+  const handleFileUpload = async (idx: number) => {
     const inp = document.createElement('input')
     inp.type = 'file'
     inp.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) return
-      // Store file name as placeholder (real upload would go to Supabase Storage)
+
+      // Show file name immediately
       updateFile(idx, 'n', file.name)
-      updateFile(idx, 'p', `local://${file.name}`)
+      updateFile(idx, 'p', '上传中...')
+      setUploading(idx)
+
+      const result = await uploadFile(file)
+      if (result) {
+        updateFile(idx, 'p', result.fileUrl)
+      } else {
+        // Fallback to local reference if R2 not configured
+        updateFile(idx, 'p', `local://${file.name}`)
+      }
+      setUploading(null)
     }
     inp.click()
   }
@@ -317,12 +331,12 @@ export default function PaperForm({ paper, allPapers, currentUsername, onSave, o
               {(form.files || []).map((f, i) => (
                 <div key={i} className="file-box">
                   <div className="file-icon" style={{
-                    background: f.p ? 'var(--accent-bg)' : 'var(--bg-elevated)',
-                    color: f.p ? 'var(--accent)' : 'var(--text-muted)',
-                    border: `1px solid ${f.p ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
+                    background: f.p && f.p !== '上传中...' ? 'var(--accent-bg)' : 'var(--bg-elevated)',
+                    color: f.p && f.p !== '上传中...' ? 'var(--accent)' : 'var(--text-muted)',
+                    border: `1px solid ${f.p && f.p !== '上传中...' ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
                     cursor: 'pointer',
                   }} onClick={() => handleFileUpload(i)}>
-                    <FileText size={16} />
+                    {uploading === i ? <Loader size={16} className="spinner" /> : <FileText size={16} />}
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                     <input

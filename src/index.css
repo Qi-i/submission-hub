@@ -579,6 +579,18 @@ a { color: var(--accent); text-decoration: none; }
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
+/* ── Demo Banner ── */
+.demo-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 24px;
+  background: linear-gradient(90deg, rgba(245,158,11,0.15) 0%, rgba(239,68,68,0.1) 100%);
+  border-bottom: 1px solid rgba(245,158,11,0.3);
+  font-size: 13px; font-weight: 600; color: var(--warning);
+}
+[data-theme="dark"] .demo-banner {
+  background: linear-gradient(90deg, rgba(245,158,11,0.1) 0%, rgba(239,68,68,0.08) 100%);
+}
+
 /* ── Stats Panel ── */
 .stats-panel {
   padding: 20px 24px; flex: 1;

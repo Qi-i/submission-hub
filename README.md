@@ -1,149 +1,106 @@
 # Submission Hub
 
-> 学术投稿与成果管理平台 — 独立部署版
+学术投稿与成果管理平台 — 独立部署版
 
-[![Deploy](https://img.shields.io/github/actions/workflow/status/Qi-i/submission-hub/deploy.yml?label=Deploy&logo=github)](https://github.com/Qi-i/submission-hub/actions)
-[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?logo=vercel)](https://qi-i.github.io/submission-hub/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
-Submission Hub 是一款面向科研人员的论文投稿追踪管理工具。支持从投稿准备到录用/拒稿的全生命周期管理，提供期刊分区查询、审稿时间线追踪、多作者协作等功能。
-
----
+在线访问：[https://qi-i.github.io/submission-hub/](https://qi-i.github.io/submission-hub/)
 
 ## 功能特性
 
-### 投稿全生命周期管理
-覆盖 7 种投稿状态：准备中 → 已投稿 → 审稿中 → 修改 → 录用 / 拒稿 / 撤稿。每篇论文可记录投稿日期、审稿截止日、投稿系统链接等完整信息。
-
-### 期刊分区体系
-内置 JCR 分区（Q1–Q4）、中科院分区（一区–四区）、新锐分区、中文分区（CSSCI / CSCD 等）以及自定义分类，满足不同学科的评价标准。
-
-### 审稿时间线
-以可视化时间线展示每篇论文的审稿历程，包括投稿、编辑初审、外审、修回、录用等关键节点，方便回溯和复盘。
-
-### 版本关联
-支持论文版本链追踪——被拒后转投其他期刊的记录可自动关联，清晰展示一篇论文从投稿到最终发表的完整路径。
-
-### 数据导入/导出
-支持 JSON 格式的批量导入导出，方便从其他工具迁移或做数据备份。
-
-### 多用户 & 数据隔离
-基于 Supabase 的身份认证系统，支持 GitHub OAuth 和邮箱注册。RLS（行级安全）策略确保每位用户只能看到自己的数据，绝不公开。
-
----
+- 论文全生命周期管理：准备中 → 已投稿 → 审稿中 → 修回中 → 已接收 / 被拒 / 已撤稿
+- 支持中英文论文，JCR / 中科院 / 自定义分区标注
+- 审稿时间线可视化记录
+- 修回倒计时提醒
+- 版本链追踪（改投后关联前次投稿）
+- 文件上传与归档（支持 Cloudflare R2 云存储）
+- 个人统计面板：状态分布、时间趋势、分区统计、作者贡献图
+- 后台管理面板（管理员专属）：用户管理、论文统计、密码重置
+- JSON 导入/导出，支持数据迁移
+- 浅色 / 深色 / 跟随系统主题切换
+- 访客演示模式：无需注册即可体验全部功能
+- 多用户隔离，数据安全
 
 ## 技术架构
 
-| 层级 | 技术 |
-|------|------|
-| 前端 | React 18 + TypeScript + Vite |
-| 样式 | 纯 CSS（浅色/深色主题 + 多彩状态色） |
-| 后端 | Supabase（PostgreSQL + Auth + Storage） |
-| 认证 | GitHub OAuth / 邮箱密码 |
-| 部署 | GitHub Pages + GitHub Actions |
-| 安全 | Row Level Security (RLS)，数据完全私有 |
-
----
-
-## 快速开始
-
-### 本地开发
-
-```bash
-# 克隆仓库
-git clone https://github.com/Qi-i/submission-hub.git
-cd submission-hub
-
-# 安装依赖
-npm install
-
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env，填入你的 Supabase 项目 URL 和 Anon Key
-
-# 启动开发服务器
-npm run dev
-```
-
-### 环境变量
-
-创建 `.env` 文件，配置以下内容：
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-### 部署到 GitHub Pages
-
-1. Fork 本仓库
-2. 在仓库 Settings > Pages 中，将 Source 设为 **GitHub Actions**
-3. 推送代码到 `main` 分支，GitHub Actions 会自动构建和部署
-4. 访问 `https://<your-username>.github.io/submission-hub/`
-
-### Supabase 配置
-
-1. 在 [Supabase](https://supabase.com) 创建新项目
-2. 在 SQL Editor 中运行 `supabase/001_init.sql` 创建表结构和 RLS 策略
-3. 在 Authentication > Providers 中启用 GitHub，填入你的 GitHub OAuth App 的 Client ID 和 Secret
-4. 在 Authentication > URL Configuration 中，将 Site URL 设为你的部署地址
-5. 将 Supabase 项目 URL 和 Anon Key 填入 `.env`
-
----
+- **前端**：React 18 + TypeScript + Vite
+- **样式**：纯 CSS，浅色/深色双主题
+- **后端**：Supabase（PostgreSQL + Auth + Edge Functions）
+- **文件存储**：Cloudflare R2（可选，通过 Edge Function 签发预签名 URL）
+- **认证**：GitHub OAuth + 邮箱/密码
+- **部署**：GitHub Pages（GitHub Actions 自动构建）
+- **统计图表**：Recharts
 
 ## 项目结构
 
 ```
-submission-hub/
-├── src/
-│   ├── components/
-│   │   ├── Dashboard.tsx      # 主面板（论文列表、搜索、筛选）
-│   │   ├── Login.tsx          # 登录/注册页面
-│   │   ├── PaperCard.tsx      # 论文卡片组件
-│   │   ├── PaperForm.tsx      # 论文编辑表单
-│   │   └── Timeline.tsx       # 审稿时间线组件
-│   ├── lib/
-│   │   ├── auth.tsx           # 认证上下文（GitHub OAuth + 邮箱）
-│   │   ├── supabase.ts        # Supabase 客户端
-│   │   ├── theme.tsx          # 主题管理（浅色/深色/跟随系统）
-│   │   └── types.ts           # 类型定义和常量
-│   ├── App.tsx                # 应用入口
-│   ├── main.tsx               # React 挂载点
-│   └── index.css              # 全局样式（浅色/深色主题）
-├── supabase/
-│   └── 001_init.sql           # 数据库迁移（表 + RLS + 索引）
-├── .github/
-│   └── workflows/
-│       └── deploy.yml         # GitHub Pages 自动部署
-├── vite.config.ts
-└── package.json
+src/
+├── components/
+│   ├── Dashboard.tsx      # 主面板：标签页导航、搜索过滤、统计栏
+│   ├── Login.tsx          # 登录/注册页面（含演示入口）
+│   ├── PaperCard.tsx      # 论文卡片展示
+│   ├── PaperForm.tsx      # 论文新增/编辑表单（含文件上传）
+│   ├── Timeline.tsx       # 审稿时间线组件
+│   ├── PersonalStats.tsx  # 个人统计图表
+│   └── AdminPanel.tsx     # 后台管理面板
+├── lib/
+│   ├── supabase.ts        # Supabase 客户端
+│   ├── auth.tsx           # 认证上下文（含演示模式）
+│   ├── theme.tsx          # 主题上下文（浅色/深色/系统）
+│   ├── types.ts           # 类型定义与常量
+│   ├── storage.ts         # R2 文件上传封装
+│   └── demo-data.ts       # 演示模式示例数据
+supabase/
+├── migrations/
+│   └── 001_init.sql       # 数据库初始化（表 + RLS 策略）
+└── functions/
+    ├── admin-stats/       # 管理员统计 Edge Function
+    ├── reset-password/    # 管理员重置密码 Edge Function
+    └── r2-upload/         # R2 文件上传签名 Edge Function
 ```
 
----
+## 本地运行
 
-## 隐私与安全
-
-- 所有数据存储在 Supabase PostgreSQL 数据库中
-- 启用 Row Level Security (RLS)，每个用户只能访问自己的论文数据
-- 文件存储使用私有 bucket，仅用户本人可读写
-- 不会公开展示任何用户的投稿信息
-- 支持数据导出，你随时可以下载自己的完整数据
-
----
-
-## 开发说明
-
-### 设计系统
-支持浅色/深色/跟随系统三种主题模式，点击 header 中的图标即可切换。所有样式通过 CSS 自定义属性实现主题化，切换时带有平滑过渡动画。7 种投稿状态各有专属颜色标识。
-
-### TypeScript 注意事项
-由于 Supabase 客户端在 TypeScript 5.9+ 下存在类型推断问题，本项目使用 `LooseDatabase` 类型（`Record<string, any>`）绕过。在执行 `.update()` 操作时，需要将 `supabase.from('table')` 转换为 `any`：
-
-```typescript
-const { error } = await ((supabase.from('papers') as any).update(data)).eq('id', id)
+```bash
+npm install
+npm run dev
 ```
 
----
+需要配置 `.env` 文件：
+
+```
+VITE_SUPABASE_URL=你的supabase项目URL
+VITE_SUPABASE_ANON_KEY=你的supabase匿名key
+```
+
+## Supabase 数据库设置
+
+在 Supabase SQL Editor 中运行 `supabase/migrations/001_init.sql`，创建数据表和 RLS 策略。
+
+需要在 Supabase Authentication 中配置 GitHub OAuth Provider，并将 Site URL 设置为 `https://qi-i.github.io`。
+
+## 文件存储配置（可选）
+
+默认情况下，文件上传只保存文件名占位符。如需真正的云存储，可配置 Cloudflare R2：
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/) → R2 对象存储
+2. 创建 bucket（如 `submission-hub`），设置公开访问或绑定自定义域名
+3. 创建 API Token（Object Read & Write 权限），获取 `Access Key ID` 和 `Secret Access Key`
+4. 记录你的 Account ID（Dashboard 首页可见）
+5. 配置 R2 bucket 的 CORS 策略，允许来源 `https://qi-i.github.io`，允许方法 `PUT, GET`
+6. 在 Supabase Edge Functions → Secrets 中添加：
+   - `R2_ACCOUNT_ID`
+   - `R2_ACCESS_KEY_ID`
+   - `R2_SECRET_ACCESS_KEY`
+   - `R2_BUCKET_NAME`（默认 `submission-hub`）
+   - `R2_PUBLIC_URL`（R2 公开域名或自定义域名）
+7. 部署 Edge Function：`supabase functions deploy r2-upload --no-verify-jwt`
+
+配置完成后，用户在论文表单中上传文件时会自动通过 R2 存储，论文卡片上的文件图标可直接点击下载。
+
+未配置 R2 时，文件上传仍可使用（保存文件名），但无法在线下载。
+
+## GitHub Pages 部署
+
+仓库已配置 GitHub Actions，推送到 `main` 分支自动构建部署。工作流文件位于 `.github/workflows/deploy.yml`。
 
 ## License
 

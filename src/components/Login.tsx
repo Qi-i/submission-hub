@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Github, Mail, Lock, User, LogIn, UserPlus } from 'lucide-react'
+import { Github, Mail, Lock, User, LogIn, UserPlus, Eye } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
 export default function Login() {
-  const { signInWithGithub, signInWithEmail, signUpWithEmail } = useAuth()
+  const { signInWithGithub, signInWithEmail, signUpWithEmail, enterDemo } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -124,6 +124,17 @@ export default function Login() {
             )}
           </button>
         </form>
+
+        <div className="auth-divider">或</div>
+
+        <button
+          className="btn btn-ghost"
+          style={{ width: '100%', padding: '11px', fontSize: '13px' }}
+          onClick={enterDemo}
+        >
+          <Eye size={16} />
+          无需注册，立即体验演示 →
+        </button>
       </div>
     </div>
   )
