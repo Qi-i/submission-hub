@@ -3,7 +3,7 @@ import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, AreaChart, Area, ResponsiveContainer,
+  Tooltip, Legend, AreaChart, Area, ResponsiveContainer, Brush,
 } from 'recharts'
 
 interface Props {
@@ -161,11 +161,13 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
         if (p.status === 'rejected') daily[d].rejected++
       }
     })
-    // Fill gaps: generate all dates between first and last activity date
+    // Fill gaps: generate all dates from first activity to today
     const dates = Object.keys(daily).sort()
     if (dates.length === 0) return []
     const start = new Date(dates[0])
-    const end = new Date(dates[dates.length - 1])
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const end = today > new Date(dates[dates.length - 1]) ? today : new Date(dates[dates.length - 1])
     const filled: { date: string; submitted: number; accepted: number; rejected: number; cumSubmitted: number; cumAccepted: number; cumRejected: number }[] = []
     let cumSubmitted = 0, cumAccepted = 0, cumRejected = 0
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -283,7 +285,7 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
               <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#a855f7' }} />累积投稿</span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={370}>
             <AreaChart data={timeData}>
               <defs>
                 <linearGradient id="gradSubmitted" x1="0" y1="0" x2="0" y2="1">
@@ -317,8 +319,12 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
               <Area yAxisId="left" type="monotone" dataKey="accepted" name="接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={{ r: 3, fill: '#22c55e', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
               <Area yAxisId="left" type="monotone" dataKey="rejected" name="拒稿" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={{ r: 2, fill: '#ef4444', strokeWidth: 0 }} strokeDasharray="4 2" />
               <Area yAxisId="right" type="monotone" dataKey="cumSubmitted" name="累积投稿" stroke="#a855f7" strokeWidth={1.5} fill="none" dot={false} strokeDasharray="6 3" />
+              <Brush dataKey="date" height={28} stroke="#0891b2" fill="var(--bg-glass, rgba(255,255,255,0.6))" travellerWidth={10} tickFormatter={(v: string) => v.slice(5)} />
             </AreaChart>
           </ResponsiveContainer>
+          <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            拖动下方滑块可缩放时间范围
+          </div>
         </div>
       )}
 
