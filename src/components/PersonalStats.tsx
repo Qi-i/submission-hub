@@ -247,83 +247,31 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
     <div className="stats-panel">
       {/* ── Summary cards ── */}
       <div className="stats-summary">
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>📄</div>
-          <div>
-            <div className="summary-value">{summary.total}</div>
-            <div className="summary-label">论文总数</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>✅</div>
-          <div>
-            <div className="summary-value" style={{ color: '#22c55e' }}>{summary.accepted}</div>
-            <div className="summary-label">已接收</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>⏳</div>
-          <div>
-            <div className="summary-value" style={{ color: '#f59e0b' }}>{summary.inProgress}</div>
-            <div className="summary-label">进行中</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>🚫</div>
-          <div>
-            <div className="summary-value" style={{ color: '#ef4444' }}>{summary.rejected}</div>
-            <div className="summary-label">被拒</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'var(--purple-bg)', color: 'var(--purple)' }}>👤</div>
-          <div>
-            <div className="summary-value" style={{ color: 'var(--purple)' }}>{summary.firstAuthor}</div>
-            <div className="summary-label">第一作者</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>✉️</div>
-          <div>
-            <div className="summary-value" style={{ color: '#f59e0b' }}>{summary.corrAuthor}</div>
-            <div className="summary-label">通讯作者</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'var(--info-bg)', color: 'var(--info)' }}>👥</div>
-          <div>
-            <div className="summary-value" style={{ color: 'var(--info)' }}>{summary.collaborators}</div>
-            <div className="summary-label">合作者</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'rgba(8,145,178,0.1)', color: '#0891b2' }}>📰</div>
-          <div>
-            <div className="summary-value" style={{ color: '#0891b2' }}>{summary.journals}</div>
-            <div className="summary-label">涉及期刊</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>⏱</div>
-          <div>
-            <div className="summary-value" style={{ color: '#a855f7' }}>{summary.avgDays}</div>
-            <div className="summary-label">平均审稿天数</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-icon" style={{ background: summary.rate >= 50 ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', color: summary.rate >= 50 ? '#22c55e' : '#f59e0b' }}>🎯</div>
-          <div>
-            <div className="summary-value" style={{ color: summary.rate >= 50 ? '#22c55e' : '#f59e0b' }}>
-              {summary.total > 0 ? `${summary.rate}%` : '—'}
+        {[
+          { icon: '📄', bg: 'var(--accent-bg)', color: 'var(--accent)', value: summary.total, label: '论文总数' },
+          { icon: '✅', bg: 'rgba(34,197,94,0.1)', color: '#22c55e', value: summary.accepted, label: '已接收' },
+          { icon: '⏳', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b', value: summary.inProgress, label: '进行中' },
+          { icon: '🚫', bg: 'rgba(239,68,68,0.1)', color: '#ef4444', value: summary.rejected, label: '被拒' },
+          { icon: '👤', bg: 'var(--purple-bg)', color: 'var(--purple)', value: summary.firstAuthor, label: '第一作者' },
+          { icon: '✉️', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b', value: summary.corrAuthor, label: '通讯作者' },
+          { icon: '👥', bg: 'var(--info-bg)', color: 'var(--info)', value: summary.collaborators, label: '合作者' },
+          { icon: '📰', bg: 'rgba(8,145,178,0.1)', color: '#0891b2', value: summary.journals, label: '涉及期刊' },
+          { icon: '⏱', bg: 'rgba(168,85,247,0.1)', color: '#a855f7', value: summary.avgDays, label: '平均审稿天数' },
+          { icon: '🎯', bg: summary.rate >= 50 ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', color: summary.rate >= 50 ? '#22c55e' : '#f59e0b', value: summary.total > 0 ? `${summary.rate}%` : '—', label: '接收率' },
+        ].map((item, i) => (
+          <div key={item.label} className="summary-card animate-in" style={{ animationDelay: `${i * 0.05}s` }}>
+            <div className="summary-icon" style={{ background: item.bg, color: item.color }}>{item.icon}</div>
+            <div>
+              <div className="summary-value" style={{ color: item.color }}>{item.value}</div>
+              <div className="summary-label">{item.label}</div>
             </div>
-            <div className="summary-label">接收率</div>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* ── Time trend (full-width hero chart) ── */}
       {timeData.length > 1 && (
-        <div className="chart-card chart-card-hero">
+        <div className="chart-card chart-card-hero animate-in">
           <div className="chart-header">
             <h3 className="chart-title">投稿时间趋势</h3>
             <div className="chart-legend">

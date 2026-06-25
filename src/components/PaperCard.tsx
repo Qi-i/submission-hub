@@ -7,6 +7,7 @@ interface Props {
   currentUsername: string
   authorName: string
   allPapers: Paper[]
+  index?: number
   onClick?: () => void
 }
 
@@ -40,7 +41,7 @@ function getFileStyle(ext: string) {
   return { icon: '📎', bg: '#f3f4f6', c: '#6b7280' }
 }
 
-export default function PaperCard({ paper, currentUsername, authorName, allPapers, onClick }: Props) {
+export default function PaperCard({ paper, currentUsername, authorName, allPapers, index = 0, onClick }: Props) {
   const st = getStatus(paper.status)
   const deadline = getDeadlineInfo(paper.deadline, paper.status)
 
@@ -72,7 +73,11 @@ export default function PaperCard({ paper, currentUsername, authorName, allPaper
   }
 
   return (
-    <div className="card" onClick={onClick}>
+    <div
+      className="card animate-in"
+      style={{ animationDelay: `${Math.min(index * 0.06, 0.6)}s` }}
+      onClick={onClick}
+    >
       <div className="card-top-bar" style={{ background: st.color }} />
 
       {/* Status + Journal */}

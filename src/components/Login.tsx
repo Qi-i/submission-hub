@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Github, Mail, Lock, User, LogIn, UserPlus, Eye } from 'lucide-react'
+import { Github, Mail, Lock, User, LogIn, UserPlus, Eye, BookOpen, FileText, BarChart3, GraduationCap } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
 export default function Login() {
@@ -24,8 +24,31 @@ export default function Login() {
     setLoading(false)
   }
 
+  // Floating academic icons for decoration
+  const floatingIcons = [
+    { Icon: BookOpen, x: '8%', y: '15%', size: 28, delay: 0, color: 'var(--accent)' },
+    { Icon: FileText, x: '85%', y: '20%', size: 24, delay: 1.5, color: 'var(--purple)' },
+    { Icon: BarChart3, x: '12%', y: '75%', size: 26, delay: 3, color: 'var(--gold)' },
+    { Icon: GraduationCap, x: '88%', y: '70%', size: 30, delay: 0.8, color: 'var(--success)' },
+  ]
+
   return (
     <div className="auth-page">
+      {/* Decorative dot grid */}
+      <div className="auth-decor-grid" />
+
+      {/* Floating academic icons */}
+      {floatingIcons.map(({ Icon, x, y, size, delay, color }, i) => (
+        <div key={i} style={{
+          position: 'absolute', left: x, top: y, zIndex: 0,
+          opacity: 0.12, color,
+          animation: `float ${4 + i}s ease-in-out ${delay}s infinite`,
+          pointerEvents: 'none',
+        }}>
+          <Icon size={size} strokeWidth={1.5} />
+        </div>
+      ))}
+
       <div className="auth-card">
         <div className="auth-brand">
           <div className="auth-logo">SH</div>
@@ -35,7 +58,7 @@ export default function Login() {
 
         <button
           className="btn btn-primary"
-          style={{ width: '100%', padding: '12px', fontSize: '14px', marginBottom: '4px' }}
+          style={{ width: '100%', padding: '13px', fontSize: '14px', marginBottom: '4px', borderRadius: 12 }}
           onClick={() => signInWithGithub()}
         >
           <Github size={18} />
@@ -66,13 +89,13 @@ export default function Login() {
             <div className="field">
               <label className="field-label">用户名</label>
               <div style={{ position: 'relative' }}>
-                <User size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <User size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   className="input"
                   placeholder="输入用户名"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  style={{ paddingLeft: 34 }}
+                  style={{ paddingLeft: 36, borderRadius: 10 }}
                   required
                 />
               </div>
@@ -81,14 +104,14 @@ export default function Login() {
           <div className="field">
             <label className="field-label">邮箱</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 className="input"
                 type="email"
                 placeholder="your@email.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                style={{ paddingLeft: 34 }}
+                style={{ paddingLeft: 36, borderRadius: 10 }}
                 required
               />
             </div>
@@ -96,14 +119,14 @@ export default function Login() {
           <div className="field">
             <label className="field-label">密码</label>
             <div style={{ position: 'relative' }}>
-              <Lock size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 className="input"
                 type="password"
                 placeholder="至少 6 位"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                style={{ paddingLeft: 34 }}
+                style={{ paddingLeft: 36, borderRadius: 10 }}
                 required
                 minLength={6}
               />
@@ -112,7 +135,7 @@ export default function Login() {
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ width: '100%', padding: '11px', marginTop: '4px' }}
+            style={{ width: '100%', padding: '12px', marginTop: '4px', borderRadius: 12 }}
             disabled={loading}
           >
             {loading ? (
@@ -129,7 +152,7 @@ export default function Login() {
 
         <button
           className="btn btn-ghost"
-          style={{ width: '100%', padding: '11px', fontSize: '13px' }}
+          style={{ width: '100%', padding: '12px', fontSize: '13px', borderRadius: 12 }}
           onClick={enterDemo}
         >
           <Eye size={16} />
