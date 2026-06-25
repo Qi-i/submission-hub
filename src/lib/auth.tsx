@@ -61,8 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single()
-    if (data) data.is_admin = data.id === ADMIN_ID
-    return data
+    if (!data) return null
+    const profile: UserProfile = {
+      id: (data as any).id,
+      username: (data as any).username,
+      display_name: (data as any).display_name,
+      avatar_url: (data as any).avatar_url,
+      created_at: (data as any).created_at,
+      is_admin: (data as any).id === ADMIN_ID,
+    }
+    return profile
   }
 
   async function ensureProfile(userId: string, username: string, avatarUrl?: string) {

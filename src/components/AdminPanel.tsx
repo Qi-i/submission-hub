@@ -53,8 +53,8 @@ export default function AdminPanel() {
         if (res.data) {
           // Merge profiles with stats
           const statsMap = new Map(res.data.map((s: any) => [s.user_id, s]))
-          const merged: UserStats[] = (profiles || []).map(p => {
-            const s = statsMap.get(p.id)
+          const merged: UserStats[] = ((profiles || []) as any[]).map(p => {
+            const s: any = statsMap.get(p.id)
             return {
               id: p.id,
               username: p.username,
@@ -72,7 +72,7 @@ export default function AdminPanel() {
       }
 
       // Fallback: just show profiles without paper stats
-      const merged: UserStats[] = (profiles || []).map(p => ({
+      const merged: UserStats[] = ((profiles || []) as any[]).map(p => ({
         id: p.id,
         username: p.username,
         display_name: p.display_name,
