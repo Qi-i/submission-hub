@@ -33,6 +33,7 @@ export interface UserProfile {
   username: string
   display_name: string | null
   avatar_url: string | null
+  author_name: string | null
   created_at: string
   is_admin?: boolean
 }
@@ -51,6 +52,7 @@ export interface Paper {
   quartile_cust: string | null
   quartile_zh: string[] | null
   authors: string[] | null
+  corresponding_author: string | null
   submitted_date: string | null
   resolve_date: string | null
   deadline: string | null

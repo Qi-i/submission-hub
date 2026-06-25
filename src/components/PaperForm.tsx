@@ -26,6 +26,7 @@ export default function PaperForm({ paper, allPapers, currentUsername, onSave, o
     quartile_jcr: '未定', quartile_cas: '未定', quartile_new: '无', quartile_cust: '无',
     quartile_zh: ['', '', '', ''] as string[],
     authors: currentUsername ? [currentUsername] : [],
+    corresponding_author: '',
     files: [] as FileItem[],
     submitted_date: '', resolve_date: '', deadline: '', tracking_url: '', notes: '', timeline: '',
     prev_id: '',
@@ -41,6 +42,7 @@ export default function PaperForm({ paper, allPapers, currentUsername, onSave, o
     quartile_cust: paper.quartile_cust || '无',
     quartile_zh: paper.quartile_zh || ['', '', '', ''],
     authors: [...(paper.authors || [])],
+    corresponding_author: paper.corresponding_author || '',
     files: [...(paper.files || [])],
     submitted_date: paper.submitted_date || '',
     resolve_date: paper.resolve_date || '',
@@ -71,6 +73,7 @@ export default function PaperForm({ paper, allPapers, currentUsername, onSave, o
       quartile_cust: form.quartile_cust,
       quartile_zh: form.quartile_zh,
       authors,
+      corresponding_author: form.corresponding_author || null,
       files: files.length > 0 ? files : null,
       submitted_date: form.submitted_date || null,
       resolve_date: form.resolve_date || null,
@@ -269,6 +272,19 @@ export default function PaperForm({ paper, allPapers, currentUsername, onSave, o
             <label className="field-label">作者名单 (支持中文逗号、英文逗号、空格分隔)</label>
             <input className="input" value={authorsStr} onChange={e => setAuthorsStr(e.target.value)}
               placeholder="张三, Li Si, 王五" />
+          </div>
+
+          {/* Corresponding Author */}
+          <div className="field">
+            <label className="field-label">通讯作者</label>
+            <select className="select" value={form.corresponding_author}
+              onChange={e => set('corresponding_author', e.target.value)}
+              style={{ fontWeight: 600, color: 'var(--accent)' }}>
+              <option value="">-- 未指定 --</option>
+              {authorsStr.split(/[，,;；、\s]+/).map(a => a.trim()).filter(Boolean).map((a, i) => (
+                <option key={i} value={a}>{a}</option>
+              ))}
+            </select>
           </div>
 
           {/* Dates */}

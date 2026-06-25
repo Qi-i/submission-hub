@@ -14,6 +14,7 @@ interface AuthState {
   signOut: () => Promise<void>
   enterDemo: () => void
   exitDemo: () => void
+  updateAuthorName: (name: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState>({
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthState>({
   signOut: async () => {},
   enterDemo: () => {},
   exitDemo: () => {},
+  updateAuthorName: async () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username: (data as any).username,
       display_name: (data as any).display_name,
       avatar_url: (data as any).avatar_url,
+      author_name: (data as any).author_name || null,
       created_at: (data as any).created_at,
       is_admin: (data as any).id === ADMIN_ID,
     }
@@ -155,8 +158,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const updateAuthorName = async (name: string) => {
+    if (!user) return
+    const { error } = await ((supabase.from('user_profiles') as any).update({ author_name: name || null })).eq('id', user.id)
+    if (!error) {
+      setUser({ ...user, author_name: name || null })
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, isDemo, signInWithGithub, signInWithEmail, signUpWithEmail, signOut, enterDemo, exitDemo }}>
+    <AuthContext.Provider value={{ user, loading, isDemo, signInWithGithub, signInWithEmail, signUpWithEmail, signOut, enterDemo, exitDemo, updateAuthorName }}>
       {children}
     </AuthContext.Provider>
   )

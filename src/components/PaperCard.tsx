@@ -5,6 +5,7 @@ import { isR2File } from '../lib/storage'
 interface Props {
   paper: Paper
   currentUsername: string
+  authorName: string
   allPapers: Paper[]
   onClick?: () => void
 }
@@ -39,7 +40,7 @@ function getFileStyle(ext: string) {
   return { icon: '📎', bg: '#f3f4f6', c: '#6b7280' }
 }
 
-export default function PaperCard({ paper, currentUsername, allPapers, onClick }: Props) {
+export default function PaperCard({ paper, currentUsername, authorName, allPapers, onClick }: Props) {
   const st = getStatus(paper.status)
   const deadline = getDeadlineInfo(paper.deadline, paper.status)
 
@@ -114,11 +115,13 @@ export default function PaperCard({ paper, currentUsername, allPapers, onClick }
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', fontSize: 11 }}>
         <span style={{ color: 'var(--text-muted)', marginRight: 2 }}>👥</span>
         {(paper.authors || []).map((a, i) => {
-          const isMe = a === currentUsername
+          const isMe = authorName ? a === authorName : a === currentUsername
+          const isCorresponding = paper.corresponding_author === a
           const posLabel = isMe ? (i === 0 ? ' (一作)' : ` (第${i + 1}作)`) : ''
           return (
             <span key={a} className={`author-tag ${isMe ? 'is-me' : ''}`}>
               {a}{posLabel && <span style={{ opacity: 0.75, fontWeight: 400 }}>{posLabel}</span>}
+              {isCorresponding && <span style={{ marginLeft: 2, opacity: 0.8 }} title="通讯作者">✉️</span>}
             </span>
           )
         })}

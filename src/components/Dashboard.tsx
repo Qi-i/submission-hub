@@ -7,7 +7,7 @@ import { STATUSES, getStatus } from '../lib/types'
 import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperForm'
-import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X } from 'lucide-react'
+import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
 
@@ -15,7 +15,7 @@ type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'dashboard' | 'stats' | 'admin'
 
 export default function Dashboard() {
-  const { user, signOut, isDemo, exitDemo } = useAuth()
+  const { user, signOut, isDemo, exitDemo, updateAuthorName } = useAuth()
   const { mode, setMode } = useTheme()
 
   const cycleTheme = () => {
@@ -30,6 +30,8 @@ export default function Dashboard() {
   const [showFilterDrop, setShowFilterDrop] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [showSettings, setShowSettings] = useState(false)
+  const [authorNameInput, setAuthorNameInput] = useState('')
 
   const loadPapers = useCallback(async () => {
     if (isDemo) {
@@ -52,9 +54,13 @@ export default function Dashboard() {
   const allAuthors = Array.from(new Set(papers.flatMap(p => p.authors || []))).sort()
 
   // Filter papers
+  const matchName = user?.author_name || user?.username || ''
   let filtered = papers
   if (viewFilter === 'me' && user) {
-    filtered = filtered.filter(p => (p.authors || []).includes(user.username))
+    filtered = filtered.filter(p =>
+      (p.authors || []).includes(user.username) ||
+      (user.author_name && (p.authors || []).includes(user.author_name))
+    )
   } else if (viewFilter === 'author' && filterAuthor) {
     filtered = filtered.filter(p => (p.authors || []).includes(filterAuthor))
   }
@@ -106,6 +112,7 @@ export default function Dashboard() {
           quartile_cust: d.quartile_cust || null,
           quartile_zh: d.quartile_zh || null,
           authors: d.authors || [],
+          corresponding_author: d.corresponding_author || null,
           submitted_date: d.submittedDate || d.submitted_date || null,
           resolve_date: d.resolveDate || d.resolve_date || null,
           deadline: d.deadline || null,
@@ -182,6 +189,15 @@ export default function Dashboard() {
                 <Plus size={14} /> 新建投稿
               </button>
             </>
+          )}
+          {user && !isDemo && (
+            <button
+              className="btn btn-ghost btn-sm btn-icon"
+              onClick={() => { setAuthorNameInput(user.author_name || ''); setShowSettings(true) }}
+              title="个人设置"
+            >
+              <Settings size={15} />
+            </button>
           )}
           {user && (
             <div className="header-user">
@@ -299,6 +315,7 @@ export default function Dashboard() {
                   key={p.id}
                   paper={p}
                   currentUsername={user?.username || ''}
+                  authorName={user?.author_name || ''}
                   allPapers={papers}
                   onClick={isDemo ? undefined : () => setEditing(p)}
                 />
@@ -308,7 +325,7 @@ export default function Dashboard() {
         </>
       )}
 
-      {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} />}
+      {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} authorName={user?.author_name || ''} />}
 
       {tab === 'admin' && user?.is_admin && <AdminPanel />}
 
@@ -345,6 +362,47 @@ export default function Dashboard() {
           }}
           onClose={() => setEditing(null)}
         />
+      )}
+
+      {/* Settings modal */}
+      {showSettings && (
+        <div className="modal-overlay" onClick={() => setShowSettings(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">⚙️ 个人设置</h3>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowSettings(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label className="field-label">论文署名 (用于匹配作者统计)</label>
+                <input
+                  className="input"
+                  value={authorNameInput}
+                  onChange={e => setAuthorNameInput(e.target.value)}
+                  placeholder="输入您在论文中使用的姓名，如：Zhang Wei"
+                  style={{ fontSize: 14, fontWeight: 600 }}
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  设置后，系统将自动识别您作为作者/通讯作者的论文，用于个人统计
+                </span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <div />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-ghost" onClick={() => setShowSettings(false)}>取消</button>
+                <button className="btn btn-primary" onClick={async () => {
+                  await updateAuthorName(authorNameInput.trim())
+                  setShowSettings(false)
+                }}>
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

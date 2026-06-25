@@ -9,6 +9,7 @@ import {
 interface Props {
   papers: Paper[]
   currentUsername: string
+  authorName: string
 }
 
 function cssVar(name: string) {
@@ -75,7 +76,7 @@ function PieTooltip({ active, payload }: any) {
   )
 }
 
-export default function PersonalStats({ papers, currentUsername }: Props) {
+export default function PersonalStats({ papers, currentUsername, authorName }: Props) {
   // ── Status distribution for pie chart ──
   const statusData = useMemo(() => {
     return STATUSES.map(s => ({
@@ -126,6 +127,7 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
 
   // ── Author contribution ──
   const authorData = useMemo(() => {
+    const matchName = authorName || currentUsername
     const counts: Record<string, number> = {}
     papers.forEach(p => {
       (p.authors || []).forEach(a => {
@@ -138,10 +140,10 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
       .map(([name, count], i) => ({
         name,
         value: count,
-        fill: name === currentUsername ? cssVar('--accent') || '#0891b2' : CHART_COLORS[i % CHART_COLORS.length],
-        isMe: name === currentUsername,
+        fill: name === matchName ? cssVar('--accent') || '#0891b2' : CHART_COLORS[i % CHART_COLORS.length],
+        isMe: name === matchName,
       }))
-  }, [papers, currentUsername])
+  }, [papers, currentUsername, authorName])
 
   // ── Time trend (monthly) with cumulative ──
   const timeData = useMemo(() => {
@@ -206,7 +208,9 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
     const accepted = papers.filter(p => p.status === 'accepted').length
     const rejected = papers.filter(p => p.status === 'rejected').length
     const inProgress = papers.filter(p => ['submitted', 'under_review', 'revision'].includes(p.status)).length
-    const firstAuthor = papers.filter(p => p.authors?.[0] === currentUsername).length
+    const matchName = authorName || currentUsername
+    const firstAuthor = papers.filter(p => p.authors?.[0] === matchName).length
+    const corrAuthor = papers.filter(p => p.corresponding_author === matchName).length
     const collaborators = new Set(papers.flatMap(p => p.authors || [])).size
     const journals = new Set(papers.map(p => p.journal).filter(Boolean)).size
     const avgDays = (() => {
@@ -220,8 +224,8 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
       return Math.round(totalDays / resolved.length)
     })()
     const rate = total > 0 ? Math.round(accepted / total * 100) : 0
-    return { total, accepted, rejected, inProgress, firstAuthor, collaborators, journals, avgDays, rate }
-  }, [papers, currentUsername])
+    return { total, accepted, rejected, inProgress, firstAuthor, corrAuthor, collaborators, journals, avgDays, rate }
+  }, [papers, currentUsername, authorName])
 
   // Theme colors for chart config
   const gridColor = cssVar('--border-subtle') || '#eee'
@@ -276,6 +280,13 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
           <div>
             <div className="summary-value" style={{ color: 'var(--purple)' }}>{summary.firstAuthor}</div>
             <div className="summary-label">第一作者</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>✉️</div>
+          <div>
+            <div className="summary-value" style={{ color: '#f59e0b' }}>{summary.corrAuthor}</div>
+            <div className="summary-label">通讯作者</div>
           </div>
         </div>
         <div className="summary-card">

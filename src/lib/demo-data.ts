@@ -2,6 +2,7 @@ import type { Paper } from './types'
 
 const DEMO_USER_ID = 'demo-user-001'
 const DEMO_USERNAME = 'researcher'
+const DEMO_AUTHOR_NAME = 'researcher'
 
 export const DEMO_PAPERS: Paper[] = [
   {
@@ -17,7 +18,8 @@ export const DEMO_PAPERS: Paper[] = [
     quartile_new: 'T1',
     quartile_cust: 'Top',
     quartile_zh: null,
-    authors: [DEMO_USERNAME, 'Zhang Wei', 'Li Ming', 'Prof. Wang'],
+    authors: [DEMO_AUTHOR_NAME, 'Zhang Wei', 'Li Ming', 'Prof. Wang'],
+    corresponding_author: 'Prof. Wang',
     submitted_date: '2025-03-15',
     resolve_date: '2025-08-20',
     deadline: null,
@@ -42,7 +44,8 @@ export const DEMO_PAPERS: Paper[] = [
     quartile_new: null,
     quartile_cust: 'Top',
     quartile_zh: null,
-    authors: ['Zhang Wei', DEMO_USERNAME, 'Chen Li'],
+    authors: ['Zhang Wei', DEMO_AUTHOR_NAME, 'Chen Li'],
+    corresponding_author: 'Zhang Wei',
     submitted_date: '2025-11-02',
     resolve_date: null,
     deadline: null,
@@ -67,7 +70,8 @@ export const DEMO_PAPERS: Paper[] = [
     quartile_new: null,
     quartile_cust: 'A',
     quartile_zh: null,
-    authors: [DEMO_USERNAME, 'Li Ming'],
+    authors: [DEMO_AUTHOR_NAME, 'Li Ming'],
+    corresponding_author: DEMO_AUTHOR_NAME,
     submitted_date: '2025-09-10',
     resolve_date: null,
     deadline: '2026-07-15',
@@ -92,7 +96,8 @@ export const DEMO_PAPERS: Paper[] = [
     quartile_new: null,
     quartile_cust: 'B',
     quartile_zh: null,
-    authors: ['Chen Li', DEMO_USERNAME, 'Prof. Wang'],
+    authors: ['Chen Li', DEMO_AUTHOR_NAME, 'Prof. Wang'],
+    corresponding_author: 'Prof. Wang',
     submitted_date: '2025-06-20',
     resolve_date: '2025-10-05',
     deadline: null,
@@ -117,7 +122,8 @@ export const DEMO_PAPERS: Paper[] = [
     quartile_new: null,
     quartile_cust: null,
     quartile_zh: ['北大核心', 'CSCD', 'EI'],
-    authors: [DEMO_USERNAME, 'Zhang Wei'],
+    authors: [DEMO_AUTHOR_NAME, 'Zhang Wei'],
+    corresponding_author: DEMO_AUTHOR_NAME,
     submitted_date: '2025-04-08',
     resolve_date: '2025-12-15',
     deadline: null,
@@ -142,7 +148,8 @@ export const DEMO_PAPERS: Paper[] = [
     quartile_new: null,
     quartile_cust: 'A',
     quartile_zh: null,
-    authors: [DEMO_USERNAME, 'Li Ming', 'Chen Li'],
+    authors: [DEMO_AUTHOR_NAME, 'Li Ming', 'Chen Li'],
+    corresponding_author: '',
     submitted_date: null,
     resolve_date: null,
     deadline: null,
@@ -167,7 +174,8 @@ export const DEMO_PAPERS: Paper[] = [
     quartile_new: null,
     quartile_cust: 'A',
     quartile_zh: null,
-    authors: ['Zhang Wei', DEMO_USERNAME],
+    authors: ['Zhang Wei', DEMO_AUTHOR_NAME],
+    corresponding_author: '',
     submitted_date: '2026-06-10',
     resolve_date: null,
     deadline: null,
@@ -186,6 +194,7 @@ export const DEMO_PROFILE = {
   username: DEMO_USERNAME,
   display_name: 'Demo Researcher',
   avatar_url: null,
+  author_name: DEMO_AUTHOR_NAME,
   created_at: '2025-01-01T00:00:00Z',
   is_admin: false,
 }
