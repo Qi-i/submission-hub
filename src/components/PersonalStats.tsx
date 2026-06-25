@@ -279,10 +279,9 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
           <div className="chart-header">
             <h3 className="chart-title">投稿时间趋势</h3>
             <div className="chart-legend">
-              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#0891b2' }} />投稿</span>
-              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#22c55e' }} />接收</span>
-              <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#ef4444' }} />拒稿</span>
-              <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#a855f7' }} />累积投稿</span>
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#0891b2' }} />累积投稿</span>
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#22c55e' }} />累积接收</span>
+              <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#ef4444' }} />累积拒稿</span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={370}>
@@ -313,12 +312,10 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
                 tickLine={false}
               />
               <YAxis yAxisId="left" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip content={<TrendTooltip />} />
-              <Area yAxisId="left" type="monotone" dataKey="submitted" name="投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={{ r: 3, fill: '#0891b2', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
-              <Area yAxisId="left" type="monotone" dataKey="accepted" name="接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={{ r: 3, fill: '#22c55e', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
-              <Area yAxisId="left" type="monotone" dataKey="rejected" name="拒稿" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={{ r: 2, fill: '#ef4444', strokeWidth: 0 }} strokeDasharray="4 2" />
-              <Area yAxisId="right" type="monotone" dataKey="cumSubmitted" name="累积投稿" stroke="#a855f7" strokeWidth={1.5} fill="none" dot={false} strokeDasharray="6 3" />
+              <Area yAxisId="left" type="monotone" dataKey="cumSubmitted" name="累积投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={false} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="monotone" dataKey="cumAccepted" name="累积接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={false} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="monotone" dataKey="cumRejected" name="累积拒稿" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={false} strokeDasharray="4 2" />
               <Brush dataKey="date" height={28} stroke="#0891b2" fill="var(--bg-glass, rgba(255,255,255,0.6))" travellerWidth={10} tickFormatter={(v: string) => v.slice(5)} />
             </AreaChart>
           </ResponsiveContainer>
