@@ -145,36 +145,38 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
       }))
   }, [papers, currentUsername, authorName])
 
-  // ── Time trend (monthly) with cumulative ──
+  // ── Time trend (daily) with cumulative ──
   const timeData = useMemo(() => {
-    const monthly: Record<string, { submitted: number; accepted: number; rejected: number }> = {}
+    const daily: Record<string, { submitted: number; accepted: number; rejected: number }> = {}
     papers.forEach(p => {
       if (p.submitted_date) {
-        const ym = p.submitted_date.slice(0, 7)
-        if (!monthly[ym]) monthly[ym] = { submitted: 0, accepted: 0, rejected: 0 }
-        monthly[ym].submitted++
+        const d = p.submitted_date
+        if (!daily[d]) daily[d] = { submitted: 0, accepted: 0, rejected: 0 }
+        daily[d].submitted++
       }
       if (p.resolve_date && (p.status === 'accepted' || p.status === 'rejected')) {
-        const ym = p.resolve_date.slice(0, 7)
-        if (!monthly[ym]) monthly[ym] = { submitted: 0, accepted: 0, rejected: 0 }
-        if (p.status === 'accepted') monthly[ym].accepted++
-        if (p.status === 'rejected') monthly[ym].rejected++
+        const d = p.resolve_date
+        if (!daily[d]) daily[d] = { submitted: 0, accepted: 0, rejected: 0 }
+        if (p.status === 'accepted') daily[d].accepted++
+        if (p.status === 'rejected') daily[d].rejected++
       }
     })
-    const sorted = Object.entries(monthly).sort((a, b) => a[0].localeCompare(b[0]))
+    // Fill gaps: generate all dates between first and last activity date
+    const dates = Object.keys(daily).sort()
+    if (dates.length === 0) return []
+    const start = new Date(dates[0])
+    const end = new Date(dates[dates.length - 1])
+    const filled: { date: string; submitted: number; accepted: number; rejected: number; cumSubmitted: number; cumAccepted: number; cumRejected: number }[] = []
     let cumSubmitted = 0, cumAccepted = 0, cumRejected = 0
-    return sorted.map(([month, data]) => {
-      cumSubmitted += data.submitted
-      cumAccepted += data.accepted
-      cumRejected += data.rejected
-      return {
-        month,
-        ...data,
-        cumSubmitted,
-        cumAccepted,
-        cumRejected,
-      }
-    })
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10)
+      const entry = daily[key] || { submitted: 0, accepted: 0, rejected: 0 }
+      cumSubmitted += entry.submitted
+      cumAccepted += entry.accepted
+      cumRejected += entry.rejected
+      filled.push({ date: key, ...entry, cumSubmitted, cumAccepted, cumRejected })
+    }
+    return filled
   }, [papers])
 
   // ── Journal distribution (top journals) ──
@@ -275,9 +277,9 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
           <div className="chart-header">
             <h3 className="chart-title">投稿时间趋势</h3>
             <div className="chart-legend">
-              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#0891b2' }} />月度投稿</span>
-              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#22c55e' }} />月度接收</span>
-              <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#ef4444' }} />月度拒稿</span>
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#0891b2' }} />投稿</span>
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#22c55e' }} />接收</span>
+              <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#ef4444' }} />拒稿</span>
               <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#a855f7' }} />累积投稿</span>
             </div>
           </div>
@@ -298,13 +300,22 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fill: mutedColor }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: mutedColor }}
+                angle={-45}
+                textAnchor="end"
+                height={50}
+                interval={timeData.length > 30 ? Math.floor(timeData.length / 12) : 'preserveStartEnd'}
+                axisLine={false}
+                tickLine={false}
+              />
               <YAxis yAxisId="left" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip content={<TrendTooltip />} />
-              <Area yAxisId="left" type="monotone" dataKey="submitted" name="月度投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={{ r: 3, fill: '#0891b2', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
-              <Area yAxisId="left" type="monotone" dataKey="accepted" name="月度接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={{ r: 3, fill: '#22c55e', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
-              <Area yAxisId="left" type="monotone" dataKey="rejected" name="月度拒稿" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={{ r: 2, fill: '#ef4444', strokeWidth: 0 }} strokeDasharray="4 2" />
+              <Area yAxisId="left" type="monotone" dataKey="submitted" name="投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={{ r: 3, fill: '#0891b2', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="monotone" dataKey="accepted" name="接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={{ r: 3, fill: '#22c55e', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="monotone" dataKey="rejected" name="拒稿" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={{ r: 2, fill: '#ef4444', strokeWidth: 0 }} strokeDasharray="4 2" />
               <Area yAxisId="right" type="monotone" dataKey="cumSubmitted" name="累积投稿" stroke="#a855f7" strokeWidth={1.5} fill="none" dot={false} strokeDasharray="6 3" />
             </AreaChart>
           </ResponsiveContainer>
