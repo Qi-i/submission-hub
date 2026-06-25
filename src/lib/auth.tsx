@@ -14,7 +14,7 @@ interface AuthState {
   signOut: () => Promise<void>
   enterDemo: () => void
   exitDemo: () => void
-  updateAuthorName: (name: string) => Promise<void>
+  updateAuthorName: (name: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthState>({
@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthState>({
   signOut: async () => {},
   enterDemo: () => {},
   exitDemo: () => {},
-  updateAuthorName: async () => {},
+  updateAuthorName: async () => false,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -158,12 +158,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  const updateAuthorName = async (name: string) => {
-    if (!user) return
+  const updateAuthorName = async (name: string): Promise<boolean> => {
+    if (!user) return false
     const { error } = await ((supabase.from('user_profiles') as any).update({ author_name: name || null })).eq('id', user.id)
-    if (!error) {
-      setUser({ ...user, author_name: name || null })
+    if (error) {
+      console.error('updateAuthorName error:', error)
+      return false
     }
+    setUser({ ...user, author_name: name || null })
+    return true
   }
 
   return (

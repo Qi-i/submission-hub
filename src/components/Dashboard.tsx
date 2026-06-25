@@ -395,7 +395,11 @@ export default function Dashboard() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn btn-ghost" onClick={() => setShowSettings(false)}>取消</button>
                 <button className="btn btn-primary" onClick={async () => {
-                  await updateAuthorName(authorNameInput.trim())
+                  const ok = await updateAuthorName(authorNameInput.trim())
+                  if (!ok) {
+                    alert('保存失败：请确认数据库已执行 002_author_identity.sql 迁移（添加 author_name 列）')
+                    return
+                  }
                   setShowSettings(false)
                 }}>
                   保存
