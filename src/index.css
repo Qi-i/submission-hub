@@ -106,16 +106,10 @@
   color-scheme: dark;
 }
 
-/* ── Font Size Scale ── */
-:root { --fs-scale: 1; }
-[data-fontsize="small"]  { --fs-scale: 0.9; }
-[data-fontsize="medium"] { --fs-scale: 1; }
-[data-fontsize="large"]  { --fs-scale: 1.12; }
-
 /* ── Reset ── */
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 html {
-  font-size: calc(15px * var(--fs-scale));
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -196,34 +190,15 @@ a { color: var(--accent); text-decoration: none; }
 }
 .header-user img { width: 20px; height: 20px; border-radius: 50%; }
 
-/* ── Settings Toggle ── */
-.settings-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 24px;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 12px;
-  transition: background 0.25s ease;
+/* ── Theme Toggle ── */
+.theme-toggle-btn {
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border-subtle) !important;
 }
-.settings-group {
-  display: flex; align-items: center; gap: 4px;
-  padding: 2px; border-radius: 8px;
-  background: var(--bg-card); border: 1px solid var(--border-subtle);
-}
-.settings-btn {
-  padding: 4px 10px; border-radius: 6px; border: none;
-  background: transparent; color: var(--text-muted);
-  font-size: 11px; font-weight: 600; cursor: pointer;
-  transition: all 0.15s ease; white-space: nowrap;
-}
-.settings-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
-.settings-btn.active {
-  background: var(--accent); color: var(--text-inverse);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
-.settings-label {
-  font-size: 11px; font-weight: 600; color: var(--text-muted);
-  margin-right: 4px;
+.theme-toggle-btn:hover {
+  color: var(--accent) !important;
+  background: var(--accent-bg) !important;
+  border-color: var(--accent-border) !important;
 }
 
 /* ── Buttons ── */
@@ -590,7 +565,6 @@ a { color: var(--accent); text-decoration: none; }
   .toolbar { padding: 10px 14px; }
   .stats-bar { padding: 10px 14px; gap: 8px; }
   .app-header { padding: 10px 14px; }
-  .settings-bar { padding: 6px 14px; flex-wrap: wrap; }
   .modal { max-width: 100%; margin: 0; border-radius: 12px; }
   .field-row { grid-template-columns: 1fr; }
 }
