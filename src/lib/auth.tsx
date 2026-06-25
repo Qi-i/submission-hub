@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import type { UserProfile } from './types'
+import { ADMIN_ID } from './types'
 
 interface AuthState {
   user: UserProfile | null
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single()
+    if (data) data.is_admin = data.id === ADMIN_ID
     return data
   }
 

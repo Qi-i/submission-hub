@@ -559,12 +559,127 @@ a { color: var(--accent); text-decoration: none; }
 .toast-success { border-color: rgba(5,150,105,0.3); }
 .toast-error { border-color: rgba(220,38,38,0.3); }
 
+/* ── Tab Bar ── */
+.tab-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 24px; background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.25s ease;
+}
+.tab-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 6px; border: none;
+  background: transparent; color: var(--text-muted);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tab-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+.tab-btn.active {
+  color: var(--accent); background: var(--accent-bg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ── Stats Panel ── */
+.stats-panel {
+  padding: 20px 24px; flex: 1;
+}
+.stats-summary {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.summary-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-radius: 10px;
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  transition: background 0.25s ease;
+}
+[data-theme="light"] .summary-card { box-shadow: var(--shadow-sm); }
+.summary-value {
+  font-size: 22px; font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', monospace;
+  line-height: 1; color: var(--text-primary);
+}
+.summary-label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+/* ── Charts Grid ── */
+.charts-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 16px;
+}
+.chart-card {
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: 12px; padding: 18px;
+  transition: background 0.25s ease;
+}
+[data-theme="light"] .chart-card { box-shadow: var(--shadow-sm); }
+.chart-card-wide { grid-column: span 2; }
+.chart-title {
+  font-size: 13px; font-weight: 750; color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+/* ── Admin Panel ── */
+.admin-panel {
+  padding: 20px 24px; flex: 1;
+}
+.admin-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px;
+}
+.admin-title { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.admin-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.admin-summary {
+  display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.admin-user-list {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.admin-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 16px; border-radius: 10px;
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  transition: background 0.15s ease;
+}
+[data-theme="light"] .admin-row { box-shadow: var(--shadow-sm); }
+.admin-row:hover { border-color: var(--border-default); }
+.admin-row-main { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+.admin-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+.admin-avatar-placeholder {
+  background: var(--accent-bg); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px;
+}
+.admin-row-info { display: flex; flex-direction: column; gap: 2px; }
+.admin-row-name { font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; }
+.admin-row-meta { font-size: 11px; color: var(--text-muted); }
+.admin-row-stats {
+  display: flex; align-items: center; gap: 8px; flex: 1;
+  font-size: 12px; flex-wrap: wrap;
+}
+.admin-paper-count {
+  font-weight: 700; color: var(--text-secondary);
+  padding: 2px 8px; border-radius: 4px;
+  background: var(--bg-elevated);
+}
+.admin-status-chip {
+  font-size: 11px; font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+.admin-row-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .paper-grid { grid-template-columns: 1fr; padding: 14px; }
   .toolbar { padding: 10px 14px; }
   .stats-bar { padding: 10px 14px; gap: 8px; }
   .app-header { padding: 10px 14px; }
+  .tab-bar { padding: 4px 14px; }
+  .stats-panel { padding: 14px; }
+  .admin-panel { padding: 14px; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-card-wide { grid-column: span 1; }
+  .admin-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .admin-row-stats { width: 100%; }
   .modal { max-width: 100%; margin: 0; border-radius: 12px; }
   .field-row { grid-template-columns: 1fr; }
 }

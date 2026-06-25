@@ -24,6 +24,9 @@ export interface Database {
   }
 }
 
+// ── Admin ──
+export const ADMIN_ID = 'c207de09-6b0c-470d-85a6-90ff4304c1ba'
+
 // ── Application types ──
 export interface UserProfile {
   id: string
@@ -31,6 +34,7 @@ export interface UserProfile {
   display_name: string | null
   avatar_url: string | null
   created_at: string
+  is_admin?: boolean
 }
 
 export interface Paper {

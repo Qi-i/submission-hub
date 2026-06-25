@@ -6,9 +6,12 @@ import type { Paper } from '../lib/types'
 import { STATUSES, getStatus } from '../lib/types'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperForm'
-import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor } from 'lucide-react'
+import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield } from 'lucide-react'
+import PersonalStats from './PersonalStats'
+import AdminPanel from './AdminPanel'
 
 type ViewFilter = 'all' | 'me' | 'author'
+type Tab = 'dashboard' | 'stats' | 'admin'
 
 export default function Dashboard() {
   const { user, signOut } = useAuth()
@@ -25,6 +28,7 @@ export default function Dashboard() {
   const [filterAuthor, setFilterAuthor] = useState('')
   const [showFilterDrop, setShowFilterDrop] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
+  const [tab, setTab] = useState<Tab>('dashboard')
 
   const loadPapers = useCallback(async () => {
     const { data, error } = await supabase
@@ -171,94 +175,117 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Stats bar */}
-      <div className="stats-bar">
-        {stats.map(s => (
-          <div key={s.key} className="stat-card">
-            <div className="stat-value" style={{ color: s.color }}>{s.count}</div>
-            <div>
-              <div className="stat-label">{s.emoji} {s.label}</div>
-            </div>
-          </div>
-        ))}
-        <div className="stat-card" style={{ flex: '0 0 auto', minWidth: 80 }}>
-          <div className="stat-value" style={{ color: 'var(--text-primary)' }}>{papers.length}</div>
-          <div className="stat-label">📊 总计</div>
-        </div>
-      </div>
-
-      {/* Toolbar */}
-      <div className="toolbar">
-        <div className="search-wrap">
-          <Search size={15} className="search-icon" />
-          <input
-            className="search-input"
-            placeholder="搜索标题、期刊或作者..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="dropdown" style={{ zIndex: 50 }}>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => setShowFilterDrop(!showFilterDrop)}
-            style={{ gap: 6 }}
-          >
-            <Filter size={13} /> {filterLabel} <ChevronDown size={12} />
+      {/* Tab bar */}
+      <div className="tab-bar">
+        <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>
+          <FileText size={14} /> 投稿管理
+        </button>
+        <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>
+          <BarChart3 size={14} /> 个人统计
+        </button>
+        {user?.is_admin && (
+          <button className={`tab-btn ${tab === 'admin' ? 'active' : ''}`} onClick={() => setTab('admin')}>
+            <Shield size={14} /> 后台管理
           </button>
-          <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
-            <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`}
-              onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>
-              🌎 查看全部记录
-            </div>
-            <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`}
-              onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>
-              🔥 仅看我的 ({user?.username})
-            </div>
-            {allAuthors.length > 0 && (
-              <>
-                <div className="dropdown-sep">指定作者</div>
-                {allAuthors.filter(a => a !== user?.username).map(a => (
-                  <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`}
-                    onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>
-                    👤 {a}
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </div>
-
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>
-          共 {filtered.length} 篇记录
-        </span>
-      </div>
-
-      {/* Paper grid */}
-      <div className="paper-grid">
-        {filtered.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📑</div>
-            <div className="empty-text">
-              {papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}
-            </div>
-            <div className="empty-sub">
-              {papers.length === 0 && '点击右上角「新建投稿」开始记录'}
-            </div>
-          </div>
-        ) : (
-          filtered.map(p => (
-            <PaperCard
-              key={p.id}
-              paper={p}
-              currentUsername={user?.username || ''}
-              allPapers={papers}
-              onClick={() => setEditing(p)}
-            />
-          ))
         )}
       </div>
+
+      {tab === 'dashboard' && (
+        <>
+          {/* Stats bar */}
+          <div className="stats-bar">
+            {stats.map(s => (
+              <div key={s.key} className="stat-card">
+                <div className="stat-value" style={{ color: s.color }}>{s.count}</div>
+                <div>
+                  <div className="stat-label">{s.emoji} {s.label}</div>
+                </div>
+              </div>
+            ))}
+            <div className="stat-card" style={{ flex: '0 0 auto', minWidth: 80 }}>
+              <div className="stat-value" style={{ color: 'var(--text-primary)' }}>{papers.length}</div>
+              <div className="stat-label">📊 总计</div>
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div className="toolbar">
+            <div className="search-wrap">
+              <Search size={15} className="search-icon" />
+              <input
+                className="search-input"
+                placeholder="搜索标题、期刊或作者..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="dropdown" style={{ zIndex: 50 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowFilterDrop(!showFilterDrop)}
+                style={{ gap: 6 }}
+              >
+                <Filter size={13} /> {filterLabel} <ChevronDown size={12} />
+              </button>
+              <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
+                <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>
+                  🌎 查看全部记录
+                </div>
+                <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`}
+                  onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>
+                  🔥 仅看我的 ({user?.username})
+                </div>
+                {allAuthors.length > 0 && (
+                  <>
+                    <div className="dropdown-sep">指定作者</div>
+                    {allAuthors.filter(a => a !== user?.username).map(a => (
+                      <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`}
+                        onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>
+                        👤 {a}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>
+              共 {filtered.length} 篇记录
+            </span>
+          </div>
+
+          {/* Paper grid */}
+          <div className="paper-grid">
+            {filtered.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📑</div>
+                <div className="empty-text">
+                  {papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}
+                </div>
+                <div className="empty-sub">
+                  {papers.length === 0 && '点击右上角「新建投稿」开始记录'}
+                </div>
+              </div>
+            ) : (
+              filtered.map(p => (
+                <PaperCard
+                  key={p.id}
+                  paper={p}
+                  currentUsername={user?.username || ''}
+                  allPapers={papers}
+                  onClick={() => setEditing(p)}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} />}
+
+      {tab === 'admin' && user?.is_admin && <AdminPanel />}
 
       {/* Paper form modal */}
       {editing && (
