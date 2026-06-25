@@ -168,7 +168,7 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const end = today > new Date(dates[dates.length - 1]) ? today : new Date(dates[dates.length - 1])
-    const filled: { date: string; submitted: number; accepted: number; rejected: number; cumSubmitted: number; cumAccepted: number; cumRejected: number }[] = []
+    const filled: { date: string; submitted: number; accepted: number; rejected: number; cumSubmitted: number; cumAccepted: number; cumRejected: number; inProgress: number }[] = []
     let cumSubmitted = 0, cumAccepted = 0, cumRejected = 0
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const key = d.toISOString().slice(0, 10)
@@ -176,7 +176,7 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
       cumSubmitted += entry.submitted
       cumAccepted += entry.accepted
       cumRejected += entry.rejected
-      filled.push({ date: key, ...entry, cumSubmitted, cumAccepted, cumRejected })
+      filled.push({ date: key, ...entry, cumSubmitted, cumAccepted, cumRejected, inProgress: cumSubmitted - cumAccepted - cumRejected })
     }
     return filled
   }, [papers])
@@ -281,7 +281,7 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
             <div className="chart-legend">
               <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#0891b2' }} />累积投稿</span>
               <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#22c55e' }} />累积接收</span>
-              <span className="chart-legend-item"><span className="legend-dot legend-dot-dashed" style={{ background: '#ef4444' }} />累积拒稿</span>
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#f59e0b' }} />审稿中</span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={370}>
@@ -295,9 +295,9 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
                   <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
                   <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="gradRejected" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                <linearGradient id="gradInProgress" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
@@ -315,7 +315,7 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
               <Tooltip content={<TrendTooltip />} />
               <Area yAxisId="left" type="monotone" dataKey="cumSubmitted" name="累积投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={false} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
               <Area yAxisId="left" type="monotone" dataKey="cumAccepted" name="累积接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={false} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
-              <Area yAxisId="left" type="monotone" dataKey="cumRejected" name="累积拒稿" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={false} strokeDasharray="4 2" />
+              <Area yAxisId="left" type="monotone" dataKey="inProgress" name="审稿中" stroke="#f59e0b" strokeWidth={2} fill="url(#gradInProgress)" dot={false} activeDot={{ r: 5, stroke: '#f59e0b', strokeWidth: 2, fill: '#fff' }} />
               <Brush dataKey="date" height={28} stroke="#0891b2" fill="var(--bg-glass, rgba(255,255,255,0.6))" travellerWidth={10} tickFormatter={(v: string) => v.slice(5)} />
             </AreaChart>
           </ResponsiveContainer>
