@@ -313,9 +313,9 @@ export default function PersonalStats({ papers, currentUsername, authorName }: P
               />
               <YAxis yAxisId="left" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip content={<TrendTooltip />} />
-              <Area yAxisId="left" type="monotone" dataKey="cumSubmitted" name="累积投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={false} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
-              <Area yAxisId="left" type="monotone" dataKey="cumAccepted" name="累积接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={false} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
-              <Area yAxisId="left" type="monotone" dataKey="inProgress" name="审稿中" stroke="#f59e0b" strokeWidth={2} fill="url(#gradInProgress)" dot={false} activeDot={{ r: 5, stroke: '#f59e0b', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="natural" dataKey="cumSubmitted" name="累积投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={false} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="natural" dataKey="cumAccepted" name="累积接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={false} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="natural" dataKey="inProgress" name="审稿中" stroke="#f59e0b" strokeWidth={2} fill="url(#gradInProgress)" dot={false} activeDot={{ r: 5, stroke: '#f59e0b', strokeWidth: 2, fill: '#fff' }} />
               <Brush dataKey="date" height={28} stroke="#0891b2" fill="var(--bg-glass, rgba(255,255,255,0.6))" travellerWidth={10} tickFormatter={(v: string) => v.slice(5)} />
             </AreaChart>
           </ResponsiveContainer>
