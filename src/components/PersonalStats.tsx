@@ -1,22 +1,82 @@
 import { useMemo } from 'react'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts'
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, AreaChart, Area, ResponsiveContainer,
+} from 'recharts'
 
 interface Props {
   papers: Paper[]
   currentUsername: string
 }
 
-// Get CSS variable value
 function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
 const CHART_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#a855f7', '#22c55e', '#ef4444', '#64748b', '#ec4899', '#14b8a6', '#f97316']
 
+// Custom tooltip for time trend chart
+function TrendTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const bg = cssVar('--bg-card') || '#fff'
+  const border = cssVar('--border-default') || '#eee'
+  return (
+    <div style={{
+      background: bg, border: `1px solid ${border}`, borderRadius: 10,
+      padding: '10px 14px', fontSize: 12, minWidth: 140,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+    }}>
+      <div style={{ fontWeight: 800, marginBottom: 6, color: cssVar('--text-primary') }}>{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '2px 0' }}>
+          <span style={{ color: p.color, fontWeight: 600 }}>{p.name}</span>
+          <span style={{ fontWeight: 800, fontFamily: 'monospace' }}>{p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Custom tooltip for bar charts
+function BarTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const bg = cssVar('--bg-card') || '#fff'
+  const border = cssVar('--border-default') || '#eee'
+  return (
+    <div style={{
+      background: bg, border: `1px solid ${border}`, borderRadius: 8,
+      padding: '6px 12px', fontSize: 12,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    }}>
+      <span style={{ fontWeight: 700, color: cssVar('--text-primary') }}>{label}</span>
+      <span style={{ fontWeight: 800, marginLeft: 10, fontFamily: 'monospace', color: payload[0]?.fill || cssVar('--accent') }}>
+        {payload[0]?.value} 篇
+      </span>
+    </div>
+  )
+}
+
+// Custom tooltip for pie chart
+function PieTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+  const bg = cssVar('--bg-card') || '#fff'
+  const border = cssVar('--border-default') || '#eee'
+  return (
+    <div style={{
+      background: bg, border: `1px solid ${border}`, borderRadius: 8,
+      padding: '6px 12px', fontSize: 12,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    }}>
+      <span style={{ fontWeight: 700 }}>{payload[0]?.name}</span>
+      <span style={{ fontWeight: 800, marginLeft: 10, fontFamily: 'monospace' }}>{payload[0]?.value} 篇</span>
+    </div>
+  )
+}
+
 export default function PersonalStats({ papers, currentUsername }: Props) {
-  // Status distribution for pie chart
+  // ── Status distribution for pie chart ──
   const statusData = useMemo(() => {
     return STATUSES.map(s => ({
       name: `${s.emoji} ${s.label}`,
@@ -25,7 +85,7 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
     })).filter(d => d.value > 0)
   }, [papers])
 
-  // JCR distribution
+  // ── JCR distribution ──
   const jcrData = useMemo(() => {
     const counts: Record<string, number> = {}
     papers.filter(p => p.lang === 'en' && p.quartile_jcr && p.quartile_jcr !== '未定').forEach(p => {
@@ -38,7 +98,7 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
     })).filter(d => d.value > 0)
   }, [papers])
 
-  // CAS (中科院) distribution
+  // ── CAS distribution ──
   const casData = useMemo(() => {
     const counts: Record<string, number> = {}
     papers.filter(p => p.lang === 'en' && p.quartile_cas && p.quartile_cas !== '未定').forEach(p => {
@@ -51,7 +111,7 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
     })).filter(d => d.value > 0)
   }, [papers])
 
-  // Custom quartile distribution
+  // ── Custom quartile distribution ──
   const custData = useMemo(() => {
     const counts: Record<string, number> = {}
     papers.forEach(p => {
@@ -64,7 +124,7 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
       .map(([name, count], i) => ({ name, value: count, fill: CHART_COLORS[i % CHART_COLORS.length] }))
   }, [papers])
 
-  // Author contribution
+  // ── Author contribution ──
   const authorData = useMemo(() => {
     const counts: Record<string, number> = {}
     papers.forEach(p => {
@@ -83,27 +143,51 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
       }))
   }, [papers, currentUsername])
 
-  // Time trend (monthly submissions and acceptances)
+  // ── Time trend (monthly) with cumulative ──
   const timeData = useMemo(() => {
-    const monthly: Record<string, { submitted: number; accepted: number }> = {}
+    const monthly: Record<string, { submitted: number; accepted: number; rejected: number }> = {}
     papers.forEach(p => {
       if (p.submitted_date) {
-        const ym = p.submitted_date.slice(0, 7) // YYYY-MM
-        if (!monthly[ym]) monthly[ym] = { submitted: 0, accepted: 0 }
+        const ym = p.submitted_date.slice(0, 7)
+        if (!monthly[ym]) monthly[ym] = { submitted: 0, accepted: 0, rejected: 0 }
         monthly[ym].submitted++
       }
       if (p.resolve_date && (p.status === 'accepted' || p.status === 'rejected')) {
         const ym = p.resolve_date.slice(0, 7)
-        if (!monthly[ym]) monthly[ym] = { submitted: 0, accepted: 0 }
+        if (!monthly[ym]) monthly[ym] = { submitted: 0, accepted: 0, rejected: 0 }
         if (p.status === 'accepted') monthly[ym].accepted++
+        if (p.status === 'rejected') monthly[ym].rejected++
       }
     })
-    return Object.entries(monthly)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([month, data]) => ({ month, ...data }))
+    const sorted = Object.entries(monthly).sort((a, b) => a[0].localeCompare(b[0]))
+    let cumSubmitted = 0, cumAccepted = 0, cumRejected = 0
+    return sorted.map(([month, data]) => {
+      cumSubmitted += data.submitted
+      cumAccepted += data.accepted
+      cumRejected += data.rejected
+      return {
+        month,
+        ...data,
+        cumSubmitted,
+        cumAccepted,
+        cumRejected,
+      }
+    })
   }, [papers])
 
-  // Chinese journal category distribution
+  // ── Journal distribution (top journals) ──
+  const journalData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    papers.forEach(p => {
+      if (p.journal) counts[p.journal] = (counts[p.journal] || 0) + 1
+    })
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([name, count], i) => ({ name, value: count, fill: CHART_COLORS[i % CHART_COLORS.length] }))
+  }, [papers])
+
+  // ── Chinese journal category distribution ──
   const zhCategoryData = useMemo(() => {
     const counts: Record<string, number> = {}
     papers.filter(p => p.lang === 'zh' && p.quartile_zh).forEach(p => {
@@ -116,11 +200,15 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
       .map(([name, count], i) => ({ name, value: count, fill: CHART_COLORS[i % CHART_COLORS.length] }))
   }, [papers])
 
-  // Summary stats
+  // ── Summary stats ──
   const summary = useMemo(() => {
     const total = papers.length
     const accepted = papers.filter(p => p.status === 'accepted').length
+    const rejected = papers.filter(p => p.status === 'rejected').length
     const inProgress = papers.filter(p => ['submitted', 'under_review', 'revision'].includes(p.status)).length
+    const firstAuthor = papers.filter(p => p.authors?.[0] === currentUsername).length
+    const collaborators = new Set(papers.flatMap(p => p.authors || [])).size
+    const journals = new Set(papers.map(p => p.journal).filter(Boolean)).size
     const avgDays = (() => {
       const resolved = papers.filter(p => p.submitted_date && p.resolve_date)
       if (!resolved.length) return 0
@@ -131,18 +219,13 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
       }, 0)
       return Math.round(totalDays / resolved.length)
     })()
-    const journals = new Set(papers.map(p => p.journal).filter(Boolean)).size
-    return { total, accepted, inProgress, avgDays, journals }
-  }, [papers])
+    const rate = total > 0 ? Math.round(accepted / total * 100) : 0
+    return { total, accepted, rejected, inProgress, firstAuthor, collaborators, journals, avgDays, rate }
+  }, [papers, currentUsername])
 
-  const tooltipStyle = {
-    contentStyle: {
-      background: cssVar('--bg-card') || '#fff',
-      border: `1px solid ${cssVar('--border-default') || '#eee'}`,
-      borderRadius: 8,
-      fontSize: 12,
-    },
-  }
+  // Theme colors for chart config
+  const gridColor = cssVar('--border-subtle') || '#eee'
+  const mutedColor = cssVar('--text-muted') || '#999'
 
   if (papers.length === 0) {
     return (
@@ -158,37 +241,118 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
 
   return (
     <div className="stats-panel">
-      {/* Summary cards */}
+      {/* ── Summary cards ── */}
       <div className="stats-summary">
         <div className="summary-card">
-          <div className="summary-value">{summary.total}</div>
-          <div className="summary-label">论文总数</div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-value" style={{ color: '#22c55e' }}>{summary.accepted}</div>
-          <div className="summary-label">已接收</div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-value" style={{ color: '#f59e0b' }}>{summary.inProgress}</div>
-          <div className="summary-label">进行中</div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-value" style={{ color: '#0891b2' }}>{summary.journals}</div>
-          <div className="summary-label">涉及期刊</div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-value" style={{ color: '#a855f7' }}>{summary.avgDays}</div>
-          <div className="summary-label">平均审稿天数</div>
-        </div>
-        <div className="summary-card">
-          <div className="summary-value" style={{ color: summary.total > 0 ? '#22c55e' : '#64748b' }}>
-            {summary.total > 0 ? `${Math.round(summary.accepted / summary.total * 100)}%` : '—'}
+          <div className="summary-icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>📄</div>
+          <div>
+            <div className="summary-value">{summary.total}</div>
+            <div className="summary-label">论文总数</div>
           </div>
-          <div className="summary-label">接收率</div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>✅</div>
+          <div>
+            <div className="summary-value" style={{ color: '#22c55e' }}>{summary.accepted}</div>
+            <div className="summary-label">已接收</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>⏳</div>
+          <div>
+            <div className="summary-value" style={{ color: '#f59e0b' }}>{summary.inProgress}</div>
+            <div className="summary-label">进行中</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>🚫</div>
+          <div>
+            <div className="summary-value" style={{ color: '#ef4444' }}>{summary.rejected}</div>
+            <div className="summary-label">被拒</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'var(--purple-bg)', color: 'var(--purple)' }}>👤</div>
+          <div>
+            <div className="summary-value" style={{ color: 'var(--purple)' }}>{summary.firstAuthor}</div>
+            <div className="summary-label">第一作者</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'var(--info-bg)', color: 'var(--info)' }}>👥</div>
+          <div>
+            <div className="summary-value" style={{ color: 'var(--info)' }}>{summary.collaborators}</div>
+            <div className="summary-label">合作者</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'rgba(8,145,178,0.1)', color: '#0891b2' }}>📰</div>
+          <div>
+            <div className="summary-value" style={{ color: '#0891b2' }}>{summary.journals}</div>
+            <div className="summary-label">涉及期刊</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>⏱</div>
+          <div>
+            <div className="summary-value" style={{ color: '#a855f7' }}>{summary.avgDays}</div>
+            <div className="summary-label">平均审稿天数</div>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon" style={{ background: summary.rate >= 50 ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', color: summary.rate >= 50 ? '#22c55e' : '#f59e0b' }}>🎯</div>
+          <div>
+            <div className="summary-value" style={{ color: summary.rate >= 50 ? '#22c55e' : '#f59e0b' }}>
+              {summary.total > 0 ? `${summary.rate}%` : '—'}
+            </div>
+            <div className="summary-label">接收率</div>
+          </div>
         </div>
       </div>
 
-      {/* Charts grid */}
+      {/* ── Time trend (full-width hero chart) ── */}
+      {timeData.length > 1 && (
+        <div className="chart-card chart-card-hero">
+          <div className="chart-header">
+            <h3 className="chart-title">投稿时间趋势</h3>
+            <div className="chart-legend">
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#0891b2' }} />投稿</span>
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#22c55e' }} />接收</span>
+              <span className="chart-legend-item"><span className="legend-dot" style={{ background: '#ef4444' }} />拒稿</span>
+              <span className="chart-legend-item" style={{ opacity: 0.6 }}><span className="legend-dot legend-dot-dashed" style={{ background: '#a855f7' }} />累积投稿</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={timeData}>
+              <defs>
+                <linearGradient id="gradSubmitted" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0891b2" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#0891b2" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradAccepted" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradRejected" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: mutedColor }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="left" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
+              <Tooltip content={<TrendTooltip />} />
+              <Area yAxisId="left" type="monotone" dataKey="submitted" name="投稿" stroke="#0891b2" strokeWidth={2.5} fill="url(#gradSubmitted)" dot={{ r: 3, fill: '#0891b2', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#0891b2', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="monotone" dataKey="accepted" name="接收" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradAccepted)" dot={{ r: 3, fill: '#22c55e', strokeWidth: 0 }} activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#fff' }} />
+              <Area yAxisId="left" type="monotone" dataKey="rejected" name="拒稿" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={{ r: 2, fill: '#ef4444', strokeWidth: 0 }} strokeDasharray="4 2" />
+              <Area yAxisId="right" type="monotone" dataKey="cumSubmitted" name="累积投稿" stroke="#a855f7" strokeWidth={1.5} fill="none" dot={false} strokeDasharray="6 3" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* ── Charts grid ── */}
       <div className="charts-grid">
         {/* Status pie chart */}
         {statusData.length > 0 && (
@@ -196,30 +360,30 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
             <h3 className="chart-title">状态分布</h3>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2} dataKey="value">
+                <Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" strokeWidth={0}>
                   {statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
-                <Tooltip {...tooltipStyle} />
+                <Tooltip content={<PieTooltip />} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* Time trend */}
-        {timeData.length > 1 && (
+        {/* Journal distribution */}
+        {journalData.length > 0 && (
           <div className="chart-card">
-            <h3 className="chart-title">投稿时间趋势</h3>
+            <h3 className="chart-title">期刊分布 (Top {journalData.length})</h3>
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={timeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--border-subtle') || '#eee'} />
-                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip {...tooltipStyle} />
-                <Legend iconType="line" wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="submitted" name="投稿" stroke="#0891b2" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="accepted" name="接收" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
+              <BarChart data={journalData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: mutedColor }} width={120} axisLine={false} tickLine={false} />
+                <Tooltip content={<BarTooltip />} />
+                <Bar dataKey="value" name="论文数" radius={[0, 4, 4, 0]} barSize={18}>
+                  {journalData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         )}
@@ -230,11 +394,11 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
             <h3 className="chart-title">JCR 分区分布</h3>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={jcrData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--border-subtle') || '#eee'} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="value" name="论文数" radius={[4, 4, 0, 0]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: mutedColor }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <Tooltip content={<BarTooltip />} />
+                <Bar dataKey="value" name="论文数" radius={[6, 6, 0, 0]} barSize={36}>
                   {jcrData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>
               </BarChart>
@@ -248,11 +412,11 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
             <h3 className="chart-title">中科院分区分布</h3>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={casData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--border-subtle') || '#eee'} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="value" name="论文数" radius={[4, 4, 0, 0]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: mutedColor }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <Tooltip content={<BarTooltip />} />
+                <Bar dataKey="value" name="论文数" radius={[6, 6, 0, 0]} barSize={36}>
                   {casData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>
               </BarChart>
@@ -266,11 +430,11 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
             <h3 className="chart-title">自定义分区分布</h3>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={custData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--border-subtle') || '#eee'} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="value" name="论文数" radius={[4, 4, 0, 0]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: mutedColor }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <Tooltip content={<BarTooltip />} />
+                <Bar dataKey="value" name="论文数" radius={[6, 6, 0, 0]} barSize={36}>
                   {custData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>
               </BarChart>
@@ -284,11 +448,11 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
             <h3 className="chart-title">中文期刊分类</h3>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={zhCategoryData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--border-subtle') || '#eee'} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="value" name="论文数" radius={[4, 4, 0, 0]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: mutedColor }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <Tooltip content={<BarTooltip />} />
+                <Bar dataKey="value" name="论文数" radius={[6, 6, 0, 0]} barSize={36}>
                   {zhCategoryData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>
               </BarChart>
@@ -296,18 +460,18 @@ export default function PersonalStats({ papers, currentUsername }: Props) {
           </div>
         )}
 
-        {/* Author contribution */}
+        {/* Author contribution (full width) */}
         {authorData.length > 0 && (
           <div className="chart-card chart-card-wide">
             <h3 className="chart-title">作者贡献统计</h3>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={Math.max(200, authorData.length * 28 + 40)}>
               <BarChart data={authorData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--border-subtle') || '#eee'} />
-                <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="value" name="论文数" radius={[0, 4, 4, 0]}>
-                  {authorData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: mutedColor }} allowDecimals={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: mutedColor }} width={90} axisLine={false} tickLine={false} />
+                <Tooltip content={<BarTooltip />} />
+                <Bar dataKey="value" name="论文数" radius={[0, 6, 6, 0]} barSize={20}>
+                  {authorData.map((entry, i) => <Cell key={i} fill={entry.fill} opacity={entry.isMe ? 1 : 0.8} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
