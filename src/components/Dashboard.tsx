@@ -7,12 +7,15 @@ import { STATUSES } from '../lib/types'
 import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperForm'
+import MetricCard from './MetricCard'
 import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
 
 type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'dashboard' | 'stats' | 'admin'
+
+type StatusFilter = 'all' | string
 
 export default function Dashboard() {
   const { user, signOut, isDemo, exitDemo, updateAuthorName } = useAuth()
@@ -21,6 +24,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(!isDemo)
   const [search, setSearch] = useState('')
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [filterAuthor, setFilterAuthor] = useState('')
   const [showFilterDrop, setShowFilterDrop] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
@@ -56,6 +60,7 @@ export default function Dashboard() {
   const matchName = user?.author_name || user?.username || ''
 
   let filtered = papers
+  if (statusFilter !== 'all') filtered = filtered.filter(p => p.status === statusFilter)
   if (viewFilter === 'me' && user) {
     filtered = filtered.filter(p =>
       (p.authors || []).includes(user.username) ||
@@ -149,9 +154,7 @@ export default function Dashboard() {
     viewFilter === 'me' ? `我的 (${matchName || user?.username || '未设置'})` :
     filterAuthor
 
-  if (loading) {
-    return <div className="loading-screen"><div className="spinner" /><span style={{ fontSize: 13 }}>加载数据中...</span></div>
-  }
+  if (loading) return <div className="loading-screen"><div className="spinner" /><span style={{ fontSize: 13 }}>加载数据中...</span></div>
 
   return (
     <div className="app-layout">
@@ -189,9 +192,9 @@ export default function Dashboard() {
       </header>
 
       {tab === 'dashboard' && <>
-        <div className="stats-bar">
-          {stats.map(s => <div key={s.key} className="stat-card glass-panel"><div className="stat-value" style={{ color: s.color }}>{s.count}</div><div><div className="stat-label">{s.emoji} {s.label}</div></div></div>)}
-          <div className="stat-card glass-panel" style={{ flex: '0 0 auto', minWidth: 80 }}><div className="stat-value" style={{ color: 'var(--text-primary)' }}>{papers.length}</div><div className="stat-label">📊 总计</div></div>
+        <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
+          {stats.map(s => <MetricCard key={s.key} icon={s.emoji} value={s.count} label={s.label} helper="点击筛选" color={s.color} tone={`${s.color}18`} active={statusFilter === s.key} onClick={() => setStatusFilter(statusFilter === s.key ? 'all' : s.key)} />)}
+          <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
 
         <div className="toolbar glass-toolbar">
