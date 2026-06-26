@@ -2,21 +2,9 @@
 export interface Database {
   public: {
     Tables: {
-      user_profiles: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
-      }
-      papers: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
-      }
-      timeline_events: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
-      }
+      user_profiles: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      papers: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      timeline_events: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
     }
     Views: Record<string, any>
     Functions: Record<string, any>
@@ -24,10 +12,8 @@ export interface Database {
   }
 }
 
-// ── Admin ──
-export const ADMIN_ID = 'c207de09-6b0c-470d-85a6-90ff4304c1ba'
+export const ADMIN_ID = import.meta.env.VITE_ADMIN_ID || ''
 
-// ── Application types ──
 export interface UserProfile {
   id: string
   username: string
@@ -44,6 +30,16 @@ export interface Paper {
   title: string
   title_zh: string | null
   journal: string | null
+  manuscript_no?: string | null
+  submission_system?: string | null
+  system_status?: string | null
+  last_status_date?: string | null
+  next_action?: string | null
+  reminder_level?: string | null
+  apc_amount?: number | null
+  apc_currency?: string | null
+  revision_round?: number | null
+  followup_log?: string | null
   status: string
   lang: string
   quartile_jcr: string | null
@@ -75,7 +71,6 @@ export interface TimelineEvent {
   created_at: string
 }
 
-// ── Status definitions ──
 export const STATUSES = [
   { key: 'preparing',    label: '准备中', emoji: '📝', color: '#6366f1' },
   { key: 'submitted',    label: '已投稿', emoji: '📮', color: '#0ea5e9' },
@@ -101,3 +96,58 @@ export const TIMELINE_PRESETS = [
   'Accepted', 'Rejected', 'Withdrawn',
   'Decision Pending', 'Proof Received', 'Published', 'Out for Review',
 ]
+
+export const SYSTEM_STATUS_PRESETS = [
+  'Submitted', 'With Journal Administrator', 'With Editor', 'Editor Invited',
+  'Out for Review', 'Under Review', 'Required Reviews Complete', 'Review Complete',
+  'Decision Pending', 'Revision Required', 'Revision Incomplete', 'Revised Manuscript Submitted',
+  'Minor Revision', 'Major Revision', 'Accepted', 'Proof Received', 'Published',
+  'Rejected', 'Withdrawn',
+]
+
+export const SUBMISSION_SYSTEM_OPTIONS = [
+  'ScholarOne', 'Editorial Manager', 'Taylor & Francis Submission Portal',
+  'Elsevier Editorial System', 'Springer Nature Snapp', 'MDPI SuSy',
+  'Frontiers', 'Wiley Author Services', '期刊邮箱', '其它',
+]
+
+export const NEXT_ACTION_OPTIONS = [
+  '等待编辑处理', '等待外审结果', '准备修回', '上传修回稿', '发送催稿邮件',
+  '确认版面费 / APC', '校对 Proof', '更新投稿系统状态', '准备改投', '无需处理',
+]
+
+export const REMINDER_LEVELS = [
+  { key: 'none', label: '普通', color: '#64748b' },
+  { key: 'watch', label: '关注', color: '#0ea5e9' },
+  { key: 'warn', label: '建议处理', color: '#f59e0b' },
+  { key: 'urgent', label: '紧急', color: '#ef4444' },
+] as const
+
+export type WorkflowSignal = {
+  level: 'info' | 'warn' | 'danger' | 'success'
+  text: string
+  detail: string
+}
+
+export function getWorkflowSignal(paper: Partial<Pick<Paper,
+  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'next_action' | 'reminder_level'
+>>): WorkflowSignal | null {
+  if (paper.reminder_level === 'urgent') return { level: 'danger', text: '紧急处理', detail: paper.next_action || '请尽快处理该稿件' }
+  if (paper.reminder_level === 'warn') return { level: 'warn', text: '建议处理', detail: paper.next_action || '建议检查投稿进展' }
+  if (paper.next_action && paper.next_action !== '无需处理') return { level: 'info', text: paper.next_action, detail: '已设置下一步行动' }
+
+  const baseDate = paper.last_status_date || paper.submitted_date
+  const status = (paper.system_status || '').toLowerCase()
+  if (!baseDate) return null
+
+  const time = new Date(baseDate).getTime()
+  if (!Number.isFinite(time)) return null
+  const days = Math.max(0, Math.floor((Date.now() - time) / 86400000))
+
+  if (paper.status === 'revision' && paper.deadline) return null
+  if (status.includes('decision pending') && days >= 14) return { level: 'warn', text: '决策等待偏久', detail: `Decision Pending 已 ${days} 天，可考虑询问编辑部` }
+  if ((status.includes('with editor') || status.includes('journal administrator')) && days >= 30) return { level: 'warn', text: '编辑处理偏久', detail: `当前阶段已 ${days} 天，可准备简短催稿` }
+  if ((status.includes('out for review') || status.includes('under review')) && days >= 90) return { level: 'info', text: '外审周期较长', detail: `外审相关阶段已 ${days} 天，建议持续跟踪` }
+  if (paper.status === 'accepted') return { level: 'success', text: '已接收', detail: '可继续跟踪 Proof、APC 与发表信息' }
+  return null
+}
