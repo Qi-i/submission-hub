@@ -4,6 +4,7 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import './size.css'
 import './stats-fix.css'
+import './corresponding-badge.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
