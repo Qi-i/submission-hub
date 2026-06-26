@@ -2,6 +2,7 @@ import { ThemeProvider } from './lib/theme'
 import { AuthProvider, useAuth } from './lib/auth'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
+import './size.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
