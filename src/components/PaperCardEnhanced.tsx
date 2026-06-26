@@ -16,8 +16,8 @@ function formatDate(d?: string | null) {
   return parts.length === 3 ? `${parts[0]}/${parts[1]}/${parts[2]}` : d
 }
 
-function isUrl(path: string) {
-  return /^https?:\/\//i.test(path)
+function isUrl(path?: string | null) {
+  return !!path && /^https?:\/\//i.test(path)
 }
 
 function getDeadlineInfo(deadline: string | null, status: string) {
@@ -81,6 +81,13 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
           {paper.system_status && <span className="badge badge-sm badge-outline">{paper.system_status}</span>}
           {!!paper.revision_round && <span className="badge badge-sm badge-outline">R{paper.revision_round}</span>}
           {!!paper.apc_amount && <span className="badge badge-sm badge-outline">APC {paper.apc_amount} {paper.apc_currency || ''}</span>}
+        </div>
+      )}
+
+      {(isUrl(paper.tracking_url) || isUrl(paper.published_url)) && (
+        <div className="paper-link-row">
+          {isUrl(paper.tracking_url) && <a href={paper.tracking_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>投稿后台 ↗</a>}
+          {isUrl(paper.published_url) && <a href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>见刊页面 ↗</a>}
         </div>
       )}
 
