@@ -53,6 +53,7 @@ export interface Paper {
   resolve_date: string | null
   deadline: string | null
   tracking_url: string | null
+  published_url?: string | null
   timeline: string | null
   notes: string | null
   prev_id: string | null
