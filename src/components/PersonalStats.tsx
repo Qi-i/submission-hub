@@ -1,2 +1,2 @@
-import PersonalStatsRefined from './PersonalStatsRefined'
-export default PersonalStatsRefined
+import PersonalStatsStable from './PersonalStatsStable'
+export default PersonalStatsStable
