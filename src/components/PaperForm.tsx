@@ -1,2 +1,2 @@
-import PaperFormRefined from './PaperFormRefined'
-export default PaperFormRefined
+import PaperFormEnhanced from './PaperFormEnhanced'
+export default PaperFormEnhanced
