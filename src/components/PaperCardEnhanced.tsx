@@ -91,17 +91,22 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
       {badges.length > 0 && <div className="paper-meta-row">{badges.map((b, i) => <span key={i} className={`badge badge-sm badge-outline ${b.cls}`}>{b.label}</span>)}</div>}
 
-      <div className="author-list">
+      <div className="author-list-v2">
         <span className="author-prefix">👥</span>
         {(paper.authors || []).map((a, i) => {
-          const isMe = authorName ? a === authorName : a === currentUsername
-          const isCorresponding = paper.corresponding_author === a
-          const posLabel = isMe ? (i === 0 ? '一作' : `第${i + 1}作`) : ''
+          const matched = authorName ? a === authorName : a === currentUsername
+          const first = i === 0
+          const corresponding = paper.corresponding_author === a
+          const classes = ['author-badge-v2', first ? 'first-author' : '', matched ? 'matched-author' : '', corresponding ? 'corresponding-author' : ''].filter(Boolean).join(' ')
           return (
-            <span key={`${a}-${i}`} className={`author-tag ${isMe ? 'is-me' : ''} ${isCorresponding ? 'is-corresponding' : ''}`}>
-              <span>{a}</span>
-              {posLabel && <span className="author-role">{posLabel}</span>}
-              {isCorresponding && <span className="corr-badge" title="通讯作者">通讯</span>}
+            <span key={`${a}-${i}`} className={classes}>
+              <span className="author-name-v2">{a}</span>
+              <span className="author-tags-v2">
+                {matched && <span className="author-tag-v2 tag-matched">ME</span>}
+                {first && <span className="author-tag-v2 tag-first">一作</span>}
+                {!first && matched && <span className="author-tag-v2 tag-rank">第{i + 1}作</span>}
+                {corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}
+              </span>
             </span>
           )
         })}
