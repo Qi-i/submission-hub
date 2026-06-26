@@ -145,9 +145,9 @@ export function getWorkflowSignal(paper: Partial<Pick<Paper,
   const days = Math.max(0, Math.floor((Date.now() - time) / 86400000))
 
   if (paper.status === 'revision' && paper.deadline) return null
+  if (paper.status === 'accepted') return null
   if (status.includes('decision pending') && days >= 14) return { level: 'warn', text: '决策等待偏久', detail: `Decision Pending 已 ${days} 天，可考虑询问编辑部` }
   if ((status.includes('with editor') || status.includes('journal administrator')) && days >= 30) return { level: 'warn', text: '编辑处理偏久', detail: `当前阶段已 ${days} 天，可准备简短催稿` }
   if ((status.includes('out for review') || status.includes('under review')) && days >= 90) return { level: 'info', text: '外审周期较长', detail: `外审相关阶段已 ${days} 天，建议持续跟踪` }
-  if (paper.status === 'accepted') return { level: 'success', text: '已接收', detail: '可继续跟踪 Proof、APC 与发表信息' }
   return null
 }
