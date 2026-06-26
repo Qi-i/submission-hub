@@ -16,6 +16,10 @@ function formatDate(d?: string | null) {
   return parts.length === 3 ? `${parts[0]}/${parts[1]}/${parts[2]}` : d
 }
 
+function isUrl(path: string) {
+  return /^https?:\/\//i.test(path)
+}
+
 function getDeadlineInfo(deadline: string | null, status: string) {
   if (!deadline) return null
   if (status !== 'revision') return null
@@ -102,7 +106,6 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
             <span key={`${a}-${i}`} className={classes}>
               <span className="author-name-v2">{a}</span>
               <span className="author-tags-v2">
-                {matched && <span className="author-tag-v2 tag-matched">ME</span>}
                 {first && <span className="author-tag-v2 tag-first">一作</span>}
                 {!first && matched && <span className="author-tag-v2 tag-rank">第{i + 1}作</span>}
                 {corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}
@@ -125,7 +128,11 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       <div className="paper-card-footer">
         <div className="paper-footer-left">
           {deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}
-          {(paper.files || []).filter(f => f.p).map((f, i) => <span key={i} className="file-dot" title={f.n || f.p}>📎</span>)}
+          {(paper.files || []).filter(f => f.p).map((f, i) => isUrl(f.p) ? (
+            <a key={i} className="file-dot" href={f.p} target="_blank" rel="noopener noreferrer" title={f.n || f.p} onClick={e => e.stopPropagation()}>📎</a>
+          ) : (
+            <span key={i} className="file-dot file-dot-disabled" title={`${f.n || f.p}：文件链接不可用`}>📎</span>
+          ))}
         </div>
         <span className="paper-date-info">{dateInfo}</span>
       </div>
