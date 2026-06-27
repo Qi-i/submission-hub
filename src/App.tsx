@@ -5,7 +5,6 @@ import Dashboard from './components/Dashboard'
 import './size.css'
 import './stats-fix.css'
 import './corresponding-badge.css'
-import './mobile-header.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
