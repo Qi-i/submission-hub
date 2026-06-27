@@ -6,6 +6,7 @@ import './size.css'
 import './stats-fix.css'
 import './corresponding-badge.css'
 import './mobile-metrics.css'
+import './mobile-top-3row.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
