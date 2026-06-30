@@ -20,6 +20,12 @@ function isUrl(path?: string | null) {
   return !!path && /^https?:\/\//i.test(path)
 }
 
+function doiHref(doi?: string | null) {
+  if (!doi) return ''
+  if (/^https?:\/\//i.test(doi)) return doi
+  return `https://doi.org/${doi.replace(/^doi:\s*/i, '').trim()}`
+}
+
 function getDeadlineInfo(deadline: string | null, status: string) {
   if (!deadline) return null
   if (status !== 'revision') return null
@@ -37,11 +43,26 @@ function signalStyle(level: string) {
   return { color: 'var(--accent)', background: 'var(--accent-bg)' }
 }
 
+function previousChain(paper: Paper, allPapers: Paper[]) {
+  const chain: Paper[] = []
+  let cursor: Paper | undefined = paper
+  const seen = new Set<string>()
+  while (cursor?.prev_id && !seen.has(cursor.prev_id)) {
+    seen.add(cursor.prev_id)
+    const prev = allPapers.find(p => p.id === cursor!.prev_id)
+    if (!prev) break
+    chain.unshift(prev)
+    cursor = prev
+  }
+  return chain
+}
+
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, index = 0, onClick }: Props) {
   const st = getStatus(paper.status)
   const deadline = getDeadlineInfo(paper.deadline, paper.status)
   const signal = getWorkflowSignal(paper)
-  const previous = paper.prev_id ? allPapers.find(p => p.id === paper.prev_id) : null
+  const chain = previousChain(paper, allPapers)
+  const nextCount = allPapers.filter(p => p.prev_id === paper.id).length
 
   let dateInfo = ''
   if (paper.submitted_date) {
@@ -87,6 +108,11 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         </div>
       )}
 
+      {(paper.journal_url || paper.journal_apc_note) && <div className="journal-profile-row">
+        {isUrl(paper.journal_url) && <a href={paper.journal_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>期刊档案 ↗</a>}
+        {paper.journal_apc_note && <span title={paper.journal_apc_note}>APC / 期刊备注</span>}
+      </div>}
+
       <div>
         <div className="card-title">
           {paper.lang === 'en' && <span className="lang-tag lang-en">EN</span>}
@@ -95,6 +121,12 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         </div>
         {paper.lang === 'en' && paper.title_zh && <div className="card-subtitle">{paper.title_zh}</div>}
       </div>
+
+      {(paper.doi || paper.publication_info || paper.citation) && <div className="archive-chip-row">
+        {paper.doi && <a className="archive-chip doi" href={doiHref(paper.doi)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>DOI ↗</a>}
+        {paper.publication_info && <span className="archive-chip pub" title={paper.publication_info}>{paper.publication_info}</span>}
+        {paper.citation && <span className="archive-chip cite" title={paper.citation}>引用格式</span>}
+      </div>}
 
       {badges.length > 0 && <div className="paper-meta-row">{badges.map((b, i) => <span key={i} className={`badge badge-sm badge-outline ${b.cls}`}>{b.label}</span>)}</div>}
 
@@ -105,37 +137,19 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
           const first = i === 0
           const corresponding = paper.corresponding_author === a
           const classes = ['author-badge-v2', first ? 'first-author' : '', matched ? 'matched-author' : '', corresponding ? 'corresponding-author' : ''].filter(Boolean).join(' ')
-          return (
-            <span key={`${a}-${i}`} className={classes}>
-              <span className="author-name-v2">{a}</span>
-              <span className="author-tags-v2">
-                {first && <span className="author-tag-v2 tag-first">一作</span>}
-                {!first && matched && <span className="author-tag-v2 tag-rank">第{i + 1}作</span>}
-                {corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}
-              </span>
-            </span>
-          )
+          return <span key={`${a}-${i}`} className={classes}><span className="author-name-v2">{a}</span><span className="author-tags-v2">{first && <span className="author-tag-v2 tag-first">一作</span>}{!first && matched && <span className="author-tag-v2 tag-rank">第{i + 1}作</span>}{corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}</span></span>
         })}
         {(!paper.authors || paper.authors.length === 0) && <span style={{ color: 'var(--text-muted)' }}>--</span>}
       </div>
 
-      {previous && <div className="paper-history">↳ 前置历史：{previous.journal || '未知期刊'} ({getStatus(previous.status).label})</div>}
+      {(chain.length > 0 || nextCount > 0) && <div className="paper-history">↳ 版本链：{chain.map(p => p.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{paper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
 
-      {signal && signalColors && signal.level !== 'success' && (
-        <div className="workflow-signal" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}>
-          <span>下一步：{signal.text}</span>
-          <small>{signal.detail}</small>
-        </div>
-      )}
+      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}</span><small>{signal.detail}</small></div>}
 
       <div className="paper-card-footer">
         <div className="paper-footer-left">
           {deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}
-          {(paper.files || []).filter(f => f.p).map((f, i) => isUrl(f.p) ? (
-            <a key={i} className="file-dot" href={f.p} target="_blank" rel="noopener noreferrer" title={f.n || f.p} onClick={e => e.stopPropagation()}>📎</a>
-          ) : (
-            <span key={i} className="file-dot file-dot-disabled" title={`${f.n || f.p}：文件链接不可用`}>📎</span>
-          ))}
+          {(paper.files || []).filter(f => f.p).map((f, i) => isUrl(f.p) ? <a key={i} className="file-dot" href={f.p} target="_blank" rel="noopener noreferrer" title={`${f.t ? `${f.t}｜` : ''}${f.n || f.p}`} onClick={e => e.stopPropagation()}>📎{f.t && <span className="file-type-pill">{f.t}</span>}</a> : <span key={i} className="file-dot file-dot-disabled" title={`${f.n || f.p}：文件链接不可用`}>📎</span>)}
         </div>
         <span className="paper-date-info">{dateInfo}</span>
       </div>
