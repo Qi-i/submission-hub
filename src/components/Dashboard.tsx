@@ -14,7 +14,6 @@ import AdminPanel from './AdminPanel'
 
 type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'dashboard' | 'stats' | 'admin'
-
 type StatusFilter = 'all' | string
 
 export default function Dashboard() {
@@ -27,6 +26,7 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [filterAuthor, setFilterAuthor] = useState('')
   const [showFilterDrop, setShowFilterDrop] = useState(false)
+  const [showTools, setShowTools] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
   const [showSettings, setShowSettings] = useState(false)
@@ -82,6 +82,14 @@ export default function Dashboard() {
   }
 
   const stats = STATUSES.map(s => ({ ...s, count: papers.filter(p => p.status === s.key).length }))
+  const hasActiveTools = !!search.trim() || viewFilter !== 'all'
+
+  const clearTools = () => {
+    setSearch('')
+    setViewFilter('all')
+    setFilterAuthor('')
+    setShowFilterDrop(false)
+  }
 
   const handleExport = () => {
     const blob = new Blob([JSON.stringify(papers, null, 2)], { type: 'application/json' })
@@ -132,6 +140,7 @@ export default function Dashboard() {
           resolve_date: d.resolveDate || d.resolve_date || null,
           deadline: d.deadline || null,
           tracking_url: d.trackingUrl || d.tracking_url || null,
+          published_url: d.publishedUrl || d.published_url || null,
           timeline: d.timeline || null,
           notes: d.notes || null,
           prev_id: d.prevId || d.prev_id || null,
@@ -197,17 +206,28 @@ export default function Dashboard() {
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
 
-        <div className="toolbar glass-toolbar">
-          <div className="search-wrap"><Search size={15} className="search-icon" /><input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或系统状态..." value={search} onChange={e => setSearch(e.target.value)} /></div>
-          <div className="dropdown" style={{ zIndex: 50 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}><Filter size={13} /> {filterLabel} <ChevronDown size={12} /></button>
-            <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
-              <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>查看全部记录</div>
-              <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>仅看我的 ({matchName || user?.username})</div>
-              {allAuthors.length > 0 && <><div className="dropdown-sep">指定作者</div>{allAuthors.filter(a => a !== user?.username && a !== user?.author_name).map(a => <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>{a}</div>)}</>}
-            </div>
+        <div className={`toolbar glass-toolbar smart-toolbar ${showTools ? 'open' : ''}`}>
+          <div className="toolbar-main-row">
+            <button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}>
+              <Filter size={13} /> 检索筛选 <ChevronDown size={12} className={showTools ? 'rotated' : ''} />
+            </button>
+            {hasActiveTools && <button className="btn btn-ghost btn-sm toolbar-clear" onClick={clearTools}>清除条件</button>}
+            <span className="toolbar-count">共 {filtered.length} 篇记录</span>
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>共 {filtered.length} 篇记录</span>
+
+          {showTools && (
+            <div className="tool-popover">
+              <div className="search-wrap"><Search size={15} className="search-icon" /><input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或系统状态..." value={search} onChange={e => setSearch(e.target.value)} autoFocus /></div>
+              <div className="dropdown smart-filter-dropdown">
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}><Filter size={13} /> {filterLabel} <ChevronDown size={12} /></button>
+                <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
+                  <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>查看全部记录</div>
+                  <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>仅看我的 ({matchName || user?.username})</div>
+                  {allAuthors.length > 0 && <><div className="dropdown-sep">指定作者</div>{allAuthors.filter(a => a !== user?.username && a !== user?.author_name).map(a => <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>{a}</div>)}</>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="paper-grid">
