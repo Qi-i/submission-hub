@@ -34,6 +34,22 @@ export default function Dashboard() {
 
   const canAccessAdmin = !!user && !isDemo
 
+  const closeTools = () => {
+    setShowTools(false)
+    setShowFilterDrop(false)
+  }
+
+  const openPaperForm = (target: Paper | 'new') => {
+    closeTools()
+    setEditing(target)
+  }
+
+  const openSettings = () => {
+    closeTools()
+    setAuthorNameInput(user?.author_name || '')
+    setShowSettings(true)
+  }
+
   const cycleTheme = () => {
     const next: Record<string, 'light' | 'dark' | 'system'> = { light: 'dark', dark: 'system', system: 'light' }
     setMode(next[mode])
@@ -100,6 +116,7 @@ export default function Dashboard() {
   }
 
   const handleImport = () => {
+    closeTools()
     const inp = document.createElement('input')
     inp.type = 'file'
     inp.accept = '.json'
@@ -163,6 +180,24 @@ export default function Dashboard() {
     viewFilter === 'me' ? `我的 (${matchName || user?.username || '未设置'})` :
     filterAuthor
 
+  const toolPanel = showTools && tab === 'dashboard' && (
+    <div className="tool-popover header-tool-popover">
+      <div className="search-wrap">
+        <Search size={15} className="search-icon" />
+        <input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或系统状态..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
+      </div>
+      <div className="dropdown smart-filter-dropdown">
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}><Filter size={13} /> {filterLabel} <ChevronDown size={12} /></button>
+        <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
+          <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>查看全部记录</div>
+          <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>仅看我的 ({matchName || user?.username})</div>
+          {allAuthors.length > 0 && <><div className="dropdown-sep">指定作者</div>{allAuthors.filter(a => a !== user?.username && a !== user?.author_name).map(a => <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>{a}</div>)}</>}
+        </div>
+      </div>
+      {hasActiveTools && <button className="btn btn-ghost btn-sm toolbar-clear" onClick={clearTools}>清除条件</button>}
+    </div>
+  )
+
   if (loading) return <div className="loading-screen"><div className="spinner" /><span style={{ fontSize: 13 }}>加载数据中...</span></div>
 
   return (
@@ -184,18 +219,24 @@ export default function Dashboard() {
             </div>
           </div>
           <nav className="header-tabs" aria-label="主导航">
-            <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}><FileText size={14} /> 投稿管理</button>
-            <button className={tab === 'stats' ? 'active' : ''} onClick={() => setTab('stats')}><BarChart3 size={14} /> 个人统计</button>
-            {canAccessAdmin && <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}><Shield size={14} /> 后台管理</button>}
+            <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => { closeTools(); setTab('dashboard') }}><FileText size={14} /> 投稿管理</button>
+            <button className={tab === 'stats' ? 'active' : ''} onClick={() => { closeTools(); setTab('stats') }}><BarChart3 size={14} /> 个人统计</button>
+            {canAccessAdmin && <button className={tab === 'admin' ? 'active' : ''} onClick={() => { closeTools(); setTab('admin') }}><Shield size={14} /> 后台管理</button>}
           </nav>
         </div>
 
         <div className="header-actions">
+          {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}>
+            <button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}>
+              <Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} />
+            </button>
+            {toolPanel}
+          </div>}
           <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>
             {mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}
           </button>
-          {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON"><Download size={14} /> 导出</button><button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}><Plus size={14} /> 新建投稿</button></>}
-          {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setAuthorNameInput(user.author_name || ''); setShowSettings(true) }} title="个人设置"><Settings size={15} /></button>}
+          {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON"><Download size={14} /> 导出</button><button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button></>}
+          {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={openSettings} title="个人设置"><Settings size={15} /></button>}
           {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
         </div>
       </header>
@@ -206,32 +247,8 @@ export default function Dashboard() {
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
 
-        <div className={`toolbar glass-toolbar smart-toolbar ${showTools ? 'open' : ''}`}>
-          <div className="toolbar-main-row">
-            <button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}>
-              <Filter size={13} /> 检索筛选 <ChevronDown size={12} className={showTools ? 'rotated' : ''} />
-            </button>
-            {hasActiveTools && <button className="btn btn-ghost btn-sm toolbar-clear" onClick={clearTools}>清除条件</button>}
-            <span className="toolbar-count">共 {filtered.length} 篇记录</span>
-          </div>
-
-          {showTools && (
-            <div className="tool-popover">
-              <div className="search-wrap"><Search size={15} className="search-icon" /><input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或系统状态..." value={search} onChange={e => setSearch(e.target.value)} autoFocus /></div>
-              <div className="dropdown smart-filter-dropdown">
-                <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}><Filter size={13} /> {filterLabel} <ChevronDown size={12} /></button>
-                <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
-                  <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>查看全部记录</div>
-                  <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>仅看我的 ({matchName || user?.username})</div>
-                  {allAuthors.length > 0 && <><div className="dropdown-sep">指定作者</div>{allAuthors.filter(a => a !== user?.username && a !== user?.author_name).map(a => <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>{a}</div>)}</>}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
         <div className="paper-grid">
-          {filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((p, i) => <PaperCard key={p.id} paper={p} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={i} onClick={isDemo ? undefined : () => setEditing(p)} />)}
+          {filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((p, i) => <PaperCard key={p.id} paper={p} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={i} onClick={isDemo ? undefined : () => openPaperForm(p)} />)}
         </div>
       </>}
 
