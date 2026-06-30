@@ -112,6 +112,18 @@ function latestTimelineState(timeline: string, fallbackStatus: string, fallbackD
   return { status, date }
 }
 
+function deriveMainStatus(systemStatus: string | null, currentStatus: string) {
+  const raw = (systemStatus || '').toLowerCase()
+  if (!raw) return currentStatus
+  if (/(accepted|accept|published|online|proof)/.test(raw)) return 'accepted'
+  if (/(reject|rejected|declined)/.test(raw)) return 'rejected'
+  if (/(withdraw|withdrawn)/.test(raw)) return 'withdrawn'
+  if (/(revision|required revision|major revision|minor revision|revise|revision required|revision incomplete)/.test(raw)) return 'revision'
+  if (/(out for review|under review|with editor|editor invited|decision pending|required reviews complete|review complete|with journal administrator|revised manuscript submitted)/.test(raw)) return 'under_review'
+  if (/(submitted|submission received|new submission)/.test(raw)) return 'submitted'
+  return currentStatus
+}
+
 function Section({ title, subtitle, tone, children }: { title: string; subtitle?: string; tone?: string; children: ReactNode }) {
   return (
     <section className="compact-section" data-tone={tone || 'blue'}>
@@ -148,6 +160,7 @@ export default function PaperFormCompact({ paper, allPapers, currentUsername, on
     const apc = form.apc_amount ? Number(form.apc_amount) : null
     const revisionRound = form.revision_round ? Number(form.revision_round) : 0
     const files = form.files.filter(file => /^https?:\/\//i.test(file.p))
+    const mainStatus = deriveMainStatus(latest.status, form.status)
 
     onSave({
       title: form.title || '未命名',
@@ -163,7 +176,7 @@ export default function PaperFormCompact({ paper, allPapers, currentUsername, on
       apc_currency: form.apc_currency || 'USD',
       revision_round: Number.isFinite(revisionRound) ? revisionRound : 0,
       followup_log: form.followup_log || null,
-      status: form.status,
+      status: mainStatus,
       lang: form.lang,
       quartile_jcr: form.quartile_jcr,
       quartile_cas: form.quartile_cas,
