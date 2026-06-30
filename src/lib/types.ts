@@ -24,6 +24,8 @@ export interface UserProfile {
   is_admin?: boolean
 }
 
+export type PaperFile = { n: string; p: string; t?: string }
+
 export interface Paper {
   id: string
   user_id: string
@@ -40,6 +42,11 @@ export interface Paper {
   apc_currency?: string | null
   revision_round?: number | null
   followup_log?: string | null
+  doi?: string | null
+  publication_info?: string | null
+  citation?: string | null
+  journal_url?: string | null
+  journal_apc_note?: string | null
   status: string
   lang: string
   quartile_jcr: string | null
@@ -57,7 +64,7 @@ export interface Paper {
   timeline: string | null
   notes: string | null
   prev_id: string | null
-  files: { n: string; p: string }[] | null
+  files: PaperFile[] | null
   created_at: string
   updated_at: string
 }
@@ -107,9 +114,14 @@ export const SUBMISSION_SYSTEM_OPTIONS = [
   'Frontiers', 'Wiley Author Services', '期刊邮箱', '其它',
 ]
 
+export const FILE_TYPE_OPTIONS = [
+  '初稿', '投稿稿', 'Cover Letter', 'Response to Reviewers', '修回稿',
+  '审稿意见', '录用通知', 'Proof', '版权协议', 'APC / 发票', '投稿截图', '其它',
+]
+
 export const NEXT_ACTION_OPTIONS = [
   '等待编辑处理', '等待外审结果', '准备修回', '上传修回稿', '联系编辑部查询进展',
-  '确认版面费 / APC', '校对 Proof', '更新投稿系统状态', '准备改投', '无需处理',
+  '确认版面费 / APC', '校对 Proof', '更新投稿系统状态', '准备改投', '补充见刊信息', '无需处理',
 ]
 
 export const REMINDER_LEVELS = [
@@ -140,7 +152,7 @@ function daysUntil(date?: string | null) {
 }
 
 export function inferNextAction(paper: Partial<Pick<Paper,
-  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'published_url'
+  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'published_url' | 'doi' | 'publication_info'
 >>): { action: string | null; reminder: string; signal: WorkflowSignal | null } {
   const status = paper.status || ''
   const system = (paper.system_status || '').toLowerCase()
@@ -148,7 +160,7 @@ export function inferNextAction(paper: Partial<Pick<Paper,
   const deadlineDays = daysUntil(paper.deadline)
 
   if (status === 'accepted') {
-    if (!paper.published_url) return { action: '补充见刊信息', reminder: 'watch', signal: { level: 'info', text: '补充见刊信息', detail: '已接收稿件建议补充 DOI、见刊页面或在线发表链接' } }
+    if (!paper.published_url || !paper.doi || !paper.publication_info) return { action: '补充见刊信息', reminder: 'watch', signal: { level: 'info', text: '补充见刊信息', detail: '已接收稿件建议补充 DOI、见刊页面、卷期页码或在线发表信息' } }
     return { action: '无需处理', reminder: 'none', signal: null }
   }
 
@@ -173,7 +185,7 @@ export function inferNextAction(paper: Partial<Pick<Paper,
 }
 
 export function getWorkflowSignal(paper: Partial<Pick<Paper,
-  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'next_action' | 'reminder_level' | 'published_url'
+  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'next_action' | 'reminder_level' | 'published_url' | 'doi' | 'publication_info'
 >>): WorkflowSignal | null {
   if (paper.reminder_level === 'urgent') return { level: 'danger', text: '紧急处理', detail: paper.next_action || '请尽快处理该稿件' }
   if (paper.reminder_level === 'warn') return { level: 'warn', text: '建议处理', detail: paper.next_action || '建议检查投稿进展' }
