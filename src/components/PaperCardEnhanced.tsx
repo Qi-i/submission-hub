@@ -70,24 +70,20 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       <div className="card-top-bar" style={{ background: st.color }} />
 
       <div className="paper-card-head">
-        <span className={`badge status-${paper.status}`}>{st.emoji} {st.label}</span>
+        <div className="paper-status-stack">
+          <span className={`badge status-${paper.status}`}>{st.emoji} {st.label}</span>
+          {paper.system_status && <span className="system-status-inline">{paper.system_status}</span>}
+        </div>
         {paper.journal && <span className="journal-pill">📖 {paper.journal}</span>}
       </div>
 
-      {(paper.manuscript_no || paper.submission_system || paper.system_status || paper.revision_round || paper.apc_amount) && (
-        <div className="paper-meta-row">
+      {(paper.manuscript_no || paper.submission_system || paper.revision_round || paper.apc_amount || isUrl(paper.published_url)) && (
+        <div className="paper-meta-row paper-meta-compact">
           {paper.manuscript_no && <span className="badge badge-sm badge-outline">ID {paper.manuscript_no}</span>}
           {paper.submission_system && <span className="badge badge-sm badge-outline">{paper.submission_system}</span>}
-          {paper.system_status && <span className="badge badge-sm badge-outline">{paper.system_status}</span>}
           {!!paper.revision_round && <span className="badge badge-sm badge-outline">R{paper.revision_round}</span>}
           {!!paper.apc_amount && <span className="badge badge-sm badge-outline">APC {paper.apc_amount} {paper.apc_currency || ''}</span>}
-        </div>
-      )}
-
-      {(isUrl(paper.tracking_url) || isUrl(paper.published_url)) && (
-        <div className="paper-link-row">
-          {isUrl(paper.tracking_url) && <a href={paper.tracking_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>投稿后台 ↗</a>}
-          {isUrl(paper.published_url) && <a href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>见刊页面 ↗</a>}
+          {isUrl(paper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>见刊 ↗</a>}
         </div>
       )}
 
