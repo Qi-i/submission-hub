@@ -1,2 +1,2 @@
-import PaperFormCompact from './PaperFormCompact'
-export default PaperFormCompact
+import PaperFormArchive from './PaperFormArchive'
+export default PaperFormArchive
