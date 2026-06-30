@@ -12,6 +12,7 @@ import './mobile-metrics-dense.css'
 import './paper-status-polish.css'
 import './smart-toolbar.css'
 import './form-polish.css'
+import './ui-stabilize.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
