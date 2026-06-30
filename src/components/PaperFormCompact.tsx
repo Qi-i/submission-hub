@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { FileText, Loader, Save, Trash2, X } from 'lucide-react'
 import type { Paper } from '../lib/types'
-import { CAS_OPTIONS, JCR_OPTIONS, NEXT_ACTION_OPTIONS, REMINDER_LEVELS, STATUSES, SUBMISSION_SYSTEM_OPTIONS } from '../lib/types'
+import { CAS_OPTIONS, JCR_OPTIONS, NEXT_ACTION_OPTIONS, REMINDER_LEVELS, STATUSES, SUBMISSION_SYSTEM_OPTIONS, inferNextAction } from '../lib/types'
 import { uploadFile } from '../lib/storage'
 import Timeline from './Timeline'
 
@@ -161,6 +161,14 @@ export default function PaperFormCompact({ paper, allPapers, currentUsername, on
     const revisionRound = form.revision_round ? Number(form.revision_round) : 0
     const files = form.files.filter(file => /^https?:\/\//i.test(file.p))
     const mainStatus = deriveMainStatus(latest.status, form.status)
+    const inferred = inferNextAction({
+      status: mainStatus,
+      system_status: latest.status,
+      last_status_date: latest.date,
+      submitted_date: form.submitted_date || null,
+      deadline: form.deadline || null,
+      published_url: form.published_url || null,
+    })
 
     onSave({
       title: form.title || '未命名',
@@ -170,8 +178,8 @@ export default function PaperFormCompact({ paper, allPapers, currentUsername, on
       submission_system: form.submission_system || null,
       system_status: latest.status,
       last_status_date: latest.date,
-      next_action: form.next_action || null,
-      reminder_level: form.reminder_level || 'none',
+      next_action: form.next_action || inferred.action,
+      reminder_level: form.reminder_level !== 'none' ? form.reminder_level : inferred.reminder,
       apc_amount: apc !== null && Number.isFinite(apc) ? apc : null,
       apc_currency: form.apc_currency || 'USD',
       revision_round: Number.isFinite(revisionRound) ? revisionRound : 0,
