@@ -10,6 +10,7 @@ import './mobile-top-3row.css'
 import './unified-metrics.css'
 import './mobile-metrics-dense.css'
 import './paper-status-polish.css'
+import './smart-toolbar.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
