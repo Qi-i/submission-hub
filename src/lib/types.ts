@@ -92,19 +92,14 @@ export const JCR_OPTIONS = ['未定', 'Q1', 'Q2', 'Q3', 'Q4']
 export const CAS_OPTIONS = ['未定', '一区', '二区', '三区', '四区', '预警']
 
 export const TIMELINE_PRESETS = [
-  'Submitted', 'With Editor', 'Under Review', 'Review Complete',
-  'Minor Revision', 'Major Revision', 'Revision Submitted',
-  'Accepted', 'Rejected', 'Withdrawn',
-  'Decision Pending', 'Proof Received', 'Published', 'Out for Review',
-]
-
-export const SYSTEM_STATUS_PRESETS = [
   'Submitted', 'With Journal Administrator', 'With Editor', 'Editor Invited',
   'Out for Review', 'Under Review', 'Required Reviews Complete', 'Review Complete',
-  'Decision Pending', 'Revision Required', 'Revision Incomplete', 'Revised Manuscript Submitted',
-  'Minor Revision', 'Major Revision', 'Accepted', 'Proof Received', 'Published',
-  'Rejected', 'Withdrawn',
+  'Decision Pending', 'Minor Revision', 'Major Revision', 'Revision Required',
+  'Revision Incomplete', 'Revision Submitted', 'Revised Manuscript Submitted',
+  'Proof Received', 'Accepted', 'Published', 'Rejected', 'Withdrawn',
 ]
+
+export const SYSTEM_STATUS_PRESETS = TIMELINE_PRESETS
 
 export const SUBMISSION_SYSTEM_OPTIONS = [
   'ScholarOne', 'Editorial Manager', 'Taylor & Francis Submission Portal',
@@ -113,7 +108,7 @@ export const SUBMISSION_SYSTEM_OPTIONS = [
 ]
 
 export const NEXT_ACTION_OPTIONS = [
-  '等待编辑处理', '等待外审结果', '准备修回', '上传修回稿', '发送催稿邮件',
+  '等待编辑处理', '等待外审结果', '准备修回', '上传修回稿', '联系编辑部查询进展',
   '确认版面费 / APC', '校对 Proof', '更新投稿系统状态', '准备改投', '无需处理',
 ]
 
@@ -130,25 +125,58 @@ export type WorkflowSignal = {
   detail: string
 }
 
+function daysSince(date?: string | null) {
+  if (!date) return null
+  const time = new Date(date).getTime()
+  if (!Number.isFinite(time)) return null
+  return Math.max(0, Math.floor((Date.now() - time) / 86400000))
+}
+
+function daysUntil(date?: string | null) {
+  if (!date) return null
+  const time = new Date(date).getTime()
+  if (!Number.isFinite(time)) return null
+  return Math.ceil((time - Date.now()) / 86400000)
+}
+
+export function inferNextAction(paper: Partial<Pick<Paper,
+  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'published_url'
+>>): { action: string | null; reminder: string; signal: WorkflowSignal | null } {
+  const status = paper.status || ''
+  const system = (paper.system_status || '').toLowerCase()
+  const baseDays = daysSince(paper.last_status_date || paper.submitted_date)
+  const deadlineDays = daysUntil(paper.deadline)
+
+  if (status === 'accepted') {
+    if (!paper.published_url) return { action: '补充见刊信息', reminder: 'watch', signal: { level: 'info', text: '补充见刊信息', detail: '已接收稿件建议补充 DOI、见刊页面或在线发表链接' } }
+    return { action: '无需处理', reminder: 'none', signal: null }
+  }
+
+  if (status === 'rejected' || status === 'withdrawn') return { action: '准备改投', reminder: 'watch', signal: { level: 'info', text: '准备改投', detail: '该稿件已结束，可记录改投方向或建立前置历史' } }
+
+  if (status === 'revision') {
+    if (deadlineDays !== null) {
+      if (deadlineDays < 0) return { action: '上传修回稿', reminder: 'urgent', signal: { level: 'danger', text: '修回已逾期', detail: `修回截止已过 ${Math.abs(deadlineDays)} 天，请立即核对处理` } }
+      if (deadlineDays <= 3) return { action: '上传修回稿', reminder: 'urgent', signal: { level: 'danger', text: '修回即将截止', detail: `距离修回截止还有 ${deadlineDays} 天` } }
+      if (deadlineDays <= 14) return { action: '准备修回', reminder: 'warn', signal: { level: 'warn', text: '准备修回', detail: `距离修回截止还有 ${deadlineDays} 天` } }
+    }
+    return { action: '准备修回', reminder: 'watch', signal: { level: 'info', text: '准备修回', detail: '当前处于修回阶段，请持续整理修改稿和回复信' } }
+  }
+
+  if (system.includes('decision pending') && (baseDays || 0) >= 14) return { action: '联系编辑部查询进展', reminder: 'warn', signal: { level: 'warn', text: '决策等待偏久', detail: `Decision Pending 已 ${baseDays} 天，可查询编辑部进展` } }
+  if ((system.includes('with editor') || system.includes('journal administrator')) && (baseDays || 0) >= 30) return { action: '联系编辑部查询进展', reminder: 'warn', signal: { level: 'warn', text: '编辑处理偏久', detail: `当前阶段已 ${baseDays} 天，可查询编辑处理进展` } }
+  if ((system.includes('out for review') || system.includes('under review')) && (baseDays || 0) >= 90) return { action: '等待外审结果', reminder: 'watch', signal: { level: 'info', text: '外审周期较长', detail: `外审相关阶段已 ${baseDays} 天，建议持续跟踪` } }
+
+  if (status === 'submitted') return { action: '等待编辑处理', reminder: 'none', signal: null }
+  if (status === 'under_review') return { action: '等待外审结果', reminder: 'none', signal: null }
+  return { action: null, reminder: 'none', signal: null }
+}
+
 export function getWorkflowSignal(paper: Partial<Pick<Paper,
-  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'next_action' | 'reminder_level'
+  'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'next_action' | 'reminder_level' | 'published_url'
 >>): WorkflowSignal | null {
   if (paper.reminder_level === 'urgent') return { level: 'danger', text: '紧急处理', detail: paper.next_action || '请尽快处理该稿件' }
   if (paper.reminder_level === 'warn') return { level: 'warn', text: '建议处理', detail: paper.next_action || '建议检查投稿进展' }
   if (paper.next_action && paper.next_action !== '无需处理') return { level: 'info', text: paper.next_action, detail: '已设置下一步行动' }
-
-  const baseDate = paper.last_status_date || paper.submitted_date
-  const status = (paper.system_status || '').toLowerCase()
-  if (!baseDate) return null
-
-  const time = new Date(baseDate).getTime()
-  if (!Number.isFinite(time)) return null
-  const days = Math.max(0, Math.floor((Date.now() - time) / 86400000))
-
-  if (paper.status === 'revision' && paper.deadline) return null
-  if (paper.status === 'accepted') return null
-  if (status.includes('decision pending') && days >= 14) return { level: 'warn', text: '决策等待偏久', detail: `Decision Pending 已 ${days} 天，可考虑询问编辑部` }
-  if ((status.includes('with editor') || status.includes('journal administrator')) && days >= 30) return { level: 'warn', text: '编辑处理偏久', detail: `当前阶段已 ${days} 天，可准备简短催稿` }
-  if ((status.includes('out for review') || status.includes('under review')) && days >= 90) return { level: 'info', text: '外审周期较长', detail: `外审相关阶段已 ${days} 天，建议持续跟踪` }
-  return null
+  return inferNextAction(paper).signal
 }
