@@ -10,6 +10,7 @@ import './smart-toolbar.css'
 import './form-polish.css'
 import './ui-stabilize.css'
 import './compact-form.css'
+import './archive-form.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
