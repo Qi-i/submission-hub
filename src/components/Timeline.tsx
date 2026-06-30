@@ -15,6 +15,8 @@ type TimelineDraft = {
   note: string
 }
 
+const today = () => new Date().toISOString().slice(0, 10)
+
 function parseLines(text: string): string[] {
   if (!text) return []
   return text.split('\n').map(l => l.trim()).filter(Boolean)
@@ -41,7 +43,7 @@ function parseLine(line: string): TimelineDraft {
 }
 
 function formatLine(draft: TimelineDraft) {
-  const date = draft.date ? toDisplayDate(draft.date) : toDisplayDate(new Date().toISOString().slice(0, 10))
+  const date = draft.date ? toDisplayDate(draft.date) : toDisplayDate(today())
   const event = draft.event.trim() || '未命名事件'
   const note = draft.note.trim()
   return `${date} ${note ? `${event} - ${note}` : event}`
@@ -57,7 +59,7 @@ function dateValue(line: string) {
 export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }: Props) {
   const lines = parseLines(value)
   const allOpts = Array.from(new Set([...TIMELINE_PRESETS, ...customOpts]))
-  const [draft, setDraft] = useState<TimelineDraft>({ date: new Date().toISOString().slice(0, 10), event: TIMELINE_PRESETS[0], note: '' })
+  const [draft, setDraft] = useState<TimelineDraft>({ date: today(), event: '', note: '' })
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<TimelineDraft>({ date: '', event: '', note: '' })
   const [showRaw, setShowRaw] = useState(false)
@@ -67,7 +69,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
   const addNode = () => {
     if (!draft.event.trim()) return
     commitLines([...lines, formatLine(draft)])
-    setDraft(prev => ({ ...prev, note: '' }))
+    setDraft({ date: today(), event: '', note: '' })
   }
 
   const startEdit = (idx: number) => {
@@ -115,7 +117,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
       {lines.length > 0 && !showRaw && (
         <div className="timeline timeline-editable">
           <div className="timeline-title">
-            <Calendar size={14} /> 审稿时间线
+            <Calendar size={13} /> 审稿时间线
             <button type="button" className="timeline-mini-btn" onClick={sortByDate} title="按日期升序排序"><ArrowDownUp size={12} /> 排序</button>
           </div>
 
@@ -141,7 +143,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
                   {editing ? (
                     <div className="timeline-edit-form">
                       <input type="date" className="input" value={editDraft.date} onChange={e => setEditDraft(prev => ({ ...prev, date: e.target.value }))} />
-                      <input className="input" list="timeline-event-options" value={editDraft.event} onChange={e => setEditDraft(prev => ({ ...prev, event: e.target.value }))} />
+                      <input className="input" list="timeline-event-options" placeholder="状态 / 事件" value={editDraft.event} onChange={e => setEditDraft(prev => ({ ...prev, event: e.target.value }))} />
                       <input className="input" placeholder="备注，可空" value={editDraft.note} onChange={e => setEditDraft(prev => ({ ...prev, note: e.target.value }))} />
                       <button type="button" className="btn btn-primary btn-sm" onClick={saveEdit}><Check size={13} /> 保存</button>
                       <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEdit}><X size={13} /> 取消</button>
@@ -174,9 +176,9 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
 
       <div className="timeline-add-row">
         <input type="date" className="input" value={draft.date} onChange={e => setDraft(prev => ({ ...prev, date: e.target.value }))} />
-        <input className="input" list="timeline-event-options" value={draft.event} onChange={e => setDraft(prev => ({ ...prev, event: e.target.value }))} />
-        <input className="input" placeholder="备注，例如：编辑处理较久，已发邮件询问" value={draft.note} onChange={e => setDraft(prev => ({ ...prev, note: e.target.value }))} />
-        <button type="button" className="btn btn-primary btn-sm" onClick={addNode}><Plus size={13} /> 添加记录</button>
+        <input className="input" list="timeline-event-options" placeholder="选择或输入审稿状态" value={draft.event} onChange={e => setDraft(prev => ({ ...prev, event: e.target.value }))} />
+        <input className="input" placeholder="备注，可空" value={draft.note} onChange={e => setDraft(prev => ({ ...prev, note: e.target.value }))} />
+        <button type="button" className="btn btn-primary btn-sm" onClick={addNode} disabled={!draft.event.trim()}><Plus size={13} /> 添加记录</button>
       </div>
 
       <div className="timeline-tools-row">
