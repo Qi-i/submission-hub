@@ -49,10 +49,19 @@ function formatLine(draft: TimelineDraft) {
   return `${date} ${note ? `${event} - ${note}` : event}`
 }
 
+function timeValue(date?: string) {
+  if (!date) return NaN
+  const time = new Date(`${date}T00:00:00`).getTime()
+  return Number.isFinite(time) ? time : NaN
+}
+
+function daysBetween(start: number, end: number) {
+  return Math.round((end - start) / 86400000)
+}
+
 function dateValue(line: string) {
   const parsed = parseLine(line)
-  if (!parsed.date) return Number.POSITIVE_INFINITY
-  const time = new Date(`${parsed.date}T00:00:00`).getTime()
+  const time = timeValue(parsed.date)
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY
 }
 
@@ -110,30 +119,38 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
     if (cleaned && !allOpts.includes(cleaned)) onAddCustomOpt(cleaned)
   }
 
+  const parsedItems = lines.map(parseLine)
+  const firstFiniteTime = parsedItems.map(item => timeValue(item.date)).find(Number.isFinite)
   let previousTime: number | null = null
 
   return (
     <div className="timeline-editor">
       {lines.length > 0 && !showRaw && (
-        <div className="timeline timeline-editable">
+        <div className="timeline timeline-editable timeline-table-mode">
           <div className="timeline-title">
             <Calendar size={13} /> 审稿时间线
             <button type="button" className="timeline-mini-btn" onClick={sortByDate} title="按日期升序排序"><ArrowDownUp size={12} /> 排序</button>
           </div>
 
+          <div className="timeline-table-head">
+            <span>日期</span>
+            <span>审稿状态</span>
+            <span>间隔</span>
+            <span>累计</span>
+            <span>操作</span>
+          </div>
+
           {lines.map((line, idx) => {
-            const item = parseLine(line)
+            const item = parsedItems[idx]
             const isLast = idx === lines.length - 1
-            const currentTime = item.date ? new Date(`${item.date}T00:00:00`).getTime() : NaN
-            let interval = ''
-            if (Number.isFinite(currentTime) && previousTime !== null) {
-              interval = `间隔 ${Math.round((currentTime - previousTime) / 86400000)} 天`
-            }
+            const currentTime = timeValue(item.date)
+            const intervalDays = Number.isFinite(currentTime) && previousTime !== null ? daysBetween(previousTime, currentTime) : null
+            const cumulativeDays = Number.isFinite(currentTime) && Number.isFinite(firstFiniteTime) ? daysBetween(firstFiniteTime as number, currentTime) : null
             if (Number.isFinite(currentTime)) previousTime = currentTime
             const editing = editingIndex === idx
 
             return (
-              <div key={`${line}-${idx}`} className="timeline-item timeline-row-editable">
+              <div key={`${line}-${idx}`} className="timeline-item timeline-row-editable timeline-table-row">
                 <div className="timeline-dot-col">
                   <div className={`timeline-dot ${isLast ? 'active' : ''}`} />
                   {!isLast && <div className="timeline-line" />}
@@ -150,17 +167,16 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
                     </div>
                   ) : (
                     <>
-                      <div className="timeline-row-head">
-                        <span className="timeline-date">{item.date ? toDisplayDate(item.date) : '未定日期'}</span>
-                        <span className="timeline-actions">
-                          <button type="button" onClick={() => moveNode(idx, -1)} disabled={idx === 0} title="上移"><ArrowUp size={12} /></button>
-                          <button type="button" onClick={() => moveNode(idx, 1)} disabled={idx === lines.length - 1} title="下移"><ArrowDown size={12} /></button>
-                          <button type="button" onClick={() => startEdit(idx)} title="编辑"><Edit3 size={12} /></button>
-                          <button type="button" onClick={() => deleteNode(idx)} title="删除" className="danger"><Trash2 size={12} /></button>
-                        </span>
-                      </div>
-                      <div className="timeline-text"><b>{item.event || '未命名事件'}</b>{item.note && <span> — {item.note}</span>}</div>
-                      {interval && <div className="timeline-interval">{interval}</div>}
+                      <span className="timeline-date">{item.date ? toDisplayDate(item.date) : '未定日期'}</span>
+                      <span className="timeline-event-cell"><b>{item.event || '未命名事件'}</b>{item.note && <em>{item.note}</em>}</span>
+                      <span className="timeline-duration-cell">{intervalDays === null ? '—' : `${intervalDays} 天`}</span>
+                      <span className="timeline-duration-cell timeline-total-cell">{cumulativeDays === null ? '—' : `${cumulativeDays} 天`}</span>
+                      <span className="timeline-actions">
+                        <button type="button" onClick={() => moveNode(idx, -1)} disabled={idx === 0} title="上移"><ArrowUp size={12} /></button>
+                        <button type="button" onClick={() => moveNode(idx, 1)} disabled={idx === lines.length - 1} title="下移"><ArrowDown size={12} /></button>
+                        <button type="button" onClick={() => startEdit(idx)} title="编辑"><Edit3 size={12} /></button>
+                        <button type="button" onClick={() => deleteNode(idx)} title="删除" className="danger"><Trash2 size={12} /></button>
+                      </span>
                     </>
                   )}
                 </div>
