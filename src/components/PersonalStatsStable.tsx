@@ -30,6 +30,19 @@ function parseDate(value?: string | null) {
   return Number.isFinite(date.getTime()) ? date : null
 }
 
+function daysBetween(start?: string | null, end?: string | null) {
+  const a = parseDate(start)
+  const b = parseDate(end)
+  if (!a || !b) return null
+  return Math.round((b.getTime() - a.getTime()) / 86400000)
+}
+
+function daysSince(start?: string | null) {
+  const a = parseDate(start)
+  if (!a) return null
+  return Math.max(0, Math.floor((Date.now() - a.getTime()) / 86400000))
+}
+
 function pad(n: number) { return String(n).padStart(2, '0') }
 
 function periodKey(date: Date, scale: Scale) {
@@ -75,6 +88,10 @@ function PieTooltip({ active, payload }: any) {
   return <div className="chart-tooltip glass-panel"><span className="chart-tooltip-title">{payload[0]?.name}</span><b style={{ marginLeft: 10 }}>{payload[0]?.value} 篇</b></div>
 }
 
+function InsightCard({ label, value, hint, tone }: { label: string; value: string | number; hint: string; tone: string }) {
+  return <div className="insight-card" data-tone={tone}><b>{value}</b><span>{label}</span><small>{hint}</small></div>
+}
+
 export default function PersonalStatsStable({ papers, currentUsername, authorName }: Props) {
   const [scale, setScale] = useState<Scale>('month')
   const [range, setRange] = useState<Range>('all')
@@ -97,10 +114,48 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
     const corrAuthor = papers.filter(p => p.corresponding_author === matchName).length
     const collaborators = new Set(papers.flatMap(p => p.authors || [])).size
     const resolved = papers.filter(p => p.submitted_date && p.resolve_date)
-    const avgDays = resolved.length ? Math.round(resolved.reduce((sum, p) => sum + Math.round((new Date(p.resolve_date!).getTime() - new Date(p.submitted_date!).getTime()) / 86400000), 0) / resolved.length) : 0
+    const avgDays = resolved.length ? Math.round(resolved.reduce((sum, p) => sum + (daysBetween(p.submitted_date, p.resolve_date) || 0), 0) / resolved.length) : 0
     const rate = total ? Math.round(accepted / total * 100) : 0
     return { total, accepted, rejected, inProgress, firstAuthor, corrAuthor, collaborators, avgDays, rate }
   }, [papers, currentUsername, authorName])
+
+  const reviewInsights = useMemo(() => {
+    const resolvedDurations = papers.map(p => daysBetween(p.submitted_date, p.resolve_date)).filter((d): d is number => d !== null && d >= 0)
+    const avgResolved = resolvedDurations.length ? Math.round(resolvedDurations.reduce((a, b) => a + b, 0) / resolvedDurations.length) : 0
+    const maxResolved = resolvedDurations.length ? Math.max(...resolvedDurations) : 0
+    const activePapers = papers.filter(p => ['submitted', 'under_review', 'revision'].includes(p.status))
+    const activeDurations = activePapers.map(p => daysSince(p.submitted_date)).filter((d): d is number => d !== null)
+    const avgActive = activeDurations.length ? Math.round(activeDurations.reduce((a, b) => a + b, 0) / activeDurations.length) : 0
+    const longActive = activeDurations.filter(d => d >= 90).length
+    const urgentRevision = papers.filter(p => p.status === 'revision' && p.deadline && (daysBetween(new Date().toISOString().slice(0, 10), p.deadline) ?? 999) <= 7).length
+    return { avgResolved, maxResolved, avgActive, longActive, urgentRevision }
+  }, [papers])
+
+  const archiveInsights = useMemo(() => {
+    const accepted = papers.filter(p => p.status === 'accepted')
+    const withPublication = accepted.filter(p => p.published_url).length
+    const withFiles = papers.filter(p => p.files?.length).length
+    const withTimeline = papers.filter(p => p.timeline?.trim()).length
+    const publicationRate = accepted.length ? Math.round(withPublication / accepted.length * 100) : 0
+    const fileRate = papers.length ? Math.round(withFiles / papers.length * 100) : 0
+    const timelineRate = papers.length ? Math.round(withTimeline / papers.length * 100) : 0
+    return { acceptedCount: accepted.length, publicationRate, fileRate, timelineRate }
+  }, [papers])
+
+  const riskData = useMemo(() => {
+    const buckets = [
+      { name: '0–30天', value: 0, fill: '#22c55e' },
+      { name: '31–90天', value: 0, fill: '#f59e0b' },
+      { name: '90天以上', value: 0, fill: '#ef4444' },
+    ]
+    papers.filter(p => ['submitted', 'under_review', 'revision'].includes(p.status)).forEach(p => {
+      const d = daysSince(p.submitted_date) || 0
+      if (d <= 30) buckets[0].value++
+      else if (d <= 90) buckets[1].value++
+      else buckets[2].value++
+    })
+    return buckets.filter(b => b.value > 0)
+  }, [papers])
 
   const trendData = useMemo(() => {
     const dates = papers.flatMap(p => [parseDate(p.submitted_date), parseDate(p.resolve_date)]).filter(Boolean) as Date[]
@@ -159,6 +214,17 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
         {cards.map((item, i) => <div key={item.label} className="summary-card glass-panel animate-in" style={{ animationDelay: `${i * 0.04}s` }}><div className="summary-icon" style={{ background: item.bg, color: item.color }}>{item.icon}</div><div><div className="summary-value" style={{ color: item.color }}>{item.value}</div><div className="summary-label">{item.label}</div></div></div>)}
       </div>
 
+      <div className="stats-insight-grid">
+        <InsightCard label="已完结平均周期" value={`${reviewInsights.avgResolved}天`} hint="投稿至终审/接收/拒稿" tone="blue" />
+        <InsightCard label="最长完结周期" value={`${reviewInsights.maxResolved}天`} hint="历史最长审稿链路" tone="purple" />
+        <InsightCard label="进行中平均周期" value={`${reviewInsights.avgActive}天`} hint="当前未完结稿件" tone="orange" />
+        <InsightCard label="90天以上进行中" value={reviewInsights.longActive} hint="建议重点跟踪" tone="red" />
+        <InsightCard label="修回7天内截止" value={reviewInsights.urgentRevision} hint="需要优先处理" tone="red" />
+        <InsightCard label="见刊信息完整度" value={`${archiveInsights.publicationRate}%`} hint={`已接收 ${archiveInsights.acceptedCount} 篇`} tone="green" />
+        <InsightCard label="附件归档率" value={`${archiveInsights.fileRate}%`} hint="至少有一项文件记录" tone="slate" />
+        <InsightCard label="时间线完整率" value={`${archiveInsights.timelineRate}%`} hint="至少有一条审稿记录" tone="blue" />
+      </div>
+
       {trendData.length > 0 && <div className="chart-card chart-card-hero trend-card-refined glass-panel animate-in">
         <div className="chart-header refined-chart-header">
           <div><h3 className="chart-title">投稿时间趋势</h3><p className="chart-subtitle">按统一时间尺度统计；累计线用平滑曲线，辅助线用虚线区分。</p></div>
@@ -170,6 +236,7 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
 
       <div className="charts-grid refined-charts-grid">
         {statusData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">状态分布</h3><ResponsiveContainer width="100%" height={260}><PieChart><Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" strokeWidth={0}>{statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}</Pie><Tooltip content={<PieTooltip />} /></PieChart></ResponsiveContainer></div>}
+        {riskData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">进行中周期分布</h3><ResponsiveContainer width="100%" height={260}><BarChart data={riskData}><CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} /><Tooltip content={<BarTooltip />} /><Bar dataKey="value" name="论文数" radius={[6, 6, 0, 0]} barSize={42}>{riskData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}</Bar></BarChart></ResponsiveContainer></div>}
         {journalData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">期刊分布 Top {journalData.length}</h3><ResponsiveContainer width="100%" height={260}><BarChart data={journalData} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" horizontal={false} /><XAxis type="number" allowDecimals={false} axisLine={false} /><YAxis type="category" dataKey="name" width={120} axisLine={false} tickLine={false} /><Tooltip content={<BarTooltip />} /><Bar dataKey="value" name="论文数" radius={[0, 4, 4, 0]} barSize={18}>{journalData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}</Bar></BarChart></ResponsiveContainer></div>}
       </div>
     </div>
