@@ -157,7 +157,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
       {(chain.length > 0 || nextCount > 0) && <div className="paper-history">↳ 版本链：{chain.map(p => p.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{paper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
 
-      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal workflow-signal-inline" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}{signal.detail ? ` · ${signal.detail}` : ''}</span></div>}
+      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal workflow-signal-inline" title={signal.text} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}</span></div>}
 
       <div className="paper-card-footer">
         <div className="paper-footer-left">
