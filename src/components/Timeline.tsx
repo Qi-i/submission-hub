@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Calendar, Plus, Trash2, ArrowUp, ArrowDown, Edit3, Check, X, ArrowDownUp } from 'lucide-react'
+import { Calendar, Plus, Trash2, Edit3, Check, X } from 'lucide-react'
 import { TIMELINE_PRESETS } from '../lib/types'
 
 interface Props {
@@ -59,21 +59,25 @@ function daysBetween(start: number, end: number) {
   return Math.round((end - start) / 86400000)
 }
 
-function dateValue(line: string) {
+function lineSortValue(line: string) {
   const parsed = parseLine(line)
   const time = timeValue(parsed.date)
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY
 }
 
+function sortLines(lines: string[]) {
+  return [...lines].sort((a, b) => lineSortValue(a) - lineSortValue(b))
+}
+
 export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }: Props) {
-  const lines = parseLines(value)
+  const lines = sortLines(parseLines(value))
   const allOpts = Array.from(new Set([...TIMELINE_PRESETS, ...customOpts]))
   const [draft, setDraft] = useState<TimelineDraft>({ date: today(), event: '', note: '' })
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<TimelineDraft>({ date: '', event: '', note: '' })
   const [showRaw, setShowRaw] = useState(false)
 
-  const commitLines = (next: string[]) => onChange(next.join('\n'))
+  const commitLines = (next: string[]) => onChange(sortLines(next).join('\n'))
 
   const addNode = () => {
     if (!draft.event.trim()) return
@@ -102,17 +106,6 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
     if (editingIndex === idx) setEditingIndex(null)
   }
 
-  const moveNode = (idx: number, dir: -1 | 1) => {
-    const target = idx + dir
-    if (target < 0 || target >= lines.length) return
-    const next = [...lines]
-    ;[next[idx], next[target]] = [next[target], next[idx]]
-    commitLines(next)
-    if (editingIndex === idx) setEditingIndex(target)
-  }
-
-  const sortByDate = () => commitLines([...lines].sort((a, b) => dateValue(a) - dateValue(b)))
-
   const addCustomEvtType = () => {
     const v = prompt('输入新的自定义事件类型，例如：二审送出、校稿返回、缴纳 APC')
     const cleaned = v?.trim()
@@ -129,7 +122,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
         <div className="timeline timeline-editable timeline-table-mode">
           <div className="timeline-title">
             <Calendar size={13} /> 审稿时间线
-            <button type="button" className="timeline-mini-btn" onClick={sortByDate} title="按日期升序排序"><ArrowDownUp size={12} /> 排序</button>
+            <span className="timeline-auto-sort-hint">按日期自动排序</span>
           </div>
 
           <div className="timeline-table-head">
@@ -172,8 +165,6 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
                       <span className="timeline-duration-cell">{intervalDays === null ? '—' : `${intervalDays} 天`}</span>
                       <span className="timeline-duration-cell timeline-total-cell">{cumulativeDays === null ? '—' : `${cumulativeDays} 天`}</span>
                       <span className="timeline-actions">
-                        <button type="button" onClick={() => moveNode(idx, -1)} disabled={idx === 0} title="上移"><ArrowUp size={12} /></button>
-                        <button type="button" onClick={() => moveNode(idx, 1)} disabled={idx === lines.length - 1} title="下移"><ArrowDown size={12} /></button>
                         <button type="button" onClick={() => startEdit(idx)} title="编辑"><Edit3 size={12} /></button>
                         <button type="button" onClick={() => deleteNode(idx)} title="删除" className="danger"><Trash2 size={12} /></button>
                       </span>
@@ -204,7 +195,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
       </div>
 
       {showRaw && (
-        <textarea className="textarea" rows={5} value={value} onChange={e => onChange(e.target.value)} placeholder="每行一条记录，例如：2026/05/14 With Editor - 修回稿进入编辑处理" />
+        <textarea className="textarea" rows={5} value={value} onChange={e => onChange(sortLines(parseLines(e.target.value)).join('\n'))} placeholder="每行一条记录，例如：2026/05/14 With Editor - 修回稿进入编辑处理" />
       )}
     </div>
   )
