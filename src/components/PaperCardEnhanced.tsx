@@ -62,12 +62,20 @@ function previousChain(paper: Paper, allPapers: Paper[]) {
   return chain
 }
 
+function shouldSuppressSignal(paper: Paper, signal: ReturnType<typeof getWorkflowSignal>, nextCount: number) {
+  if (!signal) return false
+  const alreadyResubmitted = nextCount > 0 && ['rejected', 'withdrawn'].includes(paper.status)
+  const isResubmitAdvice = signal.text === '准备改投' || paper.next_action === '准备改投'
+  return alreadyResubmitted && isResubmitAdvice
+}
+
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, index = 0, onClick }: Props) {
   const st = getStatus(paper.status)
   const deadline = getDeadlineInfo(paper.deadline, paper.status)
-  const signal = getWorkflowSignal(paper)
+  const rawSignal = getWorkflowSignal(paper)
   const chain = previousChain(paper, allPapers)
   const nextCount = allPapers.filter(p => p.prev_id === paper.id).length
+  const signal = shouldSuppressSignal(paper, rawSignal, nextCount) ? null : rawSignal
 
   let dateInfo = ''
   if (paper.submitted_date) {
@@ -149,7 +157,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
       {(chain.length > 0 || nextCount > 0) && <div className="paper-history">↳ 版本链：{chain.map(p => p.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{paper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
 
-      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}</span><small>{signal.detail}</small></div>}
+      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal workflow-signal-inline" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}{signal.detail ? ` · ${signal.detail}` : ''}</span></div>}
 
       <div className="paper-card-footer">
         <div className="paper-footer-left">
