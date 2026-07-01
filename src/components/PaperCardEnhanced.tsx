@@ -26,6 +26,11 @@ function doiHref(doi?: string | null) {
   return `https://doi.org/${doi.replace(/^doi:\s*/i, '').trim()}`
 }
 
+function copyText(text?: string | null) {
+  if (!text) return
+  navigator.clipboard?.writeText(text).catch(() => undefined)
+}
+
 function getDeadlineInfo(deadline: string | null, status: string) {
   if (!deadline) return null
   if (status !== 'revision') return null
@@ -125,7 +130,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       {(paper.doi || paper.publication_info || paper.citation) && <div className="archive-chip-row">
         {paper.doi && <a className="archive-chip doi" href={doiHref(paper.doi)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>DOI ↗</a>}
         {paper.publication_info && <span className="archive-chip pub" title={paper.publication_info}>{paper.publication_info}</span>}
-        {paper.citation && <span className="archive-chip cite" title={paper.citation}>引用格式</span>}
+        {paper.citation && <button type="button" className="archive-chip cite archive-copy-chip" title="点击复制引用格式" onClick={e => { e.stopPropagation(); copyText(paper.citation) }}>复制引用</button>}
       </div>}
 
       {badges.length > 0 && <div className="paper-meta-row">{badges.map((b, i) => <span key={i} className={`badge badge-sm badge-outline ${b.cls}`}>{b.label}</span>)}</div>}
