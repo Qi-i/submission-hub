@@ -93,7 +93,13 @@ export default function Dashboard() {
       (p.journal || '').toLowerCase().includes(q) ||
       (p.manuscript_no || '').toLowerCase().includes(q) ||
       (p.system_status || '').toLowerCase().includes(q) ||
-      (p.authors || []).some(a => a.toLowerCase().includes(q))
+      (p.doi || '').toLowerCase().includes(q) ||
+      (p.publication_info || '').toLowerCase().includes(q) ||
+      (p.citation || '').toLowerCase().includes(q) ||
+      (p.journal_url || '').toLowerCase().includes(q) ||
+      (p.journal_apc_note || '').toLowerCase().includes(q) ||
+      (p.authors || []).some(a => a.toLowerCase().includes(q)) ||
+      (p.files || []).some(f => `${f.n || ''} ${f.p || ''} ${f.t || ''}`.toLowerCase().includes(q))
     )
   }
 
@@ -144,6 +150,11 @@ export default function Dashboard() {
           apc_currency: d.apc_currency || 'USD',
           revision_round: d.revision_round || 0,
           followup_log: d.followup_log || null,
+          doi: d.doi || null,
+          publication_info: d.publication_info || d.publicationInfo || null,
+          citation: d.citation || null,
+          journal_url: d.journal_url || d.journalUrl || null,
+          journal_apc_note: d.journal_apc_note || d.journalApcNote || null,
           status: d.status || 'preparing',
           lang: d.lang || 'zh',
           quartile_jcr: d.quartile_jcr || null,
@@ -161,7 +172,7 @@ export default function Dashboard() {
           timeline: d.timeline || null,
           notes: d.notes || null,
           prev_id: d.prevId || d.prev_id || null,
-          files: d.files || null,
+          files: Array.isArray(d.files) ? d.files.map((file: any) => ({ n: file.n || file.name || '', p: file.p || file.url || '', t: file.t || file.type || '其它' })) : null,
           created_at: now,
           updated_at: now,
         }))
@@ -184,7 +195,7 @@ export default function Dashboard() {
     <div className="tool-popover header-tool-popover">
       <div className="search-wrap">
         <Search size={15} className="search-icon" />
-        <input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或系统状态..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
+        <input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号、DOI、引用格式或附件..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
       </div>
       <div className="dropdown smart-filter-dropdown">
         <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}><Filter size={13} /> {filterLabel} <ChevronDown size={12} /></button>
@@ -202,22 +213,11 @@ export default function Dashboard() {
 
   return (
     <div className="app-layout">
-      {isDemo && (
-        <div className="demo-banner">
-          <span>🎭 演示模式 — 数据为示例，不会保存更改</span>
-          <button className="btn btn-sm btn-ghost" onClick={exitDemo}><X size={14} /> 退出演示</button>
-        </div>
-      )}
+      {isDemo && <div className="demo-banner"><span>🎭 演示模式 — 数据为示例，不会保存更改</span><button className="btn btn-sm btn-ghost" onClick={exitDemo}><X size={14} /> 退出演示</button></div>}
 
       <header className="app-header app-header-refined">
         <div className="header-left-cluster">
-          <div className="header-brand">
-            <div className="header-logo">SH</div>
-            <div>
-              <div className="header-title">Submission Hub</div>
-              <div className="header-subtitle">学术投稿与成果管理</div>
-            </div>
-          </div>
+          <div className="header-brand"><div className="header-logo">SH</div><div><div className="header-title">Submission Hub</div><div className="header-subtitle">学术投稿与成果管理</div></div></div>
           <nav className="header-tabs" aria-label="主导航">
             <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => { closeTools(); setTab('dashboard') }}><FileText size={14} /> 投稿管理</button>
             <button className={tab === 'stats' ? 'active' : ''} onClick={() => { closeTools(); setTab('stats') }}><BarChart3 size={14} /> 个人统计</button>
@@ -226,15 +226,8 @@ export default function Dashboard() {
         </div>
 
         <div className="header-actions">
-          {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}>
-            <button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}>
-              <Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} />
-            </button>
-            {toolPanel}
-          </div>}
-          <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>
-            {mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}
-          </button>
+          {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
+          <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
           {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON"><Download size={14} /> 导出</button><button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button></>}
           {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={openSettings} title="个人设置"><Settings size={15} /></button>}
           {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
@@ -246,10 +239,7 @@ export default function Dashboard() {
           {stats.map(s => <MetricCard key={s.key} icon={s.emoji} value={s.count} label={s.label} helper="点击筛选" color={s.color} tone={`${s.color}18`} active={statusFilter === s.key} onClick={() => setStatusFilter(statusFilter === s.key ? 'all' : s.key)} />)}
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
-
-        <div className="paper-grid">
-          {filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((p, i) => <PaperCard key={p.id} paper={p} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={i} onClick={isDemo ? undefined : () => openPaperForm(p)} />)}
-        </div>
+        <div className="paper-grid">{filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((p, i) => <PaperCard key={p.id} paper={p} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={i} onClick={isDemo ? undefined : () => openPaperForm(p)} />)}</div>
       </>}
 
       {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} authorName={user?.author_name || ''} />}
