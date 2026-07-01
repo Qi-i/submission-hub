@@ -78,6 +78,10 @@ function cutoff(range: Range) {
   return d
 }
 
+function pct(part: number, total: number) {
+  return total ? Math.round(part / total * 100) : 0
+}
+
 function BarTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return <div className="chart-tooltip glass-panel"><span className="chart-tooltip-title">{label}</span><b style={{ marginLeft: 10 }}>{payload[0]?.value} 篇</b></div>
@@ -134,12 +138,24 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
   const archiveInsights = useMemo(() => {
     const accepted = papers.filter(p => p.status === 'accepted')
     const withPublication = accepted.filter(p => p.published_url).length
+    const withDoi = accepted.filter(p => p.doi).length
+    const withPubInfo = accepted.filter(p => p.publication_info).length
+    const withCitation = accepted.filter(p => p.citation).length
+    const archiveComplete = accepted.filter(p => p.published_url && p.doi && p.publication_info && p.citation).length
     const withFiles = papers.filter(p => p.files?.length).length
+    const withClassifiedFiles = papers.filter(p => p.files?.some(file => file.t && file.t !== '其它')).length
     const withTimeline = papers.filter(p => p.timeline?.trim()).length
-    const publicationRate = accepted.length ? Math.round(withPublication / accepted.length * 100) : 0
-    const fileRate = papers.length ? Math.round(withFiles / papers.length * 100) : 0
-    const timelineRate = papers.length ? Math.round(withTimeline / papers.length * 100) : 0
-    return { acceptedCount: accepted.length, publicationRate, fileRate, timelineRate }
+    return {
+      acceptedCount: accepted.length,
+      archiveRate: pct(archiveComplete, accepted.length),
+      publicationRate: pct(withPublication, accepted.length),
+      doiRate: pct(withDoi, accepted.length),
+      pubInfoRate: pct(withPubInfo, accepted.length),
+      citationRate: pct(withCitation, accepted.length),
+      fileRate: pct(withFiles, papers.length),
+      classifiedFileRate: pct(withClassifiedFiles, papers.length),
+      timelineRate: pct(withTimeline, papers.length),
+    }
   }, [papers])
 
   const riskData = useMemo(() => {
@@ -220,8 +236,11 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
         <InsightCard label="进行中平均周期" value={`${reviewInsights.avgActive}天`} hint="当前未完结稿件" tone="orange" />
         <InsightCard label="90天以上进行中" value={reviewInsights.longActive} hint="建议重点跟踪" tone="red" />
         <InsightCard label="修回7天内截止" value={reviewInsights.urgentRevision} hint="需要优先处理" tone="red" />
-        <InsightCard label="见刊信息完整度" value={`${archiveInsights.publicationRate}%`} hint={`已接收 ${archiveInsights.acceptedCount} 篇`} tone="green" />
-        <InsightCard label="附件归档率" value={`${archiveInsights.fileRate}%`} hint="至少有一项文件记录" tone="slate" />
+        <InsightCard label="成果归档完整度" value={`${archiveInsights.archiveRate}%`} hint={`链接/DOI/卷期/引用均完整；已接收 ${archiveInsights.acceptedCount} 篇`} tone="green" />
+        <InsightCard label="见刊链接完整率" value={`${archiveInsights.publicationRate}%`} hint="已接收论文的在线发表链接" tone="green" />
+        <InsightCard label="DOI完整率" value={`${archiveInsights.doiRate}%`} hint="已接收论文 DOI 填写情况" tone="blue" />
+        <InsightCard label="引用格式完整率" value={`${archiveInsights.citationRate}%`} hint={`卷期页码 ${archiveInsights.pubInfoRate}%`} tone="purple" />
+        <InsightCard label="附件归档率" value={`${archiveInsights.fileRate}%`} hint={`分类附件 ${archiveInsights.classifiedFileRate}%`} tone="slate" />
         <InsightCard label="时间线完整率" value={`${archiveInsights.timelineRate}%`} hint="至少有一条审稿记录" tone="blue" />
       </div>
 
