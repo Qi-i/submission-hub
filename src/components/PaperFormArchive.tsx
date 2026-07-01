@@ -28,6 +28,7 @@ interface Props {
 
 const blankZhQuartile = ['', '', '', '']
 const value = (v: unknown) => v === null || v === undefined ? '' : String(v)
+const norm = (v?: string | null) => (v || '').trim().toLowerCase()
 
 function initial(paper: Paper | 'new', currentUsername: string): FormState {
   if (paper === 'new') return {
@@ -87,12 +88,35 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
 
 export default function PaperFormArchive({ paper, allPapers, currentUsername, onSave, onDelete, onClose }: Props) {
   const isNew = paper === 'new'
+  const currentId = isNew ? '' : paper.id
   const [form, setForm] = useState<FormState>(() => initial(paper, currentUsername))
   const [authorsText, setAuthorsText] = useState(form.authors.join(', '))
   const [uploading, setUploading] = useState<number | null>(null)
   const [customTl, setCustomTl] = useState<string[]>([])
   const authors = authorsText.split(/[，,;；、\s]+/).map(a => a.trim()).filter(Boolean)
   const set = <K extends keyof FormState>(key: K, next: FormState[K]) => setForm(prev => ({ ...prev, [key]: next }))
+
+  const journalNames = Array.from(new Set(allPapers.map(p => p.journal).filter(Boolean) as string[])).sort()
+  const journalProfile = allPapers
+    .filter(p => p.id !== currentId && norm(p.journal) === norm(form.journal))
+    .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())[0]
+
+  const applyJournalProfile = () => {
+    if (!journalProfile) return
+    setForm(prev => ({
+      ...prev,
+      submission_system: prev.submission_system || journalProfile.submission_system || '',
+      journal_url: prev.journal_url || journalProfile.journal_url || '',
+      journal_apc_note: prev.journal_apc_note || journalProfile.journal_apc_note || '',
+      apc_amount: prev.apc_amount || value(journalProfile.apc_amount),
+      apc_currency: prev.apc_currency || journalProfile.apc_currency || 'USD',
+      quartile_jcr: prev.quartile_jcr !== '未定' ? prev.quartile_jcr : journalProfile.quartile_jcr || prev.quartile_jcr,
+      quartile_cas: prev.quartile_cas !== '未定' ? prev.quartile_cas : journalProfile.quartile_cas || prev.quartile_cas,
+      quartile_new: prev.quartile_new !== '无' ? prev.quartile_new : journalProfile.quartile_new || prev.quartile_new,
+      quartile_cust: prev.quartile_cust !== '无' ? prev.quartile_cust : journalProfile.quartile_cust || prev.quartile_cust,
+      quartile_zh: prev.quartile_zh.some(Boolean) ? prev.quartile_zh : journalProfile.quartile_zh || prev.quartile_zh,
+    }))
+  }
 
   const updateFile = (idx: number, key: keyof PaperFile, next: string) => setForm(prev => {
     const files = [...prev.files]
@@ -154,7 +178,9 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
         <div className="compact-grid two"><Field label="文章语言"><select className="select" value={form.lang} onChange={e => set('lang', e.target.value)}><option value="zh">中文</option><option value="en">英文</option></select></Field><Field label="当前主状态"><select className="select" value={form.status} onChange={e => set('status', e.target.value)}>{STATUSES.map(s => <option key={s.key} value={s.key}>{s.emoji} {s.label}</option>)}</select></Field></div>
         <Field label="论文标题" wide><input className="input title-input" value={form.title} onChange={e => set('title', e.target.value)} /></Field>
         {form.lang === 'en' && <Field label="中文翻译标题" wide><input className="input" value={form.title_zh} onChange={e => set('title_zh', e.target.value)} /></Field>}
-        <Field label="目标期刊 / 会议" wide><input className="input" value={form.journal} onChange={e => set('journal', e.target.value)} /></Field>
+        <Field label="目标期刊 / 会议" wide><input className="input" list="journal-options" value={form.journal} onChange={e => set('journal', e.target.value)} /></Field>
+        <datalist id="journal-options">{journalNames.map(name => <option key={name} value={name} />)}</datalist>
+        {journalProfile && <div className="profile-suggestion"><span>检测到历史期刊档案：{journalProfile.journal}</span><button type="button" className="timeline-link-btn" onClick={applyJournalProfile}>带出期刊信息</button></div>}
       </Section>
 
       <Section title="投稿与期刊档案" subtitle="投稿入口、期刊官网、费用备注" tone="green">
