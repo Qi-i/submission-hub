@@ -1,7 +1,7 @@
 /* Final UI polish overrides loaded last. Keep this file small and targeted. */
 @media (min-width: 1000px) {
   .paper-grid .card.glass-card {
-    gap: 8px !important;
+    gap: 7px !important;
     min-width: 0 !important;
   }
   .paper-grid .paper-card-head,
@@ -10,7 +10,8 @@
   .paper-grid .archive-chip-row,
   .paper-grid .author-list-v2,
   .paper-grid .paper-card-footer,
-  .paper-grid .paper-footer-left {
+  .paper-grid .paper-footer-left,
+  .paper-grid .title-block {
     min-width: 0 !important;
   }
   .paper-grid .paper-status-stack {
@@ -53,18 +54,37 @@
   .paper-grid .archive-chip {
     max-width: 158px !important;
   }
-  .paper-grid .card-title,
+  .paper-grid .title-block {
+    flex: 0 0 auto !important;
+  }
+  .paper-grid .card-title {
+    min-width: 0 !important;
+    word-break: break-word !important;
+    -webkit-line-clamp: 3 !important;
+    max-height: 3.72em !important;
+    line-height: 1.24 !important;
+  }
   .paper-grid .card-subtitle {
     min-width: 0 !important;
     word-break: break-word !important;
+    -webkit-line-clamp: 1 !important;
+    max-height: 1.25em !important;
+    line-height: 1.25 !important;
   }
   .paper-grid .author-list-v2 {
-    max-height: 58px !important;
+    max-height: 50px !important;
     overflow: hidden !important;
+    align-content: flex-start !important;
   }
   .paper-grid .author-badge-v2 {
     max-width: 118px !important;
     flex: 0 1 auto !important;
+  }
+  .paper-grid .author-more {
+    max-width: 76px !important;
+    color: var(--text-muted) !important;
+    background: rgba(100, 116, 139, 0.08) !important;
+    border-color: rgba(148, 163, 184, 0.16) !important;
   }
   .paper-grid .author-name-v2 {
     min-width: 0 !important;
