@@ -1,5 +1,77 @@
 /* Final UI polish overrides loaded last. Keep this file small and targeted. */
 @media (min-width: 1000px) {
+  .paper-grid .card.glass-card {
+    gap: 8px !important;
+    min-width: 0 !important;
+  }
+  .paper-grid .paper-card-head,
+  .paper-grid .paper-meta-row,
+  .paper-grid .journal-profile-row,
+  .paper-grid .archive-chip-row,
+  .paper-grid .author-list-v2,
+  .paper-grid .paper-card-footer,
+  .paper-grid .paper-footer-left {
+    min-width: 0 !important;
+  }
+  .paper-grid .paper-status-stack {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+  .paper-grid .system-status-inline,
+  .paper-grid .journal-pill,
+  .paper-grid .badge,
+  .paper-grid .badge-sm,
+  .paper-grid .journal-profile-row a,
+  .paper-grid .journal-profile-row span,
+  .paper-grid .archive-chip,
+  .paper-grid .author-badge-v2,
+  .paper-grid .file-dot,
+  .paper-grid .deadline-badge,
+  .paper-grid .paper-date-info {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .paper-grid .journal-pill {
+    flex: 0 1 170px !important;
+    max-width: 170px !important;
+    min-width: 0 !important;
+    justify-content: flex-start !important;
+  }
+  .paper-grid .system-status-inline {
+    max-width: 126px !important;
+  }
+  .paper-grid .paper-meta-row .badge,
+  .paper-grid .paper-meta-row .badge-sm {
+    max-width: 128px !important;
+  }
+  .paper-grid .journal-profile-row a,
+  .paper-grid .journal-profile-row span {
+    max-width: 142px !important;
+  }
+  .paper-grid .archive-chip {
+    max-width: 158px !important;
+  }
+  .paper-grid .card-title,
+  .paper-grid .card-subtitle {
+    min-width: 0 !important;
+    word-break: break-word !important;
+  }
+  .paper-grid .author-list-v2 {
+    max-height: 58px !important;
+    overflow: hidden !important;
+  }
+  .paper-grid .author-badge-v2 {
+    max-width: 118px !important;
+    flex: 0 1 auto !important;
+  }
+  .paper-grid .author-name-v2 {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
   .paper-grid .paper-history {
     display: flex !important;
     align-items: center !important;
@@ -18,12 +90,28 @@
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     opacity: 1 !important;
-  }
-  .paper-grid .card.glass-card {
-    gap: 8px !important;
+    width: 100% !important;
   }
   .paper-grid .workflow-signal-inline {
     flex: 0 0 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .paper-grid .paper-card-footer {
+    overflow: hidden !important;
+  }
+  .paper-grid .paper-footer-left {
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+  }
+  .paper-grid .paper-date-info {
+    flex: 0 0 auto !important;
+    max-width: 178px !important;
+    text-align: right !important;
+    color: var(--text-muted) !important;
+    opacity: 1 !important;
   }
 }
 
