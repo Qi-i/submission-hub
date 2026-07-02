@@ -13,6 +13,7 @@ interface Props {
 type Scale = 'month' | 'quarter' | 'year'
 type Range = 'all' | '1y' | '3y' | '5y'
 type TrendKey = 'cumSubmitted' | 'cumAccepted' | 'inProgress' | 'submitted' | 'accepted' | 'rejected'
+type StatsModule = 'overview' | 'process' | 'trend' | 'charts'
 
 const chartColors = ['#6366f1', '#0ea5e9', '#f59e0b', '#a855f7', '#22c55e', '#ef4444', '#64748b', '#ec4899', '#14b8a6', '#f97316']
 const series = [
@@ -78,10 +79,6 @@ function cutoff(range: Range) {
   return d
 }
 
-function pct(part: number, total: number) {
-  return total ? Math.round(part / total * 100) : 0
-}
-
 function BarTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return <div className="chart-tooltip glass-panel"><span className="chart-tooltip-title">{label}</span><b style={{ marginLeft: 10 }}>{payload[0]?.value} 篇</b></div>
@@ -99,6 +96,7 @@ function InsightCard({ label, value, hint, tone }: { label: string; value: strin
 export default function PersonalStatsStable({ papers, currentUsername, authorName }: Props) {
   const [scale, setScale] = useState<Scale>('month')
   const [range, setRange] = useState<Range>('all')
+  const [modules, setModules] = useState<Record<StatsModule, boolean>>({ overview: true, process: true, trend: true, charts: true })
   const [visible, setVisible] = useState<Record<TrendKey, boolean>>({
     cumSubmitted: true,
     cumAccepted: true,
@@ -108,22 +106,23 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
     rejected: false,
   })
 
+  const toggleModule = (key: StatsModule) => setModules(prev => ({ ...prev, [key]: !prev[key] }))
+
   const summary = useMemo(() => {
     const total = papers.length
     const accepted = papers.filter(p => p.status === 'accepted').length
     const rejected = papers.filter(p => p.status === 'rejected').length
+    const revision = papers.filter(p => p.status === 'revision').length
     const inProgress = papers.filter(p => ['submitted', 'under_review', 'revision'].includes(p.status)).length
     const matchName = authorName || currentUsername
     const firstAuthor = papers.filter(p => p.authors?.[0] === matchName).length
     const corrAuthor = papers.filter(p => p.corresponding_author === matchName).length
-    const collaborators = new Set(papers.flatMap(p => p.authors || [])).size
-    const resolved = papers.filter(p => p.submitted_date && p.resolve_date)
-    const avgDays = resolved.length ? Math.round(resolved.reduce((sum, p) => sum + (daysBetween(p.submitted_date, p.resolve_date) || 0), 0) / resolved.length) : 0
-    const rate = total ? Math.round(accepted / total * 100) : 0
-    return { total, accepted, rejected, inProgress, firstAuthor, corrAuthor, collaborators, avgDays, rate }
+    const acceptedRate = total ? Math.round(accepted / total * 100) : 0
+    const rejectionRate = total ? Math.round(rejected / total * 100) : 0
+    return { total, accepted, rejected, revision, inProgress, firstAuthor, corrAuthor, acceptedRate, rejectionRate }
   }, [papers, currentUsername, authorName])
 
-  const reviewInsights = useMemo(() => {
+  const processInsights = useMemo(() => {
     const resolvedDurations = papers.map(p => daysBetween(p.submitted_date, p.resolve_date)).filter((d): d is number => d !== null && d >= 0)
     const avgResolved = resolvedDurations.length ? Math.round(resolvedDurations.reduce((a, b) => a + b, 0) / resolvedDurations.length) : 0
     const maxResolved = resolvedDurations.length ? Math.max(...resolvedDurations) : 0
@@ -133,29 +132,6 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
     const longActive = activeDurations.filter(d => d >= 90).length
     const urgentRevision = papers.filter(p => p.status === 'revision' && p.deadline && (daysBetween(new Date().toISOString().slice(0, 10), p.deadline) ?? 999) <= 7).length
     return { avgResolved, maxResolved, avgActive, longActive, urgentRevision }
-  }, [papers])
-
-  const archiveInsights = useMemo(() => {
-    const accepted = papers.filter(p => p.status === 'accepted')
-    const withPublication = accepted.filter(p => p.published_url).length
-    const withDoi = accepted.filter(p => p.doi).length
-    const withPubInfo = accepted.filter(p => p.publication_info).length
-    const withCitation = accepted.filter(p => p.citation).length
-    const archiveComplete = accepted.filter(p => p.published_url && p.doi && p.publication_info && p.citation).length
-    const withFiles = papers.filter(p => p.files?.length).length
-    const withClassifiedFiles = papers.filter(p => p.files?.some(file => file.t && file.t !== '其它')).length
-    const withTimeline = papers.filter(p => p.timeline?.trim()).length
-    return {
-      acceptedCount: accepted.length,
-      archiveRate: pct(archiveComplete, accepted.length),
-      publicationRate: pct(withPublication, accepted.length),
-      doiRate: pct(withDoi, accepted.length),
-      pubInfoRate: pct(withPubInfo, accepted.length),
-      citationRate: pct(withCitation, accepted.length),
-      fileRate: pct(withFiles, papers.length),
-      classifiedFileRate: pct(withClassifiedFiles, papers.length),
-      timelineRate: pct(withTimeline, papers.length),
-    }
   }, [papers])
 
   const riskData = useMemo(() => {
@@ -210,54 +186,58 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name, value], i) => ({ name, value, fill: chartColors[i % chartColors.length] }))
   }, [papers])
 
-  if (papers.length === 0) return <div className="stats-panel"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-text">还没有投稿数据</div><div className="empty-sub">添加论文后即可查看统计分析</div></div></div>
+  if (papers.length === 0) return <div className="stats-panel"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-text">还没有投稿数据</div><div className="empty-sub">添加论文后即可查看投稿统计</div></div></div>
 
   const cards = [
-    { icon: '📄', bg: 'var(--accent-bg)', color: 'var(--accent)', value: summary.total, label: '论文总数' },
+    { icon: '📄', bg: 'var(--accent-bg)', color: 'var(--accent)', value: summary.total, label: '投稿总数' },
     { icon: '✅', bg: 'rgba(34,197,94,0.1)', color: '#22c55e', value: summary.accepted, label: '已接收' },
     { icon: '⏳', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b', value: summary.inProgress, label: '进行中' },
+    { icon: '🔧', bg: 'rgba(168,85,247,0.1)', color: '#a855f7', value: summary.revision, label: '修回中' },
     { icon: '🚫', bg: 'rgba(239,68,68,0.1)', color: '#ef4444', value: summary.rejected, label: '被拒' },
     { icon: '👤', bg: 'var(--purple-bg)', color: 'var(--purple)', value: summary.firstAuthor, label: '第一作者' },
     { icon: '✉', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b', value: summary.corrAuthor, label: '通讯作者' },
-    { icon: '👥', bg: 'var(--info-bg)', color: 'var(--info)', value: summary.collaborators, label: '合作者' },
-    { icon: '⏱', bg: 'rgba(168,85,247,0.1)', color: '#a855f7', value: summary.avgDays, label: '平均审稿天数' },
-    { icon: '🎯', bg: summary.rate >= 50 ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', color: summary.rate >= 50 ? '#22c55e' : '#f59e0b', value: `${summary.rate}%`, label: '接收率' },
+    { icon: '🎯', bg: summary.acceptedRate >= 50 ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', color: summary.acceptedRate >= 50 ? '#22c55e' : '#f59e0b', value: `${summary.acceptedRate}%`, label: '接收率' },
+    { icon: '⚠️', bg: 'rgba(239,68,68,0.1)', color: '#ef4444', value: `${summary.rejectionRate}%`, label: '拒稿率' },
   ]
 
   return (
     <div className="stats-panel stats-panel-refined">
-      <div className="stats-summary refined-summary">
+      <div className="stats-visibility-bar">
+        <div className="stats-visibility-title"><b>个人投稿统计</b><span>仅统计投稿过程、审稿周期、结果状态与作者角色；管理类完整度已移除。</span></div>
+        <div className="stats-visibility-controls">
+          <button className={`stats-toggle-chip ${modules.overview ? 'active' : ''}`} onClick={() => toggleModule('overview')}>核心概览</button>
+          <button className={`stats-toggle-chip ${modules.process ? 'active' : ''}`} onClick={() => toggleModule('process')}>过程指标</button>
+          <button className={`stats-toggle-chip ${modules.trend ? 'active' : ''}`} onClick={() => toggleModule('trend')}>趋势图</button>
+          <button className={`stats-toggle-chip ${modules.charts ? 'active' : ''}`} onClick={() => toggleModule('charts')}>分布图</button>
+        </div>
+      </div>
+
+      {modules.overview && <div className="stats-summary refined-summary">
         {cards.map((item, i) => <div key={item.label} className="summary-card glass-panel animate-in" style={{ animationDelay: `${i * 0.04}s` }}><div className="summary-icon" style={{ background: item.bg, color: item.color }}>{item.icon}</div><div><div className="summary-value" style={{ color: item.color }}>{item.value}</div><div className="summary-label">{item.label}</div></div></div>)}
-      </div>
+      </div>}
 
-      <div className="stats-insight-grid">
-        <InsightCard label="已完结平均周期" value={`${reviewInsights.avgResolved}天`} hint="投稿至终审/接收/拒稿" tone="blue" />
-        <InsightCard label="最长完结周期" value={`${reviewInsights.maxResolved}天`} hint="历史最长审稿链路" tone="purple" />
-        <InsightCard label="进行中平均周期" value={`${reviewInsights.avgActive}天`} hint="当前未完结稿件" tone="orange" />
-        <InsightCard label="90天以上进行中" value={reviewInsights.longActive} hint="建议重点跟踪" tone="red" />
-        <InsightCard label="修回7天内截止" value={reviewInsights.urgentRevision} hint="需要优先处理" tone="red" />
-        <InsightCard label="成果归档完整度" value={`${archiveInsights.archiveRate}%`} hint={`链接/DOI/卷期/引用均完整；已接收 ${archiveInsights.acceptedCount} 篇`} tone="green" />
-        <InsightCard label="见刊链接完整率" value={`${archiveInsights.publicationRate}%`} hint="已接收论文的在线发表链接" tone="green" />
-        <InsightCard label="DOI完整率" value={`${archiveInsights.doiRate}%`} hint="已接收论文 DOI 填写情况" tone="blue" />
-        <InsightCard label="引用格式完整率" value={`${archiveInsights.citationRate}%`} hint={`卷期页码 ${archiveInsights.pubInfoRate}%`} tone="purple" />
-        <InsightCard label="附件归档率" value={`${archiveInsights.fileRate}%`} hint={`分类附件 ${archiveInsights.classifiedFileRate}%`} tone="slate" />
-        <InsightCard label="时间线完整率" value={`${archiveInsights.timelineRate}%`} hint="至少有一条审稿记录" tone="blue" />
-      </div>
+      {modules.process && <div className="process-insight-grid">
+        <InsightCard label="已完结平均周期" value={`${processInsights.avgResolved}天`} hint="投稿至终审/接收/拒稿" tone="blue" />
+        <InsightCard label="最长完结周期" value={`${processInsights.maxResolved}天`} hint="历史最长审稿链路" tone="purple" />
+        <InsightCard label="进行中平均周期" value={`${processInsights.avgActive}天`} hint="当前未完结稿件" tone="orange" />
+        <InsightCard label="90天以上进行中" value={processInsights.longActive} hint="建议重点跟踪" tone="red" />
+        <InsightCard label="修回7天内截止" value={processInsights.urgentRevision} hint="需要优先处理" tone="red" />
+      </div>}
 
-      {trendData.length > 0 && <div className="chart-card chart-card-hero trend-card-refined glass-panel animate-in">
+      {modules.trend && trendData.length > 0 && <div className="chart-card chart-card-hero trend-card-refined glass-panel animate-in">
         <div className="chart-header refined-chart-header">
-          <div><h3 className="chart-title">投稿时间趋势</h3><p className="chart-subtitle">按统一时间尺度统计；累计线用平滑曲线，辅助线用虚线区分。</p></div>
+          <div><h3 className="chart-title">投稿时间趋势</h3><p className="chart-subtitle">按投稿、接收、拒稿和进行中数量统计，不包含附件或成果归档完整度。</p></div>
           <div className="trend-controls"><div className="segmented-control"><button className={scale === 'month' ? 'active' : ''} onClick={() => setScale('month')}>月</button><button className={scale === 'quarter' ? 'active' : ''} onClick={() => setScale('quarter')}>季度</button><button className={scale === 'year' ? 'active' : ''} onClick={() => setScale('year')}>年</button></div><div className="segmented-control"><button className={range === 'all' ? 'active' : ''} onClick={() => setRange('all')}>全部</button><button className={range === '1y' ? 'active' : ''} onClick={() => setRange('1y')}>1年</button><button className={range === '3y' ? 'active' : ''} onClick={() => setRange('3y')}>3年</button><button className={range === '5y' ? 'active' : ''} onClick={() => setRange('5y')}>5年</button></div></div>
         </div>
         <div className="series-toggle-row">{series.map(s => <button key={s.key} className={visible[s.key] ? 'series-chip active' : 'series-chip'} onClick={() => setVisible(prev => ({ ...prev, [s.key]: !prev[s.key] }))}><span style={{ background: s.color }} />{s.label}</button>)}</div>
         <StatsTrendChart data={trendData} visible={visible} />
       </div>}
 
-      <div className="charts-grid refined-charts-grid">
-        {statusData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">状态分布</h3><ResponsiveContainer width="100%" height={260}><PieChart><Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" strokeWidth={0}>{statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}</Pie><Tooltip content={<PieTooltip />} /></PieChart></ResponsiveContainer></div>}
+      {modules.charts && <div className="charts-grid refined-charts-grid">
+        {statusData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">投稿状态分布</h3><ResponsiveContainer width="100%" height={260}><PieChart><Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" strokeWidth={0}>{statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}</Pie><Tooltip content={<PieTooltip />} /></PieChart></ResponsiveContainer></div>}
         {riskData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">进行中周期分布</h3><ResponsiveContainer width="100%" height={260}><BarChart data={riskData}><CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} /><Tooltip content={<BarTooltip />} /><Bar dataKey="value" name="论文数" radius={[6, 6, 0, 0]} barSize={42}>{riskData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}</Bar></BarChart></ResponsiveContainer></div>}
-        {journalData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">期刊分布 Top {journalData.length}</h3><ResponsiveContainer width="100%" height={260}><BarChart data={journalData} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" horizontal={false} /><XAxis type="number" allowDecimals={false} axisLine={false} /><YAxis type="category" dataKey="name" width={120} axisLine={false} tickLine={false} /><Tooltip content={<BarTooltip />} /><Bar dataKey="value" name="论文数" radius={[0, 4, 4, 0]} barSize={18}>{journalData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}</Bar></BarChart></ResponsiveContainer></div>}
-      </div>
+        {journalData.length > 0 && <div className="chart-card glass-panel"><h3 className="chart-title">投稿期刊分布 Top {journalData.length}</h3><ResponsiveContainer width="100%" height={260}><BarChart data={journalData} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" horizontal={false} /><XAxis type="number" allowDecimals={false} axisLine={false} /><YAxis type="category" dataKey="name" width={120} axisLine={false} tickLine={false} /><Tooltip content={<BarTooltip />} /><Bar dataKey="value" name="论文数" radius={[0, 4, 4, 0]} barSize={18}>{journalData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}</Bar></BarChart></ResponsiveContainer></div>}
+      </div>}
     </div>
   )
 }
