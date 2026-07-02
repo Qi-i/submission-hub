@@ -11,6 +11,7 @@ import './ui-stabilize.css'
 import './compact-form.css'
 import './archive-form.css'
 import './final-polish.css'
+import './contrast-polish.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
