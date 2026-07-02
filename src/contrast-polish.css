@@ -1,0 +1,140 @@
+/* Final contrast pass: make secondary text readable on glass backgrounds. */
+:root {
+  --readable-muted: #64748b;
+  --readable-secondary: #475569;
+  --readable-strong: #334155;
+}
+
+.paper-grid .card-subtitle,
+.paper-grid .paper-history,
+.paper-grid .journal-profile-row span,
+.paper-grid .archive-chip.pub,
+.paper-grid .paper-date-info,
+.paper-grid .author-more,
+.paper-grid .file-type-pill,
+.paper-grid .deadline-badge,
+.stats-visibility-title span,
+.chart-subtitle,
+.summary-label,
+.metric-label {
+  color: var(--readable-secondary) !important;
+  opacity: 1 !important;
+}
+
+.paper-grid .system-status-inline,
+.paper-grid .journal-pill,
+.paper-grid .badge-outline,
+.paper-grid .paper-meta-row .badge,
+.paper-grid .author-badge-v2 {
+  border-color: rgba(100, 116, 139, 0.24) !important;
+  color: var(--readable-strong) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.035) !important;
+}
+
+.paper-grid .status-under_review {
+  color: #92400e !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(251, 191, 36, 0.14)) !important;
+  border: 1px solid rgba(217, 119, 6, 0.42) !important;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.13) !important;
+}
+.paper-grid .status-revision {
+  color: #6d28d9 !important;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(196, 181, 253, 0.13)) !important;
+  border: 1px solid rgba(124, 58, 237, 0.34) !important;
+}
+.paper-grid .status-accepted {
+  color: #15803d !important;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(187, 247, 208, 0.16)) !important;
+  border: 1px solid rgba(22, 163, 74, 0.34) !important;
+}
+.paper-grid .status-rejected {
+  color: #b91c1c !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(254, 202, 202, 0.14)) !important;
+  border: 1px solid rgba(220, 38, 38, 0.34) !important;
+}
+.paper-grid .status-submitted {
+  color: #0369a1 !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(186, 230, 253, 0.14)) !important;
+  border: 1px solid rgba(2, 132, 199, 0.32) !important;
+}
+.paper-grid .status-withdrawn {
+  color: #475569 !important;
+  background: linear-gradient(135deg, rgba(100, 116, 139, 0.17), rgba(226, 232, 240, 0.16)) !important;
+  border: 1px solid rgba(100, 116, 139, 0.3) !important;
+}
+.paper-grid .status-preparing {
+  color: #4338ca !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(199, 210, 254, 0.13)) !important;
+  border: 1px solid rgba(79, 70, 229, 0.3) !important;
+}
+
+.paper-grid .system-status-inline {
+  color: #1f2937 !important;
+  font-weight: 900 !important;
+  background: rgba(248, 250, 252, 0.9) !important;
+}
+.paper-grid .journal-pill {
+  color: #0369a1 !important;
+  background: rgba(224, 242, 254, 0.72) !important;
+  border-color: rgba(14, 165, 233, 0.26) !important;
+}
+.paper-grid .card-title {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+.paper-grid .card-subtitle {
+  font-weight: 760 !important;
+}
+.paper-grid .paper-history {
+  color: #475569 !important;
+  background: rgba(241, 245, 249, 0.86) !important;
+  border-color: rgba(100, 116, 139, 0.22) !important;
+}
+.paper-grid .paper-date-info {
+  color: #64748b !important;
+  font-weight: 820 !important;
+}
+.paper-grid .author-more {
+  color: #475569 !important;
+}
+
+.compact-form-header p,
+.compact-section-head span,
+.compact-field > span,
+.compact-form-modal .timeline-date,
+.compact-form-modal .timeline-duration-cell,
+.compact-form-modal .timeline-event-cell em,
+.timeline-auto-sort-hint,
+.profile-suggestion,
+.compact-file-head {
+  color: var(--readable-secondary) !important;
+  opacity: 1 !important;
+}
+.compact-section-head h4,
+.compact-field > span,
+.compact-form-modal .timeline-title {
+  color: #1e293b !important;
+}
+.compact-form-modal .input,
+.compact-form-modal .select,
+.compact-form-modal .textarea {
+  color: #0f172a !important;
+  border-color: rgba(100, 116, 139, 0.26) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+}
+.compact-form-modal .input::placeholder,
+.compact-form-modal .textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+.stats-toggle-chip {
+  color: #475569 !important;
+  border-color: rgba(100, 116, 139, 0.24) !important;
+}
+.stats-toggle-chip.active {
+  color: #0369a1 !important;
+  border-color: rgba(14, 165, 233, 0.34) !important;
+  background: rgba(224, 242, 254, 0.72) !important;
+}
