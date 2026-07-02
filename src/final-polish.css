@@ -1,0 +1,96 @@
+/* Final UI polish overrides loaded last. Keep this file small and targeted. */
+@media (min-width: 1000px) {
+  .paper-grid .paper-history {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    margin: 0 !important;
+    padding: 0 9px !important;
+    border-radius: 10px !important;
+    background: rgba(100, 116, 139, 0.08) !important;
+    border: 1px solid rgba(148, 163, 184, 0.16) !important;
+    color: var(--text-secondary) !important;
+    font-size: 10.5px !important;
+    font-weight: 780 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    opacity: 1 !important;
+  }
+  .paper-grid .card.glass-card {
+    gap: 8px !important;
+  }
+  .paper-grid .workflow-signal-inline {
+    flex: 0 0 auto !important;
+  }
+}
+
+.stats-visibility-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px 8px;
+}
+.stats-visibility-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stats-visibility-title b {
+  font-size: 15px;
+  font-weight: 920;
+  color: var(--text-primary);
+}
+.stats-visibility-title span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.stats-visibility-controls {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.stats-toggle-chip {
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.stats-toggle-chip.active {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+.process-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 24px 16px;
+}
+.process-insight-grid .insight-card {
+  min-height: 78px;
+}
+@media (max-width: 1100px) {
+  .process-insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .stats-visibility-bar {
+    padding: 10px 10px 8px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .stats-visibility-controls { justify-content: flex-start; }
+  .stats-toggle-chip { height: 28px; font-size: 11px; padding: 0 9px; }
+  .process-insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0 10px 10px; }
+  .process-insight-grid .insight-card { min-height: 64px; }
+}
