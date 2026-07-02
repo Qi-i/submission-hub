@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -16,6 +16,8 @@ type TrendKey = 'cumSubmitted' | 'cumAccepted' | 'inProgress' | 'submitted' | 'a
 type StatsModule = 'overview' | 'process' | 'trend' | 'charts'
 
 const chartColors = ['#6366f1', '#0ea5e9', '#f59e0b', '#a855f7', '#22c55e', '#ef4444', '#64748b', '#ec4899', '#14b8a6', '#f97316']
+const moduleStorageKey = 'submission-hub-stats-modules'
+const defaultModules: Record<StatsModule, boolean> = { overview: true, process: true, trend: true, charts: true }
 const series = [
   { key: 'cumSubmitted' as TrendKey, label: '累积投稿', color: '#0891b2' },
   { key: 'cumAccepted' as TrendKey, label: '累积接收', color: '#22c55e' },
@@ -24,6 +26,16 @@ const series = [
   { key: 'accepted' as TrendKey, label: '当期接收', color: '#10b981' },
   { key: 'rejected' as TrendKey, label: '当期被拒', color: '#ef4444' },
 ]
+
+function readModulePrefs(): Record<StatsModule, boolean> {
+  try {
+    const saved = localStorage.getItem(moduleStorageKey)
+    if (!saved) return defaultModules
+    return { ...defaultModules, ...JSON.parse(saved) }
+  } catch {
+    return defaultModules
+  }
+}
 
 function parseDate(value?: string | null) {
   if (!value) return null
@@ -96,7 +108,7 @@ function InsightCard({ label, value, hint, tone }: { label: string; value: strin
 export default function PersonalStatsStable({ papers, currentUsername, authorName }: Props) {
   const [scale, setScale] = useState<Scale>('month')
   const [range, setRange] = useState<Range>('all')
-  const [modules, setModules] = useState<Record<StatsModule, boolean>>({ overview: true, process: true, trend: true, charts: true })
+  const [modules, setModules] = useState<Record<StatsModule, boolean>>(() => readModulePrefs())
   const [visible, setVisible] = useState<Record<TrendKey, boolean>>({
     cumSubmitted: true,
     cumAccepted: true,
@@ -106,7 +118,12 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
     rejected: false,
   })
 
+  useEffect(() => {
+    localStorage.setItem(moduleStorageKey, JSON.stringify(modules))
+  }, [modules])
+
   const toggleModule = (key: StatsModule) => setModules(prev => ({ ...prev, [key]: !prev[key] }))
+  const resetModules = () => setModules(defaultModules)
 
   const summary = useMemo(() => {
     const total = papers.length
@@ -203,12 +220,13 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
   return (
     <div className="stats-panel stats-panel-refined">
       <div className="stats-visibility-bar">
-        <div className="stats-visibility-title"><b>个人投稿统计</b><span>仅统计投稿过程、审稿周期、结果状态与作者角色；管理类完整度已移除。</span></div>
+        <div className="stats-visibility-title"><b>个人投稿统计</b><span>投稿过程、审稿周期、结果状态与作者角色</span></div>
         <div className="stats-visibility-controls">
           <button className={`stats-toggle-chip ${modules.overview ? 'active' : ''}`} onClick={() => toggleModule('overview')}>核心概览</button>
           <button className={`stats-toggle-chip ${modules.process ? 'active' : ''}`} onClick={() => toggleModule('process')}>过程指标</button>
           <button className={`stats-toggle-chip ${modules.trend ? 'active' : ''}`} onClick={() => toggleModule('trend')}>趋势图</button>
           <button className={`stats-toggle-chip ${modules.charts ? 'active' : ''}`} onClick={() => toggleModule('charts')}>分布图</button>
+          <button className="stats-toggle-chip reset" onClick={resetModules}>恢复默认</button>
         </div>
       </div>
 
@@ -226,7 +244,7 @@ export default function PersonalStatsStable({ papers, currentUsername, authorNam
 
       {modules.trend && trendData.length > 0 && <div className="chart-card chart-card-hero trend-card-refined glass-panel animate-in">
         <div className="chart-header refined-chart-header">
-          <div><h3 className="chart-title">投稿时间趋势</h3><p className="chart-subtitle">按投稿、接收、拒稿和进行中数量统计，不包含附件或成果归档完整度。</p></div>
+          <div><h3 className="chart-title">投稿时间趋势</h3><p className="chart-subtitle">按投稿、接收、拒稿和进行中数量统计。</p></div>
           <div className="trend-controls"><div className="segmented-control"><button className={scale === 'month' ? 'active' : ''} onClick={() => setScale('month')}>月</button><button className={scale === 'quarter' ? 'active' : ''} onClick={() => setScale('quarter')}>季度</button><button className={scale === 'year' ? 'active' : ''} onClick={() => setScale('year')}>年</button></div><div className="segmented-control"><button className={range === 'all' ? 'active' : ''} onClick={() => setRange('all')}>全部</button><button className={range === '1y' ? 'active' : ''} onClick={() => setRange('1y')}>1年</button><button className={range === '3y' ? 'active' : ''} onClick={() => setRange('3y')}>3年</button><button className={range === '5y' ? 'active' : ''} onClick={() => setRange('5y')}>5年</button></div></div>
         </div>
         <div className="series-toggle-row">{series.map(s => <button key={s.key} className={visible[s.key] ? 'series-chip active' : 'series-chip'} onClick={() => setVisible(prev => ({ ...prev, [s.key]: !prev[s.key] }))}><span style={{ background: s.color }} />{s.label}</button>)}</div>
