@@ -1,0 +1,193 @@
+/* Submission Hub design system: shared visual language and component primitives. */
+:root {
+  --surface-page: #f8fafc;
+  --surface-card: rgba(255, 255, 255, 0.84);
+  --surface-card-strong: rgba(255, 255, 255, 0.94);
+  --surface-soft: rgba(241, 245, 249, 0.82);
+  --surface-accent: rgba(224, 242, 254, 0.78);
+  --border-soft: rgba(148, 163, 184, 0.20);
+  --border-medium: rgba(100, 116, 139, 0.26);
+  --text-strong: #0f172a;
+  --text-main: #1e293b;
+  --text-sub: #475569;
+  --text-soft: #64748b;
+  --brand-blue: #0369a1;
+  --brand-sky: #0ea5e9;
+  --brand-green: #16a34a;
+  --brand-amber: #d97706;
+  --brand-purple: #7c3aed;
+  --brand-red: #dc2626;
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 18px 46px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 24px 64px rgba(15, 23, 42, 0.12);
+  --font-title: 920;
+  --font-label: 860;
+  --font-body: 680;
+}
+
+body {
+  color: var(--text-main);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass-panel,
+.glass-card,
+.card,
+.chart-card,
+.summary-card,
+.metric-card,
+.compact-section,
+.modal {
+  background: var(--surface-card) !important;
+  border: 1px solid var(--border-soft) !important;
+  box-shadow: var(--shadow-soft) !important;
+  backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.glass-card:hover,
+.card:hover,
+.metric-card:hover,
+.summary-card:hover {
+  border-color: var(--border-medium) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+.btn {
+  border-radius: var(--radius-sm) !important;
+  font-weight: var(--font-label) !important;
+  letter-spacing: -0.01em;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-sky), var(--brand-blue)) !important;
+  color: #fff !important;
+  border-color: rgba(3, 105, 161, 0.38) !important;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.18) !important;
+}
+.btn-ghost {
+  color: var(--text-sub) !important;
+  background: rgba(255, 255, 255, 0.66) !important;
+  border: 1px solid var(--border-soft) !important;
+}
+.btn-ghost:hover {
+  color: var(--brand-blue) !important;
+  background: var(--surface-accent) !important;
+  border-color: rgba(14, 165, 233, 0.28) !important;
+}
+.btn-danger {
+  color: #fff !important;
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  border-color: rgba(220, 38, 38, 0.34) !important;
+}
+
+.badge,
+.badge-sm,
+.author-badge-v2,
+.archive-chip,
+.journal-pill,
+.system-status-inline,
+.deadline-badge,
+.stats-toggle-chip,
+.series-chip {
+  border-radius: 999px !important;
+  font-weight: var(--font-label) !important;
+  letter-spacing: -0.01em;
+}
+
+.input,
+.select,
+.textarea {
+  color: var(--text-strong) !important;
+  background: var(--surface-card-strong) !important;
+  border: 1px solid var(--border-medium) !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: var(--font-body) !important;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+}
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none !important;
+  border-color: rgba(14, 165, 233, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12) !important;
+  background: #fff !important;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+.card-title,
+.chart-title,
+.modal-title,
+.compact-form-header h3,
+.compact-section-head h4,
+.stats-visibility-title b,
+.header-title {
+  color: var(--text-strong) !important;
+  font-weight: var(--font-title) !important;
+  letter-spacing: -0.02em;
+}
+
+.card-subtitle,
+.chart-subtitle,
+.header-subtitle,
+.summary-label,
+.metric-label,
+.compact-section-head span,
+.compact-field > span,
+.paper-date-info,
+.timeline-auto-sort-hint {
+  color: var(--text-sub) !important;
+  opacity: 1 !important;
+}
+
+.metric-card,
+.summary-card,
+.insight-card {
+  border-radius: var(--radius-lg) !important;
+}
+.metric-value,
+.summary-value,
+.insight-card b {
+  color: var(--text-strong);
+  font-weight: 940 !important;
+  letter-spacing: -0.035em;
+}
+
+.paper-grid .card.glass-card {
+  border-radius: var(--radius-lg) !important;
+}
+.paper-grid .card-top-bar {
+  height: 4px !important;
+  opacity: 0.95 !important;
+}
+
+.compact-form-modal {
+  border-radius: var(--radius-xl) !important;
+  background: var(--surface-card-strong) !important;
+}
+.compact-section::before {
+  opacity: 0.95;
+}
+
+.workflow-signal-inline {
+  font-weight: var(--font-label) !important;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --shadow-soft: 0 8px 22px rgba(15, 23, 42, 0.055);
+    --shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
+  }
+}
