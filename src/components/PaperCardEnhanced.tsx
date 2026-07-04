@@ -69,24 +69,16 @@ function shouldSuppressSignal(paper: Paper, signal: ReturnType<typeof getWorkflo
   return alreadyResubmitted && isResubmitAdvice
 }
 
-function selectVisibleAuthors(paper: Paper, currentUsername: string, authorName: string) {
+function authorItems(paper: Paper, currentUsername: string, authorName: string) {
   const authors = paper.authors || []
-  const full = authors.join('、')
   const isMatched = (name: string) => authorName ? name === authorName : name === currentUsername
-  const priority = authors
-    .map((name, index) => ({ name, index, first: index === 0, matched: isMatched(name), corresponding: paper.corresponding_author === name }))
-    .filter(item => item.first || item.matched || item.corresponding)
-  const visibleMap = new Set(priority.map(item => item.index))
-  const visible = [...priority]
-  for (const item of authors.map((name, index) => ({ name, index, first: index === 0, matched: isMatched(name), corresponding: paper.corresponding_author === name }))) {
-    if (visible.length >= 5) break
-    if (!visibleMap.has(item.index)) {
-      visible.push(item)
-      visibleMap.add(item.index)
-    }
-  }
-  visible.sort((a, b) => a.index - b.index)
-  return { visible, hiddenCount: Math.max(0, authors.length - visibleMap.size), full }
+  return authors.map((name, index) => ({
+    name,
+    index,
+    first: index === 0,
+    matched: isMatched(name),
+    corresponding: paper.corresponding_author === name,
+  }))
 }
 
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, index = 0, onClick }: Props) {
@@ -96,7 +88,8 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   const chain = previousChain(paper, allPapers)
   const nextCount = allPapers.filter(p => p.prev_id === paper.id).length
   const signal = shouldSuppressSignal(paper, rawSignal, nextCount) ? null : rawSignal
-  const authorView = selectVisibleAuthors(paper, currentUsername, authorName)
+  const authors = authorItems(paper, currentUsername, authorName)
+  const authorTitle = (paper.authors || []).join('、')
 
   let dateInfo = ''
   if (paper.submitted_date) {
@@ -164,14 +157,13 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
       {badges.length > 0 && <div className="paper-meta-row">{badges.map((b, i) => <span key={i} className={`badge badge-sm badge-outline ${b.cls}`} title={b.label}>{b.label}</span>)}</div>}
 
-      <div className="author-list-v2" title={authorView.full}>
+      <div className="author-list-v2" title={authorTitle}>
         <span className="author-prefix">👥</span>
-        {authorView.visible.map(({ name, index: authorIndex, first, matched, corresponding }) => {
+        {authors.map(({ name, index: authorIndex, first, matched, corresponding }) => {
           const classes = ['author-badge-v2', first ? 'first-author' : '', matched ? 'matched-author' : '', corresponding ? 'corresponding-author' : ''].filter(Boolean).join(' ')
           return <span key={`${name}-${authorIndex}`} className={classes}><span className="author-name-v2">{name}</span><span className="author-tags-v2">{first && <span className="author-tag-v2 tag-first">一作</span>}{!first && matched && <span className="author-tag-v2 tag-rank">第{authorIndex + 1}作</span>}{corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}</span></span>
         })}
-        {authorView.hiddenCount > 0 && <span className="author-badge-v2 author-more">等 {authorView.hiddenCount} 人</span>}
-        {(!paper.authors || paper.authors.length === 0) && <span style={{ color: 'var(--text-muted)' }}>--</span>}
+        {authors.length === 0 && <span style={{ color: 'var(--text-muted)' }}>--</span>}
       </div>
 
       {(chain.length > 0 || nextCount > 0) && <div className="paper-history" title={`版本链：${chain.map(p => p.journal || '未知期刊').join(' → ')}${chain.length > 0 ? ' → ' : ''}${paper.journal || '当前稿'}${nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}`}>↳ 版本链：{chain.map(p => p.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{paper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
