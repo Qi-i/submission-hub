@@ -194,7 +194,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
               </div>
               <div className="timeline-content timeline-content-editable">
                 <span className="timeline-date">{toDisplayDate(todayDate)}</span>
-                <span className="timeline-event-cell"><b>距今天</b><em>最后状态至今，仍在审稿流程中</em></span>
+                <span className="timeline-event-cell"><b>距今</b></span>
                 <span className="timeline-duration-cell">{gapToToday} 天</span>
                 <span className="timeline-duration-cell timeline-total-cell">{cumulativeToToday === null ? '—' : `${cumulativeToToday} 天`}</span>
                 <span className="timeline-actions timeline-actions-muted">自动</span>
