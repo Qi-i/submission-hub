@@ -1,0 +1,24 @@
+.timeline-today-row .timeline-content {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.10), rgba(224, 242, 254, 0.48)) !important;
+  border-radius: 12px !important;
+}
+.timeline-today-row .timeline-event-cell b,
+.timeline-today-row .timeline-duration-cell,
+.timeline-today-row .timeline-total-cell {
+  color: #0369a1 !important;
+  font-weight: 940 !important;
+}
+.timeline-today-row .timeline-event-cell em {
+  color: #475569 !important;
+  font-weight: 760 !important;
+}
+.timeline-today-row .today-dot {
+  background: #0ea5e9 !important;
+  box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.16) !important;
+}
+.timeline-actions-muted {
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 820 !important;
+  justify-content: center !important;
+}
