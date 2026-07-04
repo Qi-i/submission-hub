@@ -69,6 +69,11 @@ function sortLines(lines: string[]) {
   return [...lines].sort((a, b) => lineSortValue(a) - lineSortValue(b))
 }
 
+function isTerminalEvent(event: string) {
+  const normalized = event.toLowerCase()
+  return ['accepted', 'published', 'rejected', 'withdrawn'].some(key => normalized.includes(key))
+}
+
 export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }: Props) {
   const lines = sortLines(parseLines(value))
   const allOpts = Array.from(new Set([...TIMELINE_PRESETS, ...customOpts]))
@@ -114,6 +119,13 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
 
   const parsedItems = lines.map(parseLine)
   const firstFiniteTime = parsedItems.map(item => timeValue(item.date)).find(Number.isFinite)
+  const lastItem = parsedItems[parsedItems.length - 1]
+  const lastTime = timeValue(lastItem?.date)
+  const todayDate = today()
+  const todayTime = timeValue(todayDate)
+  const gapToToday = Number.isFinite(lastTime) && Number.isFinite(todayTime) ? daysBetween(lastTime, todayTime) : null
+  const showTodayGap = !!lastItem && gapToToday !== null && gapToToday > 0 && !isTerminalEvent(lastItem.event)
+  const cumulativeToToday = showTodayGap && Number.isFinite(firstFiniteTime) ? daysBetween(firstFiniteTime as number, todayTime) : null
   let previousTime: number | null = null
 
   return (
@@ -135,7 +147,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
 
           {lines.map((line, idx) => {
             const item = parsedItems[idx]
-            const isLast = idx === lines.length - 1
+            const isLast = idx === lines.length - 1 && !showTodayGap
             const currentTime = timeValue(item.date)
             const intervalDays = Number.isFinite(currentTime) && previousTime !== null ? daysBetween(previousTime, currentTime) : null
             const cumulativeDays = Number.isFinite(currentTime) && Number.isFinite(firstFiniteTime) ? daysBetween(firstFiniteTime as number, currentTime) : null
@@ -146,7 +158,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
               <div key={`${line}-${idx}`} className="timeline-item timeline-row-editable timeline-table-row">
                 <div className="timeline-dot-col">
                   <div className={`timeline-dot ${isLast ? 'active' : ''}`} />
-                  {!isLast && <div className="timeline-line" />}
+                  {(!isLast || showTodayGap) && <div className="timeline-line" />}
                 </div>
 
                 <div className="timeline-content timeline-content-editable">
@@ -174,6 +186,21 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
               </div>
             )
           })}
+
+          {showTodayGap && (
+            <div className="timeline-item timeline-row-editable timeline-table-row timeline-today-row">
+              <div className="timeline-dot-col">
+                <div className="timeline-dot active today-dot" />
+              </div>
+              <div className="timeline-content timeline-content-editable">
+                <span className="timeline-date">{toDisplayDate(todayDate)}</span>
+                <span className="timeline-event-cell"><b>距今天</b><em>最后状态至今，仍在审稿流程中</em></span>
+                <span className="timeline-duration-cell">{gapToToday} 天</span>
+                <span className="timeline-duration-cell timeline-total-cell">{cumulativeToToday === null ? '—' : `${cumulativeToToday} 天`}</span>
+                <span className="timeline-actions timeline-actions-muted">自动</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
