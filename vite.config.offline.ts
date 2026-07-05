@@ -13,9 +13,6 @@ export default defineConfig({
     emptyOutDir: false,
     rollupOptions: {
       input: resolve(__dirname, 'offline.html'),
-      output: {
-        entryFileNames: 'offline.html',
-      },
     },
   },
 })
