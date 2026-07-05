@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://qi-i.github.io/submission-hub/">在线使用</a> ·
-  <a href="https://qi-i.github.io/submission-hub/offline.html">离线版</a> ·
+  <a href="https://github.com/Qi-i/submission-hub/releases">离线版下载</a> ·
   <a href="CHANGELOG.md">更新日志</a>
 </p>
 
@@ -111,23 +111,17 @@ npm run build:offline
 
 需要在 Supabase Authentication 中配置 GitHub OAuth Provider，并将 Site URL 设置为部署站点地址。
 
-## GitHub Pages 部署
+## 部署与发布
 
-仓库已配置 GitHub Actions。推送到 `main` 分支后会自动执行：
+在线版由 `Deploy to GitHub Pages` workflow 自动部署到 GitHub Pages。
 
-```bash
-npm install
-npm run build
-npm run build:offline
-```
-
-构建成功后，在线版发布到 GitHub Pages 根路径，离线版发布到 `/offline.html`。
+离线版由 `Release Offline HTML` workflow 发布到 GitHub Releases，附件文件名为 `submission-hub-offline.html`。
 
 ## Version
 
 当前代码版本：`v1.1.0`
 
-本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段、离线版发布和 GitHub Pages 部署修复。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段、离线版 Release 发布流程和 GitHub Pages 部署修复。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 
