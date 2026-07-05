@@ -11,8 +11,7 @@
 
 <p align="center">
   <a href="https://qi-i.github.io/submission-hub/">🌐 在线使用</a> ·
-  <a href="https://github.com/Qi-i/submission-hub/releases">📦 离线版下载</a> ·
-  <a href="CHANGELOG.md">📝 更新日志</a>
+  <a href="https://github.com/Qi-i/submission-hub/releases">📦 离线版下载</a>
 </p>
 
 <p align="center">
@@ -175,8 +174,6 @@ public/
 ## 🏷️ 版本
 
 当前版本：`v1.1.0`
-
-完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 📄 License
 
