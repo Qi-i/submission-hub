@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="https://qi-i.github.io/submission-hub/">在线使用</a> ·
+  <a href="https://qi-i.github.io/submission-hub/offline.html">离线版</a> ·
   <a href="CHANGELOG.md">更新日志</a>
 </p>
 
 ## 项目定位
 
 Submission Hub 是一个面向科研论文投稿流程的轻量管理工具，用于集中记录论文从准备、投稿、审稿、修回、接收、拒稿、改投到成果归档的全过程。系统重点服务于个人或课题组的投稿进度管理、审稿周期追踪、版本链梳理和个人投稿统计。
-
 
 ## 核心功能
 
@@ -118,15 +118,16 @@ npm run build:offline
 ```bash
 npm install
 npm run build
+npm run build:offline
 ```
 
-构建成功后发布到 GitHub Pages。
+构建成功后，在线版发布到 GitHub Pages 根路径，离线版发布到 `/offline.html`。
 
 ## Version
 
 当前代码版本：`v1.1.0`
 
-本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段和 GitHub Pages 部署修复。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段、离线版发布和 GitHub Pages 部署修复。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 
