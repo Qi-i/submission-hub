@@ -11,6 +11,10 @@ on:
         description: Release title
         required: true
         default: Submission Hub v1.1.0
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/release-offline.yml
 
 permissions:
   contents: write
@@ -30,8 +34,8 @@ jobs:
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ inputs.tag }}
-          RELEASE_TITLE: ${{ inputs.title }}
+          TAG_NAME: ${{ github.event.inputs.tag || 'v1.1.0' }}
+          RELEASE_TITLE: ${{ github.event.inputs.title || 'Submission Hub v1.1.0' }}
         run: |
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" release/submission-hub-offline.html --clobber
