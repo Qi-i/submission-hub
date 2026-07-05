@@ -11,32 +11,29 @@
 
 <p align="center">
   <a href="https://qi-i.github.io/submission-hub/">在线使用</a> ·
-  <a href="https://github.com/Qi-i/submission-hub/releases">离线版下载</a>
+  <a href="https://github.com/Qi-i/submission-hub/releases">Release</a>
 </p>
 
 ## 项目定位
 
-Submission Hub 是一个面向科研论文投稿流程的轻量管理工具，用于集中记录论文从准备、投稿、审稿、修回、接收、拒稿、改投到成果归档的全过程。系统重点服务于个人或课题组的投稿进度管理、审稿周期追踪、版本链梳理和投稿统计。
+Submission Hub 是一个面向科研论文投稿流程的轻量管理工具，用于集中记录论文从准备、投稿、审稿、修回、接收、拒稿、改投到成果归档的全过程。系统重点服务于个人或课题组的投稿进度管理、审稿周期追踪、版本链梳理和个人投稿统计。
 
-## 当前设计语言
+## 设计语言
 
-- 白色与浅灰为主背景；
-- 蓝色到紫色渐变作为主强调色；
-- 玻璃态卡片、圆角胶囊、轻阴影；
-- 新 Logo 采用“文档 + 折角 + hub 节点”图形，呼应投稿材料、审稿流程和成果关联。
+Submission Hub 采用白色与浅灰为基础背景，蓝色到紫色渐变作为主强调色，界面使用玻璃态卡片、圆角胶囊、轻阴影和高对比度文字层级。Logo 采用“文档 + 折角 + hub 节点”的图形语言，表达投稿材料、审稿流程和成果关联。
 
 ## 核心功能
 
-- **投稿记录管理**：准备中、已投稿、审稿中、修回中、已接收、被拒、已撤稿等状态管理。
+- **投稿记录管理**：记录准备中、已投稿、审稿中、修回中、已接收、被拒、已撤稿等状态。
 - **审稿时间线**：记录 Submitted、With Editor、Out for Review、Decision Pending、Revision 等节点。
-- **距今自动行**：仍在审稿流程中时，时间线自动显示“距今”行，计算最后一次状态更新到今天的间隔和首投至今的累计天数。
-- **自动状态推断**：可根据时间线最后一条记录推断主状态和下一步行动。
+- **距今自动统计**：仍在审稿流程中时，自动显示最后一次状态更新到今天的间隔，以及首投至今的累计天数。
+- **自动状态推断**：根据时间线最后一条记录推断主状态和下一步行动。
 - **版本链追踪**：支持被拒、撤稿、改投后的前后版本关联。
-- **期刊档案复用**：可复用历史期刊系统、官网、APC 等信息。
+- **期刊档案复用**：复用历史期刊系统、官网、APC 和备注信息。
 - **成果归档**：记录 DOI、见刊链接、卷期页码和引用格式。
-- **个人统计**：仅保留投稿相关统计，包括投稿总数、接收率、拒稿率、审稿周期、进行中周期、期刊分布等。
+- **个人投稿统计**：统计投稿总数、接收率、拒稿率、审稿周期、进行中周期、期刊分布等投稿相关指标。
 - **作者身份识别**：识别本人、一作、通讯作者，并用于个人统计。
-- **JSON 导入 / 导出**：便于备份和迁移。
+- **JSON 导入 / 导出**：支持数据备份和迁移。
 - **离线版本**：提供单文件 HTML 版本，数据存储在本地浏览器。
 
 ## 技术栈
@@ -69,14 +66,16 @@ src/
 │   ├── local-store.ts            # 离线版 localStorage 数据层
 │   └── demo-data.ts              # 演示数据
 ├── main.tsx                      # 在线版入口
-offline.tsx                      # 离线版入口
+└── offline.tsx                   # 离线版入口
+
 public/
 ├── logo.svg                      # 官方 Logo
 └── favicon.svg                   # 浏览器图标
+
 supabase/
 ├── 001_init.sql
 ├── 002_author_identity.sql
-├── 006_publication_archive_fields.sql
+└── 006_publication_archive_fields.sql
 ```
 
 ## 本地运行
@@ -103,7 +102,6 @@ npm run build
 
 ```bash
 npm run build:offline
-# 输出到 dist-offline/offline.html
 ```
 
 ## Supabase 数据库设置
@@ -121,20 +119,17 @@ npm run build:offline
 仓库已配置 GitHub Actions。推送到 `main` 分支后会自动执行：
 
 ```bash
-npm ci
+npm install
 npm run build
 ```
 
 构建成功后发布到 GitHub Pages。
 
-## 备注
+## Version
 
-如果 GitHub Actions 报错，优先检查：
+当前代码版本：`v1.1.0`
 
-- TypeScript 类型错误；
-- 新增文件是否被正确提交；
-- CSS / SVG 资源路径是否存在；
-- Supabase 字段是否已执行对应迁移。
+本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段和 GitHub Pages 部署修复。
 
 ## License
 
