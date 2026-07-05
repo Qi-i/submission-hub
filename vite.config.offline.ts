@@ -9,9 +9,13 @@ export default defineConfig({
     target: 'esnext',
     assetsInlineLimit: 100000000,
     cssCodeSplit: false,
-    outDir: 'dist-offline',
+    outDir: 'dist',
+    emptyOutDir: false,
     rollupOptions: {
       input: resolve(__dirname, 'offline.html'),
+      output: {
+        entryFileNames: 'offline.html',
+      },
     },
   },
 })
