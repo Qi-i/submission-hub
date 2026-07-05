@@ -4,7 +4,9 @@
   height: 44px !important;
   flex: 0 0 44px !important;
   font-size: 0 !important;
+  line-height: 0 !important;
   color: transparent !important;
+  text-indent: -9999px !important;
   border-radius: 15px !important;
   background:
     radial-gradient(circle at 28% 22%, rgba(255,255,255,0.95), rgba(255,255,255,0.44) 36%, transparent 58%),
@@ -23,6 +25,7 @@
   background-size: contain !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
+  text-indent: 0 !important;
 }
 
 .header-logo::after {
@@ -35,6 +38,32 @@
   border-radius: inherit;
   background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0)) !important;
   pointer-events: none;
+}
+
+.header-title {
+  font-size: 0 !important;
+  line-height: 1.05 !important;
+  white-space: nowrap !important;
+}
+
+.header-title::before {
+  content: "Submission ";
+  font-size: 19px !important;
+  font-weight: 940 !important;
+  letter-spacing: -0.035em !important;
+  color: #0f172a !important;
+}
+
+.header-title::after {
+  content: "Hub";
+  font-size: 19px !important;
+  font-weight: 940 !important;
+  letter-spacing: -0.035em !important;
+  background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 48%, #8b5cf6 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 @media (min-width: 1000px) {
@@ -54,5 +83,9 @@
   }
   .header-logo::before {
     inset: 6px;
+  }
+  .header-title::before,
+  .header-title::after {
+    font-size: 17px !important;
   }
 }
