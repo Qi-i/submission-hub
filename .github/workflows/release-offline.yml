@@ -36,9 +36,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ github.event.inputs.tag || 'v1.1.0' }}
           RELEASE_TITLE: ${{ github.event.inputs.title || 'Submission Hub v1.1.0' }}
+          RELEASE_NOTES: |
+            Submission Hub offline HTML release.
+
+            Asset: submission-hub-offline.html
+
+            Online app: https://qi-i.github.io/submission-hub/
         run: |
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" release/submission-hub-offline.html --clobber
           else
-            gh release create "$TAG_NAME" release/submission-hub-offline.html --title "$RELEASE_TITLE" --notes-file CHANGELOG.md --latest
+            gh release create "$TAG_NAME" release/submission-hub-offline.html --title "$RELEASE_TITLE" --notes "$RELEASE_NOTES" --latest
           fi
