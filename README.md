@@ -15,78 +15,59 @@
   <a href="CHANGELOG.md">更新日志</a>
 </p>
 
-## 项目定位
+## 概述
 
-Submission Hub 是一个面向科研论文投稿流程的轻量管理工具，用于集中记录论文从准备、投稿、审稿、修回、接收、拒稿、改投到成果归档的全过程。系统重点服务于个人或课题组的投稿进度管理、审稿周期追踪、版本链梳理和个人投稿统计。
+Submission Hub 是一个面向科研论文投稿流程的轻量管理工具，用于记录论文从准备、投稿、审稿、修回、接收、拒稿、改投到成果归档的全过程。
 
-## 核心功能
+项目提供两种使用方式：
 
-- **投稿记录管理**：记录准备中、已投稿、审稿中、修回中、已接收、被拒、已撤稿等状态。
-- **审稿时间线**：记录 Submitted、With Editor、Out for Review、Decision Pending、Revision 等节点。
-- **距今自动统计**：仍在审稿流程中时，自动显示最后一次状态更新到今天的间隔，以及首投至今的累计天数。
-- **自动状态推断**：根据时间线最后一条记录推断主状态和下一步行动。
-- **版本链追踪**：支持被拒、撤稿、改投后的前后版本关联。
-- **期刊档案复用**：复用历史期刊系统、官网、APC 和备注信息。
-- **成果归档**：记录 DOI、见刊链接、卷期页码和引用格式。
-- **个人投稿统计**：统计投稿总数、接收率、拒稿率、审稿周期、进行中周期、期刊分布等投稿相关指标。
-- **作者身份识别**：识别本人、一作、通讯作者，并用于个人统计。
-- **JSON 导入 / 导出**：支持数据备份和迁移。
-- **离线版本**：提供单文件 HTML 版本，数据存储在本地浏览器。
+- **在线版**：部署在 GitHub Pages，使用 Supabase 进行登录认证和云端数据同步，适合多设备使用。
+- **离线版**：以单个 HTML 文件发布到 GitHub Releases，去除登录和云端同步能力，数据仅保存在本地浏览器。
 
-## 技术栈
+## 功能
 
-- **前端**：React 18 + TypeScript + Vite
-- **数据服务**：Supabase（PostgreSQL + Auth）
-- **统计图表**：Recharts
-- **图标与交互**：Lucide React + CSS Design System
-- **部署**：GitHub Pages + GitHub Actions
-- **离线构建**：vite-plugin-singlefile
+- 投稿状态管理：准备中、已投稿、审稿中、修回中、已接收、被拒、已撤稿。
+- 审稿时间线：记录 Submitted、With Editor、Out for Review、Decision Pending、Revision 等节点。
+- 距今统计：仍在审稿流程中时，自动计算最后一次状态更新距今天数和首投累计天数。
+- 版本链追踪：支持拒稿、撤稿、改投后的版本关联。
+- 成果归档：记录 DOI、见刊链接、卷期页码和引用格式。
+- 期刊信息复用：保存期刊官网、投稿系统、APC 和备注信息。
+- 作者身份识别：识别本人、一作、通讯作者，并用于个人统计。
+- 个人统计：统计投稿数量、接收率、拒稿率、审稿周期、期刊分布等指标。
+- 数据导入导出：支持 JSON 备份和迁移。
 
-## 项目结构
+## 在线版与离线版
+
+### 在线版
+
+在线版入口：
+
+https://qi-i.github.io/submission-hub/
+
+在线版依赖 Supabase，支持注册登录、云端保存、跨设备访问和多人使用。
+
+### 离线版
+
+离线版在 GitHub Releases 中发布，附件文件名为：
 
 ```text
-src/
-├── components/
-│   ├── Dashboard.tsx             # 在线版主界面
-│   ├── OfflineDashboard.tsx      # 离线版主界面
-│   ├── Login.tsx                 # 登录与演示入口
-│   ├── PaperCardEnhanced.tsx     # 投稿卡片
-│   ├── PaperFormArchive.tsx      # 新增/编辑投稿记录表单
-│   ├── Timeline.tsx              # 审稿时间线
-│   ├── PersonalStatsStable.tsx   # 个人投稿统计
-│   └── AdminPanel.tsx            # 后台管理
-├── lib/
-│   ├── supabase.ts               # Supabase 客户端
-│   ├── auth.tsx                  # 认证上下文
-│   ├── theme.tsx                 # 主题上下文
-│   ├── types.ts                  # 类型、状态、推断规则
-│   ├── local-store.ts            # 离线版 localStorage 数据层
-│   └── demo-data.ts              # 演示数据
-├── main.tsx                      # 在线版入口
-└── offline.tsx                   # 离线版入口
-
-public/
-├── logo.svg                      # 官方 Logo
-└── favicon.svg                   # 浏览器图标
-
-supabase/
-├── 001_init.sql
-├── 002_author_identity.sql
-└── 006_publication_archive_fields.sql
+submission-hub-offline.html
 ```
 
-## 本地运行
+下载后直接用浏览器打开即可使用。离线版不连接 Supabase，不提供登录和云同步，所有数据保存在浏览器本地存储中。
+
+## 本地开发
+
+安装依赖：
 
 ```bash
 npm install
-npm run dev
 ```
 
-需要配置 `.env`：
+启动开发环境：
 
-```env
-VITE_SUPABASE_URL=你的 Supabase 项目 URL
-VITE_SUPABASE_ANON_KEY=你的 Supabase 匿名 key
+```bash
+npm run dev
 ```
 
 构建在线版：
@@ -101,27 +82,76 @@ npm run build
 npm run build:offline
 ```
 
-## Supabase 数据库设置
+离线版构建产物位于：
 
-在 Supabase SQL Editor 中依次运行迁移文件：
+```text
+dist-offline/offline.html
+```
 
-1. `supabase/001_init.sql`：创建数据表和 RLS 策略。
-2. `supabase/002_author_identity.sql`：添加作者身份字段。
-3. `supabase/006_publication_archive_fields.sql`：添加 DOI、见刊信息、引用格式和期刊档案字段。
+## 环境变量
 
-需要在 Supabase Authentication 中配置 GitHub OAuth Provider，并将 Site URL 设置为部署站点地址。
+在线版需要配置 Supabase：
 
-## 部署与发布
+```env
+VITE_SUPABASE_URL=你的 Supabase 项目 URL
+VITE_SUPABASE_ANON_KEY=你的 Supabase 匿名 key
+```
 
-在线版由 `Deploy to GitHub Pages` workflow 自动部署到 GitHub Pages。
+离线版不需要 Supabase 环境变量。
 
-离线版由 `Release Offline HTML` workflow 发布到 GitHub Releases，附件文件名为 `submission-hub-offline.html`。
+## 技术栈
 
-## Version
+- React 18
+- TypeScript
+- Vite
+- Supabase
+- Recharts
+- Lucide React
+- vite-plugin-singlefile
+- GitHub Pages
+- GitHub Actions
 
-当前代码版本：`v1.1.0`
+## 主要目录
 
-本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段、离线版 Release 发布流程和 GitHub Pages 部署修复。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+```text
+src/
+├── components/
+│   ├── Dashboard.tsx          # 在线版主界面
+│   ├── OfflineDashboard.tsx   # 离线版主界面
+│   ├── Login.tsx              # 登录页面
+│   ├── PaperCard.tsx          # 投稿卡片
+│   ├── PaperForm.tsx          # 投稿记录表单
+│   ├── Timeline.tsx           # 审稿时间线
+│   ├── PersonalStats.tsx      # 个人统计
+│   └── AdminPanel.tsx         # 后台管理
+├── lib/
+│   ├── supabase.ts            # Supabase 客户端
+│   ├── auth.tsx               # 认证上下文
+│   ├── theme.tsx              # 主题上下文
+│   ├── types.ts               # 类型、状态和推断规则
+│   ├── local-store.ts         # 离线版本地存储
+│   └── demo-data.ts           # 演示数据
+├── main.tsx                   # 在线版入口
+└── offline.tsx                # 离线版入口
+
+public/
+├── logo.svg
+└── favicon.svg
+```
+
+## 发布
+
+在线版由 `Deploy to GitHub Pages` workflow 自动部署。
+
+离线版由 `Release Offline HTML` workflow 构建，并作为 Release 附件发布。
+
+详细发布流程见 [docs/RELEASE.md](docs/RELEASE.md)。
+
+## 版本
+
+当前版本：`v1.1.0`
+
+完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 
