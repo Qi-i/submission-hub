@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://qi-i.github.io/submission-hub/">在线使用</a> ·
-  <a href="https://github.com/Qi-i/submission-hub/releases">Release</a>
+  <a href="CHANGELOG.md">更新日志</a>
 </p>
 
 ## 项目定位
@@ -129,7 +129,7 @@ npm run build
 
 当前代码版本：`v1.1.0`
 
-本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段和 GitHub Pages 部署修复。
+本版本包含界面设计统一、Logo 更新、投稿卡片布局修复、审稿时间线“距今”统计、个人统计页重构、成果归档字段和 GitHub Pages 部署修复。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 
