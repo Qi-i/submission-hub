@@ -1,0 +1,40 @@
+name: Release Offline HTML
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v1.1.0
+        required: true
+        default: v1.1.0
+      title:
+        description: Release title
+        required: true
+        default: Submission Hub v1.1.0
+
+permissions:
+  contents: write
+
+jobs:
+  release-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build:offline
+      - run: mkdir release
+      - run: cp dist-offline/offline.html release/submission-hub-offline.html
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ inputs.tag }}
+          RELEASE_TITLE: ${{ inputs.title }}
+        run: |
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" release/submission-hub-offline.html --clobber
+          else
+            gh release create "$TAG_NAME" release/submission-hub-offline.html --title "$RELEASE_TITLE" --notes-file CHANGELOG.md --latest
+          fi
