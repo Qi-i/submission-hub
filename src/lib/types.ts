@@ -4,6 +4,9 @@ export interface Database {
       user_profiles: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
       papers: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
       timeline_events: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      journal_profiles: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      research_topics: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      manuscript_drafts: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
     }
     Views: Record<string, any>
     Functions: Record<string, any>
@@ -177,10 +180,8 @@ export function inferNextAction(paper: Partial<Pick<Paper,
   const baseDays = daysSinceDate(paper.last_status_date || paper.submitted_date)
   const deadlineDays = daysUntilDate(paper.deadline)
 
-  if (status === 'accepted') {
-    if (!paper.published_url || !paper.doi || !paper.publication_info) return { action: '补充见刊信息', reminder: 'watch', signal: { level: 'info', text: '补充见刊信息', detail: '已接收稿件建议补充 DOI、见刊页面、卷期页码或在线发表信息' } }
-    return { action: '无需处理', reminder: 'none', signal: null }
-  }
+  // 已接收后的 DOI、卷期页码和见刊页面属于归档信息，不进入待办中心。
+  if (status === 'accepted') return { action: '无需处理', reminder: 'none', signal: null }
 
   if (status === 'rejected' || status === 'withdrawn') return { action: '准备改投', reminder: 'watch', signal: { level: 'info', text: '准备改投', detail: '该稿件已结束，可记录改投方向或建立前置历史' } }
 
@@ -205,6 +206,8 @@ export function inferNextAction(paper: Partial<Pick<Paper,
 export function getWorkflowSignal(paper: Partial<Pick<Paper,
   'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'next_action' | 'reminder_level' | 'published_url' | 'doi' | 'publication_info'
 >>): WorkflowSignal | null {
+  // 见刊资料属于成果归档，不作为首页待办。
+  if (paper.next_action === '补充见刊信息') return null
   if (paper.reminder_level === 'urgent') return { level: 'danger', text: '紧急处理', detail: paper.next_action || '请尽快处理该稿件' }
   if (paper.reminder_level === 'warn') return { level: 'warn', text: '建议处理', detail: paper.next_action || '建议检查投稿进展' }
   if (paper.next_action && paper.next_action !== '无需处理') return { level: 'info', text: paper.next_action, detail: '已设置下一步行动' }
