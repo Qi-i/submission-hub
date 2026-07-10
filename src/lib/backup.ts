@@ -1,7 +1,8 @@
 import type { Paper } from './types'
+import type { PreparationSnapshot } from './preparation'
 
 export const BACKUP_SCHEMA = 'submission-hub-backup'
-export const BACKUP_VERSION = 2
+export const BACKUP_VERSION = 3
 
 export type BackupMode = 'online' | 'offline'
 
@@ -12,9 +13,20 @@ export interface BackupEnvelope {
   mode: BackupMode
   app_version: string
   papers: Paper[]
+  preparation?: PreparationSnapshot
 }
 
-export function createBackup(papers: Paper[], mode: BackupMode, appVersion = '1.2.0') {
+export interface ParsedBackupBundle {
+  papers: unknown[]
+  preparation: PreparationSnapshot | null
+  version: number
+}
+
+function emptyPreparation(): PreparationSnapshot {
+  return { journals: [], topics: [], drafts: [] }
+}
+
+export function createBackup(papers: Paper[], mode: BackupMode, preparation?: PreparationSnapshot, appVersion = '1.3.0') {
   const backup: BackupEnvelope = {
     schema: BACKUP_SCHEMA,
     version: BACKUP_VERSION,
@@ -22,15 +34,18 @@ export function createBackup(papers: Paper[], mode: BackupMode, appVersion = '1.
     mode,
     app_version: appVersion,
     papers,
+    preparation: preparation || emptyPreparation(),
   }
   return JSON.stringify(backup, null, 2)
 }
 
-export function parseBackup(json: string): unknown[] {
+export function parseBackupBundle(json: string): ParsedBackupBundle {
   const parsed: unknown = JSON.parse(json)
 
   // Backward compatibility with v1 exports, whose root value was the paper array.
-  if (Array.isArray(parsed)) return parsed
+  if (Array.isArray(parsed)) {
+    return { papers: parsed, preparation: null, version: 1 }
+  }
 
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('备份文件格式不正确。')
@@ -49,5 +64,19 @@ export function parseBackup(json: string): unknown[] {
     throw new Error('备份中缺少 papers 数据。')
   }
 
-  return record.papers
+  let preparation: PreparationSnapshot | null = null
+  if (record.preparation && typeof record.preparation === 'object') {
+    const source = record.preparation as Record<string, unknown>
+    preparation = {
+      journals: Array.isArray(source.journals) ? source.journals as PreparationSnapshot['journals'] : [],
+      topics: Array.isArray(source.topics) ? source.topics as PreparationSnapshot['topics'] : [],
+      drafts: Array.isArray(source.drafts) ? source.drafts as PreparationSnapshot['drafts'] : [],
+    }
+  }
+
+  return { papers: record.papers, preparation, version }
+}
+
+export function parseBackup(json: string): unknown[] {
+  return parseBackupBundle(json).papers
 }
