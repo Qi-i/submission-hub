@@ -146,11 +146,21 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       tabIndex={onClick ? 0 : undefined}
     >
       <div className="paper-card-head">
-        <div className="paper-status-area">
+        <div className="paper-status-area" data-status={paper.status}>
           <span className={`badge status-${paper.status}`}>{status.emoji} {status.label}</span>
-          {paper.system_status && <span className="paper-substatus" title={paper.system_status}>{paper.system_status}</span>}
+          {paper.system_status && (
+            <span className="paper-substatus" title={paper.system_status}>
+              <span className="paper-substatus-dot" aria-hidden="true" />
+              <span className="paper-substatus-text">{paper.system_status}</span>
+            </span>
+          )}
         </div>
-        {paper.journal && <span className="journal-pill" title={paper.journal}>📖 {paper.journal}</span>}
+        {paper.journal && (
+          <span className="journal-pill" title={paper.journal}>
+            <span className="journal-pill-icon" aria-hidden="true">📖</span>
+            <span className="journal-pill-text">{paper.journal}</span>
+          </span>
+        )}
       </div>
 
       {(paper.manuscript_no || paper.submission_system || paper.revision_round || paper.apc_amount || isUrl(paper.published_url)) && <div className="paper-meta-row paper-meta-compact">
