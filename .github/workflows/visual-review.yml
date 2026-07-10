@@ -52,6 +52,10 @@ jobs:
           npx --yes playwright@1.52.0 screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light" visual-review/dashboard-light-desktop.png
           npx --yes playwright@1.52.0 screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-visual-ready='true'] .stats-panel" "http://127.0.0.1:4174/tests/visual/index.html?view=stats&theme=light" visual-review/statistics-light-desktop.png
           npx --yes playwright@1.52.0 screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-visual-ready='true'] .preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light" visual-review/preparation-light-desktop.png
+      - name: Verify editor modal scrolling
+        run: |
+          set -euxo pipefail
+          npx --yes playwright@1.52.0 screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-modal-scroll-ready='true'] .compact-form-footer" "http://127.0.0.1:4174/tests/visual/index.html?view=editor&theme=light" visual-review/editor-bottom-light-desktop.png
       - name: Capture dark desktop pages
         run: |
           set -euxo pipefail
