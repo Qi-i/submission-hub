@@ -142,21 +142,57 @@
   flex: 1;
 }
 
-.prep-checklist label {
-  position: relative;
+.prep-custom-check .prep-switch {
+  flex: 0 0 auto;
+}
+
+.prep-checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface);
+}
+
+.prep-checklist-item.done {
+  border-color: rgba(34, 197, 94, .25);
+  background: rgba(34, 197, 94, .06);
+}
+
+.prep-checklist-item > label {
+  flex: 1;
+  margin: 0;
+  border: 0;
+  background: transparent;
 }
 
 .prep-check-remove {
-  margin-left: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  margin-right: 7px;
   border: 0;
-  padding: 0 2px;
+  padding: 3px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
 }
 
+.prep-check-remove:hover {
+  color: #dc2626;
+}
+
 @media (max-width: 760px) {
   .prep-readiness-lists {
     grid-template-columns: 1fr;
+  }
+
+  .prep-custom-check {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .prep-custom-check .input {
+    flex-basis: 100%;
   }
 }
