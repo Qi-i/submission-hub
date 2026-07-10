@@ -25,6 +25,7 @@ import './logo-redesign.css'
 import './visual-refresh.css'
 import './unified-ui.css'
 import './unified-ui-additions.css'
+import './ui-regression-fixes.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
