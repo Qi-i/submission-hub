@@ -5,6 +5,31 @@ if ((query.get('view') || 'dashboard') !== 'dashboard') {
 } else {
   const tolerance = 1.5
 
+  const showFailure = (failures: string[]) => {
+    const html = document.documentElement
+    html.dataset.layoutError = failures.join(' | ')
+    const panel = document.createElement('pre')
+    panel.className = 'layout-diagnostic'
+    panel.textContent = `Layout validation failed:\n${failures.map(item => `• ${item}`).join('\n')}`
+    Object.assign(panel.style, {
+      position: 'fixed',
+      left: '12px',
+      bottom: '12px',
+      zIndex: '999999',
+      maxWidth: 'min(680px, calc(100vw - 24px))',
+      margin: '0',
+      padding: '12px 14px',
+      border: '1px solid rgba(239,68,68,.45)',
+      borderRadius: '10px',
+      background: 'rgba(127,29,29,.94)',
+      color: '#fff',
+      font: '12px/1.5 ui-monospace, monospace',
+      whiteSpace: 'pre-wrap',
+    })
+    document.body.appendChild(panel)
+    console.error('Layout validation failed:', failures)
+  }
+
   const retry = (attempt = 0) => {
     const html = document.documentElement
     if (html.dataset.visualReady !== 'true') {
@@ -48,18 +73,20 @@ if ((query.get('view') || 'dashboard') !== 'dashboard') {
           const pillRect = pill.getBoundingClientRect()
           if (Math.abs(statusHeight - pillRect.height) > tolerance) failures.push('status and journal pills have different heights')
 
-          const style = getComputedStyle(pill)
+          const pillStyle = getComputedStyle(pill)
           const expectedMax = icon.getBoundingClientRect().width
             + text.scrollWidth
-            + Number.parseFloat(style.paddingLeft)
-            + Number.parseFloat(style.paddingRight)
-            + Number.parseFloat(style.borderLeftWidth)
-            + Number.parseFloat(style.borderRightWidth)
+            + Number.parseFloat(pillStyle.paddingLeft)
+            + Number.parseFloat(pillStyle.paddingRight)
+            + Number.parseFloat(pillStyle.borderLeftWidth)
+            + Number.parseFloat(pillStyle.borderRightWidth)
             + 8
           if (pillRect.width - expectedMax > 2) failures.push('journal pill contains unnecessary blank width')
 
           const cardRect = cardWithJournal.getBoundingClientRect()
-          if (Math.abs((cardRect.right - 16) - pillRect.right) > 3) failures.push('journal pill is not right aligned to the card content edge')
+          const cardStyle = getComputedStyle(cardWithJournal)
+          const expectedRight = cardRect.right - Number.parseFloat(cardStyle.paddingRight) - Number.parseFloat(cardStyle.borderRightWidth)
+          if (Math.abs(expectedRight - pillRect.right) > 3) failures.push('journal pill is not right aligned to the card content edge')
         }
 
         const accent = getComputedStyle(cardWithJournal, '::before')
@@ -70,8 +97,7 @@ if ((query.get('view') || 'dashboard') !== 'dashboard') {
     }
 
     if (failures.length > 0) {
-      html.dataset.layoutError = failures.join(' | ')
-      console.error('Layout validation failed:', failures)
+      showFailure(failures)
       return
     }
 
