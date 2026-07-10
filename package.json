@@ -26,7 +26,8 @@
     "build": "npm run typecheck && vite build",
     "build:offline": "npm run typecheck && vite build --config vite.config.offline.ts",
     "check:offline": "node scripts/check-offline-build.mjs",
-    "verify": "npm run build && npm run build:offline && npm run check:offline",
+    "check:privacy": "node scripts/check-sample-privacy.mjs",
+    "verify": "npm run check:privacy && npm run build && npm run build:offline && npm run check:offline",
     "preview": "vite preview"
   },
   "dependencies": {
