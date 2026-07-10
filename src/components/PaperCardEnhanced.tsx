@@ -60,8 +60,8 @@ function getDeadlineInfo(deadline: string | null, status: string) {
 }
 
 function signalStyle(level: string) {
-  if (level === 'danger') return { color: '#ef4444', background: 'rgba(239,68,68,0.12)' }
-  if (level === 'warn') return { color: '#d97706', background: 'rgba(245,158,11,0.14)' }
+  if (level === 'danger') return { color: '#dc2626', background: 'rgba(239,68,68,0.1)' }
+  if (level === 'warn') return { color: '#b45309', background: 'rgba(245,158,11,0.11)' }
   return { color: 'var(--accent)', background: 'var(--accent-bg)' }
 }
 
@@ -113,8 +113,8 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
     dateInfo = `投: ${formatDate(paper.submitted_date)}`
     const endDate = paper.resolve_date || localDateString()
     const days = daysBetweenDates(paper.submitted_date, endDate)
-    if (paper.resolve_date) dateInfo += ` | 终: ${formatDate(paper.resolve_date)}`
-    if (paper.status !== 'preparing' && days !== null && days >= 0) dateInfo += ` | ${days}天`
+    if (paper.resolve_date) dateInfo += ` · 终: ${formatDate(paper.resolve_date)}`
+    if (paper.status !== 'preparing' && days !== null && days >= 0) dateInfo += ` · ${days}天`
   }
 
   const badges: { label: string; cls: string }[] = []
@@ -137,9 +137,21 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   }
 
   return (
-    <div className="card glass-card animate-in" style={{ animationDelay: `${Math.min(index * 0.06, 0.6)}s` }} onClick={onClick} onKeyDown={handleKeyDown} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}>
-      <div className="card-top-bar" style={{ background: status.color }} />
-      <div className="paper-card-head"><div className="paper-status-stack"><span className={`badge status-${paper.status}`}>{status.emoji} {status.label}</span>{paper.system_status && <span className="system-status-inline">{paper.system_status}</span>}</div>{paper.journal && <span className="journal-pill" title={paper.journal}>📖 {paper.journal}</span>}</div>
+    <div
+      className="card glass-card paper-card-v3 animate-in"
+      style={{ ['--paper-status-color' as any]: status.color, animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
+      <div className="paper-card-head">
+        <div className="paper-status-area">
+          <span className={`badge status-${paper.status}`}>{status.emoji} {status.label}</span>
+          {paper.system_status && <span className="paper-substatus" title={paper.system_status}>{paper.system_status}</span>}
+        </div>
+        {paper.journal && <span className="journal-pill" title={paper.journal}>📖 {paper.journal}</span>}
+      </div>
 
       {(paper.manuscript_no || paper.submission_system || paper.revision_round || paper.apc_amount || isUrl(paper.published_url)) && <div className="paper-meta-row paper-meta-compact">
         {paper.manuscript_no && <span className="badge badge-sm badge-outline" title={paper.manuscript_no}>ID {paper.manuscript_no}</span>}
@@ -151,7 +163,10 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
       {(paper.journal_url || paper.journal_apc_note) && <div className="journal-profile-row">{isUrl(paper.journal_url) && <a href={paper.journal_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>期刊档案 ↗</a>}{paper.journal_apc_note && <span title={paper.journal_apc_note}>APC / 期刊备注</span>}</div>}
 
-      <div className="title-block" title={paper.title || '（未命名）'}><div className="card-title">{paper.lang === 'en' && <span className="lang-tag lang-en">EN</span>}{paper.lang === 'zh' && <span className="lang-tag lang-zh">ZH</span>}{paper.title || '（未命名）'}</div>{paper.lang === 'en' && paper.title_zh && <div className="card-subtitle" title={paper.title_zh}>{paper.title_zh}</div>}</div>
+      <div className="title-block" title={paper.title || '（未命名）'}>
+        <div className="card-title">{paper.lang === 'en' && <span className="lang-tag lang-en">EN</span>}{paper.lang === 'zh' && <span className="lang-tag lang-zh">ZH</span>}{paper.title || '（未命名）'}</div>
+        {paper.lang === 'en' && paper.title_zh && <div className="card-subtitle" title={paper.title_zh}>{paper.title_zh}</div>}
+      </div>
 
       {(paper.doi || paper.publication_info || paper.citation) && <div className="archive-chip-row">{paper.doi && <a className="archive-chip doi" href={doiHref(paper.doi)} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>DOI ↗</a>}{paper.publication_info && <span className="archive-chip pub" title={paper.publication_info}>{paper.publication_info}</span>}{paper.citation && <button type="button" className="archive-chip cite archive-copy-chip" title="点击复制引用格式" onClick={event => { event.stopPropagation(); void copyText(paper.citation) }}>复制引用</button>}</div>}
 
