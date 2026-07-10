@@ -113,6 +113,14 @@ export interface PreparationSnapshot {
   drafts: ManuscriptDraft[]
 }
 
+export type DraftReadiness = {
+  score: number
+  blockers: string[]
+  warnings: string[]
+  nextAction: string
+  requiredIncomplete: number
+}
+
 export const OA_OPTIONS: { key: JournalOaType; label: string }[] = [
   { key: 'unknown', label: '未确认' },
   { key: 'closed', label: '订阅制' },
@@ -182,6 +190,16 @@ export function createDefaultChecklist() {
   return DEFAULT_PREPARATION_CHECKLIST.map(item => ({ ...item }))
 }
 
+export function createCustomChecklistItem(label: string, required = false): PreparationChecklistItem {
+  return {
+    id: globalThis.crypto?.randomUUID?.() || `check-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    category: 'submission',
+    label: label.trim(),
+    required,
+    done: false,
+  }
+}
+
 export function checklistProgress(items: PreparationChecklistItem[]) {
   if (!items.length) return 0
   const required = items.filter(item => item.required)
@@ -199,4 +217,61 @@ export function journalFitSummary(journal: JournalProfile) {
   const speed = journal.first_decision_days ? (journal.first_decision_days <= 30 ? '快' : journal.first_decision_days <= 60 ? '中等' : '较慢') : '未知'
   const cost = journal.oa_type === 'diamond' || journal.apc_amount === 0 ? '无 APC' : journal.apc_amount ? `${journal.apc_amount} ${journal.apc_currency || ''}`.trim() : '费用未知'
   return `${speed}首轮 · ${cost}`
+}
+
+export function draftReadiness(draft: ManuscriptDraft): DraftReadiness {
+  if (draft.stage === 'submitted' || draft.submitted_paper_id) {
+    return { score: 100, blockers: [], warnings: [], nextAction: '已转入正式投稿管理', requiredIncomplete: 0 }
+  }
+
+  const checklist = Array.isArray(draft.checklist) ? draft.checklist : []
+  const required = checklist.filter(item => item.required)
+  const requiredIncomplete = required.filter(item => !item.done).length
+  const checklistScore = checklistProgress(checklist) * 0.55
+  let metadataScore = 0
+  const blockers: string[] = []
+  const warnings: string[] = []
+
+  if (draft.title?.trim()) metadataScore += 5
+  else blockers.push('缺少论文题名')
+
+  if (draft.abstract?.trim()) metadataScore += 10
+  else blockers.push('摘要或核心论证尚未填写')
+
+  if ((draft.keywords || []).length >= 3) metadataScore += 5
+  else warnings.push('关键词少于 3 个')
+
+  if ((draft.authors || []).length > 0) metadataScore += 10
+  else blockers.push('作者顺序尚未确定')
+
+  if (draft.primary_journal_id) metadataScore += 10
+  else blockers.push('尚未确定主投期刊')
+
+  const targetWords = draft.target_word_count || 0
+  if (targetWords > 0) {
+    const ratio = Math.min(1, Math.max(0, (draft.current_word_count || 0) / targetWords))
+    metadataScore += ratio * 5
+    if (ratio < 0.7) warnings.push(`正文仅完成约 ${Math.round(ratio * 100)}%`)
+  } else if ((draft.current_word_count || 0) > 0) {
+    metadataScore += 3
+    warnings.push('尚未设置目标字数')
+  } else {
+    warnings.push('尚未记录正文写作进度')
+  }
+
+  if (requiredIncomplete > 0) blockers.push(`仍有 ${requiredIncomplete} 项必需检查未完成`)
+  if (!draft.deadline) warnings.push('尚未设置计划投稿日期')
+  if (!draft.outline?.trim()) warnings.push('论文提纲尚未记录')
+  if ((draft.reference_count || 0) === 0) warnings.push('尚未记录参考文献数量')
+
+  const score = Math.max(0, Math.min(100, Math.round(checklistScore + metadataScore)))
+  let nextAction = '继续完善论文与投稿材料'
+  if (!draft.abstract?.trim()) nextAction = '先完成摘要和核心论证'
+  else if ((draft.authors || []).length === 0) nextAction = '确认作者顺序与通讯作者'
+  else if (!draft.primary_journal_id) nextAction = '筛选并确定主投期刊'
+  else if (requiredIncomplete > 0) nextAction = `完成剩余 ${requiredIncomplete} 项必需检查`
+  else if (score >= 90) nextAction = '进行最终核对并转入投稿管理'
+  else if (draft.stage === 'journal_adaptation') nextAction = '按目标期刊作者指南完成格式适配'
+
+  return { score, blockers, warnings, nextAction, requiredIncomplete }
 }
