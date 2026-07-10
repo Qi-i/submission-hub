@@ -37,7 +37,7 @@ export default function StatsTrendChart({ data, visible }: Props) {
         <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} allowDecimals={false} axisLine={false} tickLine={false} />
         <Tooltip content={<TrendTooltip />} />
         {series.filter(item => visible[item.key]).map(item => (
-          <Line key={item.key} type="monotoneX" dataKey={item.key} name={item.label} stroke={item.color} strokeWidth={item.width} strokeDasharray={item.dash} dot={false} activeDot={{ r: 5, stroke: item.color, strokeWidth: 2, fill: '#fff' }} />
+          <Line key={item.key} type="monotoneX" dataKey={item.key} name={item.label} stroke={item.color} strokeWidth={item.width} strokeDasharray={item.dash} dot={false} isAnimationActive={false} activeDot={{ r: 5, stroke: item.color, strokeWidth: 2, fill: '#fff' }} />
         ))}
         <Brush dataKey="period" height={24} stroke="#0891b2" fill="var(--bg-glass)" travellerWidth={8} />
       </LineChart>
