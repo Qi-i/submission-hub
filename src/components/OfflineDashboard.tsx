@@ -2,15 +2,19 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
+import { createBackup, parseBackupBundle } from '../lib/backup'
+import { mergePreparationSnapshots } from '../lib/preparation-backup'
 import * as store from '../lib/local-store'
+import * as prepStore from '../lib/local-preparation-store'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperFormArchive'
 import ActionCenter from './ActionCenter'
-import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X } from 'lucide-react'
+import OfflinePreparationWorkspace from './OfflinePreparationWorkspace'
+import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 
 type ViewFilter = 'all' | 'me' | 'author'
-type Tab = 'dashboard' | 'stats'
+type Tab = 'preparation' | 'dashboard' | 'stats'
 
 const localDateLabel = () => {
   const date = new Date()
@@ -34,6 +38,8 @@ export default function OfflineDashboard() {
   const [authorName, setAuthorName] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [authorNameInput, setAuthorNameInput] = useState('')
+  const [prepRefresh, setPrepRefresh] = useState(0)
+  const [transferring, setTransferring] = useState(false)
 
   useEffect(() => {
     setPapers(store.getPapers())
@@ -78,30 +84,61 @@ export default function OfflineDashboard() {
   }))
 
   const handleExport = () => {
-    const url = URL.createObjectURL(new Blob([store.exportPapers()], { type: 'application/json' }))
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `SubmissionHub_Offline_Backup_${localDateLabel()}.json`
-    anchor.click()
-    setTimeout(() => URL.revokeObjectURL(url), 0)
+    if (transferring) return
+    setTransferring(true)
+    try {
+      const content = createBackup(papers, 'offline', prepStore.getPreparationSnapshot())
+      const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }))
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `SubmissionHub_Offline_Backup_${localDateLabel()}.json`
+      anchor.click()
+      setTimeout(() => URL.revokeObjectURL(url), 0)
+    } finally {
+      setTransferring(false)
+    }
   }
 
   const handleImport = () => {
+    if (transferring) return
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.json,application/json'
     input.onchange = async event => {
       const file = (event.target as HTMLInputElement).files?.[0]
       if (!file) return
+      setTransferring(true)
       try {
-        const before = store.getPapers().length
-        const updated = store.importPapers(await file.text())
-        setPapers(updated)
-        const added = Math.max(0, updated.length - before)
-        alert(added > 0 ? `导入完成：新增 ${added} 条记录。` : '没有发现可新增的记录，重复 ID 已跳过。')
+        const json = await file.text()
+        const bundle = parseBackupBundle(json)
+        const beforePaperCount = store.getPapers().length
+        const updatedPapers = store.importPapers(json)
+        const paperAdded = Math.max(0, updatedPapers.length - beforePaperCount)
+        let journalAdded = 0
+        let topicAdded = 0
+        let draftAdded = 0
+
+        if (bundle.preparation) {
+          const merge = mergePreparationSnapshots(
+            prepStore.getPreparationSnapshot(),
+            bundle.preparation,
+            'offline',
+            new Set(updatedPapers.map(paper => paper.id)),
+          )
+          prepStore.replacePreparationSnapshot(merge.snapshot)
+          journalAdded = merge.added.journals.length
+          topicAdded = merge.added.topics.length
+          draftAdded = merge.added.drafts.length
+          setPrepRefresh(value => value + 1)
+        }
+
+        setPapers(updatedPapers)
+        alert(`导入完成：投稿 ${paperAdded} 条、期刊 ${journalAdded} 条、选题 ${topicAdded} 条、草稿 ${draftAdded} 条。`)
       } catch (error) {
-        console.error('Import offline papers failed:', error)
+        console.error('Import offline backup failed:', error)
         alert(error instanceof Error ? `导入失败：${error.message}` : '导入失败：备份格式不正确或本地存储不可用。')
+      } finally {
+        setTransferring(false)
       }
     }
     input.click()
@@ -126,17 +163,20 @@ export default function OfflineDashboard() {
           <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>
             {mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入新旧版本备份"><Upload size={14} /> 导入</button>
-          <button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出带版本信息的备份"><Download size={14} /> 备份</button>
-          <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}><Plus size={14} /> 新建投稿</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入新旧版本完整备份"><Upload size={14} /> 导入</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleExport} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>
+          {tab === 'dashboard' && <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}><Plus size={14} /> 新建投稿</button>}
           <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setAuthorNameInput(authorName); setShowSettings(true) }} title="设置署名"><FileText size={15} /></button>
         </div>
       </header>
 
       <div className="tab-bar">
+        <button className={`tab-btn ${tab === 'preparation' ? 'active' : ''}`} onClick={() => setTab('preparation')}><Lightbulb size={14} /> 投稿准备</button>
         <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}><FileText size={14} /> 投稿管理</button>
         <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}><BarChart3 size={14} /> 个人统计</button>
       </div>
+
+      {tab === 'preparation' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} onPaperCreated={refreshPapers} />}
 
       {tab === 'dashboard' && (
         <>
