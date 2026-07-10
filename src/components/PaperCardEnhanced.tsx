@@ -17,6 +17,11 @@ function formatDate(date?: string | null) {
   return parts.length === 3 ? `${parts[0]}/${parts[1]}/${parts[2]}` : date
 }
 
+function localDateString() {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 function isUrl(path?: string | null) {
   return !!path && /^https?:\/\//i.test(path)
 }
@@ -106,7 +111,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   let dateInfo = ''
   if (paper.submitted_date) {
     dateInfo = `投: ${formatDate(paper.submitted_date)}`
-    const endDate = paper.resolve_date || new Date().toLocaleDateString('en-CA')
+    const endDate = paper.resolve_date || localDateString()
     const days = daysBetweenDates(paper.submitted_date, endDate)
     if (paper.resolve_date) dateInfo += ` | 终: ${formatDate(paper.resolve_date)}`
     if (paper.status !== 'preparing' && days !== null && days >= 0) dateInfo += ` | ${days}天`
@@ -119,7 +124,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
     if (paper.quartile_new && paper.quartile_new !== '无') badges.push({ label: `新锐 ${paper.quartile_new}`, cls: 'q-new' })
     if (paper.quartile_cust && paper.quartile_cust !== '无') badges.push({ label: paper.quartile_cust, cls: 'q-jcr' })
   } else {
-    ;(paper.quartile_zh || []).filter(Boolean).forEach(value => badges.push({ label: value, cls: 'q-zh' }))
+    ;(paper.quartile_zh || []).filter(Boolean).forEach(item => badges.push({ label: item, cls: 'q-zh' }))
   }
 
   const signalColors = signal ? signalStyle(signal.level) : null
@@ -132,78 +137,32 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   }
 
   return (
-    <div
-      className="card glass-card animate-in"
-      style={{ animationDelay: `${Math.min(index * 0.06, 0.6)}s` }}
-      onClick={onClick}
-      onKeyDown={handleKeyDown}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-    >
+    <div className="card glass-card animate-in" style={{ animationDelay: `${Math.min(index * 0.06, 0.6)}s` }} onClick={onClick} onKeyDown={handleKeyDown} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}>
       <div className="card-top-bar" style={{ background: status.color }} />
+      <div className="paper-card-head"><div className="paper-status-stack"><span className={`badge status-${paper.status}`}>{status.emoji} {status.label}</span>{paper.system_status && <span className="system-status-inline">{paper.system_status}</span>}</div>{paper.journal && <span className="journal-pill" title={paper.journal}>📖 {paper.journal}</span>}</div>
 
-      <div className="paper-card-head">
-        <div className="paper-status-stack">
-          <span className={`badge status-${paper.status}`}>{status.emoji} {status.label}</span>
-          {paper.system_status && <span className="system-status-inline">{paper.system_status}</span>}
-        </div>
-        {paper.journal && <span className="journal-pill" title={paper.journal}>📖 {paper.journal}</span>}
-      </div>
-
-      {(paper.manuscript_no || paper.submission_system || paper.revision_round || paper.apc_amount || isUrl(paper.published_url)) && (
-        <div className="paper-meta-row paper-meta-compact">
-          {paper.manuscript_no && <span className="badge badge-sm badge-outline" title={paper.manuscript_no}>ID {paper.manuscript_no}</span>}
-          {paper.submission_system && <span className="badge badge-sm badge-outline" title={paper.submission_system}>{paper.submission_system}</span>}
-          {!!paper.revision_round && <span className="badge badge-sm badge-outline">R{paper.revision_round}</span>}
-          {!!paper.apc_amount && <span className="badge badge-sm badge-outline">APC {paper.apc_amount} {paper.apc_currency || ''}</span>}
-          {isUrl(paper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>见刊 ↗</a>}
-        </div>
-      )}
-
-      {(paper.journal_url || paper.journal_apc_note) && <div className="journal-profile-row">
-        {isUrl(paper.journal_url) && <a href={paper.journal_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>期刊档案 ↗</a>}
-        {paper.journal_apc_note && <span title={paper.journal_apc_note}>APC / 期刊备注</span>}
+      {(paper.manuscript_no || paper.submission_system || paper.revision_round || paper.apc_amount || isUrl(paper.published_url)) && <div className="paper-meta-row paper-meta-compact">
+        {paper.manuscript_no && <span className="badge badge-sm badge-outline" title={paper.manuscript_no}>ID {paper.manuscript_no}</span>}
+        {paper.submission_system && <span className="badge badge-sm badge-outline" title={paper.submission_system}>{paper.submission_system}</span>}
+        {!!paper.revision_round && <span className="badge badge-sm badge-outline">R{paper.revision_round}</span>}
+        {!!paper.apc_amount && <span className="badge badge-sm badge-outline">APC {paper.apc_amount} {paper.apc_currency || ''}</span>}
+        {isUrl(paper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>见刊 ↗</a>}
       </div>}
 
-      <div className="title-block" title={paper.title || '（未命名）'}>
-        <div className="card-title">
-          {paper.lang === 'en' && <span className="lang-tag lang-en">EN</span>}
-          {paper.lang === 'zh' && <span className="lang-tag lang-zh">ZH</span>}
-          {paper.title || '（未命名）'}
-        </div>
-        {paper.lang === 'en' && paper.title_zh && <div className="card-subtitle" title={paper.title_zh}>{paper.title_zh}</div>}
-      </div>
+      {(paper.journal_url || paper.journal_apc_note) && <div className="journal-profile-row">{isUrl(paper.journal_url) && <a href={paper.journal_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>期刊档案 ↗</a>}{paper.journal_apc_note && <span title={paper.journal_apc_note}>APC / 期刊备注</span>}</div>}
 
-      {(paper.doi || paper.publication_info || paper.citation) && <div className="archive-chip-row">
-        {paper.doi && <a className="archive-chip doi" href={doiHref(paper.doi)} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>DOI ↗</a>}
-        {paper.publication_info && <span className="archive-chip pub" title={paper.publication_info}>{paper.publication_info}</span>}
-        {paper.citation && <button type="button" className="archive-chip cite archive-copy-chip" title="点击复制引用格式" onClick={event => { event.stopPropagation(); void copyText(paper.citation) }}>复制引用</button>}
-      </div>}
+      <div className="title-block" title={paper.title || '（未命名）'}><div className="card-title">{paper.lang === 'en' && <span className="lang-tag lang-en">EN</span>}{paper.lang === 'zh' && <span className="lang-tag lang-zh">ZH</span>}{paper.title || '（未命名）'}</div>{paper.lang === 'en' && paper.title_zh && <div className="card-subtitle" title={paper.title_zh}>{paper.title_zh}</div>}</div>
+
+      {(paper.doi || paper.publication_info || paper.citation) && <div className="archive-chip-row">{paper.doi && <a className="archive-chip doi" href={doiHref(paper.doi)} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>DOI ↗</a>}{paper.publication_info && <span className="archive-chip pub" title={paper.publication_info}>{paper.publication_info}</span>}{paper.citation && <button type="button" className="archive-chip cite archive-copy-chip" title="点击复制引用格式" onClick={event => { event.stopPropagation(); void copyText(paper.citation) }}>复制引用</button>}</div>}
 
       {badges.length > 0 && <div className="paper-meta-row">{badges.map((badge, badgeIndex) => <span key={badgeIndex} className={`badge badge-sm badge-outline ${badge.cls}`} title={badge.label}>{badge.label}</span>)}</div>}
 
-      <div className="author-list-v2" title={authorTitle}>
-        <span className="author-prefix">👥</span>
-        {authors.map(({ name, index: authorIndex, first, matched, corresponding }) => {
-          const classes = ['author-badge-v2', first ? 'first-author' : '', matched ? 'matched-author' : '', corresponding ? 'corresponding-author' : ''].filter(Boolean).join(' ')
-          return <span key={`${name}-${authorIndex}`} className={classes}><span className="author-name-v2">{name}</span><span className="author-tags-v2">{first && <span className="author-tag-v2 tag-first">一作</span>}{!first && matched && <span className="author-tag-v2 tag-rank">第{authorIndex + 1}作</span>}{corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}</span></span>
-        })}
-        {authors.length === 0 && <span style={{ color: 'var(--text-muted)' }}>--</span>}
-      </div>
+      <div className="author-list-v2" title={authorTitle}><span className="author-prefix">👥</span>{authors.map(({ name, index: authorIndex, first, matched, corresponding }) => { const classes = ['author-badge-v2', first ? 'first-author' : '', matched ? 'matched-author' : '', corresponding ? 'corresponding-author' : ''].filter(Boolean).join(' '); return <span key={`${name}-${authorIndex}`} className={classes}><span className="author-name-v2">{name}</span><span className="author-tags-v2">{first && <span className="author-tag-v2 tag-first">一作</span>}{!first && matched && <span className="author-tag-v2 tag-rank">第{authorIndex + 1}作</span>}{corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}</span></span> })}{authors.length === 0 && <span style={{ color: 'var(--text-muted)' }}>--</span>}</div>
 
       {(chain.length > 0 || nextCount > 0) && <div className="paper-history" title={`版本链：${chain.map(item => item.journal || '未知期刊').join(' → ')}${chain.length > 0 ? ' → ' : ''}${paper.journal || '当前稿'}${nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}`}>↳ 版本链：{chain.map(item => item.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{paper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
-
       {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal workflow-signal-inline" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}</span></div>}
 
-      <div className="paper-card-footer">
-        <div className="paper-footer-left">
-          {deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}
-          {(paper.files || []).filter(file => file.p || file.n).map((file, fileIndex) => isUrl(file.p)
-            ? <a key={fileIndex} className="file-dot" href={file.p} target="_blank" rel="noopener noreferrer" title={`${file.t ? `${file.t}｜` : ''}${file.n || file.p}`} onClick={event => event.stopPropagation()}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</a>
-            : <span key={fileIndex} className="file-dot file-dot-disabled" title={`${file.t ? `${file.t}｜` : ''}${file.n || '本地文件记录'}：未设置在线链接`}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</span>)}
-        </div>
-        <span className="paper-date-info">{dateInfo}</span>
-      </div>
+      <div className="paper-card-footer"><div className="paper-footer-left">{deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}{(paper.files || []).filter(file => file.p || file.n).map((file, fileIndex) => isUrl(file.p) ? <a key={fileIndex} className="file-dot" href={file.p} target="_blank" rel="noopener noreferrer" title={`${file.t ? `${file.t}｜` : ''}${file.n || file.p}`} onClick={event => event.stopPropagation()}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</a> : <span key={fileIndex} className="file-dot file-dot-disabled" title={`${file.t ? `${file.t}｜` : ''}${file.n || '本地文件记录'}：未设置在线链接`}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</span>)}</div><span className="paper-date-info">{dateInfo}</span></div>
     </div>
   )
 }
