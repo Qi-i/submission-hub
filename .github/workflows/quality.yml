@@ -1,0 +1,44 @@
+name: Verify Online and Offline Builds
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'index.html'
+      - 'offline.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - 'vite.config.*'
+      - '.github/workflows/quality.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - name: Build online app
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: build-verification-key
+          VITE_ADMIN_ID: build-verification-admin
+      - name: Build offline app
+        run: npm run build:offline
+      - name: Verify offline isolation
+        run: npm run check:offline
