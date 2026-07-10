@@ -81,6 +81,13 @@ body {
   touch-action: pan-y;
   padding: 11px 13px !important;
   gap: 9px !important;
+  grid-auto-rows: max-content !important;
+  align-content: start !important;
+}
+
+.compact-form-body > .compact-section {
+  min-height: max-content !important;
+  overflow: visible !important;
 }
 
 .compact-section {
