@@ -21,6 +21,7 @@ import './preparation-enhancements.css'
 import './logo-redesign.css'
 import './visual-refresh.css'
 import './unified-ui.css'
+import './unified-ui-additions.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
