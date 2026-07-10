@@ -1,0 +1,71 @@
+/* Browser-verified regression fixes. Loaded after all other UI layers. */
+.stats-bar .stat-card::before {
+  display: none !important;
+}
+
+.stats-bar .stat-value {
+  color: var(--accent) !important;
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+}
+
+.stats-bar .stat-card:nth-child(1) .stat-value { color: #6366f1 !important; }
+.stats-bar .stat-card:nth-child(2) .stat-value { color: #0ea5e9 !important; }
+.stats-bar .stat-card:nth-child(3) .stat-value { color: #f59e0b !important; }
+.stats-bar .stat-card:nth-child(4) .stat-value { color: #a855f7 !important; }
+.stats-bar .stat-card:nth-child(5) .stat-value { color: #22c55e !important; }
+.stats-bar .stat-card:nth-child(6) .stat-value { color: #ef4444 !important; }
+.stats-bar .stat-card:nth-child(7) .stat-value { color: #64748b !important; }
+.stats-bar .stat-card:nth-child(8) .stat-value { color: #0f172a !important; }
+[data-theme="dark"] .stats-bar .stat-card:nth-child(8) .stat-value { color: #e2e8f0 !important; }
+
+@media (max-width: 720px) {
+  .paper-grid .paper-card-footer {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  .paper-grid .paper-footer-left {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 5px !important;
+  }
+
+  .paper-grid .deadline-badge,
+  .paper-grid .file-dot,
+  .paper-grid .file-type-pill {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 22px !important;
+    padding: 4px 7px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    line-height: 1.2 !important;
+    font-size: 9px !important;
+  }
+
+  .paper-grid .paper-date-info {
+    min-width: 0 !important;
+    max-width: 150px !important;
+    align-self: end !important;
+    text-align: right !important;
+    white-space: normal !important;
+    line-height: 1.35 !important;
+    font-size: 8.8px !important;
+  }
+}
