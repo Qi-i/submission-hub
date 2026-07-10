@@ -2,7 +2,7 @@ import type { Paper, PaperFile } from './types'
 import { STATUSES } from './types'
 
 const STORAGE_KEY = 'submission-hub-papers'
-const validStatuses = new Set(STATUSES.map(status => status.key))
+const validStatuses = new Set<string>(STATUSES.map(status => status.key))
 
 function newId() {
   return globalThis.crypto?.randomUUID?.() || `offline-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -13,7 +13,9 @@ function text(value: unknown): string | null {
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean) : []
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean)
+    : []
 }
 
 function files(value: unknown): PaperFile[] | null {
@@ -24,6 +26,12 @@ function files(value: unknown): PaperFile[] | null {
     t: text(file?.t ?? file?.type) || '其它',
   })).filter(file => file.n || file.p)
   return result.length ? result : null
+}
+
+function finiteNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export function getPapers(): Paper[] {
@@ -47,19 +55,15 @@ export function savePapers(papers: Paper[]) {
 }
 
 export function addPaper(paper: Paper) {
-  const papers = getPapers()
-  papers.unshift(paper)
-  savePapers(papers)
+  savePapers([paper, ...getPapers()])
 }
 
 export function updatePaper(updated: Paper) {
-  const papers = getPapers().map(p => p.id === updated.id ? updated : p)
-  savePapers(papers)
+  savePapers(getPapers().map(paper => paper.id === updated.id ? updated : paper))
 }
 
 export function deletePaper(id: string) {
-  const papers = getPapers().filter(p => p.id !== id)
-  savePapers(papers)
+  savePapers(getPapers().filter(paper => paper.id !== id))
 }
 
 export function exportPapers(): string {
@@ -75,26 +79,24 @@ export function importPapers(json: string): Paper[] {
   const sourceRows = data.filter(row => row && typeof row === 'object' && !existingIds.has(String(row.id || '')))
   const idMap = new Map<string, string>()
   const reserved = new Set(existingIds)
-
-  for (const row of sourceRows) {
+  const assignedIds = sourceRows.map((row: any) => {
     const sourceId = text(row.id)
     let targetId = sourceId || newId()
     while (reserved.has(targetId)) targetId = newId()
     reserved.add(targetId)
     if (sourceId) idMap.set(sourceId, targetId)
-  }
+    return targetId
+  })
 
   const now = new Date().toISOString()
   const imported = sourceRows.map((d: any, index): Paper => {
-    const sourceId = text(d.id)
-    const id = sourceId ? idMap.get(sourceId)! : Array.from(reserved)[existingIds.size + index] || newId()
     const oldPrevId = text(d.prevId ?? d.prev_id)
     const status = text(d.status) || 'preparing'
-    const apcValue = d.apc_amount ?? d.apcAmount
-    const revisionValue = d.revision_round ?? d.revisionRound
+    const apcAmount = finiteNumber(d.apc_amount ?? d.apcAmount)
+    const revisionRound = finiteNumber(d.revision_round ?? d.revisionRound)
 
     return {
-      id,
+      id: assignedIds[index],
       user_id: 'offline',
       title: text(d.title) || '未命名',
       title_zh: text(d.title_zh ?? d.titleZh),
@@ -105,16 +107,16 @@ export function importPapers(json: string): Paper[] {
       last_status_date: text(d.last_status_date ?? d.lastStatusDate),
       next_action: text(d.next_action ?? d.nextAction),
       reminder_level: text(d.reminder_level ?? d.reminderLevel) || 'none',
-      apc_amount: apcValue === null || apcValue === undefined || apcValue === '' ? null : Number(apcValue),
+      apc_amount: apcAmount,
       apc_currency: text(d.apc_currency ?? d.apcCurrency) || 'USD',
-      revision_round: Number.isFinite(Number(revisionValue)) ? Number(revisionValue) : 0,
+      revision_round: revisionRound === null ? 0 : Math.max(0, Math.trunc(revisionRound)),
       followup_log: text(d.followup_log ?? d.followupLog),
       doi: text(d.doi),
       publication_info: text(d.publication_info ?? d.publicationInfo),
       citation: text(d.citation),
       journal_url: text(d.journal_url ?? d.journalUrl),
       journal_apc_note: text(d.journal_apc_note ?? d.journalApcNote),
-      status: validStatuses.has(status as any) ? status : 'preparing',
+      status: validStatuses.has(status) ? status : 'preparing',
       lang: text(d.lang) || 'zh',
       quartile_jcr: text(d.quartile_jcr ?? d.quartileJcr),
       quartile_cas: text(d.quartile_cas ?? d.quartileCas),
