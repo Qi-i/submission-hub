@@ -1,0 +1,162 @@
+.prep-topic-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.prep-topic-main {
+  width: 100%;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.prep-topic-card.compact .prep-topic-main {
+  min-height: 122px;
+  padding: 13px;
+}
+
+.prep-topic-draft {
+  width: calc(100% - 20px);
+  justify-content: center;
+  margin: 0 10px 10px;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 7px;
+}
+
+.prep-readiness-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 10px;
+  margin-top: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 9.5px;
+}
+
+.prep-readiness-note strong {
+  font-size: 10px;
+}
+
+.prep-readiness-note span {
+  color: var(--text-secondary);
+}
+
+.prep-readiness-note.blocked {
+  background: rgba(239, 68, 68, .08);
+  color: #dc2626;
+}
+
+.prep-readiness-note.ready {
+  background: rgba(34, 197, 94, .09);
+  color: #15803d;
+}
+
+.prep-readiness-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+
+.prep-readiness-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prep-readiness-summary > div {
+  display: grid;
+  gap: 3px;
+}
+
+.prep-readiness-summary b {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.prep-readiness-summary span {
+  font-size: 9.5px;
+  color: var(--text-muted);
+}
+
+.prep-readiness-score {
+  min-width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.prep-readiness-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.prep-readiness-lists > div {
+  display: grid;
+  gap: 4px;
+}
+
+.prep-readiness-lists strong {
+  font-size: 9.5px;
+  color: var(--text-secondary);
+}
+
+.prep-readiness-lists span {
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.prep-readiness-lists .blocker span {
+  color: #dc2626;
+}
+
+.prep-custom-check {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.prep-custom-check .input {
+  flex: 1;
+}
+
+.prep-checklist label {
+  position: relative;
+}
+
+.prep-check-remove {
+  margin-left: auto;
+  border: 0;
+  padding: 0 2px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .prep-readiness-lists {
+    grid-template-columns: 1fr;
+  }
+}
