@@ -1,26 +1,20 @@
-import { useState, type ReactNode } from 'react'
-import { Save, Trash2, X } from 'lucide-react'
-import type {
-  ExternalLink, JournalProfile, ManuscriptDraft, PreparationChecklistItem, ResearchTopic,
-} from '../lib/preparation'
+import { useMemo, useState, type ReactNode } from 'react'
+import { Plus, Save, Trash2, X } from 'lucide-react'
+import type { ExternalLink, JournalProfile, ManuscriptDraft, PreparationChecklistItem, ResearchTopic } from '../lib/preparation'
 import {
-  ARTICLE_TYPE_OPTIONS, DRAFT_STAGE_OPTIONS, INDEXING_OPTIONS, OA_OPTIONS,
-  PRIORITY_OPTIONS, TOPIC_STATUS_OPTIONS, checklistProgress, createDefaultChecklist,
+  ARTICLE_TYPE_OPTIONS, DEFAULT_PREPARATION_CHECKLIST, DRAFT_STAGE_OPTIONS, INDEXING_OPTIONS,
+  OA_OPTIONS, PRIORITY_OPTIONS, TOPIC_STATUS_OPTIONS, checklistProgress,
+  createCustomChecklistItem, createDefaultChecklist, draftReadiness,
 } from '../lib/preparation'
 
 const toList = (value: string) => Array.from(new Set(value.split(/[，,;；、\n]+/).map(item => item.trim()).filter(Boolean)))
 const fromList = (value?: string[] | null) => (value || []).join(', ')
 const safeUrl = (value?: string | null) => !!value && /^https?:\/\//i.test(value)
 const numberOrNull = (value: string) => value.trim() === '' ? null : Number.isFinite(Number(value)) ? Number(value) : null
-const integerOrNull = (value: string) => {
-  const parsed = numberOrNull(value)
-  return parsed === null ? null : Math.max(0, Math.round(parsed))
-}
-const percentageOrNull = (value: string) => {
-  const parsed = numberOrNull(value)
-  return parsed === null ? null : Math.max(0, Math.min(100, parsed))
-}
+const integerOrNull = (value: string) => { const parsed = numberOrNull(value); return parsed === null ? null : Math.max(0, Math.round(parsed)) }
+const percentageOrNull = (value: string) => { const parsed = numberOrNull(value); return parsed === null ? null : Math.max(0, Math.min(100, parsed)) }
 const clampScore = (value: string) => Math.max(0, Math.min(5, Math.round(Number(value) || 0)))
+const defaultChecklistIds = new Set(DEFAULT_PREPARATION_CHECKLIST.map(item => item.id))
 
 function parseLinks(value: string): ExternalLink[] {
   return value.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
@@ -38,41 +32,19 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
   return <div className={`prep-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</div>
 }
 
-function ModalShell({ title, subtitle, saving, onClose, onSave, onDelete, children }: {
-  title: string
-  subtitle?: string
-  saving: boolean
-  onClose: () => void
-  onSave: () => void
-  onDelete?: () => void
-  children: ReactNode
-}) {
-  return <div className="modal-overlay" onClick={() => !saving && onClose()}>
-    <div className="modal prep-modal" onClick={event => event.stopPropagation()}>
-      <div className="prep-modal-head"><div><h3>{title}</h3>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="btn btn-ghost btn-icon" onClick={onClose} disabled={saving}><X size={18} /></button></div>
-      <div className="prep-modal-body">{children}</div>
-      <div className="prep-modal-footer">{onDelete ? <button type="button" className="btn btn-danger btn-sm" onClick={onDelete} disabled={saving}><Trash2 size={14} /> 删除</button> : <span />}<div><button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>取消</button><button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}><Save size={14} /> {saving ? '保存中...' : '保存'}</button></div></div>
-    </div>
-  </div>
+function ModalShell({ title, subtitle, saving, onClose, onSave, onDelete, children }: { title: string; subtitle?: string; saving: boolean; onClose: () => void; onSave: () => void; onDelete?: () => void; children: ReactNode }) {
+  return <div className="modal-overlay" onClick={() => !saving && onClose()}><div className="modal prep-modal" onClick={event => event.stopPropagation()}>
+    <div className="prep-modal-head"><div><h3>{title}</h3>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="btn btn-ghost btn-icon" onClick={onClose} disabled={saving}><X size={18} /></button></div>
+    <div className="prep-modal-body">{children}</div>
+    <div className="prep-modal-footer">{onDelete ? <button type="button" className="btn btn-danger btn-sm" onClick={onDelete} disabled={saving}><Trash2 size={14} /> 删除</button> : <span />}<div><button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>取消</button><button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}><Save size={14} /> {saving ? '保存中...' : '保存'}</button></div></div>
+  </div></div>
 }
 
 async function execute(action: () => Promise<void>, message: string) {
-  try {
-    await action()
-    return true
-  } catch (error) {
-    console.error(message, error)
-    alert(error instanceof Error ? `${message}：${error.message}` : message)
-    return false
-  }
+  try { await action(); return true } catch (error) { console.error(message, error); alert(error instanceof Error ? `${message}：${error.message}` : message); return false }
 }
 
-export function JournalForm({ value, onSave, onDelete, onClose }: {
-  value: JournalProfile | 'new'
-  onSave: (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => Promise<void>
-  onDelete: (id: string) => Promise<void>
-  onClose: () => void
-}) {
+export function JournalForm({ value, onSave, onDelete, onClose }: { value: JournalProfile | 'new'; onSave: (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => Promise<void>; onDelete: (id: string) => Promise<void>; onClose: () => void }) {
   const source = value === 'new' ? null : value
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState(source?.name || '')
@@ -104,31 +76,10 @@ export function JournalForm({ value, onSave, onDelete, onClose }: {
   const save = async () => {
     if (!name.trim() || saving) return
     setSaving(true)
-    const ok = await execute(() => onSave({
-      ...(source || {}),
-      name: name.trim(), publisher: publisher.trim() || null,
-      website_url: website.trim() || null, author_guide_url: guide.trim() || null,
-      submission_url: submission.trim() || null, third_party_links: parseLinks(thirdParty),
-      issn: issn.trim() || null, eissn: eissn.trim() || null, scope: scope.trim() || null,
-      subject_tags: toList(tags), indexing, jcr_quartile: jcr.trim() || null, cas_quartile: cas.trim() || null,
-      impact_factor: numberOrNull(impactFactor), oa_type: oaType as JournalProfile['oa_type'],
-      apc_amount: numberOrNull(apc), apc_currency: currency.trim().toUpperCase() || 'USD',
-      fee_notes: feeNotes.trim() || null, first_decision_days: integerOrNull(firstDecision),
-      total_review_days: integerOrNull(totalReview), acceptance_rate: percentageOrNull(acceptanceRate),
-      risk_level: risk as JournalProfile['risk_level'], is_favorite: favorite,
-      priority: priority as JournalProfile['priority'], notes: notes.trim() || null,
-    }), '期刊档案保存失败')
-    setSaving(false)
-    if (ok) onClose()
+    const ok = await execute(() => onSave({ ...(source || {}), name: name.trim(), publisher: publisher.trim() || null, website_url: website.trim() || null, author_guide_url: guide.trim() || null, submission_url: submission.trim() || null, third_party_links: parseLinks(thirdParty), issn: issn.trim() || null, eissn: eissn.trim() || null, scope: scope.trim() || null, subject_tags: toList(tags), indexing, jcr_quartile: jcr.trim() || null, cas_quartile: cas.trim() || null, impact_factor: numberOrNull(impactFactor), oa_type: oaType as JournalProfile['oa_type'], apc_amount: numberOrNull(apc), apc_currency: currency.trim().toUpperCase() || 'USD', fee_notes: feeNotes.trim() || null, first_decision_days: integerOrNull(firstDecision), total_review_days: integerOrNull(totalReview), acceptance_rate: percentageOrNull(acceptanceRate), risk_level: risk as JournalProfile['risk_level'], is_favorite: favorite, priority: priority as JournalProfile['priority'], notes: notes.trim() || null }), '期刊档案保存失败')
+    setSaving(false); if (ok) onClose()
   }
-
-  const remove = async () => {
-    if (!source || !confirm('确认删除该期刊档案？')) return
-    setSaving(true)
-    const ok = await execute(() => onDelete(source.id), '期刊档案删除失败')
-    setSaving(false)
-    if (ok) onClose()
-  }
+  const remove = async () => { if (!source || !confirm('确认删除该期刊档案？')) return; setSaving(true); const ok = await execute(() => onDelete(source.id), '期刊档案删除失败'); setSaving(false); if (ok) onClose() }
 
   return <ModalShell title={source ? '编辑期刊档案' : '收藏期刊'} subtitle="记录投稿入口、分区、费用、审稿速度和第三方介绍" saving={saving} onClose={onClose} onSave={() => void save()} onDelete={source ? () => void remove() : undefined}>
     <div className="prep-form-grid two"><Field label="期刊名称" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus /></Field><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="收藏优先级"><select className="select" value={priority} onChange={event => setPriority(event.target.value)}>{PRIORITY_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field></div>
@@ -145,12 +96,7 @@ export function JournalForm({ value, onSave, onDelete, onClose }: {
   </ModalShell>
 }
 
-export function TopicForm({ value, onSave, onDelete, onClose }: {
-  value: ResearchTopic | 'new'
-  onSave: (data: Partial<ResearchTopic> & Pick<ResearchTopic, 'title'>) => Promise<void>
-  onDelete: (id: string) => Promise<void>
-  onClose: () => void
-}) {
+export function TopicForm({ value, onSave, onDelete, onClose }: { value: ResearchTopic | 'new'; onSave: (data: Partial<ResearchTopic> & Pick<ResearchTopic, 'title'>) => Promise<void>; onDelete: (id: string) => Promise<void>; onClose: () => void }) {
   const source = value === 'new' ? null : value
   const [saving, setSaving] = useState(false)
   const [title, setTitle] = useState(source?.title || '')
@@ -170,31 +116,8 @@ export function TopicForm({ value, onSave, onDelete, onClose }: {
   const [notes, setNotes] = useState(source?.notes || '')
   const [scores, setScores] = useState({ novelty: source?.novelty_score ?? 3, feasibility: source?.feasibility_score ?? 3, data: source?.data_score ?? 3, method: source?.method_score ?? 3, timeline: source?.timeline_score ?? 3 })
 
-  const save = async () => {
-    if (!title.trim() || saving) return
-    setSaving(true)
-    const ok = await execute(() => onSave({
-      ...(source || {}), title: title.trim(), research_question: question.trim() || null,
-      objective: objective.trim() || null, novelty: novelty.trim() || null,
-      background: background.trim() || null, keywords: toList(keywords), methods: toList(methods),
-      data_sources: toList(dataSources), target_audience: audience.trim() || null,
-      expected_output: output.trim() || null, status: status as ResearchTopic['status'],
-      priority: priority as ResearchTopic['priority'], novelty_score: scores.novelty,
-      feasibility_score: scores.feasibility, data_score: scores.data, method_score: scores.method,
-      timeline_score: scores.timeline, deadline: deadline || null, links: parseLinks(links), notes: notes.trim() || null,
-    }), '研究选题保存失败')
-    setSaving(false)
-    if (ok) onClose()
-  }
-
-  const remove = async () => {
-    if (!source || !confirm('确认删除该选题？关联草稿将保留但解除关联。')) return
-    setSaving(true)
-    const ok = await execute(() => onDelete(source.id), '研究选题删除失败')
-    setSaving(false)
-    if (ok) onClose()
-  }
-
+  const save = async () => { if (!title.trim() || saving) return; setSaving(true); const ok = await execute(() => onSave({ ...(source || {}), title: title.trim(), research_question: question.trim() || null, objective: objective.trim() || null, novelty: novelty.trim() || null, background: background.trim() || null, keywords: toList(keywords), methods: toList(methods), data_sources: toList(dataSources), target_audience: audience.trim() || null, expected_output: output.trim() || null, status: status as ResearchTopic['status'], priority: priority as ResearchTopic['priority'], novelty_score: scores.novelty, feasibility_score: scores.feasibility, data_score: scores.data, method_score: scores.method, timeline_score: scores.timeline, deadline: deadline || null, links: parseLinks(links), notes: notes.trim() || null }), '研究选题保存失败'); setSaving(false); if (ok) onClose() }
+  const remove = async () => { if (!source || !confirm('确认删除该选题？关联草稿将保留但解除关联。')) return; setSaving(true); const ok = await execute(() => onDelete(source.id), '研究选题删除失败'); setSaving(false); if (ok) onClose() }
   const scoreField = (label: string, key: keyof typeof scores) => <Field label={label}><input type="number" min="0" max="5" step="1" className="input" value={scores[key]} onChange={event => setScores(previous => ({ ...previous, [key]: clampScore(event.target.value) }))} /></Field>
 
   return <ModalShell title={source ? '编辑研究选题' : '新增研究选题'} subtitle="先判断问题是否值得做、能否做完，再决定是否进入写作" saving={saving} onClose={onClose} onSave={() => void save()} onDelete={source ? () => void remove() : undefined}>
@@ -211,14 +134,7 @@ export function TopicForm({ value, onSave, onDelete, onClose }: {
   </ModalShell>
 }
 
-export function DraftForm({ value, topics, journals, onSave, onDelete, onClose }: {
-  value: ManuscriptDraft | 'new'
-  topics: ResearchTopic[]
-  journals: JournalProfile[]
-  onSave: (data: Partial<ManuscriptDraft> & Pick<ManuscriptDraft, 'title'>) => Promise<void>
-  onDelete: (id: string) => Promise<void>
-  onClose: () => void
-}) {
+export function DraftForm({ value, topics, journals, onSave, onDelete, onClose }: { value: ManuscriptDraft | 'new'; topics: ResearchTopic[]; journals: JournalProfile[]; onSave: (data: Partial<ManuscriptDraft> & Pick<ManuscriptDraft, 'title'>) => Promise<void>; onDelete: (id: string) => Promise<void>; onClose: () => void }) {
   const source = value === 'new' ? null : value
   const [saving, setSaving] = useState(false)
   const [title, setTitle] = useState(source?.title || '')
@@ -241,34 +157,31 @@ export function DraftForm({ value, topics, journals, onSave, onDelete, onClose }
   const [primaryJournal, setPrimaryJournal] = useState(source?.primary_journal_id || '')
   const [checklist, setChecklist] = useState<PreparationChecklistItem[]>(source?.checklist?.length ? source.checklist : createDefaultChecklist())
   const [notes, setNotes] = useState(source?.notes || '')
+  const [customCheck, setCustomCheck] = useState('')
+  const [customRequired, setCustomRequired] = useState(false)
+
+  const preview = useMemo<ManuscriptDraft>(() => ({ id: source?.id || 'preview', user_id: source?.user_id || 'preview', topic_id: topicId || null, title, article_type: articleType, language, stage: stage as ManuscriptDraft['stage'], abstract: abstract.trim() || null, keywords: toList(keywords), outline: outline.trim() || null, authors: toList(authors), target_word_count: integerOrNull(targetWords), current_word_count: integerOrNull(currentWords) || 0, figure_count: integerOrNull(figures) || 0, table_count: integerOrNull(tables) || 0, reference_count: integerOrNull(references) || 0, deadline: deadline || null, external_links: parseLinks(links), target_journal_ids: targetJournals, primary_journal_id: primaryJournal || null, checklist, notes: notes.trim() || null, submitted_paper_id: source?.submitted_paper_id || null, created_at: source?.created_at || '', updated_at: source?.updated_at || '' }), [source, topicId, title, articleType, language, stage, abstract, keywords, outline, authors, targetWords, currentWords, figures, tables, references, deadline, links, targetJournals, primaryJournal, checklist, notes])
+  const readiness = draftReadiness(preview)
+
+  const addCustomCheck = () => {
+    const label = customCheck.trim()
+    if (!label) return
+    setChecklist(previous => [...previous, createCustomChecklistItem(label, customRequired)])
+    setCustomCheck('')
+    setCustomRequired(false)
+  }
 
   const save = async () => {
     if (!title.trim() || saving) return
     setSaving(true)
     const selectedTargets = primaryJournal && !targetJournals.includes(primaryJournal) ? [primaryJournal, ...targetJournals] : targetJournals
-    const ok = await execute(() => onSave({
-      ...(source || {}), title: title.trim(), topic_id: topicId || null, article_type: articleType,
-      language, stage: stage as ManuscriptDraft['stage'], abstract: abstract.trim() || null,
-      keywords: toList(keywords), outline: outline.trim() || null, authors: toList(authors),
-      target_word_count: integerOrNull(targetWords), current_word_count: integerOrNull(currentWords) || 0,
-      figure_count: integerOrNull(figures) || 0, table_count: integerOrNull(tables) || 0,
-      reference_count: integerOrNull(references) || 0, deadline: deadline || null,
-      external_links: parseLinks(links), target_journal_ids: Array.from(new Set(selectedTargets)),
-      primary_journal_id: primaryJournal || null, checklist, notes: notes.trim() || null,
-    }), '草稿准备保存失败')
-    setSaving(false)
-    if (ok) onClose()
+    const ok = await execute(() => onSave({ ...(source || {}), title: title.trim(), topic_id: topicId || null, article_type: articleType, language, stage: stage as ManuscriptDraft['stage'], abstract: abstract.trim() || null, keywords: toList(keywords), outline: outline.trim() || null, authors: toList(authors), target_word_count: integerOrNull(targetWords), current_word_count: integerOrNull(currentWords) || 0, figure_count: integerOrNull(figures) || 0, table_count: integerOrNull(tables) || 0, reference_count: integerOrNull(references) || 0, deadline: deadline || null, external_links: parseLinks(links), target_journal_ids: Array.from(new Set(selectedTargets)), primary_journal_id: primaryJournal || null, checklist, notes: notes.trim() || null }), '草稿准备保存失败')
+    setSaving(false); if (ok) onClose()
   }
-
-  const remove = async () => {
-    if (!source || !confirm('确认删除该草稿准备记录？')) return
-    setSaving(true)
-    const ok = await execute(() => onDelete(source.id), '草稿准备删除失败')
-    setSaving(false)
-    if (ok) onClose()
-  }
+  const remove = async () => { if (!source || !confirm('确认删除该草稿准备记录？')) return; setSaving(true); const ok = await execute(() => onDelete(source.id), '草稿准备删除失败'); setSaving(false); if (ok) onClose() }
 
   return <ModalShell title={source ? '编辑草稿准备' : '新建草稿准备'} subtitle="统一管理正文进度、目标期刊、投稿材料和合规检查" saving={saving} onClose={onClose} onSave={() => void save()} onDelete={source ? () => void remove() : undefined}>
+    <div className="prep-readiness-panel"><div className="prep-readiness-summary"><div><b>{readiness.nextAction}</b><span>就绪度综合考虑清单、摘要、作者、主投期刊和写作进度</span></div><span className="prep-readiness-score">{readiness.score}%</span></div>{(readiness.blockers.length > 0 || readiness.warnings.length > 0) && <div className="prep-readiness-lists">{readiness.blockers.length > 0 && <div className="blocker"><strong>当前阻碍</strong>{readiness.blockers.slice(0, 4).map(item => <span key={item}>{item}</span>)}</div>}{readiness.warnings.length > 0 && <div><strong>建议完善</strong>{readiness.warnings.slice(0, 4).map(item => <span key={item}>{item}</span>)}</div>}</div>}</div>
     <Field label="工作标题" wide><input className="input" value={title} onChange={event => setTitle(event.target.value)} autoFocus /></Field>
     <div className="prep-form-grid four"><Field label="关联选题"><select className="select" value={topicId} onChange={event => setTopicId(event.target.value)}><option value="">不关联</option>{topics.map(topic => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select></Field><Field label="论文类型"><select className="select" value={articleType} onChange={event => setArticleType(event.target.value)}>{ARTICLE_TYPE_OPTIONS.map(option => <option key={option}>{option}</option>)}</select></Field><Field label="语言"><select className="select" value={language} onChange={event => setLanguage(event.target.value)}><option value="en">英文</option><option value="zh">中文</option></select></Field><Field label="准备阶段"><select className="select" value={stage} onChange={event => setStage(event.target.value)}>{DRAFT_STAGE_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field></div>
     <Field label="摘要 / 核心论证" wide><textarea className="textarea" value={abstract} onChange={event => setAbstract(event.target.value)} /></Field>
@@ -277,7 +190,8 @@ export function DraftForm({ value, topics, journals, onSave, onDelete, onClose }
     <div className="prep-form-grid six"><Field label="目标字数"><input type="number" min="0" step="1" className="input" value={targetWords} onChange={event => setTargetWords(event.target.value)} /></Field><Field label="当前字数"><input type="number" min="0" step="1" className="input" value={currentWords} onChange={event => setCurrentWords(event.target.value)} /></Field><Field label="图"><input type="number" min="0" step="1" className="input" value={figures} onChange={event => setFigures(event.target.value)} /></Field><Field label="表"><input type="number" min="0" step="1" className="input" value={tables} onChange={event => setTables(event.target.value)} /></Field><Field label="参考文献"><input type="number" min="0" step="1" className="input" value={references} onChange={event => setReferences(event.target.value)} /></Field><Field label="计划投稿"><input type="date" className="input" value={deadline} onChange={event => setDeadline(event.target.value)} /></Field></div>
     <div className="prep-form-grid two"><Field label="主投期刊"><select className="select" value={primaryJournal} onChange={event => setPrimaryJournal(event.target.value)}><option value="">暂未确定</option>{journals.map(journal => <option key={journal.id} value={journal.id}>{journal.name}</option>)}</select></Field><Field label="备选期刊"><div className="prep-journal-select">{journals.map(journal => <label key={journal.id}><input type="checkbox" checked={targetJournals.includes(journal.id)} onChange={event => setTargetJournals(previous => event.target.checked ? Array.from(new Set([...previous, journal.id])) : previous.filter(id => id !== journal.id))} /> {journal.name}</label>)}</div></Field></div>
     <div className="prep-checklist-head"><div><b>投稿前检查</b><span>必需项完成度 {checklistProgress(checklist)}%</span></div><button type="button" className="btn btn-ghost btn-sm" onClick={() => setChecklist(createDefaultChecklist())}>恢复默认</button></div>
-    <div className="prep-checklist">{checklist.map((item, index) => <label key={item.id} className={item.done ? 'done' : ''}><input type="checkbox" checked={item.done} onChange={event => setChecklist(previous => previous.map((entry, itemIndex) => itemIndex === index ? { ...entry, done: event.target.checked } : entry))} /><span>{item.label}{item.required && <em>必需</em>}</span></label>)}</div>
+    <div className="prep-custom-check"><input className="input" value={customCheck} onChange={event => setCustomCheck(event.target.value)} placeholder="添加期刊特有要求，如：上传数据仓库 DOI" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addCustomCheck() } }} /><label className="prep-switch"><input type="checkbox" checked={customRequired} onChange={event => setCustomRequired(event.target.checked)} /> 必需</label><button type="button" className="btn btn-ghost btn-sm" onClick={addCustomCheck}><Plus size={13} /> 添加</button></div>
+    <div className="prep-checklist">{checklist.map((item, index) => <div key={item.id} className={`prep-checklist-item ${item.done ? 'done' : ''}`}><label><input type="checkbox" checked={item.done} onChange={event => setChecklist(previous => previous.map((entry, itemIndex) => itemIndex === index ? { ...entry, done: event.target.checked } : entry))} /><span>{item.label}{item.required && <em>必需</em>}</span></label>{!defaultChecklistIds.has(item.id) && <button type="button" className="prep-check-remove" onClick={() => setChecklist(previous => previous.filter(entry => entry.id !== item.id))} title="删除自定义检查项"><X size={12} /></button>}</div>)}</div>
     <Field label="外部文件与协作链接" wide><textarea className="textarea" value={links} onChange={event => setLinks(event.target.value)} placeholder={'每行：Word 主稿|https://...\n数据文件夹|https://...'} /></Field>
     <Field label="写作备注 / 当前阻碍" wide><textarea className="textarea" value={notes} onChange={event => setNotes(event.target.value)} /></Field>
   </ModalShell>
