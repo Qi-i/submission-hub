@@ -12,7 +12,7 @@ try {
   const result = await page.evaluate(() => {
     const tolerance = 1.5
     const failures = []
-    const metrics = document.querySelector('.dashboard-metrics')
+    const metrics = document.querySelector('.dashboard-metrics, .stats-bar')
     const grid = document.querySelector('.paper-grid')
     const cards = Array.from(document.querySelectorAll('.paper-card-v3'))
 
