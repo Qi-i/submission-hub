@@ -53,17 +53,18 @@
 }
 
 /* Paper header: status and journal are peers, not competing full-width blocks. */
-.paper-card-head {
+.paper-grid .paper-card-v3 .paper-card-head {
   width: 100% !important;
   min-width: 0 !important;
   min-height: 32px;
   display: flex !important;
+  flex-wrap: nowrap !important;
   align-items: flex-start !important;
   justify-content: space-between !important;
   gap: 10px !important;
 }
 
-.paper-status-area {
+.paper-grid .paper-card-v3 .paper-status-area {
   flex: 0 0 auto !important;
   width: max-content !important;
   max-width: 46% !important;
@@ -74,8 +75,8 @@
   gap: 4px !important;
 }
 
-.paper-status-area > .badge,
-.journal-pill {
+.paper-grid .paper-card-v3 .paper-status-area > .badge,
+.paper-grid .paper-card-v3 .journal-pill {
   height: 32px !important;
   min-height: 32px !important;
   max-height: 32px !important;
@@ -88,29 +89,33 @@
   white-space: nowrap !important;
 }
 
-.paper-status-area > .badge {
+.paper-grid .paper-card-v3 .paper-status-area > .badge {
   width: max-content !important;
   flex: 0 0 auto !important;
 }
 
-.journal-pill {
+.paper-grid .paper-card-v3 .journal-pill {
   flex: 0 1 auto !important;
+  flex-basis: auto !important;
   width: max-content !important;
   min-width: 0 !important;
   max-width: min(68%, 460px) !important;
-  margin-left: auto !important;
+  margin: 0 0 0 auto !important;
+  justify-self: auto !important;
   justify-content: flex-start !important;
   text-align: right !important;
   overflow: hidden !important;
+  font-size: 11.6px !important;
+  font-weight: 780 !important;
 }
 
-.journal-pill-icon {
+.paper-grid .paper-card-v3 .journal-pill-icon {
   flex: 0 0 auto;
   margin-right: 6px;
   opacity: .72;
 }
 
-.journal-pill-text {
+.paper-grid .paper-card-v3 .journal-pill-text {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -118,7 +123,7 @@
 }
 
 /* The workflow substatus is a visible secondary state, not an unrelated grey label. */
-.paper-substatus {
+.paper-grid .paper-card-v3 .paper-substatus {
   width: max-content !important;
   max-width: 100% !important;
   min-height: 21px !important;
@@ -153,7 +158,7 @@
   white-space: nowrap;
 }
 
-[data-theme="dark"] .paper-substatus {
+[data-theme="dark"] .paper-grid .paper-card-v3 .paper-substatus {
   background: color-mix(in srgb, var(--paper-status-color) 16%, #111827) !important;
   color: color-mix(in srgb, var(--paper-status-color) 44%, #f8fafc) !important;
 }
@@ -172,16 +177,16 @@
     top: 5px !important;
   }
 
-  .paper-card-head {
+  .paper-grid .paper-card-v3 .paper-card-head {
     gap: 7px !important;
   }
 
-  .paper-status-area {
+  .paper-grid .paper-card-v3 .paper-status-area {
     max-width: 42% !important;
   }
 
-  .paper-status-area > .badge,
-  .journal-pill {
+  .paper-grid .paper-card-v3 .paper-status-area > .badge,
+  .paper-grid .paper-card-v3 .journal-pill {
     height: 30px !important;
     min-height: 30px !important;
     max-height: 30px !important;
@@ -189,7 +194,7 @@
     font-size: 10.5px !important;
   }
 
-  .journal-pill {
+  .paper-grid .paper-card-v3 .journal-pill {
     max-width: 58% !important;
   }
 }
