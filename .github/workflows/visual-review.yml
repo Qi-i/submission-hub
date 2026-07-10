@@ -55,7 +55,7 @@ jobs:
       - name: Verify dashboard geometry
         run: |
           set -euxo pipefail
-          npx --yes playwright@1.52.0 screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-layout-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light" visual-review/layout-verified-light-desktop.png
+          npx --yes @playwright/test@1.52.0 test tests/visual/layout.spec.ts --reporter=line --workers=1
       - name: Capture editor modal diagnostics
         if: always()
         run: |
