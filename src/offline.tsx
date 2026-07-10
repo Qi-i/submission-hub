@@ -18,6 +18,7 @@ import './final-polish.css'
 import './contrast-polish.css'
 import './timeline-today.css'
 import './action-center.css'
+import './preparation.css'
 import './logo-redesign.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
