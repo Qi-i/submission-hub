@@ -27,7 +27,7 @@ export function createBackup(papers: Paper[], mode: BackupMode, appVersion = '1.
 }
 
 export function parseBackup(json: string): unknown[] {
-  const parsed = JSON.parse(json)
+  const parsed: unknown = JSON.parse(json)
 
   // Backward compatibility with v1 exports, whose root value was the paper array.
   if (Array.isArray(parsed)) return parsed
@@ -40,7 +40,9 @@ export function parseBackup(json: string): unknown[] {
   if (record.schema !== BACKUP_SCHEMA) {
     throw new Error('无法识别的备份文件。')
   }
-  if (!Number.isInteger(record.version) || Number(record.version) < 1 || Number(record.version) > BACKUP_VERSION) {
+
+  const version = Number(record.version)
+  if (!Number.isInteger(version) || version < 1 || version > BACKUP_VERSION) {
     throw new Error(`不支持的备份版本：${String(record.version ?? '未知')}`)
   }
   if (!Array.isArray(record.papers)) {
