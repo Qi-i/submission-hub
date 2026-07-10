@@ -1,4 +1,4 @@
-import { Brush, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Brush, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 type TrendKey = 'cumSubmitted' | 'cumAccepted' | 'inProgress' | 'submitted' | 'accepted' | 'rejected'
 
@@ -21,8 +21,8 @@ function TrendTooltip({ active, payload, label }: any) {
   return (
     <div className="chart-tooltip glass-panel">
       <div className="chart-tooltip-title">{label}</div>
-      {payload.map((p: any, i: number) => (
-        <div key={i} className="chart-tooltip-row"><span style={{ color: p.color }}>{p.name}</span><b>{p.value}</b></div>
+      {payload.map((item: any, index: number) => (
+        <div key={index} className="chart-tooltip-row"><span style={{ color: item.color }}>{item.name}</span><b>{item.value}</b></div>
       ))}
     </div>
   )
@@ -30,17 +30,16 @@ function TrendTooltip({ active, payload, label }: any) {
 
 export default function StatsTrendChart({ data, visible }: Props) {
   return (
-    <ResponsiveContainer width="100%" height={390}>
-      <LineChart data={data} margin={{ top: 12, right: 22, bottom: 10, left: 0 }}>
+    <ResponsiveContainer width="100%" height={320}>
+      <LineChart data={data} margin={{ top: 10, right: 18, bottom: 4, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-        <XAxis dataKey="period" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} minTickGap={18} />
-        <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} allowDecimals={false} axisLine={false} tickLine={false} />
+        <XAxis dataKey="period" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} minTickGap={18} />
+        <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} allowDecimals={false} axisLine={false} tickLine={false} />
         <Tooltip content={<TrendTooltip />} />
-        <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 11 }} />
-        {series.filter(s => visible[s.key]).map(s => (
-          <Line key={s.key} type="monotoneX" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={s.width} strokeDasharray={s.dash} dot={false} activeDot={{ r: 5, stroke: s.color, strokeWidth: 2, fill: '#fff' }} />
+        {series.filter(item => visible[item.key]).map(item => (
+          <Line key={item.key} type="monotoneX" dataKey={item.key} name={item.label} stroke={item.color} strokeWidth={item.width} strokeDasharray={item.dash} dot={false} activeDot={{ r: 5, stroke: item.color, strokeWidth: 2, fill: '#fff' }} />
         ))}
-        <Brush dataKey="period" height={30} stroke="#0891b2" fill="var(--bg-glass)" travellerWidth={10} />
+        <Brush dataKey="period" height={24} stroke="#0891b2" fill="var(--bg-glass)" travellerWidth={8} />
       </LineChart>
     </ResponsiveContainer>
   )
