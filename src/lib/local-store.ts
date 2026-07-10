@@ -1,5 +1,6 @@
 import type { Paper, PaperFile } from './types'
 import { STATUSES } from './types'
+import { createBackup, parseBackup } from './backup'
 
 const STORAGE_KEY = 'submission-hub-papers'
 const validStatuses = new Set<string>(STATUSES.map(status => status.key))
@@ -67,16 +68,15 @@ export function deletePaper(id: string) {
 }
 
 export function exportPapers(): string {
-  return JSON.stringify(getPapers(), null, 2)
+  return createBackup(getPapers(), 'offline')
 }
 
 export function importPapers(json: string): Paper[] {
-  const data = JSON.parse(json)
-  if (!Array.isArray(data)) throw new Error('Invalid format')
+  const data = parseBackup(json)
 
   const existing = getPapers()
   const existingIds = new Set(existing.map(paper => paper.id))
-  const sourceRows = data.filter(row => row && typeof row === 'object' && !existingIds.has(String(row.id || '')))
+  const sourceRows = data.filter((row: any) => row && typeof row === 'object' && !existingIds.has(String(row.id || '')))
   const idMap = new Map<string, string>()
   const reserved = new Set(existingIds)
   const assignedIds = sourceRows.map((row: any) => {
