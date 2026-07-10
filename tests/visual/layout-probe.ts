@@ -4,6 +4,7 @@ if ((query.get('view') || 'dashboard') !== 'dashboard') {
   document.documentElement.dataset.layoutReady = 'true'
 } else {
   const tolerance = 1.5
+  const maxAttempts = 120
 
   const showFailure = (failures: string[]) => {
     const html = document.documentElement
@@ -32,67 +33,67 @@ if ((query.get('view') || 'dashboard') !== 'dashboard') {
 
   const retry = (attempt = 0) => {
     const html = document.documentElement
-    if (html.dataset.visualReady !== 'true') {
-      if (attempt < 80) window.setTimeout(() => retry(attempt + 1), 50)
-      return
-    }
-
     const metrics = document.querySelector<HTMLElement>('.dashboard-metrics')
     const grid = document.querySelector<HTMLElement>('.paper-grid')
     const cards = Array.from(document.querySelectorAll<HTMLElement>('.paper-card-v3'))
+
+    if (html.dataset.visualReady !== 'true' || !metrics || !grid || cards.length === 0) {
+      if (attempt < maxAttempts) {
+        window.setTimeout(() => retry(attempt + 1), 50)
+        return
+      }
+      showFailure(['dashboard geometry did not finish rendering before timeout'])
+      return
+    }
+
     const failures: string[] = []
+    const metricsRect = metrics.getBoundingClientRect()
+    const gridRect = grid.getBoundingClientRect()
+    if (Math.abs(metricsRect.left - gridRect.left) > tolerance) failures.push('metrics and card grid left edges differ')
+    if (Math.abs(metricsRect.right - gridRect.right) > tolerance) failures.push('metrics and card grid right edges differ')
 
-    if (!metrics || !grid || cards.length === 0) {
-      failures.push('dashboard geometry is incomplete')
+    const rowTop = Math.min(...cards.map(card => card.getBoundingClientRect().top))
+    const firstRow = cards.filter(card => Math.abs(card.getBoundingClientRect().top - rowTop) <= tolerance)
+    if (firstRow.length > 1) {
+      const heights = firstRow.map(card => card.getBoundingClientRect().height)
+      if (Math.max(...heights) - Math.min(...heights) > tolerance) failures.push('cards in the same row are not equal height')
+    }
+
+    const cardWithJournal = cards.find(card => card.querySelector('.journal-pill'))
+    if (!cardWithJournal) {
+      failures.push('journal pill is missing')
     } else {
-      const metricsRect = metrics.getBoundingClientRect()
-      const gridRect = grid.getBoundingClientRect()
-      if (Math.abs(metricsRect.left - gridRect.left) > tolerance) failures.push('metrics and card grid left edges differ')
-      if (Math.abs(metricsRect.right - gridRect.right) > tolerance) failures.push('metrics and card grid right edges differ')
+      const status = cardWithJournal.querySelector<HTMLElement>('.paper-status-area > .badge')
+      const pill = cardWithJournal.querySelector<HTMLElement>('.journal-pill')
+      const icon = cardWithJournal.querySelector<HTMLElement>('.journal-pill-icon')
+      const text = cardWithJournal.querySelector<HTMLElement>('.journal-pill-text')
 
-      const rowTop = Math.min(...cards.map(card => card.getBoundingClientRect().top))
-      const firstRow = cards.filter(card => Math.abs(card.getBoundingClientRect().top - rowTop) <= tolerance)
-      if (firstRow.length > 1) {
-        const heights = firstRow.map(card => card.getBoundingClientRect().height)
-        if (Math.max(...heights) - Math.min(...heights) > tolerance) failures.push('cards in the same row are not equal height')
+      if (!status || !pill || !icon || !text) {
+        failures.push('paper header elements are incomplete')
+      } else {
+        const statusHeight = status.getBoundingClientRect().height
+        const pillRect = pill.getBoundingClientRect()
+        if (Math.abs(statusHeight - pillRect.height) > tolerance) failures.push('status and journal pills have different heights')
+
+        const pillStyle = getComputedStyle(pill)
+        const expectedMax = icon.getBoundingClientRect().width
+          + text.scrollWidth
+          + Number.parseFloat(pillStyle.paddingLeft)
+          + Number.parseFloat(pillStyle.paddingRight)
+          + Number.parseFloat(pillStyle.borderLeftWidth)
+          + Number.parseFloat(pillStyle.borderRightWidth)
+          + 8
+        if (pillRect.width - expectedMax > 2) failures.push('journal pill contains unnecessary blank width')
+
+        const cardRect = cardWithJournal.getBoundingClientRect()
+        const cardStyle = getComputedStyle(cardWithJournal)
+        const expectedRight = cardRect.right - Number.parseFloat(cardStyle.paddingRight) - Number.parseFloat(cardStyle.borderRightWidth)
+        if (Math.abs(expectedRight - pillRect.right) > 3) failures.push('journal pill is not right aligned to the card content edge')
       }
 
-      const cardWithJournal = cards.find(card => card.querySelector('.journal-pill'))
-      if (!cardWithJournal) {
-        failures.push('journal pill is missing')
-      } else {
-        const status = cardWithJournal.querySelector<HTMLElement>('.paper-status-area > .badge')
-        const pill = cardWithJournal.querySelector<HTMLElement>('.journal-pill')
-        const icon = cardWithJournal.querySelector<HTMLElement>('.journal-pill-icon')
-        const text = cardWithJournal.querySelector<HTMLElement>('.journal-pill-text')
-
-        if (!status || !pill || !icon || !text) {
-          failures.push('paper header elements are incomplete')
-        } else {
-          const statusHeight = status.getBoundingClientRect().height
-          const pillRect = pill.getBoundingClientRect()
-          if (Math.abs(statusHeight - pillRect.height) > tolerance) failures.push('status and journal pills have different heights')
-
-          const pillStyle = getComputedStyle(pill)
-          const expectedMax = icon.getBoundingClientRect().width
-            + text.scrollWidth
-            + Number.parseFloat(pillStyle.paddingLeft)
-            + Number.parseFloat(pillStyle.paddingRight)
-            + Number.parseFloat(pillStyle.borderLeftWidth)
-            + Number.parseFloat(pillStyle.borderRightWidth)
-            + 8
-          if (pillRect.width - expectedMax > 2) failures.push('journal pill contains unnecessary blank width')
-
-          const cardRect = cardWithJournal.getBoundingClientRect()
-          const cardStyle = getComputedStyle(cardWithJournal)
-          const expectedRight = cardRect.right - Number.parseFloat(cardStyle.paddingRight) - Number.parseFloat(cardStyle.borderRightWidth)
-          if (Math.abs(expectedRight - pillRect.right) > 3) failures.push('journal pill is not right aligned to the card content edge')
-        }
-
-        const accent = getComputedStyle(cardWithJournal, '::before')
-        if (Number.parseFloat(accent.left) < 18 || Number.parseFloat(accent.right) < 18 || Number.parseFloat(accent.top) < 4) {
-          failures.push('card accent line is not safely inset from rounded corners')
-        }
+      const accent = getComputedStyle(cardWithJournal, '::before')
+      if (Number.parseFloat(accent.left) < 18 || Number.parseFloat(accent.right) < 18 || Number.parseFloat(accent.top) < 4) {
+        failures.push('card accent line is not safely inset from rounded corners')
       }
     }
 
