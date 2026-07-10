@@ -13,6 +13,11 @@ interface Props {
 
 const emptySnapshot: PreparationSnapshot = { journals: [], topics: [], drafts: [] }
 
+function localDateString() {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export default function OfflinePreparationWorkspace({ authorName, refreshToken, onPaperCreated }: Props) {
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
 
@@ -56,6 +61,7 @@ export default function OfflinePreparationWorkspace({ authorName, refreshToken, 
     if (draft.submitted_paper_id) return
     const journal = snapshot.journals.find(item => item.id === draft.primary_journal_id)
     const now = new Date().toISOString()
+    const submittedDate = localDateString()
     const paperId = crypto.randomUUID()
     const paper: Paper = {
       id: paperId,
@@ -65,9 +71,9 @@ export default function OfflinePreparationWorkspace({ authorName, refreshToken, 
       journal: journal?.name || null,
       manuscript_no: null,
       submission_system: null,
-      system_status: null,
-      last_status_date: null,
-      next_action: '完成投稿材料并提交',
+      system_status: 'Submitted',
+      last_status_date: submittedDate,
+      next_action: '等待编辑处理',
       reminder_level: 'watch',
       apc_amount: journal?.apc_amount ?? null,
       apc_currency: journal?.apc_currency || 'USD',
@@ -78,7 +84,7 @@ export default function OfflinePreparationWorkspace({ authorName, refreshToken, 
       citation: null,
       journal_url: journal?.website_url || null,
       journal_apc_note: journal?.fee_notes || null,
-      status: 'preparing',
+      status: 'submitted',
       lang: draft.language,
       quartile_jcr: journal?.jcr_quartile || '未定',
       quartile_cas: journal?.cas_quartile || '未定',
@@ -87,13 +93,13 @@ export default function OfflinePreparationWorkspace({ authorName, refreshToken, 
       quartile_zh: [],
       authors: draft.authors.length ? draft.authors : authorName ? [authorName] : [],
       corresponding_author: null,
-      submitted_date: null,
+      submitted_date: submittedDate,
       resolve_date: null,
-      deadline: draft.deadline || null,
+      deadline: null,
       tracking_url: journal?.submission_url || null,
       published_url: null,
-      timeline: '',
-      notes: draft.notes || '由投稿准备模块转入。',
+      timeline: `${submittedDate} Submitted`,
+      notes: draft.notes || '由投稿准备模块确认投出并转入投稿管理。',
       prev_id: null,
       files: [],
       created_at: now,
