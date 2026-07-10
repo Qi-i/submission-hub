@@ -1,0 +1,175 @@
+/* Release UI consolidation layer. Keep all final cross-page geometry fixes here. */
+:root {
+  --release-page-width: 1760px;
+  --release-page-gutter: 16px;
+}
+
+/* One horizontal rhythm for header, metrics, cards, statistics and preparation. */
+.app-header {
+  padding-left: var(--release-page-gutter) !important;
+  padding-right: var(--release-page-gutter) !important;
+}
+
+.dashboard-metrics,
+.action-center,
+.toolbar,
+.paper-grid,
+.stats-panel,
+.preparation-workspace,
+.stats-bar,
+.tab-bar {
+  width: min(calc(100% - (var(--release-page-gutter) * 2)), var(--release-page-width)) !important;
+  max-width: var(--release-page-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-metrics,
+.metric-grid.dashboard-metrics,
+.paper-grid,
+.stats-panel,
+.preparation-workspace {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.dashboard-metrics {
+  gap: 10px !important;
+}
+
+/* Paper header: status and journal are peers, not competing full-width blocks. */
+.paper-card-head {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 32px;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.paper-status-area {
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  max-width: 46% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+}
+
+.paper-status-area > .badge,
+.journal-pill {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  box-sizing: border-box !important;
+  border-radius: 10px !important;
+  padding: 0 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.paper-status-area > .badge {
+  width: max-content !important;
+  flex: 0 0 auto !important;
+}
+
+.journal-pill {
+  flex: 0 1 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: min(68%, 460px) !important;
+  margin-left: auto !important;
+  justify-content: flex-start !important;
+  text-align: right !important;
+  overflow: hidden !important;
+}
+
+.journal-pill-icon {
+  flex: 0 0 auto;
+  margin-right: 6px;
+  opacity: .72;
+}
+
+.journal-pill-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The workflow substatus is a visible secondary state, not an unrelated grey label. */
+.paper-substatus {
+  width: max-content !important;
+  max-width: 100% !important;
+  min-height: 21px !important;
+  margin: 0 !important;
+  padding: 3px 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border: 1px solid color-mix(in srgb, var(--paper-status-color) 26%, transparent) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--paper-status-color) 10%, white) !important;
+  color: color-mix(in srgb, var(--paper-status-color) 74%, #0f172a) !important;
+  font-size: 10px !important;
+  font-weight: 680 !important;
+  line-height: 1.2 !important;
+  overflow: hidden;
+}
+
+.paper-substatus-dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--paper-status-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--paper-status-color) 13%, transparent);
+}
+
+.paper-substatus-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .paper-substatus {
+  background: color-mix(in srgb, var(--paper-status-color) 16%, #111827) !important;
+  color: color-mix(in srgb, var(--paper-status-color) 44%, #f8fafc) !important;
+}
+
+@media (max-width: 720px) {
+  :root { --release-page-gutter: 9px; }
+
+  .app-header {
+    padding-left: var(--release-page-gutter) !important;
+    padding-right: var(--release-page-gutter) !important;
+  }
+
+  .paper-card-head {
+    gap: 7px !important;
+  }
+
+  .paper-status-area {
+    max-width: 42% !important;
+  }
+
+  .paper-status-area > .badge,
+  .journal-pill {
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 0 9px !important;
+    font-size: 10.5px !important;
+  }
+
+  .journal-pill {
+    max-width: 58% !important;
+  }
+}
