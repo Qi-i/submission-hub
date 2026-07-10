@@ -1,7 +1,7 @@
 {
   "name": "submission-hub",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Academic submission, peer-review timeline, version-chain and publication archive management dashboard.",
   "homepage": "https://qi-i.github.io/submission-hub/",
   "repository": {
