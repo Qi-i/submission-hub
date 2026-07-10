@@ -1,0 +1,1 @@
+validate corresponding badge stylesheet merge
