@@ -14,6 +14,7 @@ import './archive-form.css'
 import './final-polish.css'
 import './contrast-polish.css'
 import './timeline-today.css'
+import './action-center.css'
 import './logo-redesign.css'
 
 function AppContent() {
