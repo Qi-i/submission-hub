@@ -64,6 +64,33 @@ function customRankValue(info: Record<string, unknown>, rank: number) {
   return text(info[names[rank - 1]]) || String(rank)
 }
 
+export function journalRankLabel(key: string) {
+  return OFFICIAL_LABELS[key] || (key.startsWith('custom:') ? '自定义等级' : key)
+}
+
+function sortRankItems(items: JournalRankItem[]) {
+  return items.sort((left, right) => {
+    const leftPriority = PRIORITY_KEYS.indexOf(left.key)
+    const rightPriority = PRIORITY_KEYS.indexOf(right.key)
+    if (left.selected !== right.selected) return Number(right.selected) - Number(left.selected)
+    if (leftPriority !== rightPriority) {
+      if (leftPriority < 0) return 1
+      if (rightPriority < 0) return -1
+      return leftPriority - rightPriority
+    }
+    return left.label.localeCompare(right.label, 'zh-CN')
+  })
+}
+
+export function rankItemsFromValues(values: Record<string, string> | null | undefined) {
+  return sortRankItems(Object.entries(values || {}).filter(([, value]) => !!text(value)).map(([key, value]) => ({
+    key,
+    label: journalRankLabel(key),
+    value: text(value),
+    group: key.startsWith('custom:') ? 'custom' as const : 'official' as const,
+  })))
+}
+
 export function parseJournalRankResponse(response: unknown): JournalRankLookupResult {
   const envelope = asRecord(response)
   const payload = asRecord(envelope.data)
@@ -79,7 +106,7 @@ export function parseJournalRankResponse(response: unknown): JournalRankLookupRe
     const value = text(raw)
     if (!value) return
     values[key] = value
-    items.push({ key, label: OFFICIAL_LABELS[key] || key, value, group: 'official', selected: selectedKeys.has(key) })
+    items.push({ key, label: journalRankLabel(key), value, group: 'official', selected: selectedKeys.has(key) })
   })
 
   const customRank = asRecord(payload.customRank)
@@ -99,20 +126,8 @@ export function parseJournalRankResponse(response: unknown): JournalRankLookupRe
     items.push({ key, label, value, group: 'custom' })
   })
 
-  items.sort((left, right) => {
-    const leftPriority = PRIORITY_KEYS.indexOf(left.key)
-    const rightPriority = PRIORITY_KEYS.indexOf(right.key)
-    if (left.selected !== right.selected) return Number(right.selected) - Number(left.selected)
-    if (leftPriority !== rightPriority) {
-      if (leftPriority < 0) return 1
-      if (rightPriority < 0) return -1
-      return leftPriority - rightPriority
-    }
-    return left.label.localeCompare(right.label, 'zh-CN')
-  })
-
   return {
-    items,
+    items: sortRankItems(items),
     values,
     fetchedAt: text(envelope.fetchedAt) || new Date().toISOString(),
     cached: envelope.cached === true,
