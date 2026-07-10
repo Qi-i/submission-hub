@@ -16,6 +16,7 @@ import './contrast-polish.css'
 import './timeline-today.css'
 import './action-center.css'
 import './preparation.css'
+import './journal-comparison.css'
 import './logo-redesign.css'
 
 function AppContent() {
