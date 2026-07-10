@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, ExternalLink, FilePenLine, Lightbulb, Plus, Scale, Search, Star } from 'lucide-react'
+import type { JournalRankLookupResult } from '../lib/journal-rank'
+import { rankItemsFromValues } from '../lib/journal-rank'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import {
   DRAFT_STAGE_OPTIONS, OA_OPTIONS, PRIORITY_OPTIONS, TOPIC_STATUS_OPTIONS,
   checklistProgress, createDefaultChecklist, draftReadiness, journalFitSummary, topicCompositeScore,
 } from '../lib/preparation'
 import { daysUntilDate } from '../lib/types'
-import { DraftForm, JournalForm, TopicForm } from './PreparationForms'
+import { DraftForm, TopicForm } from './PreparationForms'
+import JournalFormEnhanced from './JournalFormEnhanced'
 import JournalComparison from './JournalComparison'
 
 type SectionKey = 'overview' | 'topics' | 'drafts' | 'journals' | 'compare'
@@ -26,12 +29,15 @@ interface Props {
   onSaveDraft: (data: Partial<ManuscriptDraft> & Pick<ManuscriptDraft, 'title'>) => Promise<void>
   onDeleteDraft: (id: string) => Promise<void>
   onPromoteDraft?: (draft: ManuscriptDraft) => Promise<void>
+  onLookupJournalRanks?: (publicationName: string) => Promise<JournalRankLookupResult>
 }
+
+type RankedJournal = JournalProfile & { rank_data?: Record<string, string> | null; rank_updated_at?: string | null }
 
 const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 }
 const safeUrl = (value?: string | null) => !!value && /^https?:\/\//i.test(value)
 
-export default function PreparationWorkspace({ snapshot, loading, onSaveJournal, onDeleteJournal, onSaveTopic, onDeleteTopic, onSaveDraft, onDeleteDraft, onPromoteDraft }: Props) {
+export default function PreparationWorkspace({ snapshot, loading, onSaveJournal, onDeleteJournal, onSaveTopic, onDeleteTopic, onSaveDraft, onDeleteDraft, onPromoteDraft, onLookupJournalRanks }: Props) {
   const [section, setSection] = useState<SectionKey>('overview')
   const [search, setSearch] = useState('')
   const [editor, setEditor] = useState<Editor>(null)
@@ -85,9 +91,8 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
   const activeTopics = normalized.topics.filter(topic => !['paused', 'abandoned'].includes(topic.status)).length
   const favoriteJournals = normalized.journals.filter(journal => journal.is_favorite).length
 
-  const openNew = () => {
-    if (section === 'journals' || section === 'compare') setEditor({ type: 'journal', value: 'new' })
-    else if (section === 'topics') setEditor({ type: 'topic', value: 'new' })
+  const openContextNew = () => {
+    if (section === 'topics') setEditor({ type: 'topic', value: 'new' })
     else setEditor({ type: 'draft', value: 'new' })
   }
 
@@ -95,14 +100,9 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
     if (!onPromoteDraft || promotingId) return
     if (!confirm(`将“${draft.title}”转入正式投稿管理？系统会创建一条准备中投稿记录。`)) return
     setPromotingId(draft.id)
-    try {
-      await onPromoteDraft(draft)
-    } catch (error) {
-      console.error('Promote draft failed:', error)
-      alert(error instanceof Error ? `转入投稿失败：${error.message}` : '转入投稿失败。')
-    } finally {
-      setPromotingId(null)
-    }
+    try { await onPromoteDraft(draft) }
+    catch (error) { console.error('Promote draft failed:', error); alert(error instanceof Error ? `转入投稿失败：${error.message}` : '转入投稿失败。') }
+    finally { setPromotingId(null) }
   }
 
   const createDraftFromTopic = async (topic: ResearchTopic) => {
@@ -111,61 +111,53 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
     setCreatingTopicId(topic.id)
     try {
       await onSaveDraft({
-        title: topic.title,
-        topic_id: topic.id,
-        article_type: 'Research Article',
-        language: 'en',
-        stage: 'outline',
-        abstract: topic.objective || topic.research_question || null,
-        keywords: topic.keywords,
+        title: topic.title, topic_id: topic.id, article_type: 'Research Article', language: 'en', stage: 'outline',
+        abstract: topic.objective || topic.research_question || null, keywords: topic.keywords,
         outline: topic.objective ? `研究目标\n${topic.objective}\n\n拟解决问题\n${topic.research_question || ''}\n\n创新点\n${topic.novelty || ''}`.trim() : null,
-        authors: [],
-        target_word_count: null,
-        current_word_count: 0,
-        figure_count: 0,
-        table_count: 0,
-        reference_count: 0,
-        deadline: topic.deadline,
-        external_links: topic.links,
-        target_journal_ids: [],
-        primary_journal_id: null,
-        checklist: createDefaultChecklist(),
-        notes: topic.notes,
-        submitted_paper_id: null,
+        authors: [], target_word_count: null, current_word_count: 0, figure_count: 0, table_count: 0, reference_count: 0,
+        deadline: topic.deadline, external_links: topic.links, target_journal_ids: [], primary_journal_id: null,
+        checklist: createDefaultChecklist(), notes: topic.notes, submitted_paper_id: null,
       })
       if (topic.status !== 'drafting') await onSaveTopic({ ...topic, status: 'drafting' })
       setSection('drafts')
     } catch (error) {
       console.error('Create draft from topic failed:', error)
       alert(error instanceof Error ? `建立草稿失败：${error.message}` : '建立草稿失败。')
-    } finally {
-      setCreatingTopicId(null)
-    }
+    } finally { setCreatingTopicId(null) }
   }
 
   if (loading) return <div className="prep-loading"><div className="spinner" /> 加载投稿准备数据...</div>
 
-  return <div className="preparation-workspace">
+  return <div className="preparation-workspace" data-section={section}>
     <div className="prep-topbar">
-      <div><h1>投稿准备</h1><p>从选题判断、论文写作、期刊筛选到投稿材料检查的一体化工作区</p></div>
-      <div className="prep-top-actions"><div className="prep-search"><Search size={15} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." /></div><button className="btn btn-primary btn-sm" onClick={openNew}><Plus size={14} /> 新建</button></div>
+      <div className="prep-heading"><span className="prep-eyebrow">PRE-SUBMISSION WORKSPACE</span><h1>投稿准备</h1><p>把选题、草稿与目标期刊组织成一条清晰的投稿前流程。</p></div>
+      <div className="prep-top-actions">
+        <div className="prep-search"><Search size={15} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." /></div>
+        <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}><Star size={14} /> 收藏期刊</button>
+        {!['journals', 'compare'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}><Plus size={14} /> {section === 'topics' ? '新增选题' : '新建草稿'}</button>}
+      </div>
     </div>
 
     <div className="prep-nav">
-      <button className={section === 'overview' ? 'active' : ''} onClick={() => setSection('overview')}>总览</button>
-      <button className={section === 'topics' ? 'active' : ''} onClick={() => setSection('topics')}><Lightbulb size={14} /> 选题池 <span>{normalized.topics.length}</span></button>
-      <button className={section === 'drafts' ? 'active' : ''} onClick={() => setSection('drafts')}><FilePenLine size={14} /> 草稿准备 <span>{normalized.drafts.length}</span></button>
-      <button className={section === 'journals' ? 'active' : ''} onClick={() => setSection('journals')}><BookOpen size={14} /> 期刊库 <span>{normalized.journals.length}</span></button>
-      <button className={section === 'compare' ? 'active' : ''} onClick={() => setSection('compare')}><Scale size={14} /> 期刊比较</button>
+      <button data-tone="overview" className={section === 'overview' ? 'active' : ''} onClick={() => setSection('overview')}>总览</button>
+      <button data-tone="topic" className={section === 'topics' ? 'active' : ''} onClick={() => setSection('topics')}><Lightbulb size={14} /> 选题池 <span>{normalized.topics.length}</span></button>
+      <button data-tone="draft" className={section === 'drafts' ? 'active' : ''} onClick={() => setSection('drafts')}><FilePenLine size={14} /> 草稿准备 <span>{normalized.drafts.length}</span></button>
+      <button data-tone="journal" className={section === 'journals' ? 'active' : ''} onClick={() => setSection('journals')}><BookOpen size={14} /> 期刊库 <span>{normalized.journals.length}</span></button>
+      <button data-tone="compare" className={section === 'compare' ? 'active' : ''} onClick={() => setSection('compare')}><Scale size={14} /> 期刊比较</button>
     </div>
 
     {section === 'overview' && <>
-      <div className="prep-metrics"><div><b>{activeTopics}</b><span>推进中的选题</span></div><div><b>{normalized.drafts.length}</b><span>论文草稿</span></div><div><b>{readyDrafts}</b><span>接近可投稿</span></div><div><b>{favoriteJournals}</b><span>收藏期刊</span></div></div>
-      <div className="prep-overview-grid">
-        <section className="prep-panel"><PanelHead title="优先草稿" subtitle="按投稿日期和就绪度排序" onClick={() => setSection('drafts')} />{orderedDrafts.slice(0, 4).map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} compact />)}{!orderedDrafts.length && <Empty text="尚无草稿准备记录" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</section>
-        <section className="prep-panel"><PanelHead title="优先期刊" subtitle="收藏、分区、费用与审稿速度" onClick={() => setSection('journals')} />{orderedJournals.slice(0, 5).map(journal => <JournalRow key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}{!orderedJournals.length && <Empty text="尚未收藏期刊" action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}</section>
+      <div className="prep-metrics">
+        <div data-tone="topic"><span>选题</span><b>{activeTopics}</b><small>推进中</small></div>
+        <div data-tone="draft"><span>草稿</span><b>{normalized.drafts.length}</b><small>准备记录</small></div>
+        <div data-tone="ready"><span>就绪</span><b>{readyDrafts}</b><small>接近投稿</small></div>
+        <div data-tone="journal"><span>期刊</span><b>{favoriteJournals}</b><small>已收藏</small></div>
       </div>
-      <section className="prep-panel prep-topic-overview"><PanelHead title="选题推进" subtitle="综合创新性、数据、方法、可行性与时间条件" onClick={() => setSection('topics')} /><div className="prep-topic-strip">{orderedTopics.slice(0, 5).map(topic => <TopicCard key={topic.id} topic={topic} onClick={() => setEditor({ type: 'topic', value: topic })} onCreateDraft={() => void createDraftFromTopic(topic)} creating={creatingTopicId === topic.id} compact />)}{!orderedTopics.length && <Empty text="尚无研究选题" action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}</div></section>
+      <div className="prep-overview-grid">
+        <section className="prep-panel prep-panel-draft"><PanelHead title="优先草稿" subtitle="先处理最接近截止或就绪度最高的稿件" onClick={() => setSection('drafts')} />{orderedDrafts.slice(0, 4).map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} compact />)}{!orderedDrafts.length && <Empty text="尚无草稿准备记录" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</section>
+        <section className="prep-panel prep-panel-journal"><PanelHead title="目标期刊" subtitle="收藏、分区、费用和审稿速度集中查看" onClick={() => setSection('journals')} />{orderedJournals.slice(0, 5).map(journal => <JournalRow key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}{!orderedJournals.length && <Empty text="尚未收藏期刊" action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}</section>
+      </div>
+      <section className="prep-panel prep-panel-topic prep-topic-overview"><PanelHead title="选题推进" subtitle="综合创新性、数据、方法、可行性与时间条件" onClick={() => setSection('topics')} /><div className="prep-topic-strip">{orderedTopics.slice(0, 5).map(topic => <TopicCard key={topic.id} topic={topic} onClick={() => setEditor({ type: 'topic', value: topic })} onCreateDraft={() => void createDraftFromTopic(topic)} creating={creatingTopicId === topic.id} compact />)}{!orderedTopics.length && <Empty text="尚无研究选题" action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}</div></section>
     </>}
 
     {section === 'topics' && <div className="prep-card-grid">{orderedTopics.map(topic => <TopicCard key={topic.id} topic={topic} onClick={() => setEditor({ type: 'topic', value: topic })} onCreateDraft={() => void createDraftFromTopic(topic)} creating={creatingTopicId === topic.id} />)}{!orderedTopics.length && <Empty text={query ? '没有匹配的选题' : '尚无研究选题'} action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}</div>}
@@ -173,7 +165,7 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
     {section === 'journals' && <div className="prep-card-grid journal-grid">{orderedJournals.map(journal => <JournalCard key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}{!orderedJournals.length && <Empty text={query ? '没有匹配的期刊' : '尚未收藏期刊'} action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}</div>}
     {section === 'compare' && <JournalComparison journals={orderedJournals} onEdit={journal => setEditor({ type: 'journal', value: journal })} />}
 
-    {editor?.type === 'journal' && <JournalForm value={editor.value} onSave={onSaveJournal} onDelete={onDeleteJournal} onClose={() => setEditor(null)} />}
+    {editor?.type === 'journal' && <JournalFormEnhanced value={editor.value} onSave={onSaveJournal} onDelete={onDeleteJournal} onClose={() => setEditor(null)} onLookupRanks={onLookupJournalRanks} />}
     {editor?.type === 'topic' && <TopicForm value={editor.value} onSave={onSaveTopic} onDelete={onDeleteTopic} onClose={() => setEditor(null)} />}
     {editor?.type === 'draft' && <DraftForm value={editor.value} topics={normalized.topics} journals={normalized.journals} onSave={onSaveDraft} onDelete={onDeleteDraft} onClose={() => setEditor(null)} />}
   </div>
@@ -204,10 +196,12 @@ function DraftCard({ draft, topic, journals, primaryJournal, onEdit, onPromote, 
 }
 
 function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: () => void }) {
-  return <button className="prep-journal-row" onClick={onClick}><span className="prep-journal-star">{journal.is_favorite ? '★' : '☆'}</span><span><b>{journal.name}</b><small>{journal.publisher || journal.scope || '未填写出版社或范围'}</small></span><em>{journal.jcr_quartile || 'JCR 未定'} · {journal.cas_quartile || '中科院未定'}</em><strong>{journalFitSummary(journal)}</strong></button>
+  const ranks = rankItemsFromValues((journal as RankedJournal).rank_data).slice(0, 2)
+  return <button className="prep-journal-row" onClick={onClick}><span className="prep-journal-star">{journal.is_favorite ? '★' : '☆'}</span><span><b>{journal.name}</b><small>{journal.publisher || journal.scope || '未填写出版社或范围'}</small></span><em>{ranks.length ? ranks.map(item => `${item.label} ${item.value}`).join(' · ') : `${journal.jcr_quartile || 'JCR 未定'} · ${journal.cas_quartile || '中科院未定'}`}</em><strong>{journalFitSummary(journal)}</strong></button>
 }
 
 function JournalCard({ journal, onClick }: { journal: JournalProfile; onClick: () => void }) {
   const oa = OA_OPTIONS.find(item => item.key === journal.oa_type)?.label || '未确认'
-  return <article className="prep-journal-card"><button className="prep-journal-card-main" onClick={onClick}><div className="prep-card-top"><span className={`prep-priority ${journal.priority}`}>{journal.is_favorite ? <Star size={13} fill="currentColor" /> : '未收藏'}</span><span className={`prep-risk ${journal.risk_level}`}>{journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'}</span></div><h3>{journal.name}</h3><p>{journal.publisher || journal.scope || '尚未填写出版社与期刊范围'}</p><div className="prep-journal-facts"><span>{journal.jcr_quartile || 'JCR 未定'}</span><span>{journal.cas_quartile || '中科院未定'}</span>{journal.impact_factor != null && <span>IF {journal.impact_factor}</span>}<span>{oa}</span></div><div className="prep-journal-numbers"><div><b>{journal.first_decision_days ?? '—'}</b><small>首轮决定/天</small></div><div><b>{journal.total_review_days ?? '—'}</b><small>总审稿/天</small></div><div><b>{journal.acceptance_rate != null ? `${journal.acceptance_rate}%` : '—'}</b><small>接收率</small></div><div><b>{journal.apc_amount != null ? journal.apc_amount : '—'}</b><small>{journal.apc_currency || 'APC'}</small></div></div></button><div className="prep-journal-links">{safeUrl(journal.website_url) && <a href={journal.website_url!} target="_blank" rel="noopener noreferrer">官网 <ExternalLink size={11} /></a>}{safeUrl(journal.author_guide_url) && <a href={journal.author_guide_url!} target="_blank" rel="noopener noreferrer">指南 <ExternalLink size={11} /></a>}{safeUrl(journal.submission_url) && <a href={journal.submission_url!} target="_blank" rel="noopener noreferrer">投稿 <ExternalLink size={11} /></a>}{journal.third_party_links.slice(0, 2).map(link => <a key={`${link.label}-${link.url}`} href={link.url} target="_blank" rel="noopener noreferrer">{link.label} <ExternalLink size={11} /></a>)}</div></article>
+  const ranks = rankItemsFromValues((journal as RankedJournal).rank_data).slice(0, 3)
+  return <article className="prep-journal-card"><button className="prep-journal-card-main" onClick={onClick}><div className="prep-card-top"><span className={`prep-priority ${journal.priority}`}>{journal.is_favorite ? <Star size={13} fill="currentColor" /> : '未收藏'}</span><span className={`prep-risk ${journal.risk_level}`}>{journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'}</span></div><h3>{journal.name}</h3><p>{journal.publisher || journal.scope || '尚未填写出版社与期刊范围'}</p>{ranks.length > 0 && <div className="prep-rank-preview">{ranks.map(item => <span key={item.key}><b>{item.label}</b>{item.value}</span>)}</div>}<div className="prep-journal-facts"><span>{journal.jcr_quartile || 'JCR 未定'}</span><span>{journal.cas_quartile || '中科院未定'}</span>{journal.impact_factor != null && <span>IF {journal.impact_factor}</span>}<span>{oa}</span></div><div className="prep-journal-numbers"><div><b>{journal.first_decision_days ?? '—'}</b><small>首轮决定/天</small></div><div><b>{journal.total_review_days ?? '—'}</b><small>总审稿/天</small></div><div><b>{journal.acceptance_rate != null ? `${journal.acceptance_rate}%` : '—'}</b><small>接收率</small></div><div><b>{journal.apc_amount != null ? journal.apc_amount : '—'}</b><small>{journal.apc_currency || 'APC'}</small></div></div></button><div className="prep-journal-links">{safeUrl(journal.website_url) && <a href={journal.website_url!} target="_blank" rel="noopener noreferrer">官网 <ExternalLink size={11} /></a>}{safeUrl(journal.author_guide_url) && <a href={journal.author_guide_url!} target="_blank" rel="noopener noreferrer">指南 <ExternalLink size={11} /></a>}{safeUrl(journal.submission_url) && <a href={journal.submission_url!} target="_blank" rel="noopener noreferrer">投稿 <ExternalLink size={11} /></a>}{journal.third_party_links.slice(0, 2).map(link => <a key={`${link.label}-${link.url}`} href={link.url} target="_blank" rel="noopener noreferrer">{link.label} <ExternalLink size={11} /></a>)}</div></article>
 }
