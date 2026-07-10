@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
-import { FileText, Loader, Save, Trash2, X } from 'lucide-react'
+import { FileText, Loader, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react'
+import type { JournalRankLookupResult } from '../lib/journal-rank'
+import { rankFieldSuggestions } from '../lib/journal-rank'
 import type { Paper, PaperFile } from '../lib/types'
 import { CAS_OPTIONS, FILE_TYPE_OPTIONS, JCR_OPTIONS, NEXT_ACTION_OPTIONS, REMINDER_LEVELS, STATUSES, SUBMISSION_SYSTEM_OPTIONS, inferNextAction } from '../lib/types'
 import Timeline from './Timeline'
@@ -26,6 +28,7 @@ interface Props {
   onDelete: (id: string) => void | Promise<void>
   onClose: () => void
   onUploadFile?: (file: File) => Promise<UploadResult>
+  onLookupJournalRanks?: (publicationName: string) => Promise<JournalRankLookupResult>
 }
 
 const blankZhQuartile = ['', '', '', '']
@@ -34,16 +37,13 @@ const norm = (input?: string | null) => (input || '').trim().toLocaleLowerCase()
 
 function uniqueNames(input: string) {
   const seen = new Set<string>()
-  return input
-    .split(/[，,;；、\s]+/)
-    .map(name => name.trim())
-    .filter(name => {
-      if (!name) return false
-      const key = norm(name)
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+  return input.split(/[，,;；、\s]+/).map(name => name.trim()).filter(name => {
+    if (!name) return false
+    const key = norm(name)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function initial(paper: Paper | 'new', currentUsername: string): FormState {
@@ -116,7 +116,7 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
   return <label className={`compact-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</label>
 }
 
-export default function PaperFormArchive({ paper, allPapers, currentUsername, onSave, onDelete, onClose, onUploadFile }: Props) {
+export default function PaperFormArchive({ paper, allPapers, currentUsername, onSave, onDelete, onClose, onUploadFile, onLookupJournalRanks }: Props) {
   const isNew = paper === 'new'
   const currentId = isNew ? '' : paper.id
   const [form, setForm] = useState<FormState>(() => initial(paper, currentUsername))
@@ -124,13 +124,14 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
   const [uploading, setUploading] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [customTl, setCustomTl] = useState<string[]>([])
+  const [rankLoading, setRankLoading] = useState(false)
+  const [rankResult, setRankResult] = useState<JournalRankLookupResult | null>(null)
+  const [rankError, setRankError] = useState('')
   const authors = uniqueNames(authorsText)
   const set = <K extends keyof FormState>(key: K, next: FormState[K]) => setForm(previous => ({ ...previous, [key]: next }))
 
   const journalNames = Array.from(new Set(allPapers.map(item => item.journal).filter(Boolean) as string[])).sort()
-  const journalProfile = allPapers
-    .filter(item => item.id !== currentId && norm(item.journal) === norm(form.journal))
-    .sort((left, right) => new Date(right.updated_at || right.created_at).getTime() - new Date(left.updated_at || left.created_at).getTime())[0]
+  const journalProfile = allPapers.filter(item => item.id !== currentId && norm(item.journal) === norm(form.journal)).sort((left, right) => new Date(right.updated_at || right.created_at).getTime() - new Date(left.updated_at || left.created_at).getTime())[0]
   const versionCandidates = allPapers.filter(item => item.id !== currentId && !createsVersionCycle(currentId, item.id, allPapers))
 
   const applyJournalProfile = () => {
@@ -150,12 +151,40 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     }))
   }
 
+  const queryRanks = async () => {
+    if (!onLookupJournalRanks || !form.journal.trim() || rankLoading) return
+    setRankLoading(true)
+    setRankError('')
+    try {
+      setRankResult(await onLookupJournalRanks(form.journal))
+    } catch (error) {
+      setRankError(error instanceof Error ? error.message : '期刊等级查询失败。')
+    } finally {
+      setRankLoading(false)
+    }
+  }
+
+  const applyRankResult = () => {
+    if (!rankResult) return
+    const suggestions = rankFieldSuggestions(rankResult.values)
+    const customText = rankResult.items
+      .filter(item => item.group === 'custom' || item.selected)
+      .map(item => `${item.label} ${item.value}`)
+      .join('；')
+    setForm(previous => ({
+      ...previous,
+      quartile_jcr: suggestions.jcr || previous.quartile_jcr,
+      quartile_cas: suggestions.cas || previous.quartile_cas,
+      quartile_new: rankResult.values.xrTop || rankResult.values.xr || previous.quartile_new,
+      quartile_cust: customText || previous.quartile_cust,
+    }))
+  }
+
   const updateFile = (index: number, key: keyof PaperFile, next: string) => setForm(previous => {
     const files = [...previous.files]
     files[index] = { ...files[index], [key]: next }
     return { ...previous, files }
   })
-
   const addFile = () => setForm(previous => ({ ...previous, files: [...previous.files, { n: '', p: '', t: '其它' }] }))
   const removeFile = (index: number) => setForm(previous => ({ ...previous, files: previous.files.filter((_, itemIndex) => itemIndex !== index) }))
 
@@ -190,20 +219,13 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
       alert('无法保存：所选前置版本会形成循环版本链。')
       return
     }
-
     const latest = latestTimelineState(form.timeline, form.system_status, form.last_status_date)
     const mainStatus = deriveMainStatus(latest.status, form.status)
     const inferred = inferNextAction({ status: mainStatus, system_status: latest.status, last_status_date: latest.date, submitted_date: form.submitted_date || null, deadline: form.deadline || null, published_url: form.published_url || null, doi: form.doi || null, publication_info: form.publication_info || null })
     const apcValue = form.apc_amount === '' ? null : Number(form.apc_amount)
     const revisionValue = form.revision_round === '' ? 0 : Number(form.revision_round)
     const revisionRound = Number.isFinite(revisionValue) ? Math.max(0, Math.trunc(revisionValue)) : 0
-    const normalizedFiles = form.files
-      .map(file => ({
-        n: file.n.trim(),
-        p: /^https?:\/\//i.test(file.p.trim()) ? file.p.trim() : '',
-        t: file.t?.trim() || '其它',
-      }))
-      .filter(file => file.n || file.p)
+    const normalizedFiles = form.files.map(file => ({ n: file.n.trim(), p: /^https?:\/\//i.test(file.p.trim()) ? file.p.trim() : '', t: file.t?.trim() || '其它' })).filter(file => file.n || file.p)
     const correspondingAuthor = authors.find(name => norm(name) === norm(form.corresponding_author)) || null
 
     setSaving(true)
@@ -243,9 +265,14 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
         <div className="compact-grid two"><Field label="文章语言"><select className="select" value={form.lang} onChange={event => set('lang', event.target.value)}><option value="zh">中文</option><option value="en">英文</option></select></Field><Field label="当前主状态"><select className="select" value={form.status} onChange={event => set('status', event.target.value)}>{STATUSES.map(status => <option key={status.key} value={status.key}>{status.emoji} {status.label}</option>)}</select></Field></div>
         <Field label="论文标题" wide><input className="input title-input" value={form.title} onChange={event => set('title', event.target.value)} /></Field>
         {form.lang === 'en' && <Field label="中文翻译标题" wide><input className="input" value={form.title_zh} onChange={event => set('title_zh', event.target.value)} /></Field>}
-        <Field label="目标期刊 / 会议" wide><input className="input" list="journal-options" value={form.journal} onChange={event => set('journal', event.target.value)} /></Field>
+        <Field label="目标期刊 / 会议" wide><input className="input" list="journal-options" value={form.journal} onChange={event => { set('journal', event.target.value); setRankResult(null); setRankError('') }} /></Field>
         <datalist id="journal-options">{journalNames.map(name => <option key={name} value={name} />)}</datalist>
-        {journalProfile && <div className="profile-suggestion"><span>检测到历史期刊档案：{journalProfile.journal}</span><button type="button" className="timeline-link-btn" onClick={applyJournalProfile}>带出期刊信息</button></div>}
+        <div className="paper-journal-tools">
+          {journalProfile && <div className="profile-suggestion"><span>检测到历史期刊档案：{journalProfile.journal}</span><button type="button" className="timeline-link-btn" onClick={applyJournalProfile}>带出期刊信息</button></div>}
+          {onLookupJournalRanks && <button type="button" className="btn btn-rank btn-sm" onClick={() => void queryRanks()} disabled={!form.journal.trim() || rankLoading}>{rankLoading ? <RefreshCw size={13} className="spin" /> : <Sparkles size={13} />} {rankLoading ? '查询中' : '查询 EasyScholar'}</button>}
+        </div>
+        {rankError && <div className="paper-rank-error">{rankError}</div>}
+        {rankResult && <div className="paper-rank-result"><div className="paper-rank-result-head"><span>已获取 {rankResult.items.length} 项等级{rankResult.cached ? '（缓存）' : ''}</span><button type="button" className="btn btn-ghost btn-sm" onClick={applyRankResult}>应用主要等级</button></div><div className="journal-rank-chips">{rankResult.items.map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div></div>}
       </Section>
 
       <Section title="投稿与期刊档案" subtitle="投稿入口、期刊官网、费用备注" tone="green">
@@ -256,25 +283,17 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
         <Field label="APC / 开源 / 期刊备注" wide><input className="input" value={form.journal_apc_note} onChange={event => set('journal_apc_note', event.target.value)} placeholder="如：APC 约 2000 USD；可选 OA；平均审稿 2–3 个月" /></Field>
       </Section>
 
-      <Section title="作者与分区" subtitle="署名、通讯、期刊分区" tone="purple">
+      <Section title="作者与分区" subtitle="署名、通讯、期刊等级" tone="purple">
         <Field label="版本追溯" wide><select className="select" value={form.prev_id} onChange={event => set('prev_id', event.target.value)}><option value="">常规首投</option>{versionCandidates.map(item => <option key={item.id} value={item.id}>{item.title || '未命名'} [{item.journal || '未知期刊'}]</option>)}</select></Field>
-        {form.lang === 'en' ? <div className="compact-grid four"><Field label="JCR"><select className="select" value={form.quartile_jcr} onChange={event => set('quartile_jcr', event.target.value)}>{JCR_OPTIONS.map(option => <option key={option}>{option}</option>)}</select></Field><Field label="中科院"><select className="select" value={form.quartile_cas} onChange={event => set('quartile_cas', event.target.value)}>{CAS_OPTIONS.map(option => <option key={option}>{option}</option>)}</select></Field><Field label="新锐"><input className="input" value={form.quartile_new} onChange={event => set('quartile_new', event.target.value)} /></Field><Field label="自定义"><input className="input" value={form.quartile_cust} onChange={event => set('quartile_cust', event.target.value)} /></Field></div> : <div className="compact-grid four">{[0, 1, 2, 3].map(index => <Field key={index} label={`分类 ${index + 1}`}><input className="input" value={form.quartile_zh[index] || ''} onChange={event => { const next = [...form.quartile_zh]; next[index] = event.target.value; set('quartile_zh', next) }} /></Field>)}</div>}
+        {form.lang === 'en' ? <div className="compact-grid four"><Field label="JCR"><select className="select" value={form.quartile_jcr} onChange={event => set('quartile_jcr', event.target.value)}>{JCR_OPTIONS.map(option => <option key={option}>{option}</option>)}</select></Field><Field label="中科院"><select className="select" value={form.quartile_cas} onChange={event => set('quartile_cas', event.target.value)}>{CAS_OPTIONS.map(option => <option key={option}>{option}</option>)}</select></Field><Field label="新锐"><input className="input" value={form.quartile_new} onChange={event => set('quartile_new', event.target.value)} /></Field><Field label="自定义等级"><input className="input" value={form.quartile_cust} onChange={event => set('quartile_cust', event.target.value)} /></Field></div> : <div className="compact-grid four">{[0, 1, 2, 3].map(index => <Field key={index} label={`分类 ${index + 1}`}><input className="input" value={form.quartile_zh[index] || ''} onChange={event => { const next = [...form.quartile_zh]; next[index] = event.target.value; set('quartile_zh', next) }} /></Field>)}</div>}
         <div className="compact-grid two"><Field label="作者名单"><input className="input" value={authorsText} onChange={event => setAuthorsText(event.target.value)} placeholder="用逗号、分号或空格分隔" /></Field><Field label="通讯作者"><select className="select" value={form.corresponding_author} onChange={event => set('corresponding_author', event.target.value)}><option value="">未指定</option>{authors.map((author, index) => <option key={`${author}-${index}`} value={author}>{author}</option>)}</select></Field></div>
       </Section>
 
       <Section title="日期与审稿时间线" subtitle="自动提取最新审稿状态" tone="orange"><div className="compact-grid three"><Field label="首投日期"><input type="date" className="input" value={form.submitted_date} onChange={event => set('submitted_date', event.target.value)} /></Field><Field label="终审 / 录用日期"><input type="date" className="input" value={form.resolve_date} onChange={event => set('resolve_date', event.target.value)} /></Field><Field label="修回截止"><input type="date" className="input" value={form.deadline} onChange={event => set('deadline', event.target.value)} /></Field></div><Timeline value={form.timeline} onChange={next => set('timeline', next)} customOpts={customTl} onAddCustomOpt={option => setCustomTl(previous => [...previous, option])} /></Section>
 
-      <Section title="成果归档" subtitle="DOI、卷期页码、引用格式" tone="green">
-        <div className="compact-grid two"><Field label="见刊 / 在线发表 URL"><input className="input" value={form.published_url} onChange={event => set('published_url', event.target.value)} placeholder="https://..." /></Field><Field label="DOI"><input className="input" value={form.doi} onChange={event => set('doi', event.target.value)} placeholder="10.xxxx/xxxxx" /></Field></div>
-        <Field label="卷期页码 / 在线发表信息" wide><input className="input" value={form.publication_info} onChange={event => set('publication_info', event.target.value)} placeholder="如：50(8), 123–145；Article 70113；Online first" /></Field>
-        <Field label="标准引用格式" wide><textarea className="textarea" value={form.citation} onChange={event => set('citation', event.target.value)} placeholder="可粘贴 GB/T、APA 或期刊要求的引用格式" /></Field>
-      </Section>
+      <Section title="成果归档" subtitle="DOI、卷期页码、引用格式" tone="green"><div className="compact-grid two"><Field label="见刊 / 在线发表 URL"><input className="input" value={form.published_url} onChange={event => set('published_url', event.target.value)} placeholder="https://..." /></Field><Field label="DOI"><input className="input" value={form.doi} onChange={event => set('doi', event.target.value)} placeholder="10.xxxx/xxxxx" /></Field></div><Field label="卷期页码 / 在线发表信息" wide><input className="input" value={form.publication_info} onChange={event => set('publication_info', event.target.value)} placeholder="如：50(8), 123–145；Article 70113；Online first" /></Field><Field label="标准引用格式" wide><textarea className="textarea" value={form.citation} onChange={event => set('citation', event.target.value)} placeholder="可粘贴 GB/T、APA 或期刊要求的引用格式" /></Field></Section>
 
-      <Section title="文件与备注" subtitle={onUploadFile ? '附件分类、催稿、补充说明' : '离线版仅记录文件名称和可选外部链接'} tone="slate">
-        <div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" onClick={addFile}>+ 添加文件</button></div>
-        {form.files.length > 0 && <div className="compact-files">{form.files.map((file, index) => <div key={index} className="compact-file-row archive-file-row"><select className="select" value={file.t || '其它'} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>{onUploadFile ? <button type="button" className="file-icon" onClick={() => upload(index)} disabled={uploading !== null}>{uploading === index ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</button> : <span className="file-icon" title="离线版不上传文件"><FileText size={15} /></span>}<input className="input" value={file.n} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><input className="input" value={file.p} onChange={event => updateFile(index, 'p', event.target.value)} placeholder="可选在线文件 URL" /><button type="button" className="file-action-btn" onClick={() => removeFile(index)}><Trash2 size={13} /></button></div>)}</div>}
-        <div className="compact-grid two textarea-grid"><Field label="沟通记录"><textarea className="textarea" value={form.followup_log} onChange={event => set('followup_log', event.target.value)} /></Field><Field label="备注 / 意见"><textarea className="textarea" value={form.notes} onChange={event => set('notes', event.target.value)} /></Field></div>
-      </Section>
+      <Section title="文件与备注" subtitle={onUploadFile ? '附件分类、催稿、补充说明' : '离线版仅记录文件名称和可选外部链接'} tone="slate"><div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" onClick={addFile}>+ 添加文件</button></div>{form.files.length > 0 && <div className="compact-files">{form.files.map((file, index) => <div key={index} className="compact-file-row archive-file-row"><select className="select" value={file.t || '其它'} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>{onUploadFile ? <button type="button" className="file-icon" onClick={() => upload(index)} disabled={uploading !== null}>{uploading === index ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</button> : <span className="file-icon" title="离线版不上传文件"><FileText size={15} /></span>}<input className="input" value={file.n} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><input className="input" value={file.p} onChange={event => updateFile(index, 'p', event.target.value)} placeholder="可选在线文件 URL" /><button type="button" className="file-action-btn" onClick={() => removeFile(index)}><Trash2 size={13} /></button></div>)}</div>}<div className="compact-grid two textarea-grid"><Field label="沟通记录"><textarea className="textarea" value={form.followup_log} onChange={event => set('followup_log', event.target.value)} /></Field><Field label="备注 / 意见"><textarea className="textarea" value={form.notes} onChange={event => set('notes', event.target.value)} /></Field></div></Section>
     </div>
     <div className="compact-form-footer">{!isNew ? <button type="button" className="btn btn-danger btn-sm" disabled={saving} onClick={() => onDelete((paper as Paper).id)}><Trash2 size={14} /> 删除记录</button> : <div />}<div className="compact-footer-actions"><button type="button" className="btn btn-ghost" onClick={close} disabled={saving}>取消</button><button type="button" className="btn btn-primary" onClick={save} disabled={saving}><Save size={14} /> {saving ? '保存中...' : '保存'}</button></div></div>
   </div></div>
