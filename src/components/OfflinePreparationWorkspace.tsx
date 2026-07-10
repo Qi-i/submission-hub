@@ -7,18 +7,20 @@ import PreparationWorkspace from './PreparationWorkspace'
 
 interface Props {
   authorName: string
+  refreshToken?: number
+  onPaperCreated?: () => void
 }
 
 const emptySnapshot: PreparationSnapshot = { journals: [], topics: [], drafts: [] }
 
-export default function OfflinePreparationWorkspace({ authorName }: Props) {
+export default function OfflinePreparationWorkspace({ authorName, refreshToken, onPaperCreated }: Props) {
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
 
   const refresh = useCallback(() => {
     setSnapshot(prepStore.getPreparationSnapshot())
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { refresh() }, [refresh, refreshToken])
 
   const saveJournal = async (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => {
     prepStore.upsertJournal(data)
@@ -100,6 +102,7 @@ export default function OfflinePreparationWorkspace({ authorName }: Props) {
     paperStore.addPaper(paper)
     prepStore.upsertDraft({ ...draft, stage: 'submitted', submitted_paper_id: paperId })
     refresh()
+    onPaperCreated?.()
   }
 
   return <PreparationWorkspace snapshot={snapshot} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} />
