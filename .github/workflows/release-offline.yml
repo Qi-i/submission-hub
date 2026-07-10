@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, for example v1.2.0
+        description: Release tag, for example v1.3.0
         required: true
-        default: v1.2.0
+        default: v1.3.0
       title:
         description: Release title
         required: true
-        default: Submission Hub v1.2.0
+        default: Submission Hub v1.3.0
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npm run build:offline
       - run: npm run check:offline
       - run: mkdir -p release && cp dist-offline/offline.html release/submission-hub-offline.html
@@ -33,14 +33,14 @@ jobs:
           TAG_NAME: ${{ github.event.inputs.tag }}
           RELEASE_TITLE: ${{ github.event.inputs.title }}
           RELEASE_NOTES: |
-            Submission Hub v1.2.0 离线版。
+            Submission Hub v1.3.0 离线版。
 
             - 单文件：submission-hub-offline.html
-            - 无需登录或服务器
-            - 不包含 Supabase 云同步与 R2 上传
-            - 数据仅保存在本地浏览器
-            - 新增投稿待办中心与版本化备份
-            - 修复离线隔离、导入版本链、日期时区和统计口径
+            - 无需登录或服务器，不包含 Supabase 与 R2 代码
+            - 新增投稿准备工作区：选题池、草稿准备、期刊库和期刊比较
+            - 支持草稿就绪度诊断、自定义投稿检查项与一键转入投稿管理
+            - 期刊档案可记录官网、作者指南、分区、影响因子、开放获取、APC、审稿周期、接收率和第三方介绍
+            - 完整备份同时包含投稿记录、期刊、选题和草稿，并兼容旧版备份
         run: |
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" release/submission-hub-offline.html --clobber
