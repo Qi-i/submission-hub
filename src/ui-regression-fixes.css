@@ -1,8 +1,236 @@
-/* Browser-verified regression fixes. Loaded after all other UI layers. */
-.stats-bar .stat-card::before {
-  display: none !important;
+/* Browser-verified final layout layer. Keep structural overrides here until legacy CSS is fully merged. */
+:root {
+  --ui-page-width: 1760px;
+  --ui-page-gutter: 16px;
 }
 
+body {
+  font-size: 14px;
+  background:
+    radial-gradient(circle at 5% 4%, rgba(56, 189, 248, .18), transparent 26%),
+    radial-gradient(circle at 96% 8%, rgba(139, 92, 246, .16), transparent 28%),
+    radial-gradient(circle at 50% 96%, rgba(45, 212, 191, .09), transparent 30%),
+    linear-gradient(145deg, #edf6ff 0%, #f7f8ff 42%, #eef3fb 100%) !important;
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 5% 4%, rgba(14, 165, 233, .18), transparent 27%),
+    radial-gradient(circle at 96% 8%, rgba(124, 58, 237, .18), transparent 29%),
+    radial-gradient(circle at 50% 96%, rgba(13, 148, 136, .10), transparent 30%),
+    linear-gradient(145deg, #070b12 0%, #0d1320 48%, #090d16 100%) !important;
+}
+
+/* One geometry for every main page and toolbar. */
+.tab-bar,
+.dashboard-metrics,
+.stats-bar,
+.action-center,
+.toolbar,
+.paper-grid,
+.stats-panel,
+.preparation-workspace {
+  width: min(calc(100% - (var(--ui-page-gutter) * 2)), var(--ui-page-width)) !important;
+  max-width: var(--ui-page-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-metrics,
+.stats-bar { margin-top: 12px !important; }
+.action-center,
+.toolbar,
+.paper-grid { margin-top: 10px !important; }
+.paper-grid { margin-bottom: 24px !important; padding: 0 !important; }
+.stats-panel,
+.preparation-workspace { padding: 12px 0 24px !important; }
+.stats-panel-unified { gap: 10px !important; }
+.prep-topbar { margin-bottom: 10px !important; padding: 16px 18px !important; }
+.prep-nav { margin-bottom: 10px !important; }
+.prep-metrics { gap: 9px !important; margin-bottom: 10px !important; }
+.prep-metrics > div { padding: 11px 13px !important; }
+.prep-overview-grid { gap: 10px !important; margin-bottom: 10px !important; }
+.prep-panel { padding: 13px !important; }
+.prep-card-grid { gap: 10px !important; }
+
+/* Editing modal: one real scroll container. */
+.compact-form-modal {
+  width: min(1080px, calc(100vw - 24px)) !important;
+  height: min(90dvh, 860px) !important;
+  max-height: calc(100dvh - 20px) !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.compact-form-header,
+.compact-form-footer {
+  flex: 0 0 auto !important;
+}
+
+.compact-form-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
+  padding: 11px 13px !important;
+  gap: 9px !important;
+}
+
+.compact-section {
+  padding: 11px 12px 11px 14px !important;
+  gap: 8px !important;
+}
+
+.compact-form-modal .input,
+.compact-form-modal .select {
+  height: 35px !important;
+  font-size: 13px !important;
+}
+
+.compact-form-modal .textarea {
+  min-height: 62px !important;
+  font-size: 12.5px !important;
+}
+
+/* Paper grid: compact cards, but equal height within each grid row. */
+.paper-grid {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  counter-reset: paper-sequence;
+}
+
+.paper-grid .paper-card-v3 {
+  counter-increment: paper-sequence;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  padding: 15px 16px 13px !important;
+}
+
+.paper-grid .paper-card-v3 > * {
+  position: relative;
+  z-index: 1;
+}
+
+.paper-grid .paper-card-v3::after {
+  content: counter(paper-sequence, decimal-leading-zero);
+  position: absolute;
+  right: 14px;
+  bottom: 4px;
+  z-index: 0;
+  color: var(--paper-status-color);
+  opacity: .055;
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.05em;
+  pointer-events: none;
+  user-select: none;
+}
+
+.paper-grid .paper-card-footer {
+  margin-top: auto !important;
+}
+
+.paper-card-head {
+  grid-template-columns: max-content minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 12px !important;
+}
+
+.paper-status-area {
+  width: max-content;
+  max-width: 190px;
+  flex: 0 0 auto !important;
+}
+
+.paper-status-area > .badge,
+.journal-pill {
+  height: 32px !important;
+  min-height: 32px !important;
+  width: fit-content !important;
+  min-width: 0 !important;
+  padding: 0 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+  font-size: 11.5px !important;
+  font-weight: 680 !important;
+}
+
+.journal-pill {
+  justify-self: end !important;
+  align-self: start !important;
+  flex: 0 0 auto !important;
+  max-width: min(430px, 100%) !important;
+  justify-content: flex-end !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+}
+
+.paper-substatus {
+  margin-top: 1px;
+  max-width: 190px !important;
+  padding: 3px 8px !important;
+  font-size: 9.5px !important;
+  font-weight: 560 !important;
+}
+
+/* Status colors carry meaning through restrained gradients. */
+.paper-status-area > .status-preparing {
+  color: #9a4f13 !important;
+  border-color: rgba(245, 158, 11, .30) !important;
+  background: linear-gradient(135deg, rgba(255, 247, 237, .96), rgba(254, 215, 170, .54)) !important;
+}
+.paper-status-area > .status-submitted {
+  color: #1d4ed8 !important;
+  border-color: rgba(59, 130, 246, .28) !important;
+  background: linear-gradient(135deg, rgba(239, 246, 255, .98), rgba(191, 219, 254, .58)) !important;
+}
+.paper-status-area > .status-under_review {
+  color: #0e7490 !important;
+  border-color: rgba(6, 182, 212, .30) !important;
+  background: linear-gradient(135deg, rgba(236, 254, 255, .98), rgba(165, 243, 252, .54)) !important;
+}
+.paper-status-area > .status-revision {
+  color: #7e22ce !important;
+  border-color: rgba(168, 85, 247, .28) !important;
+  background: linear-gradient(135deg, rgba(250, 245, 255, .98), rgba(221, 214, 254, .62)) !important;
+}
+.paper-status-area > .status-accepted {
+  color: #047857 !important;
+  border-color: rgba(16, 185, 129, .30) !important;
+  background: linear-gradient(135deg, rgba(236, 253, 245, .98), rgba(167, 243, 208, .56)) !important;
+}
+.paper-status-area > .status-rejected {
+  color: #b91c1c !important;
+  border-color: rgba(239, 68, 68, .28) !important;
+  background: linear-gradient(135deg, rgba(254, 242, 242, .98), rgba(254, 202, 202, .56)) !important;
+}
+.paper-status-area > .status-withdrawn {
+  color: #475569 !important;
+  border-color: rgba(100, 116, 139, .26) !important;
+  background: linear-gradient(135deg, rgba(248, 250, 252, .98), rgba(226, 232, 240, .70)) !important;
+}
+
+[data-theme="dark"] .paper-status-area > .badge {
+  filter: saturate(.92) brightness(.92);
+}
+
+/* Offline summary values. */
+.stats-bar .stat-card::before { display: none !important; }
 .stats-bar .stat-value {
   color: var(--accent) !important;
   background: none !important;
@@ -11,7 +239,6 @@
   -webkit-text-fill-color: currentColor !important;
   text-shadow: none !important;
 }
-
 .stats-bar .stat-card:nth-child(1) .stat-value { color: #6366f1 !important; }
 .stats-bar .stat-card:nth-child(2) .stat-value { color: #0ea5e9 !important; }
 .stats-bar .stat-card:nth-child(3) .stat-value { color: #f59e0b !important; }
@@ -22,7 +249,171 @@
 .stats-bar .stat-card:nth-child(8) .stat-value { color: #0f172a !important; }
 [data-theme="dark"] .stats-bar .stat-card:nth-child(8) .stat-value { color: #e2e8f0 !important; }
 
+/* Statistics overview: all nine metrics in one compact row. */
+.stats-summary-unified {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(9, minmax(112px, 1fr)) !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.stats-summary-card,
+.stats-summary-card[data-secondary="true"] {
+  grid-column: auto !important;
+  min-height: 70px !important;
+  padding: 9px 10px !important;
+  display: grid !important;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center !important;
+  gap: 8px !important;
+  --tone-color: #2563eb;
+  --tone-rgb: 37, 99, 235;
+  border-color: rgba(var(--tone-rgb), .20) !important;
+  background:
+    linear-gradient(135deg, rgba(var(--tone-rgb), .12), rgba(var(--tone-rgb), .025) 72%),
+    var(--ui-glass) !important;
+}
+
+.stats-summary-card[data-tone="green"] { --tone-color: #059669; --tone-rgb: 5, 150, 105; }
+.stats-summary-card[data-tone="orange"] { --tone-color: #d97706; --tone-rgb: 217, 119, 6; }
+.stats-summary-card[data-tone="purple"] { --tone-color: #7c3aed; --tone-rgb: 124, 58, 237; }
+.stats-summary-card[data-tone="red"] { --tone-color: #dc2626; --tone-rgb: 220, 38, 38; }
+
+.stats-summary-card .summary-icon {
+  width: 30px !important;
+  height: 30px !important;
+  flex-basis: 30px !important;
+  font-size: 14px !important;
+  color: var(--tone-color) !important;
+  background: rgba(var(--tone-rgb), .12) !important;
+}
+
+.stats-summary-card > div { gap: 1px !important; }
+.stats-summary-card b {
+  color: var(--tone-color) !important;
+  font-size: 19px !important;
+  font-weight: 760 !important;
+}
+.stats-summary-card > div > span {
+  color: var(--ui-title) !important;
+  font-size: 10.5px !important;
+  font-weight: 620 !important;
+  white-space: nowrap;
+}
+
+/* Five process cards use exactly the same width and outer alignment. */
+.process-insight-grid-unified {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.process-insight-grid-unified .unified-insight-card {
+  grid-column: auto !important;
+  min-width: 0 !important;
+  min-height: 100px !important;
+  padding: 12px 13px !important;
+  gap: 5px !important;
+  --tone-color: #2563eb;
+  --tone-rgb: 37, 99, 235;
+  border-color: rgba(var(--tone-rgb), .19) !important;
+  background:
+    linear-gradient(145deg, rgba(var(--tone-rgb), .10), rgba(var(--tone-rgb), .018) 76%),
+    var(--ui-glass) !important;
+}
+
+.unified-insight-card[data-tone="purple"] { --tone-color: #7c3aed; --tone-rgb: 124, 58, 237; }
+.unified-insight-card[data-tone="orange"] { --tone-color: #d97706; --tone-rgb: 217, 119, 6; }
+.unified-insight-card[data-tone="red"] { --tone-color: #dc2626; --tone-rgb: 220, 38, 38; }
+.unified-insight-card[data-tone="green"] { --tone-color: #059669; --tone-rgb: 5, 150, 105; }
+
+.unified-insight-card > span {
+  color: var(--tone-color) !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+}
+.unified-insight-card > b {
+  color: var(--ui-title) !important;
+  font-size: 24px !important;
+  font-weight: 760 !important;
+}
+.unified-insight-card > small {
+  color: var(--ui-body) !important;
+  font-size: 10.5px !important;
+  font-weight: 520 !important;
+  line-height: 1.42 !important;
+}
+
+.chart-card,
+.stats-distribution-card {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,.58), rgba(219,234,254,.14) 52%, rgba(237,233,254,.15)),
+    var(--ui-glass) !important;
+}
+
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .stats-distribution-card {
+  background:
+    linear-gradient(150deg, rgba(30,41,59,.64), rgba(30,64,175,.10) 52%, rgba(91,33,182,.10)),
+    var(--ui-glass) !important;
+}
+
+@media (max-width: 1100px) {
+  .process-insight-grid-unified {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .process-insight-grid-unified > :last-child {
+    grid-column: 1 / -1 !important;
+  }
+}
+
 @media (max-width: 720px) {
+  :root { --ui-page-gutter: 9px; }
+
+  .compact-form-modal {
+    width: calc(100vw - 10px) !important;
+    height: calc(100dvh - 10px) !important;
+    max-height: calc(100dvh - 10px) !important;
+  }
+
+  .compact-form-body { padding: 8px !important; }
+
+  .paper-grid {
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  .paper-card-head {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+  }
+
+  .paper-status-area > .badge,
+  .journal-pill {
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 9px !important;
+    font-size: 10.5px !important;
+  }
+
+  .journal-pill { max-width: 58vw !important; }
+
+  .stats-summary-unified {
+    grid-template-columns: repeat(9, minmax(116px, 1fr)) !important;
+  }
+
+  .process-insight-grid-unified {
+    grid-template-columns: 1fr !important;
+  }
+  .process-insight-grid-unified > :last-child { grid-column: auto !important; }
+
   .paper-grid .paper-card-footer {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto;
