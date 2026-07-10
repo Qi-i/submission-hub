@@ -1,0 +1,1 @@
+Trigger browser screenshot capture after workflow diagnostics update.
