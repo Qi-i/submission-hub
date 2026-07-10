@@ -1,7 +1,3 @@
-// supabase/functions/admin-stats/index.ts
-// Returns all users' paper statistics. Admin-only.
-// Also handles user profile updates when called with action='update_user'.
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -9,88 +5,79 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const ADMIN_ID = 'c207de09-6b0c-470d-85a6-90ff4304c1ba'
+const fallbackAdminId = 'c207de09-6b0c-470d-85a6-90ff4304c1ba'
+const adminId = Deno.env.get('ADMIN_USER_ID') || fallbackAdminId
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+Deno.serve(async request => {
+  if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    // Verify caller is admin
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Missing authorization')
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader) return json({ error: 'Missing authorization' }, 401)
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) return json({ error: 'Server configuration is incomplete' }, 500)
 
-    // Create client with anon key to verify JWT
-    const supabase = createClient(supabaseUrl, anonKey, {
+    const client = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     })
+    const { data: { user }, error: userError } = await client.auth.getUser()
+    if (userError || !user || user.id !== adminId) return json({ error: 'Unauthorized' }, 403)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.id !== ADMIN_ID) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Create admin client with service role key
     const admin = createClient(supabaseUrl, serviceRoleKey)
-
-    // Check if this is an update request
-    let body: any = {}
-    try { body = await req.json() } catch {}
+    let body: Record<string, unknown> = {}
+    try { body = await request.json() } catch {}
 
     if (body.action === 'update_user') {
-      const updateData: Record<string, string> = {}
-      if (body.username) updateData.username = body.username
-      if (body.display_name !== undefined) updateData.display_name = body.display_name
+      const userId = typeof body.user_id === 'string' ? body.user_id : ''
+      const username = typeof body.username === 'string' ? body.username.trim() : ''
+      const displayName = typeof body.display_name === 'string' ? body.display_name.trim() : ''
+      if (!userId || !username) return json({ error: 'Missing user_id or username' }, 400)
+      if (username.length > 80 || displayName.length > 120) return json({ error: 'Profile value is too long' }, 400)
 
       const { error } = await admin
         .from('user_profiles')
-        .update(updateData)
-        .eq('id', body.user_id)
-
-      if (error) throw error
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+        .update({ username, display_name: displayName || null })
+        .eq('id', userId)
+      if (error) return json({ error: error.message }, 400)
+      return json({ success: true })
     }
 
-    // Default: return all users' paper stats
-    const { data: profiles } = await admin.from('user_profiles').select('*')
-    const { data: papers } = await admin.from('papers').select('user_id, status')
+    const [{ data: profiles, error: profileError }, { data: papers, error: paperError }] = await Promise.all([
+      admin.from('user_profiles').select('id, username, display_name, avatar_url, created_at').order('created_at', { ascending: false }),
+      admin.from('papers').select('user_id, status'),
+    ])
+    if (profileError) return json({ error: profileError.message }, 400)
+    if (paperError) return json({ error: paperError.message }, 400)
 
-    // Group papers by user
     const statsMap = new Map<string, { paper_count: number; status_counts: Record<string, number> }>()
-    for (const p of papers || []) {
-      const existing = statsMap.get(p.user_id) || { paper_count: 0, status_counts: {} }
-      existing.paper_count++
-      existing.status_counts[p.status] = (existing.status_counts[p.status] || 0) + 1
-      statsMap.set(p.user_id, existing)
+    for (const paper of papers || []) {
+      const current = statsMap.get(paper.user_id) || { paper_count: 0, status_counts: {} }
+      current.paper_count += 1
+      current.status_counts[paper.status] = (current.status_counts[paper.status] || 0) + 1
+      statsMap.set(paper.user_id, current)
     }
 
-    const result = (profiles || []).map(p => ({
-      user_id: p.id,
-      username: p.username,
-      display_name: p.display_name,
-      avatar_url: p.avatar_url,
-      created_at: p.created_at,
-      paper_count: statsMap.get(p.id)?.paper_count || 0,
-      status_counts: statsMap.get(p.id)?.status_counts || {},
-    }))
-
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json((profiles || []).map(profile => ({
+      user_id: profile.id,
+      username: profile.username,
+      display_name: profile.display_name,
+      avatar_url: profile.avatar_url,
+      created_at: profile.created_at,
+      paper_count: statsMap.get(profile.id)?.paper_count || 0,
+      status_counts: statsMap.get(profile.id)?.status_counts || {},
+    })))
+  } catch (error) {
+    console.error('admin-stats error:', error)
+    return json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500)
   }
 })
