@@ -1,141 +1,96 @@
-// supabase/functions/r2-upload/index.ts
-// Generates pre-signed URLs for uploading files to Cloudflare R2.
-// The client uploads directly to R2 using the pre-signed URL.
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { S3Client, PutObjectCommand } from 'npm:@aws-sdk/client-s3@3.645.0'
+import { getSignedUrl } from 'npm:@aws-sdk/s3-request-presigner@3.645.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+const maxFileSize = 20 * 1024 * 1024
+const blockedExtensions = new Set(['exe', 'dll', 'bat', 'cmd', 'com', 'msi', 'ps1', 'sh', 'apk', 'dmg', 'pkg', 'scr', 'js', 'mjs', 'vbs'])
+const allowedMimePrefixes = ['application/pdf', 'application/zip', 'application/json', 'application/msword', 'application/vnd.', 'text/', 'image/']
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+function safeFilename(filename: string) {
+  const cleaned = filename.normalize('NFKC').replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_')
+  return cleaned.slice(-180) || 'file'
+}
+
+function isAllowedType(filename: string, contentType: string) {
+  const extension = filename.split('.').pop()?.toLowerCase() || ''
+  if (blockedExtensions.has(extension)) return false
+  if (!contentType || contentType === 'application/octet-stream') return true
+  return allowedMimePrefixes.some(prefix => contentType.startsWith(prefix))
+}
+
+Deno.serve(async request => {
+  if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   try {
-    // Verify user is authenticated
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Missing authorization')
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader) return json({ error: 'Missing authorization' }, 401)
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const accountId = Deno.env.get('R2_ACCOUNT_ID')
+    const accessKeyId = Deno.env.get('R2_ACCESS_KEY_ID')
+    const secretAccessKey = Deno.env.get('R2_SECRET_ACCESS_KEY')
+    const bucketName = Deno.env.get('R2_BUCKET_NAME') || 'submission-hub'
+    const publicUrl = (Deno.env.get('R2_PUBLIC_URL') || '').replace(/\/$/, '')
+
+    if (!supabaseUrl || !anonKey || !accountId || !accessKeyId || !secretAccessKey || !publicUrl) {
+      return json({ error: 'R2 storage configuration is incomplete' }, 500)
+    }
 
     const supabase = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     })
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) return json({ error: 'Unauthorized' }, 401)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    const body = await request.json()
+    const filename = typeof body.filename === 'string' ? body.filename.trim() : ''
+    const contentType = typeof body.content_type === 'string' ? body.content_type.trim().toLowerCase() : 'application/octet-stream'
+    const size = Number(body.size)
 
-    const { filename, content_type } = await req.json()
-    if (!filename) throw new Error('Missing filename')
+    if (!filename) return json({ error: 'Missing filename' }, 400)
+    if (!Number.isFinite(size) || size <= 0) return json({ error: 'Invalid file size' }, 400)
+    if (size > maxFileSize) return json({ error: 'File exceeds the 20 MB limit' }, 413)
+    if (!isAllowedType(filename, contentType)) return json({ error: 'This file type is not allowed' }, 415)
 
-    // R2 config
-    const accountId = Deno.env.get('R2_ACCOUNT_ID')!
-    const accessKeyId = Deno.env.get('R2_ACCESS_KEY_ID')!
-    const secretAccessKey = Deno.env.get('R2_SECRET_ACCESS_KEY')!
-    const bucketName = Deno.env.get('R2_BUCKET_NAME') || 'submission-hub'
-    const publicUrl = Deno.env.get('R2_PUBLIC_URL') || ''
-
-    if (!accountId || !accessKeyId || !secretAccessKey) {
-      throw new Error('R2 storage not configured')
-    }
-
-    // Generate unique object key
-    const uuid = crypto.randomUUID()
-    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const objectKey = `${user.id}/${uuid}/${safeName}`
-
-    // Generate pre-signed PUT URL using S3-compatible API
-    const endpoint = `https://${accountId}.r2.cloudflarestorage.com`
-    const now = new Date()
-    const dateStamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-    const shortDate = dateStamp.slice(0, 8)
-    const credential = `${accessKeyId}/${shortDate}/auto/s3/aws4_request`
-
-    // Build the canonical request for pre-signed URL
-    const expires = '900' // 15 minutes
-    const queryParams = new URLSearchParams({
-      'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
-      'X-Amz-Credential': credential,
-      'X-Amz-Date': dateStamp,
-      'X-Amz-Expires': expires,
-      'X-Amz-SignedHeaders': 'host',
+    const objectKey = `${user.id}/${crypto.randomUUID()}/${safeFilename(filename)}`
+    const client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      credentials: { accessKeyId, secretAccessKey },
     })
-
-    const canonicalHeaders = `host:${accountId}.r2.cloudflarestorage.com\n`
-    const canonicalRequest = [
-      'PUT',
-      `/${bucketName}/${objectKey}`,
-      queryParams.toString(),
-      canonicalHeaders,
-      'host',
-      'UNSIGNED-PAYLOAD',
-    ].join('\n')
-
-    // String to sign
-    const stringToSign = [
-      'AWS4-HMAC-SHA256',
-      dateStamp,
-      `${shortDate}/auto/s3/aws4_request`,
-      await hashHex(canonicalRequest),
-    ].join('\n')
-
-    // Signing key
-    const signingKey = await getSignatureKey(secretAccessKey, shortDate, 'auto', 's3')
-    const signature = await hmacHex(signingKey, stringToSign)
-
-    queryParams.set('X-Amz-Signature', signature)
-
-    const uploadUrl = `${endpoint}/${bucketName}/${objectKey}?${queryParams.toString()}`
-
-    // The file URL that can be used to download/access the file
-    const fileUrl = publicUrl
-      ? `${publicUrl}/${objectKey}`
-      : `${endpoint}/${bucketName}/${objectKey}`
-
-    return new Response(JSON.stringify({ uploadUrl, fileUrl, objectKey }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+      ContentType: contentType || 'application/octet-stream',
+      Metadata: {
+        owner: user.id,
+        original_name: encodeURIComponent(filename).slice(0, 500),
+      },
     })
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const uploadUrl = await getSignedUrl(client, command, { expiresIn: 15 * 60 })
+
+    return json({
+      uploadUrl,
+      fileUrl: `${publicUrl}/${objectKey.split('/').map(encodeURIComponent).join('/')}`,
+      objectKey,
+      maxFileSize,
     })
+  } catch (error) {
+    console.error('r2-upload error:', error)
+    return json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500)
   }
 })
-
-// HMAC-SHA256 helper
-async function hmac(key: ArrayBuffer | Uint8Array, message: string): Promise<ArrayBuffer> {
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    key,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  return await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message))
-}
-
-async function hmacHex(key: ArrayBuffer | Uint8Array, message: string): Promise<string> {
-  const sig = await hmac(key, message)
-  return Array.from(new Uint8Array(sig))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-async function hashHex(message: string): Promise<string> {
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message))
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-async function getSignatureKey(key: string, dateStamp: string, region: string, service: string): Promise<ArrayBuffer> {
-  const kDate = await hmac(new TextEncoder().encode('AWS4' + key), dateStamp)
-  const kRegion = await hmac(kDate, region)
-  const kService = await hmac(kRegion, service)
-  return await hmac(kService, 'aws4_request')
-}
