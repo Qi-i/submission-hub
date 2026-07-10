@@ -38,6 +38,20 @@
   gap: 10px !important;
 }
 
+/* Keep the semantic accent fully inside the rounded card. */
+.paper-grid .paper-card-v3 {
+  border-radius: 18px !important;
+}
+
+.paper-grid .paper-card-v3::before {
+  top: 6px !important;
+  left: 20px !important;
+  right: 20px !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  opacity: .66 !important;
+}
+
 /* Paper header: status and journal are peers, not competing full-width blocks. */
 .paper-card-head {
   width: 100% !important;
@@ -150,6 +164,12 @@
   .app-header {
     padding-left: var(--release-page-gutter) !important;
     padding-right: var(--release-page-gutter) !important;
+  }
+
+  .paper-grid .paper-card-v3::before {
+    left: 14px !important;
+    right: 14px !important;
+    top: 5px !important;
   }
 
   .paper-card-head {
