@@ -1,4 +1,3 @@
-// ── Loose Database type to avoid Supabase createClient type inference issues ──
 export interface Database {
   public: {
     Tables: {
@@ -12,7 +11,8 @@ export interface Database {
   }
 }
 
-export const ADMIN_ID = import.meta.env.VITE_ADMIN_ID || ''
+const fallbackAdminId = 'c207de09-6b0c-470d-85a6-90ff4304c1ba'
+export const ADMIN_ID = import.meta.env.VITE_ADMIN_ID || fallbackAdminId
 
 export interface UserProfile {
   id: string
@@ -92,7 +92,7 @@ export const STATUSES = [
 export type StatusKey = typeof STATUSES[number]['key']
 
 export function getStatus(key: string) {
-  return STATUSES.find(s => s.key === key) || STATUSES[0]
+  return STATUSES.find(status => status.key === key) || STATUSES[0]
 }
 
 export const JCR_OPTIONS = ['未定', 'Q1', 'Q2', 'Q3', 'Q4']
@@ -137,18 +137,36 @@ export type WorkflowSignal = {
   detail: string
 }
 
-function daysSince(date?: string | null) {
+export function dateOnlyValue(date?: string | null): number | null {
   if (!date) return null
-  const time = new Date(date).getTime()
-  if (!Number.isFinite(time)) return null
-  return Math.max(0, Math.floor((Date.now() - time) / 86400000))
+  const match = date.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/)
+  if (!match) return null
+  const value = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  return Number.isFinite(value) ? value : null
 }
 
-function daysUntil(date?: string | null) {
-  if (!date) return null
-  const time = new Date(date).getTime()
-  if (!Number.isFinite(time)) return null
-  return Math.ceil((time - Date.now()) / 86400000)
+export function localTodayValue() {
+  const now = new Date()
+  return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+export function daysSinceDate(date?: string | null) {
+  const value = dateOnlyValue(date)
+  if (value === null) return null
+  return Math.max(0, Math.floor((localTodayValue() - value) / 86400000))
+}
+
+export function daysUntilDate(date?: string | null) {
+  const value = dateOnlyValue(date)
+  if (value === null) return null
+  return Math.ceil((value - localTodayValue()) / 86400000)
+}
+
+export function daysBetweenDates(start?: string | null, end?: string | null) {
+  const startValue = dateOnlyValue(start)
+  const endValue = dateOnlyValue(end)
+  if (startValue === null || endValue === null) return null
+  return Math.round((endValue - startValue) / 86400000)
 }
 
 export function inferNextAction(paper: Partial<Pick<Paper,
@@ -156,8 +174,8 @@ export function inferNextAction(paper: Partial<Pick<Paper,
 >>): { action: string | null; reminder: string; signal: WorkflowSignal | null } {
   const status = paper.status || ''
   const system = (paper.system_status || '').toLowerCase()
-  const baseDays = daysSince(paper.last_status_date || paper.submitted_date)
-  const deadlineDays = daysUntil(paper.deadline)
+  const baseDays = daysSinceDate(paper.last_status_date || paper.submitted_date)
+  const deadlineDays = daysUntilDate(paper.deadline)
 
   if (status === 'accepted') {
     if (!paper.published_url || !paper.doi || !paper.publication_info) return { action: '补充见刊信息', reminder: 'watch', signal: { level: 'info', text: '补充见刊信息', detail: '已接收稿件建议补充 DOI、见刊页面、卷期页码或在线发表信息' } }
@@ -175,9 +193,9 @@ export function inferNextAction(paper: Partial<Pick<Paper,
     return { action: '准备修回', reminder: 'watch', signal: { level: 'info', text: '准备修回', detail: '当前处于修回阶段，请持续整理修改稿和回复信' } }
   }
 
-  if (system.includes('decision pending') && (baseDays || 0) >= 14) return { action: '联系编辑部查询进展', reminder: 'warn', signal: { level: 'warn', text: '决策等待偏久', detail: `Decision Pending 已 ${baseDays} 天，可查询编辑部进展` } }
-  if ((system.includes('with editor') || system.includes('journal administrator')) && (baseDays || 0) >= 30) return { action: '联系编辑部查询进展', reminder: 'warn', signal: { level: 'warn', text: '编辑处理偏久', detail: `当前阶段已 ${baseDays} 天，可查询编辑处理进展` } }
-  if ((system.includes('out for review') || system.includes('under review')) && (baseDays || 0) >= 90) return { action: '等待外审结果', reminder: 'watch', signal: { level: 'info', text: '外审周期较长', detail: `外审相关阶段已 ${baseDays} 天，建议持续跟踪` } }
+  if ((system.includes('decision pending') || system.includes('等待决定') || system.includes('决策等待')) && (baseDays || 0) >= 14) return { action: '联系编辑部查询进展', reminder: 'warn', signal: { level: 'warn', text: '决策等待偏久', detail: `当前决策阶段已 ${baseDays} 天，可查询编辑部进展` } }
+  if ((system.includes('with editor') || system.includes('journal administrator') || system.includes('编辑处理')) && (baseDays || 0) >= 30) return { action: '联系编辑部查询进展', reminder: 'warn', signal: { level: 'warn', text: '编辑处理偏久', detail: `当前阶段已 ${baseDays} 天，可查询编辑处理进展` } }
+  if ((system.includes('out for review') || system.includes('under review') || system.includes('外审') || system.includes('审稿中')) && (baseDays || 0) >= 90) return { action: '等待外审结果', reminder: 'watch', signal: { level: 'info', text: '外审周期较长', detail: `外审相关阶段已 ${baseDays} 天，建议持续跟踪` } }
 
   if (status === 'submitted') return { action: '等待编辑处理', reminder: 'none', signal: null }
   if (status === 'under_review') return { action: '等待外审结果', reminder: 'none', signal: null }
