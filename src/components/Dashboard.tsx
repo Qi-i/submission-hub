@@ -223,7 +223,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} />}
+      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} onPaperCreated={() => void loadPapers()} />}
 
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
