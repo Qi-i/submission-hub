@@ -22,6 +22,7 @@ import './preparation.css'
 import './journal-comparison.css'
 import './preparation-enhancements.css'
 import './logo-redesign.css'
+import './visual-refresh.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
