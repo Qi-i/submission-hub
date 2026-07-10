@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { parseJournalRankResponse } from '../lib/journal-rank'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import { createDefaultChecklist } from '../lib/preparation'
 import PreparationWorkspace from './PreparationWorkspace'
@@ -93,6 +94,13 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     await load()
   }
 
+  const lookupJournalRanks = async (publicationName: string) => {
+    const { data, error } = await supabase.functions.invoke('journal-rank', { body: { publicationName } })
+    if (error) throw new Error(error.message || '期刊等级查询失败')
+    if (data?.error) throw new Error(data.error)
+    return parseJournalRankResponse(data)
+  }
+
   const saveTopic = async (data: Partial<ResearchTopic> & Pick<ResearchTopic, 'title'>) => {
     const now = new Date().toISOString()
     if (data.id) {
@@ -142,60 +150,29 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     const now = new Date().toISOString()
     const paperId = crypto.randomUUID()
     const { error: paperError } = await (supabase.from('papers') as any).insert({
-      id: paperId,
-      user_id: userId,
-      title: draft.title,
-      title_zh: null,
-      journal: journal?.name || null,
-      manuscript_no: null,
-      submission_system: null,
-      system_status: null,
-      last_status_date: null,
-      next_action: '完成投稿材料并提交',
-      reminder_level: 'watch',
-      apc_amount: journal?.apc_amount ?? null,
-      apc_currency: journal?.apc_currency || 'USD',
-      revision_round: 0,
-      followup_log: null,
-      doi: null,
-      publication_info: null,
-      citation: null,
-      journal_url: journal?.website_url || null,
-      journal_apc_note: journal?.fee_notes || null,
-      status: 'preparing',
-      lang: draft.language,
-      quartile_jcr: journal?.jcr_quartile || '未定',
-      quartile_cas: journal?.cas_quartile || '未定',
-      quartile_new: '无',
-      quartile_cust: '无',
-      quartile_zh: [],
-      authors: draft.authors || [],
-      corresponding_author: null,
-      submitted_date: null,
-      resolve_date: null,
-      deadline: draft.deadline || null,
-      tracking_url: journal?.submission_url || null,
-      published_url: null,
-      timeline: '',
-      notes: draft.notes || '由投稿准备模块转入。',
-      prev_id: null,
-      files: [],
-      created_at: now,
-      updated_at: now,
+      id: paperId, user_id: userId, title: draft.title, title_zh: null, journal: journal?.name || null,
+      manuscript_no: null, submission_system: null, system_status: null, last_status_date: null,
+      next_action: '完成投稿材料并提交', reminder_level: 'watch',
+      apc_amount: journal?.apc_amount ?? null, apc_currency: journal?.apc_currency || 'USD', revision_round: 0,
+      followup_log: null, doi: null, publication_info: null, citation: null,
+      journal_url: journal?.website_url || null, journal_apc_note: journal?.fee_notes || null,
+      status: 'preparing', lang: draft.language, quartile_jcr: journal?.jcr_quartile || '未定',
+      quartile_cas: journal?.cas_quartile || '未定', quartile_new: '无', quartile_cust: '无', quartile_zh: [],
+      authors: draft.authors || [], corresponding_author: null, submitted_date: null, resolve_date: null,
+      deadline: draft.deadline || null, tracking_url: journal?.submission_url || null, published_url: null,
+      timeline: '', notes: draft.notes || '由投稿准备模块转入。', prev_id: null, files: [], created_at: now, updated_at: now,
     })
     if (paperError) throw paperError
 
     const { error: draftError } = await (supabase.from('manuscript_drafts') as any).update({
-      stage: 'submitted',
-      submitted_paper_id: paperId,
-      updated_at: now,
+      stage: 'submitted', submitted_paper_id: paperId, updated_at: now,
     }).eq('id', draft.id)
     if (draftError) throw draftError
     await load()
     onPaperCreated?.()
   }
 
-  if (error) return <div className="prep-load-error"><h3>投稿准备模块尚未初始化</h3><p>{error}</p><p>请在 Supabase SQL Editor 执行 <code>supabase/008_preparation_workspace.sql</code>。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
+  if (error) return <div className="prep-load-error"><h3>投稿准备模块尚未初始化</h3><p>{error}</p><p>请确认 Supabase 已执行 008–010 迁移。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
 
-  return <PreparationWorkspace snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} />
+  return <PreparationWorkspace snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} />
 }
