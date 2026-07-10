@@ -140,6 +140,24 @@ function hasMeaningfulValue(value: string | undefined) {
   return !['否', 'no', 'false', '0', 'none', '无', '未收录'].includes(normalized)
 }
 
+function normalizeJcr(value?: string) {
+  const raw = (value || '').trim().toUpperCase()
+  const match = raw.match(/Q\s*([1-4])/) || raw.match(/([1-4])\s*区/) || raw.match(/^([1-4])$/)
+  return match ? `Q${match[1]}` : ''
+}
+
+function normalizeCas(value?: string) {
+  const raw = (value || '').trim()
+  if (/预警/.test(raw)) return '预警'
+  const match = raw.match(/([一二三四1-4])\s*区?/) 
+  if (!match) return ''
+  const map: Record<string, string> = {
+    '1': '一区', '2': '二区', '3': '三区', '4': '四区',
+    一: '一区', 二: '二区', 三: '三区', 四: '四区',
+  }
+  return map[match[1]] || ''
+}
+
 export function rankFieldSuggestions(values: Record<string, string>) {
   const indexing: string[] = []
   if (hasMeaningfulValue(values.sci)) indexing.push('SCIE')
@@ -151,8 +169,8 @@ export function rankFieldSuggestions(values: Record<string, string>) {
 
   const impactMatch = values.sciif?.match(/\d+(?:\.\d+)?/)
   return {
-    jcr: values.sci || values.ssci || '',
-    cas: values.sciUp || values.sciBase || '',
+    jcr: normalizeJcr(values.sci || values.ssci),
+    cas: normalizeCas(values.sciUp || values.sciBase || values.sciwarn),
     impactFactor: impactMatch ? impactMatch[0] : '',
     indexing,
     risk: hasMeaningfulValue(values.sciwarn) || hasMeaningfulValue(values.xrWarn) ? 'warning' as const : undefined,
