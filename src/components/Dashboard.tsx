@@ -4,22 +4,21 @@ import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
-import { createBackup, parseBackup } from '../lib/backup'
+import { createOnlineBackup, importOnlineBackup } from '../lib/online-backup'
 import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperForm'
 import MetricCard from './MetricCard'
 import ActionCenter from './ActionCenter'
-import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings } from 'lucide-react'
+import OnlinePreparationWorkspace from './OnlinePreparationWorkspace'
+import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
 
 type ViewFilter = 'all' | 'me' | 'author'
-type Tab = 'dashboard' | 'stats' | 'admin'
+type Tab = 'preparation' | 'dashboard' | 'stats' | 'admin'
 type StatusFilter = 'all' | string
 
-const validStatuses = new Set<string>(STATUSES.map(status => status.key))
-const asText = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null
 const localDateLabel = () => {
   const date = new Date()
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -40,16 +39,23 @@ export default function Dashboard() {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [showSettings, setShowSettings] = useState(false)
   const [authorNameInput, setAuthorNameInput] = useState('')
+  const [transferring, setTransferring] = useState(false)
 
   const canAccessAdmin = user?.is_admin === true && !isDemo
 
   useEffect(() => {
     if (tab === 'admin' && !canAccessAdmin) setTab('dashboard')
-  }, [tab, canAccessAdmin])
+    if (tab === 'preparation' && isDemo) setTab('dashboard')
+  }, [tab, canAccessAdmin, isDemo])
 
   const closeTools = () => {
     setShowTools(false)
     setShowFilterDrop(false)
+  }
+
+  const changeTab = (next: Tab) => {
+    closeTools()
+    setTab(next)
   }
 
   const openPaperForm = (target: Paper | 'new') => {
@@ -125,16 +131,27 @@ export default function Dashboard() {
     setShowFilterDrop(false)
   }
 
-  const handleExport = () => {
-    const url = URL.createObjectURL(new Blob([createBackup(papers, 'online')], { type: 'application/json' }))
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `SubmissionHub_Backup_${localDateLabel()}.json`
-    anchor.click()
-    setTimeout(() => URL.revokeObjectURL(url), 0)
+  const handleExport = async () => {
+    if (transferring) return
+    setTransferring(true)
+    try {
+      const content = await createOnlineBackup(papers)
+      const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }))
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `SubmissionHub_Backup_${localDateLabel()}.json`
+      anchor.click()
+      setTimeout(() => URL.revokeObjectURL(url), 0)
+    } catch (error) {
+      console.error('Create backup failed:', error)
+      alert(error instanceof Error ? `备份失败：${error.message}` : '备份失败。')
+    } finally {
+      setTransferring(false)
+    }
   }
 
   const handleImport = () => {
+    if (transferring) return
     closeTools()
     const input = document.createElement('input')
     input.type = 'file'
@@ -142,83 +159,16 @@ export default function Dashboard() {
     input.onchange = async event => {
       const file = (event.target as HTMLInputElement).files?.[0]
       if (!file || !user) return
+      setTransferring(true)
       try {
-        const data = parseBackup(await file.text())
-        const existingIds = new Set(papers.map(paper => paper.id))
-        const sourceRows = data.filter((row: any) => row && typeof row === 'object' && !existingIds.has(String(row.id || '')))
-        if (!sourceRows.length) {
-          alert('没有发现可新增的记录，重复 ID 已跳过。')
-          return
-        }
-
-        const idMap = new Map<string, string>()
-        const generatedIds = sourceRows.map((row: any) => {
-          const id = crypto.randomUUID()
-          const sourceId = asText(row.id)
-          if (sourceId) idMap.set(sourceId, id)
-          return id
-        })
-        const now = new Date().toISOString()
-
-        const rows = sourceRows.map((source: any, index) => {
-          const sourcePrevId = asText(source.prevId ?? source.prev_id)
-          const status = asText(source.status) || 'preparing'
-          const apcRaw = source.apc_amount ?? source.apcAmount
-          const apcNumber = apcRaw === null || apcRaw === undefined || apcRaw === '' ? null : Number(apcRaw)
-          const revisionNumber = Number(source.revision_round ?? source.revisionRound)
-          return {
-            id: generatedIds[index],
-            user_id: user.id,
-            title: asText(source.title) || '未命名',
-            title_zh: asText(source.title_zh ?? source.titleZh),
-            journal: asText(source.journal),
-            manuscript_no: asText(source.manuscript_no ?? source.manuscriptNo),
-            submission_system: asText(source.submission_system ?? source.submissionSystem),
-            system_status: asText(source.system_status ?? source.systemStatus),
-            last_status_date: asText(source.last_status_date ?? source.lastStatusDate),
-            next_action: asText(source.next_action ?? source.nextAction),
-            reminder_level: asText(source.reminder_level ?? source.reminderLevel) || 'none',
-            apc_amount: apcNumber !== null && Number.isFinite(apcNumber) && apcNumber >= 0 ? apcNumber : null,
-            apc_currency: asText(source.apc_currency ?? source.apcCurrency) || 'USD',
-            revision_round: Number.isFinite(revisionNumber) ? Math.max(0, Math.trunc(revisionNumber)) : 0,
-            followup_log: asText(source.followup_log ?? source.followupLog),
-            doi: asText(source.doi),
-            publication_info: asText(source.publication_info ?? source.publicationInfo),
-            citation: asText(source.citation),
-            journal_url: asText(source.journal_url ?? source.journalUrl),
-            journal_apc_note: asText(source.journal_apc_note ?? source.journalApcNote),
-            status: validStatuses.has(status) ? status : 'preparing',
-            lang: asText(source.lang) || 'zh',
-            quartile_jcr: asText(source.quartile_jcr ?? source.quartileJcr),
-            quartile_cas: asText(source.quartile_cas ?? source.quartileCas),
-            quartile_new: asText(source.quartile_new ?? source.quartileNew),
-            quartile_cust: asText(source.quartile_cust ?? source.quartileCust),
-            quartile_zh: Array.isArray(source.quartile_zh ?? source.quartileZh) ? (source.quartile_zh ?? source.quartileZh).filter((item: unknown) => typeof item === 'string') : [],
-            authors: Array.isArray(source.authors) ? source.authors.filter((item: unknown) => typeof item === 'string') : [],
-            corresponding_author: asText(source.corresponding_author ?? source.correspondingAuthor),
-            submitted_date: asText(source.submittedDate ?? source.submitted_date),
-            resolve_date: asText(source.resolveDate ?? source.resolve_date),
-            deadline: asText(source.deadline),
-            tracking_url: asText(source.trackingUrl ?? source.tracking_url),
-            published_url: asText(source.publishedUrl ?? source.published_url),
-            timeline: asText(source.timeline),
-            notes: asText(source.notes),
-            prev_id: sourcePrevId ? idMap.get(sourcePrevId) || (existingIds.has(sourcePrevId) ? sourcePrevId : null) : null,
-            files: Array.isArray(source.files) ? source.files.map((item: any) => ({ n: asText(item?.n ?? item?.name) || '', p: asText(item?.p ?? item?.url) || '', t: asText(item?.t ?? item?.type) || '其它' })).filter((item: any) => item.n || item.p) : null,
-            created_at: now,
-            updated_at: now,
-          }
-        })
-
-        for (let index = 0; index < rows.length; index += 200) {
-          const { error } = await supabase.from('papers').insert(rows.slice(index, index + 200) as any)
-          if (error) throw error
-        }
+        const result = await importOnlineBackup(await file.text(), user.id, papers)
         await loadPapers()
-        alert(`导入完成：新增 ${rows.length} 条记录。`)
-      } catch (error: any) {
-        console.error('Import papers failed:', error)
-        alert(`导入失败：${error?.message || 'JSON 格式不正确'}`)
+        alert(`导入完成：投稿 ${result.papers} 条、期刊 ${result.journals} 条、选题 ${result.topics} 条、草稿 ${result.drafts} 条。`)
+      } catch (error) {
+        console.error('Import backup failed:', error)
+        alert(error instanceof Error ? `导入失败：${error.message}` : '导入失败。')
+      } finally {
+        setTransferring(false)
       }
     }
     input.click()
@@ -257,20 +207,23 @@ export default function Dashboard() {
         <div className="header-left-cluster">
           <div className="header-brand"><div className="header-logo">SH</div><div><div className="header-title">Submission Hub</div><div className="header-subtitle">学术投稿与成果管理</div></div></div>
           <nav className="header-tabs" aria-label="主导航">
-            <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => { closeTools(); setTab('dashboard') }}><FileText size={14} /> 投稿管理</button>
-            <button className={tab === 'stats' ? 'active' : ''} onClick={() => { closeTools(); setTab('stats') }}><BarChart3 size={14} /> 个人统计</button>
-            {canAccessAdmin && <button className={tab === 'admin' ? 'active' : ''} onClick={() => { closeTools(); setTab('admin') }}><Shield size={14} /> 后台管理</button>}
+            {!isDemo && <button className={tab === 'preparation' ? 'active' : ''} onClick={() => changeTab('preparation')}><Lightbulb size={14} /> 投稿准备</button>}
+            <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => changeTab('dashboard')}><FileText size={14} /> 投稿管理</button>
+            <button className={tab === 'stats' ? 'active' : ''} onClick={() => changeTab('stats')}><BarChart3 size={14} /> 个人统计</button>
+            {canAccessAdmin && <button className={tab === 'admin' ? 'active' : ''} onClick={() => changeTab('admin')}><Shield size={14} /> 后台管理</button>}
           </nav>
         </div>
 
         <div className="header-actions">
           {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
           <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
-          {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入兼容备份"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出版本化备份"><Download size={14} /> 备份</button><button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button></>}
+          {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入完整备份"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={() => void handleExport()} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>{tab === 'dashboard' && <button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}</>}
           {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={openSettings} title="个人设置"><Settings size={15} /></button>}
           {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
         </div>
       </header>
+
+      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} />}
 
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
