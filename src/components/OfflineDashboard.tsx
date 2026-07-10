@@ -4,7 +4,7 @@ import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
 import * as store from '../lib/local-store'
 import PaperCard from './PaperCard'
-import PaperForm from './PaperForm'
+import PaperForm from './PaperFormArchive'
 import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 
@@ -32,9 +32,10 @@ export default function OfflineDashboard() {
   useEffect(() => {
     setPapers(store.getPapers())
     try {
-      const name = localStorage.getItem('sh-offline-author') || ''
-      setAuthorName(name)
-    } catch {}
+      setAuthorName(localStorage.getItem('sh-offline-author') || '')
+    } catch {
+      setAuthorName('')
+    }
   }, [])
 
   const refreshPapers = useCallback(() => {
@@ -42,20 +43,25 @@ export default function OfflineDashboard() {
   }, [])
 
   const allAuthors = Array.from(new Set(papers.flatMap(p => p.authors || []))).sort()
-
   const matchName = authorName || ''
+  const sameName = (left: string, right: string) => left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase()
+
   let filtered = papers
   if (viewFilter === 'me' && matchName) {
-    filtered = filtered.filter(p => (p.authors || []).includes(matchName))
+    filtered = filtered.filter(p => (p.authors || []).some(name => sameName(name, matchName)))
   } else if (viewFilter === 'author' && filterAuthor) {
-    filtered = filtered.filter(p => (p.authors || []).includes(filterAuthor))
+    filtered = filtered.filter(p => (p.authors || []).some(name => sameName(name, filterAuthor)))
   }
   if (search.trim()) {
-    const q = search.toLowerCase()
+    const q = search.trim().toLocaleLowerCase()
     filtered = filtered.filter(p =>
-      (p.title || '').toLowerCase().includes(q) ||
-      (p.journal || '').toLowerCase().includes(q) ||
-      (p.authors || []).some(a => a.toLowerCase().includes(q))
+      (p.title || '').toLocaleLowerCase().includes(q) ||
+      (p.title_zh || '').toLocaleLowerCase().includes(q) ||
+      (p.journal || '').toLocaleLowerCase().includes(q) ||
+      (p.manuscript_no || '').toLocaleLowerCase().includes(q) ||
+      (p.system_status || '').toLocaleLowerCase().includes(q) ||
+      (p.doi || '').toLocaleLowerCase().includes(q) ||
+      (p.authors || []).some(a => a.toLocaleLowerCase().includes(q))
     )
   }
 
@@ -65,94 +71,73 @@ export default function OfflineDashboard() {
   }))
 
   const handleExport = () => {
-    const blob = new Blob([store.exportPapers()], { type: 'application/json' })
+    const url = URL.createObjectURL(new Blob([store.exportPapers()], { type: 'application/json' }))
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
+    a.href = url
     a.download = `SubmissionHub_Offline_${new Date().toISOString().slice(0, 10)}.json`
     a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
   }
 
   const handleImport = () => {
-    const inp = document.createElement('input')
-    inp.type = 'file'
-    inp.accept = '.json'
-    inp.onchange = async (e) => {
-      const f = (e.target as HTMLInputElement).files?.[0]
-      if (!f) return
-      const text = await f.text()
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json,application/json'
+    input.onchange = async event => {
+      const file = (event.target as HTMLInputElement).files?.[0]
+      if (!file) return
       try {
-        const updated = store.importPapers(text)
+        const before = store.getPapers().length
+        const updated = store.importPapers(await file.text())
         setPapers(updated)
-      } catch {
-        alert('导入失败：JSON 格式不正确')
+        const added = Math.max(0, updated.length - before)
+        alert(added > 0 ? `导入完成：新增 ${added} 条记录。` : '没有发现可新增的记录，重复 ID 已跳过。')
+      } catch (error) {
+        console.error('Import offline papers failed:', error)
+        alert('导入失败：JSON 格式不正确或本地存储不可用。')
       }
     }
-    inp.click()
+    input.click()
   }
 
   const filterLabel =
     viewFilter === 'all' ? '🌎 全部记录' :
-    viewFilter === 'me' ? `🔥 我的` :
+    viewFilter === 'me' ? '🔥 我的' :
     `👤 ${filterAuthor}`
 
   return (
     <div className="app-layout">
-      {/* Header */}
-      <header className="app-header">
+      <header className="app-header app-header-refined">
         <div className="header-brand">
           <div className="header-logo">SH</div>
           <div>
             <div className="header-title">Submission Hub</div>
-            <div className="header-subtitle">离线版 · 数据存储在本地</div>
+            <div className="header-subtitle">离线版 · 数据仅存储在本地浏览器</div>
           </div>
         </div>
         <div className="header-actions">
-          <button
-            className="btn btn-ghost btn-sm btn-icon theme-toggle-btn"
-            onClick={cycleTheme}
-            title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}
-          >
+          <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>
             {mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON">
-            <Upload size={14} /> 导入
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON">
-            <Download size={14} /> 导出
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}>
-            <Plus size={14} /> 新建投稿
-          </button>
-          <button
-            className="btn btn-ghost btn-sm btn-icon"
-            onClick={() => { setAuthorNameInput(authorName); setShowSettings(true) }}
-            title="设置署名"
-          >
-            <FileText size={15} />
-          </button>
+          <button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON"><Upload size={14} /> 导入</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON"><Download size={14} /> 导出</button>
+          <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}><Plus size={14} /> 新建投稿</button>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setAuthorNameInput(authorName); setShowSettings(true) }} title="设置署名"><FileText size={15} /></button>
         </div>
       </header>
 
-      {/* Tab bar */}
       <div className="tab-bar">
-        <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>
-          <FileText size={14} /> 投稿管理
-        </button>
-        <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>
-          <BarChart3 size={14} /> 个人统计
-        </button>
+        <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}><FileText size={14} /> 投稿管理</button>
+        <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}><BarChart3 size={14} /> 个人统计</button>
       </div>
 
       {tab === 'dashboard' && (
         <>
-          {/* Stats bar */}
           <div className="stats-bar">
             {stats.map(s => (
               <div key={s.key} className="stat-card">
                 <div className="stat-value" style={{ color: s.color }}>{s.count}</div>
-                <div>
-                  <div className="stat-label">{s.emoji} {s.label}</div>
-                </div>
+                <div><div className="stat-label">{s.emoji} {s.label}</div></div>
               </div>
             ))}
             <div className="stat-card" style={{ flex: '0 0 auto', minWidth: 80 }}>
@@ -161,94 +146,51 @@ export default function OfflineDashboard() {
             </div>
           </div>
 
-          {/* Toolbar */}
           <div className="toolbar">
             <div className="search-wrap">
               <Search size={15} className="search-icon" />
-              <input
-                className="search-input"
-                placeholder="搜索标题、期刊或作者..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+              <input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或 DOI..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
             <div className="dropdown" style={{ zIndex: 50 }}>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => setShowFilterDrop(!showFilterDrop)}
-                style={{ gap: 6 }}
-              >
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}>
                 <Filter size={13} /> {filterLabel} <ChevronDown size={12} />
               </button>
               <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
-                <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>
-                  🌎 查看全部记录
-                </div>
-                {matchName && (
-                  <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`}
-                    onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>
-                    🔥 仅看我的 ({matchName})
-                  </div>
-                )}
-                {allAuthors.length > 0 && (
-                  <>
-                    <div className="dropdown-sep">指定作者</div>
-                    {allAuthors.filter(a => a !== matchName).map(a => (
-                      <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`}
-                        onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>
-                        👤 {a}
-                      </div>
-                    ))}
-                  </>
-                )}
+                <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>🌎 查看全部记录</div>
+                {matchName && <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>🔥 仅看我的 ({matchName})</div>}
+                {allAuthors.length > 0 && <>
+                  <div className="dropdown-sep">指定作者</div>
+                  {allAuthors.filter(a => !sameName(a, matchName)).map(a => <div key={a} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === a ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(a); setShowFilterDrop(false) }}>👤 {a}</div>)}
+                </>}
               </div>
             </div>
 
-            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>
-              共 {filtered.length} 篇记录
-            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>共 {filtered.length} 篇记录</span>
           </div>
 
-          {/* Paper grid */}
           <div className="paper-grid">
             {filtered.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">📑</div>
-                <div className="empty-text">
-                  {papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}
-                </div>
-                <div className="empty-sub">
-                  {papers.length === 0 && '点击右上角「新建投稿」开始记录，或导入 JSON 文件'}
-                </div>
+                <div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div>
+                <div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录，或导入 JSON 文件'}</div>
               </div>
-            ) : (
-              filtered.map((p, i) => (
-                <PaperCard
-                  key={p.id}
-                  paper={p}
-                  currentUsername=""
-                  authorName={authorName}
-                  allPapers={papers}
-                  index={i}
-                  onClick={() => setEditing(p)}
-                />
-              ))
-            )}
+            ) : filtered.map((paper, index) => (
+              <PaperCard key={paper.id} paper={paper} currentUsername="" authorName={authorName} allPapers={papers} index={index} onClick={() => setEditing(paper)} />
+            ))}
           </div>
         </>
       )}
 
       {tab === 'stats' && <PersonalStats papers={papers} currentUsername="" authorName={authorName} />}
 
-      {/* Paper form modal */}
       {editing && (
         <PaperForm
           paper={editing}
           allPapers={papers}
           currentUsername={authorName}
-          onSave={(data) => {
+          onSave={async data => {
             if (editing === 'new') {
               const newPaper: Paper = {
                 ...data,
@@ -264,7 +206,7 @@ export default function OfflineDashboard() {
             setEditing(null)
             refreshPapers()
           }}
-          onDelete={(id) => {
+          onDelete={async id => {
             if (!confirm('确认删除这条投稿记录？')) return
             store.deletePaper(id)
             setEditing(null)
@@ -274,29 +216,18 @@ export default function OfflineDashboard() {
         />
       )}
 
-      {/* Settings modal */}
       {showSettings && (
         <div className="modal-overlay" onClick={() => setShowSettings(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="modal-header">
               <h3 className="modal-title">⚙️ 个人设置</h3>
-              <button className="btn btn-ghost btn-icon" onClick={() => setShowSettings(false)}>
-                <X size={18} />
-              </button>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowSettings(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
               <div className="field">
-                <label className="field-label">论文署名 (用于匹配作者统计)</label>
-                <input
-                  className="input"
-                  value={authorNameInput}
-                  onChange={e => setAuthorNameInput(e.target.value)}
-                  placeholder="输入您在论文中使用的姓名，如：Zhang Wei"
-                  style={{ fontSize: 14, fontWeight: 600 }}
-                />
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                  设置后，系统将自动识别您作为作者/通讯作者的论文，用于个人统计
-                </span>
+                <label className="field-label">论文署名（用于匹配作者统计）</label>
+                <input className="input" value={authorNameInput} onChange={e => setAuthorNameInput(e.target.value)} placeholder="输入您在论文中使用的姓名，如：Zhang Wei" style={{ fontSize: 14, fontWeight: 600 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>设置后，系统将自动识别您作为作者或通讯作者的论文。</span>
               </div>
             </div>
             <div className="modal-footer">
@@ -305,12 +236,14 @@ export default function OfflineDashboard() {
                 <button className="btn btn-ghost" onClick={() => setShowSettings(false)}>取消</button>
                 <button className="btn btn-primary" onClick={() => {
                   const name = authorNameInput.trim()
-                  setAuthorName(name)
-                  localStorage.setItem('sh-offline-author', name)
-                  setShowSettings(false)
-                }}>
-                  保存
-                </button>
+                  try {
+                    localStorage.setItem('sh-offline-author', name)
+                    setAuthorName(name)
+                    setShowSettings(false)
+                  } catch {
+                    alert('保存失败：浏览器本地存储不可用。')
+                  }
+                }}>保存</button>
               </div>
             </div>
           </div>
