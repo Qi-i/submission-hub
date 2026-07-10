@@ -23,21 +23,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm install --no-audit --no-fund
       - run: npm run build:offline
-      - run: mkdir release
-      - run: cp dist-offline/offline.html release/submission-hub-offline.html
+      - run: npm run check:offline
+      - run: mkdir -p release && cp dist-offline/offline.html release/submission-hub-offline.html
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ github.event.inputs.tag }}
           RELEASE_TITLE: ${{ github.event.inputs.title }}
           RELEASE_NOTES: |
-            Submission Hub offline HTML release.
+            Submission Hub 离线版。
 
-            Asset: submission-hub-offline.html
-
-            Online app: https://qi-i.github.io/submission-hub/
+            - 单文件：submission-hub-offline.html
+            - 无需登录或服务器
+            - 不包含 Supabase 云同步与 R2 上传
+            - 数据仅保存在本地浏览器
         run: |
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" release/submission-hub-offline.html --clobber
