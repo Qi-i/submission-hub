@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BookOpen, ExternalLink, FilePenLine, Lightbulb, Plus, Search, Star } from 'lucide-react'
+import { ArrowRight, BookOpen, ExternalLink, FilePenLine, Lightbulb, Plus, Scale, Search, Star } from 'lucide-react'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import {
   DRAFT_STAGE_OPTIONS, OA_OPTIONS, PRIORITY_OPTIONS, TOPIC_STATUS_OPTIONS,
-  checklistProgress, journalFitSummary, topicCompositeScore,
+  checklistProgress, createDefaultChecklist, draftReadiness, journalFitSummary, topicCompositeScore,
 } from '../lib/preparation'
 import { daysUntilDate } from '../lib/types'
 import { DraftForm, JournalForm, TopicForm } from './PreparationForms'
+import JournalComparison from './JournalComparison'
 
-type SectionKey = 'overview' | 'topics' | 'drafts' | 'journals'
+type SectionKey = 'overview' | 'topics' | 'drafts' | 'journals' | 'compare'
 type Editor =
   | { type: 'journal'; value: JournalProfile | 'new' }
   | { type: 'topic'; value: ResearchTopic | 'new' }
@@ -35,6 +36,7 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
   const [search, setSearch] = useState('')
   const [editor, setEditor] = useState<Editor>(null)
   const [promotingId, setPromotingId] = useState<string | null>(null)
+  const [creatingTopicId, setCreatingTopicId] = useState<string | null>(null)
 
   const normalized = useMemo<PreparationSnapshot>(() => ({
     journals: (snapshot.journals || []).map(journal => ({
@@ -56,7 +58,11 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
       authors: Array.isArray(draft.authors) ? draft.authors : [],
       external_links: Array.isArray(draft.external_links) ? draft.external_links : [],
       target_journal_ids: Array.isArray(draft.target_journal_ids) ? draft.target_journal_ids : [],
-      checklist: Array.isArray(draft.checklist) ? draft.checklist : [],
+      checklist: Array.isArray(draft.checklist) ? draft.checklist : createDefaultChecklist(),
+      current_word_count: Math.max(0, Number(draft.current_word_count) || 0),
+      figure_count: Math.max(0, Number(draft.figure_count) || 0),
+      table_count: Math.max(0, Number(draft.table_count) || 0),
+      reference_count: Math.max(0, Number(draft.reference_count) || 0),
     })),
   }), [snapshot])
 
@@ -72,15 +78,15 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
   const orderedDrafts = [...drafts].sort((left, right) => {
     const leftDays = daysUntilDate(left.deadline) ?? 99999
     const rightDays = daysUntilDate(right.deadline) ?? 99999
-    return leftDays - rightDays || checklistProgress(right.checklist) - checklistProgress(left.checklist)
+    return leftDays - rightDays || draftReadiness(right).score - draftReadiness(left).score
   })
 
-  const readyDrafts = normalized.drafts.filter(draft => draft.stage === 'submission_ready' || checklistProgress(draft.checklist) >= 90).length
+  const readyDrafts = normalized.drafts.filter(draft => draftReadiness(draft).score >= 90).length
   const activeTopics = normalized.topics.filter(topic => !['paused', 'abandoned'].includes(topic.status)).length
   const favoriteJournals = normalized.journals.filter(journal => journal.is_favorite).length
 
   const openNew = () => {
-    if (section === 'journals') setEditor({ type: 'journal', value: 'new' })
+    if (section === 'journals' || section === 'compare') setEditor({ type: 'journal', value: 'new' })
     else if (section === 'topics') setEditor({ type: 'topic', value: 'new' })
     else setEditor({ type: 'draft', value: 'new' })
   }
@@ -99,6 +105,44 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
     }
   }
 
+  const createDraftFromTopic = async (topic: ResearchTopic) => {
+    if (creatingTopicId) return
+    if (!confirm(`基于“${topic.title}”建立论文草稿？`)) return
+    setCreatingTopicId(topic.id)
+    try {
+      await onSaveDraft({
+        title: topic.title,
+        topic_id: topic.id,
+        article_type: 'Research Article',
+        language: 'en',
+        stage: 'outline',
+        abstract: topic.objective || topic.research_question || null,
+        keywords: topic.keywords,
+        outline: topic.objective ? `研究目标\n${topic.objective}\n\n拟解决问题\n${topic.research_question || ''}\n\n创新点\n${topic.novelty || ''}`.trim() : null,
+        authors: [],
+        target_word_count: null,
+        current_word_count: 0,
+        figure_count: 0,
+        table_count: 0,
+        reference_count: 0,
+        deadline: topic.deadline,
+        external_links: topic.links,
+        target_journal_ids: [],
+        primary_journal_id: null,
+        checklist: createDefaultChecklist(),
+        notes: topic.notes,
+        submitted_paper_id: null,
+      })
+      if (topic.status !== 'drafting') await onSaveTopic({ ...topic, status: 'drafting' })
+      setSection('drafts')
+    } catch (error) {
+      console.error('Create draft from topic failed:', error)
+      alert(error instanceof Error ? `建立草稿失败：${error.message}` : '建立草稿失败。')
+    } finally {
+      setCreatingTopicId(null)
+    }
+  }
+
   if (loading) return <div className="prep-loading"><div className="spinner" /> 加载投稿准备数据...</div>
 
   return <div className="preparation-workspace">
@@ -112,20 +156,22 @@ export default function PreparationWorkspace({ snapshot, loading, onSaveJournal,
       <button className={section === 'topics' ? 'active' : ''} onClick={() => setSection('topics')}><Lightbulb size={14} /> 选题池 <span>{normalized.topics.length}</span></button>
       <button className={section === 'drafts' ? 'active' : ''} onClick={() => setSection('drafts')}><FilePenLine size={14} /> 草稿准备 <span>{normalized.drafts.length}</span></button>
       <button className={section === 'journals' ? 'active' : ''} onClick={() => setSection('journals')}><BookOpen size={14} /> 期刊库 <span>{normalized.journals.length}</span></button>
+      <button className={section === 'compare' ? 'active' : ''} onClick={() => setSection('compare')}><Scale size={14} /> 期刊比较</button>
     </div>
 
     {section === 'overview' && <>
       <div className="prep-metrics"><div><b>{activeTopics}</b><span>推进中的选题</span></div><div><b>{normalized.drafts.length}</b><span>论文草稿</span></div><div><b>{readyDrafts}</b><span>接近可投稿</span></div><div><b>{favoriteJournals}</b><span>收藏期刊</span></div></div>
       <div className="prep-overview-grid">
-        <section className="prep-panel"><PanelHead title="优先草稿" subtitle="按投稿日期和准备完成度排序" onClick={() => setSection('drafts')} />{orderedDrafts.slice(0, 4).map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} compact />)}{!orderedDrafts.length && <Empty text="尚无草稿准备记录" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</section>
+        <section className="prep-panel"><PanelHead title="优先草稿" subtitle="按投稿日期和就绪度排序" onClick={() => setSection('drafts')} />{orderedDrafts.slice(0, 4).map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} compact />)}{!orderedDrafts.length && <Empty text="尚无草稿准备记录" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</section>
         <section className="prep-panel"><PanelHead title="优先期刊" subtitle="收藏、分区、费用与审稿速度" onClick={() => setSection('journals')} />{orderedJournals.slice(0, 5).map(journal => <JournalRow key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}{!orderedJournals.length && <Empty text="尚未收藏期刊" action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}</section>
       </div>
-      <section className="prep-panel prep-topic-overview"><PanelHead title="选题推进" subtitle="综合创新性、数据、方法、可行性与时间条件" onClick={() => setSection('topics')} /><div className="prep-topic-strip">{orderedTopics.slice(0, 5).map(topic => <TopicCard key={topic.id} topic={topic} onClick={() => setEditor({ type: 'topic', value: topic })} compact />)}{!orderedTopics.length && <Empty text="尚无研究选题" action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}</div></section>
+      <section className="prep-panel prep-topic-overview"><PanelHead title="选题推进" subtitle="综合创新性、数据、方法、可行性与时间条件" onClick={() => setSection('topics')} /><div className="prep-topic-strip">{orderedTopics.slice(0, 5).map(topic => <TopicCard key={topic.id} topic={topic} onClick={() => setEditor({ type: 'topic', value: topic })} onCreateDraft={() => void createDraftFromTopic(topic)} creating={creatingTopicId === topic.id} compact />)}{!orderedTopics.length && <Empty text="尚无研究选题" action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}</div></section>
     </>}
 
-    {section === 'topics' && <div className="prep-card-grid">{orderedTopics.map(topic => <TopicCard key={topic.id} topic={topic} onClick={() => setEditor({ type: 'topic', value: topic })} />)}{!orderedTopics.length && <Empty text={query ? '没有匹配的选题' : '尚无研究选题'} action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}</div>}
+    {section === 'topics' && <div className="prep-card-grid">{orderedTopics.map(topic => <TopicCard key={topic.id} topic={topic} onClick={() => setEditor({ type: 'topic', value: topic })} onCreateDraft={() => void createDraftFromTopic(topic)} creating={creatingTopicId === topic.id} />)}{!orderedTopics.length && <Empty text={query ? '没有匹配的选题' : '尚无研究选题'} action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}</div>}
     {section === 'drafts' && <div className="prep-draft-list">{orderedDrafts.map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} />)}{!orderedDrafts.length && <Empty text={query ? '没有匹配的草稿' : '尚无草稿准备记录'} action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</div>}
     {section === 'journals' && <div className="prep-card-grid journal-grid">{orderedJournals.map(journal => <JournalCard key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}{!orderedJournals.length && <Empty text={query ? '没有匹配的期刊' : '尚未收藏期刊'} action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}</div>}
+    {section === 'compare' && <JournalComparison journals={orderedJournals} onEdit={journal => setEditor({ type: 'journal', value: journal })} />}
 
     {editor?.type === 'journal' && <JournalForm value={editor.value} onSave={onSaveJournal} onDelete={onDeleteJournal} onClose={() => setEditor(null)} />}
     {editor?.type === 'topic' && <TopicForm value={editor.value} onSave={onSaveTopic} onDelete={onDeleteTopic} onClose={() => setEditor(null)} />}
@@ -141,19 +187,20 @@ function Empty({ text, action, onClick }: { text: string; action: string; onClic
   return <div className="prep-empty"><span>{text}</span><button className="btn btn-ghost btn-sm" onClick={onClick}><Plus size={13} /> {action}</button></div>
 }
 
-function TopicCard({ topic, onClick, compact }: { topic: ResearchTopic; onClick: () => void; compact?: boolean }) {
+function TopicCard({ topic, onClick, onCreateDraft, creating, compact }: { topic: ResearchTopic; onClick: () => void; onCreateDraft: () => void; creating?: boolean; compact?: boolean }) {
   const score = topicCompositeScore(topic)
   const status = TOPIC_STATUS_OPTIONS.find(item => item.key === topic.status)?.label || topic.status
   const days = daysUntilDate(topic.deadline)
-  return <button className={`prep-topic-card ${compact ? 'compact' : ''}`} onClick={onClick}><div className="prep-card-top"><span className={`prep-priority ${topic.priority}`}>{PRIORITY_OPTIONS.find(item => item.key === topic.priority)?.label || topic.priority}</span><b>{score}</b></div><h3>{topic.title}</h3>{!compact && topic.research_question && <p>{topic.research_question}</p>}<div className="prep-tags">{topic.keywords.slice(0, 4).map(tag => <span key={tag}>{tag}</span>)}</div><div className="prep-card-foot"><span>{status}</span>{days !== null && <span className={days < 0 ? 'danger' : days <= 14 ? 'warn' : ''}>{days < 0 ? `逾期 ${-days} 天` : `${days} 天`}</span>}</div></button>
+  return <article className={`prep-topic-card ${compact ? 'compact' : ''}`}><button className="prep-topic-main" onClick={onClick}><div className="prep-card-top"><span className={`prep-priority ${topic.priority}`}>{PRIORITY_OPTIONS.find(item => item.key === topic.priority)?.label || topic.priority}</span><b>{score}</b></div><h3>{topic.title}</h3>{!compact && topic.research_question && <p>{topic.research_question}</p>}<div className="prep-tags">{topic.keywords.slice(0, 4).map(tag => <span key={tag}>{tag}</span>)}</div><div className="prep-card-foot"><span>{status}</span>{days !== null && <span className={days < 0 ? 'danger' : days <= 14 ? 'warn' : ''}>{days < 0 ? `逾期 ${-days} 天` : `${days} 天`}</span>}</div></button>{topic.status !== 'abandoned' && <button className="btn btn-ghost btn-sm prep-topic-draft" onClick={onCreateDraft} disabled={creating}>{creating ? '建立中...' : <>建立草稿 <ArrowRight size={12} /></>}</button>}</article>
 }
 
 function DraftCard({ draft, topic, journals, primaryJournal, onEdit, onPromote, promoting, compact }: { draft: ManuscriptDraft; topic?: ResearchTopic; journals: JournalProfile[]; primaryJournal?: JournalProfile; onEdit: () => void; onPromote?: () => void; promoting?: boolean; compact?: boolean }) {
-  const progress = checklistProgress(draft.checklist)
+  const readiness = draftReadiness(draft)
+  const checkProgress = checklistProgress(draft.checklist)
   const wordProgress = draft.target_word_count ? Math.min(100, Math.round(draft.current_word_count / draft.target_word_count * 100)) : 0
   const stage = DRAFT_STAGE_OPTIONS.find(item => item.key === draft.stage)?.label || draft.stage
   const days = daysUntilDate(draft.deadline)
-  return <article className={`prep-draft-card ${compact ? 'compact' : ''}`}><button className="prep-draft-main" onClick={onEdit}><div className="prep-draft-head"><div><span>{stage}</span>{topic && <em>{topic.title}</em>}</div><b>{progress}%</b></div><h3>{draft.title}</h3><div className="prep-progress"><span style={{ width: `${progress}%` }} /></div><div className="prep-draft-meta"><span>检查 {progress}%</span>{draft.target_word_count ? <span>写作 {draft.current_word_count}/{draft.target_word_count}（{wordProgress}%）</span> : <span>字数 {draft.current_word_count}</span>}<span>图 {draft.figure_count} · 表 {draft.table_count} · 文献 {draft.reference_count}</span></div><div className="prep-draft-foot"><span>{primaryJournal ? `主投：${primaryJournal.name}` : journals.length ? `备选 ${journals.length} 本` : '未选期刊'}</span>{days !== null && <span className={days < 0 ? 'danger' : days <= 14 ? 'warn' : ''}>{days < 0 ? `计划已逾期 ${-days} 天` : `计划 ${days} 天后投稿`}</span>}</div></button>{onPromote && !draft.submitted_paper_id && <button className="btn btn-primary btn-sm prep-promote" onClick={onPromote} disabled={promoting}>{promoting ? '转入中...' : <>转入投稿 <ArrowRight size={13} /></>}</button>}</article>
+  return <article className={`prep-draft-card ${compact ? 'compact' : ''}`}><button className="prep-draft-main" onClick={onEdit}><div className="prep-draft-head"><div><span>{stage}</span>{topic && <em>{topic.title}</em>}</div><b>{readiness.score}%</b></div><h3>{draft.title}</h3><div className="prep-progress"><span style={{ width: `${readiness.score}%` }} /></div><div className="prep-draft-meta"><span>就绪度 {readiness.score}%</span><span>必需检查 {checkProgress}%</span>{draft.target_word_count ? <span>写作 {draft.current_word_count}/{draft.target_word_count}（{wordProgress}%）</span> : <span>字数 {draft.current_word_count}</span>}<span>图 {draft.figure_count} · 表 {draft.table_count} · 文献 {draft.reference_count}</span></div><div className={`prep-readiness-note ${readiness.blockers.length ? 'blocked' : readiness.score >= 90 ? 'ready' : ''}`}><strong>{readiness.nextAction}</strong>{readiness.blockers[0] && <span>{readiness.blockers[0]}</span>}</div><div className="prep-draft-foot"><span>{primaryJournal ? `主投：${primaryJournal.name}` : journals.length ? `备选 ${journals.length} 本` : '未选期刊'}</span>{days !== null && <span className={days < 0 ? 'danger' : days <= 14 ? 'warn' : ''}>{days < 0 ? `计划已逾期 ${-days} 天` : `计划 ${days} 天后投稿`}</span>}</div></button>{onPromote && !draft.submitted_paper_id && <button className="btn btn-primary btn-sm prep-promote" onClick={onPromote} disabled={promoting}>{promoting ? '转入中...' : <>转入投稿 <ArrowRight size={13} /></>}</button>}</article>
 }
 
 function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: () => void }) {
