@@ -1,5 +1,6 @@
+import type { KeyboardEvent } from 'react'
 import type { Paper } from '../lib/types'
-import { getStatus, getWorkflowSignal } from '../lib/types'
+import { daysBetweenDates, daysUntilDate, getStatus, getWorkflowSignal } from '../lib/types'
 
 interface Props {
   paper: Paper
@@ -10,10 +11,10 @@ interface Props {
   onClick?: () => void
 }
 
-function formatDate(d?: string | null) {
-  if (!d) return ''
-  const parts = d.split('-')
-  return parts.length === 3 ? `${parts[0]}/${parts[1]}/${parts[2]}` : d
+function formatDate(date?: string | null) {
+  if (!date) return ''
+  const parts = date.split('-')
+  return parts.length === 3 ? `${parts[0]}/${parts[1]}/${parts[2]}` : date
 }
 
 function isUrl(path?: string | null) {
@@ -26,15 +27,26 @@ function doiHref(doi?: string | null) {
   return `https://doi.org/${doi.replace(/^doi:\s*/i, '').trim()}`
 }
 
-function copyText(text?: string | null) {
+async function copyText(text?: string | null) {
   if (!text) return
-  navigator.clipboard?.writeText(text).catch(() => undefined)
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    textarea.remove()
+  }
 }
 
 function getDeadlineInfo(deadline: string | null, status: string) {
-  if (!deadline) return null
-  if (status !== 'revision') return null
-  const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000)
+  if (!deadline || status !== 'revision') return null
+  const days = daysUntilDate(deadline)
+  if (days === null) return null
   if (days < 0) return { text: `逾期 ${-days} 天`, cls: 'deadline-overdue' }
   if (days === 0) return { text: '今天截止', cls: 'deadline-danger' }
   if (days <= 3) return { text: `仅剩 ${days} 天`, cls: 'deadline-danger' }
@@ -51,13 +63,13 @@ function signalStyle(level: string) {
 function previousChain(paper: Paper, allPapers: Paper[]) {
   const chain: Paper[] = []
   let cursor: Paper | undefined = paper
-  const seen = new Set<string>()
+  const seen = new Set<string>([paper.id])
   while (cursor?.prev_id && !seen.has(cursor.prev_id)) {
     seen.add(cursor.prev_id)
-    const prev = allPapers.find(p => p.id === cursor!.prev_id)
-    if (!prev) break
-    chain.unshift(prev)
-    cursor = prev
+    const previous = allPapers.find(item => item.id === cursor!.prev_id)
+    if (!previous) break
+    chain.unshift(previous)
+    cursor = previous
   }
   return chain
 }
@@ -71,22 +83,22 @@ function shouldSuppressSignal(paper: Paper, signal: ReturnType<typeof getWorkflo
 
 function authorItems(paper: Paper, currentUsername: string, authorName: string) {
   const authors = paper.authors || []
-  const isMatched = (name: string) => authorName ? name === authorName : name === currentUsername
+  const identity = (authorName || currentUsername).trim().toLocaleLowerCase()
   return authors.map((name, index) => ({
     name,
     index,
     first: index === 0,
-    matched: isMatched(name),
-    corresponding: paper.corresponding_author === name,
+    matched: !!identity && name.trim().toLocaleLowerCase() === identity,
+    corresponding: !!paper.corresponding_author && paper.corresponding_author.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase(),
   }))
 }
 
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, index = 0, onClick }: Props) {
-  const st = getStatus(paper.status)
+  const status = getStatus(paper.status)
   const deadline = getDeadlineInfo(paper.deadline, paper.status)
   const rawSignal = getWorkflowSignal(paper)
   const chain = previousChain(paper, allPapers)
-  const nextCount = allPapers.filter(p => p.prev_id === paper.id).length
+  const nextCount = allPapers.filter(item => item.prev_id === paper.id).length
   const signal = shouldSuppressSignal(paper, rawSignal, nextCount) ? null : rawSignal
   const authors = authorItems(paper, currentUsername, authorName)
   const authorTitle = (paper.authors || []).join('、')
@@ -94,11 +106,10 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   let dateInfo = ''
   if (paper.submitted_date) {
     dateInfo = `投: ${formatDate(paper.submitted_date)}`
-    const start = new Date(paper.submitted_date).getTime()
-    const end = paper.resolve_date ? new Date(paper.resolve_date).getTime() : Date.now()
-    const days = Math.round((end - start) / 86400000)
+    const endDate = paper.resolve_date || new Date().toLocaleDateString('en-CA')
+    const days = daysBetweenDates(paper.submitted_date, endDate)
     if (paper.resolve_date) dateInfo += ` | 终: ${formatDate(paper.resolve_date)}`
-    if (paper.status !== 'preparing' && days >= 0) dateInfo += ` | ${days}天`
+    if (paper.status !== 'preparing' && days !== null && days >= 0) dateInfo += ` | ${days}天`
   }
 
   const badges: { label: string; cls: string }[] = []
@@ -108,18 +119,32 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
     if (paper.quartile_new && paper.quartile_new !== '无') badges.push({ label: `新锐 ${paper.quartile_new}`, cls: 'q-new' })
     if (paper.quartile_cust && paper.quartile_cust !== '无') badges.push({ label: paper.quartile_cust, cls: 'q-jcr' })
   } else {
-    ;(paper.quartile_zh || []).filter(Boolean).forEach(z => badges.push({ label: z, cls: 'q-zh' }))
+    ;(paper.quartile_zh || []).filter(Boolean).forEach(value => badges.push({ label: value, cls: 'q-zh' }))
   }
 
   const signalColors = signal ? signalStyle(signal.level) : null
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onClick()
+    }
+  }
 
   return (
-    <div className="card glass-card animate-in" style={{ animationDelay: `${Math.min(index * 0.06, 0.6)}s` }} onClick={onClick}>
-      <div className="card-top-bar" style={{ background: st.color }} />
+    <div
+      className="card glass-card animate-in"
+      style={{ animationDelay: `${Math.min(index * 0.06, 0.6)}s` }}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
+      <div className="card-top-bar" style={{ background: status.color }} />
 
       <div className="paper-card-head">
         <div className="paper-status-stack">
-          <span className={`badge status-${paper.status}`}>{st.emoji} {st.label}</span>
+          <span className={`badge status-${paper.status}`}>{status.emoji} {status.label}</span>
           {paper.system_status && <span className="system-status-inline">{paper.system_status}</span>}
         </div>
         {paper.journal && <span className="journal-pill" title={paper.journal}>📖 {paper.journal}</span>}
@@ -131,12 +156,12 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
           {paper.submission_system && <span className="badge badge-sm badge-outline" title={paper.submission_system}>{paper.submission_system}</span>}
           {!!paper.revision_round && <span className="badge badge-sm badge-outline">R{paper.revision_round}</span>}
           {!!paper.apc_amount && <span className="badge badge-sm badge-outline">APC {paper.apc_amount} {paper.apc_currency || ''}</span>}
-          {isUrl(paper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>见刊 ↗</a>}
+          {isUrl(paper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>见刊 ↗</a>}
         </div>
       )}
 
       {(paper.journal_url || paper.journal_apc_note) && <div className="journal-profile-row">
-        {isUrl(paper.journal_url) && <a href={paper.journal_url!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>期刊档案 ↗</a>}
+        {isUrl(paper.journal_url) && <a href={paper.journal_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>期刊档案 ↗</a>}
         {paper.journal_apc_note && <span title={paper.journal_apc_note}>APC / 期刊备注</span>}
       </div>}
 
@@ -150,12 +175,12 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       </div>
 
       {(paper.doi || paper.publication_info || paper.citation) && <div className="archive-chip-row">
-        {paper.doi && <a className="archive-chip doi" href={doiHref(paper.doi)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>DOI ↗</a>}
+        {paper.doi && <a className="archive-chip doi" href={doiHref(paper.doi)} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>DOI ↗</a>}
         {paper.publication_info && <span className="archive-chip pub" title={paper.publication_info}>{paper.publication_info}</span>}
-        {paper.citation && <button type="button" className="archive-chip cite archive-copy-chip" title="点击复制引用格式" onClick={e => { e.stopPropagation(); copyText(paper.citation) }}>复制引用</button>}
+        {paper.citation && <button type="button" className="archive-chip cite archive-copy-chip" title="点击复制引用格式" onClick={event => { event.stopPropagation(); void copyText(paper.citation) }}>复制引用</button>}
       </div>}
 
-      {badges.length > 0 && <div className="paper-meta-row">{badges.map((b, i) => <span key={i} className={`badge badge-sm badge-outline ${b.cls}`} title={b.label}>{b.label}</span>)}</div>}
+      {badges.length > 0 && <div className="paper-meta-row">{badges.map((badge, badgeIndex) => <span key={badgeIndex} className={`badge badge-sm badge-outline ${badge.cls}`} title={badge.label}>{badge.label}</span>)}</div>}
 
       <div className="author-list-v2" title={authorTitle}>
         <span className="author-prefix">👥</span>
@@ -166,14 +191,16 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         {authors.length === 0 && <span style={{ color: 'var(--text-muted)' }}>--</span>}
       </div>
 
-      {(chain.length > 0 || nextCount > 0) && <div className="paper-history" title={`版本链：${chain.map(p => p.journal || '未知期刊').join(' → ')}${chain.length > 0 ? ' → ' : ''}${paper.journal || '当前稿'}${nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}`}>↳ 版本链：{chain.map(p => p.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{paper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
+      {(chain.length > 0 || nextCount > 0) && <div className="paper-history" title={`版本链：${chain.map(item => item.journal || '未知期刊').join(' → ')}${chain.length > 0 ? ' → ' : ''}${paper.journal || '当前稿'}${nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}`}>↳ 版本链：{chain.map(item => item.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{paper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
 
-      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal workflow-signal-inline" title={signal.text} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}</span></div>}
+      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal workflow-signal-inline" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}</span></div>}
 
       <div className="paper-card-footer">
         <div className="paper-footer-left">
           {deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}
-          {(paper.files || []).filter(f => f.p).map((f, i) => isUrl(f.p) ? <a key={i} className="file-dot" href={f.p} target="_blank" rel="noopener noreferrer" title={`${f.t ? `${f.t}｜` : ''}${f.n || f.p}`} onClick={e => e.stopPropagation()}>📎{f.t && <span className="file-type-pill">{f.t}</span>}</a> : <span key={i} className="file-dot file-dot-disabled" title={`${f.n || f.p}：文件链接不可用`}>📎</span>)}
+          {(paper.files || []).filter(file => file.p || file.n).map((file, fileIndex) => isUrl(file.p)
+            ? <a key={fileIndex} className="file-dot" href={file.p} target="_blank" rel="noopener noreferrer" title={`${file.t ? `${file.t}｜` : ''}${file.n || file.p}`} onClick={event => event.stopPropagation()}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</a>
+            : <span key={fileIndex} className="file-dot file-dot-disabled" title={`${file.t ? `${file.t}｜` : ''}${file.n || '本地文件记录'}：未设置在线链接`}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</span>)}
         </div>
         <span className="paper-date-info">{dateInfo}</span>
       </div>
