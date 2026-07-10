@@ -6,16 +6,17 @@ import PreparationWorkspace from './PreparationWorkspace'
 
 interface Props {
   userId: string
+  onPaperCreated?: () => void
 }
 
 const emptySnapshot: PreparationSnapshot = { journals: [], topics: [], drafts: [] }
 
 function cleanPayload<T extends Record<string, any>>(data: T) {
-  const { user_id, created_at, updated_at, ...payload } = data
+  const { id, user_id, created_at, updated_at, ...payload } = data
   return payload
 }
 
-export default function OnlinePreparationWorkspace({ userId }: Props) {
+export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: Props) {
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -38,13 +39,26 @@ export default function OnlinePreparationWorkspace({ userId }: Props) {
     }
 
     setSnapshot({
-      journals: (journalResult.data || []) as JournalProfile[],
-      topics: (topicResult.data || []) as ResearchTopic[],
+      journals: ((journalResult.data || []) as JournalProfile[]).map(journal => ({
+        ...journal,
+        third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
+        subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
+        indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
+      })),
+      topics: ((topicResult.data || []) as ResearchTopic[]).map(topic => ({
+        ...topic,
+        keywords: Array.isArray(topic.keywords) ? topic.keywords : [],
+        methods: Array.isArray(topic.methods) ? topic.methods : [],
+        data_sources: Array.isArray(topic.data_sources) ? topic.data_sources : [],
+        links: Array.isArray(topic.links) ? topic.links : [],
+      })),
       drafts: ((draftResult.data || []) as ManuscriptDraft[]).map(draft => ({
         ...draft,
         checklist: Array.isArray(draft.checklist) && draft.checklist.length ? draft.checklist : createDefaultChecklist(),
         target_journal_ids: Array.isArray(draft.target_journal_ids) ? draft.target_journal_ids : [],
         external_links: Array.isArray(draft.external_links) ? draft.external_links : [],
+        keywords: Array.isArray(draft.keywords) ? draft.keywords : [],
+        authors: Array.isArray(draft.authors) ? draft.authors : [],
       })),
     })
     setLoading(false)
@@ -178,6 +192,7 @@ export default function OnlinePreparationWorkspace({ userId }: Props) {
     }).eq('id', draft.id)
     if (draftError) throw draftError
     await load()
+    onPaperCreated?.()
   }
 
   if (error) return <div className="prep-load-error"><h3>投稿准备模块尚未初始化</h3><p>{error}</p><p>请在 Supabase SQL Editor 执行 <code>supabase/008_preparation_workspace.sql</code>。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
