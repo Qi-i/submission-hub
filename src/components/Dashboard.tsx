@@ -4,10 +4,12 @@ import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
+import { createBackup, parseBackup } from '../lib/backup'
 import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperForm'
 import MetricCard from './MetricCard'
+import ActionCenter from './ActionCenter'
 import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
@@ -16,8 +18,12 @@ type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'dashboard' | 'stats' | 'admin'
 type StatusFilter = 'all' | string
 
-const validStatuses = new Set(STATUSES.map(status => status.key))
+const validStatuses = new Set<string>(STATUSES.map(status => status.key))
 const asText = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null
+const localDateLabel = () => {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
 
 export default function Dashboard() {
   const { user, signOut, isDemo, exitDemo, updateAuthorName } = useAuth()
@@ -77,34 +83,34 @@ export default function Dashboard() {
     setLoading(false)
   }, [isDemo])
 
-  useEffect(() => { loadPapers() }, [loadPapers])
+  useEffect(() => { void loadPapers() }, [loadPapers])
 
-  const allAuthors = Array.from(new Set(papers.flatMap(p => p.authors || []))).sort()
+  const allAuthors = Array.from(new Set(papers.flatMap(paper => paper.authors || []))).sort()
   const matchName = user?.author_name || user?.username || ''
   const sameName = (left: string, right: string) => left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase()
 
   let filtered = papers
-  if (statusFilter !== 'all') filtered = filtered.filter(p => p.status === statusFilter)
+  if (statusFilter !== 'all') filtered = filtered.filter(paper => paper.status === statusFilter)
   if (viewFilter === 'me' && user) {
-    filtered = filtered.filter(p => (p.authors || []).some(name => sameName(name, user.username) || !!user.author_name && sameName(name, user.author_name)))
+    filtered = filtered.filter(paper => (paper.authors || []).some(name => sameName(name, user.username) || (!!user.author_name && sameName(name, user.author_name))))
   } else if (viewFilter === 'author' && filterAuthor) {
-    filtered = filtered.filter(p => (p.authors || []).some(name => sameName(name, filterAuthor)))
+    filtered = filtered.filter(paper => (paper.authors || []).some(name => sameName(name, filterAuthor)))
   }
   if (search.trim()) {
-    const q = search.trim().toLocaleLowerCase()
-    filtered = filtered.filter(p =>
-      (p.title || '').toLocaleLowerCase().includes(q) ||
-      (p.title_zh || '').toLocaleLowerCase().includes(q) ||
-      (p.journal || '').toLocaleLowerCase().includes(q) ||
-      (p.manuscript_no || '').toLocaleLowerCase().includes(q) ||
-      (p.system_status || '').toLocaleLowerCase().includes(q) ||
-      (p.doi || '').toLocaleLowerCase().includes(q) ||
-      (p.publication_info || '').toLocaleLowerCase().includes(q) ||
-      (p.citation || '').toLocaleLowerCase().includes(q) ||
-      (p.journal_url || '').toLocaleLowerCase().includes(q) ||
-      (p.journal_apc_note || '').toLocaleLowerCase().includes(q) ||
-      (p.authors || []).some(a => a.toLocaleLowerCase().includes(q)) ||
-      (p.files || []).some(f => `${f.n || ''} ${f.p || ''} ${f.t || ''}`.toLocaleLowerCase().includes(q))
+    const query = search.trim().toLocaleLowerCase()
+    filtered = filtered.filter(paper =>
+      (paper.title || '').toLocaleLowerCase().includes(query) ||
+      (paper.title_zh || '').toLocaleLowerCase().includes(query) ||
+      (paper.journal || '').toLocaleLowerCase().includes(query) ||
+      (paper.manuscript_no || '').toLocaleLowerCase().includes(query) ||
+      (paper.system_status || '').toLocaleLowerCase().includes(query) ||
+      (paper.doi || '').toLocaleLowerCase().includes(query) ||
+      (paper.publication_info || '').toLocaleLowerCase().includes(query) ||
+      (paper.citation || '').toLocaleLowerCase().includes(query) ||
+      (paper.journal_url || '').toLocaleLowerCase().includes(query) ||
+      (paper.journal_apc_note || '').toLocaleLowerCase().includes(query) ||
+      (paper.authors || []).some(author => author.toLocaleLowerCase().includes(query)) ||
+      (paper.files || []).some(file => `${file.n || ''} ${file.p || ''} ${file.t || ''}`.toLocaleLowerCase().includes(query))
     )
   }
 
@@ -120,10 +126,10 @@ export default function Dashboard() {
   }
 
   const handleExport = () => {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(papers, null, 2)], { type: 'application/json' }))
+    const url = URL.createObjectURL(new Blob([createBackup(papers, 'online')], { type: 'application/json' }))
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `SubmissionHub_${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `SubmissionHub_Backup_${localDateLabel()}.json`
     anchor.click()
     setTimeout(() => URL.revokeObjectURL(url), 0)
   }
@@ -137,11 +143,9 @@ export default function Dashboard() {
       const file = (event.target as HTMLInputElement).files?.[0]
       if (!file || !user) return
       try {
-        const data = JSON.parse(await file.text())
-        if (!Array.isArray(data)) throw new Error('JSON 顶层必须是数组')
-
+        const data = parseBackup(await file.text())
         const existingIds = new Set(papers.map(paper => paper.id))
-        const sourceRows = data.filter(row => row && typeof row === 'object' && !existingIds.has(String(row.id || '')))
+        const sourceRows = data.filter((row: any) => row && typeof row === 'object' && !existingIds.has(String(row.id || '')))
         if (!sourceRows.length) {
           alert('没有发现可新增的记录，重复 ID 已跳过。')
           return
@@ -156,51 +160,51 @@ export default function Dashboard() {
         })
         const now = new Date().toISOString()
 
-        const rows = sourceRows.map((d: any, index) => {
-          const sourcePrevId = asText(d.prevId ?? d.prev_id)
-          const status = asText(d.status) || 'preparing'
-          const apcRaw = d.apc_amount ?? d.apcAmount
+        const rows = sourceRows.map((source: any, index) => {
+          const sourcePrevId = asText(source.prevId ?? source.prev_id)
+          const status = asText(source.status) || 'preparing'
+          const apcRaw = source.apc_amount ?? source.apcAmount
           const apcNumber = apcRaw === null || apcRaw === undefined || apcRaw === '' ? null : Number(apcRaw)
-          const revisionRaw = d.revision_round ?? d.revisionRound
+          const revisionNumber = Number(source.revision_round ?? source.revisionRound)
           return {
             id: generatedIds[index],
             user_id: user.id,
-            title: asText(d.title) || '未命名',
-            title_zh: asText(d.title_zh ?? d.titleZh),
-            journal: asText(d.journal),
-            manuscript_no: asText(d.manuscript_no ?? d.manuscriptNo),
-            submission_system: asText(d.submission_system ?? d.submissionSystem),
-            system_status: asText(d.system_status ?? d.systemStatus),
-            last_status_date: asText(d.last_status_date ?? d.lastStatusDate),
-            next_action: asText(d.next_action ?? d.nextAction),
-            reminder_level: asText(d.reminder_level ?? d.reminderLevel) || 'none',
-            apc_amount: apcNumber !== null && Number.isFinite(apcNumber) ? apcNumber : null,
-            apc_currency: asText(d.apc_currency ?? d.apcCurrency) || 'USD',
-            revision_round: Number.isFinite(Number(revisionRaw)) ? Number(revisionRaw) : 0,
-            followup_log: asText(d.followup_log ?? d.followupLog),
-            doi: asText(d.doi),
-            publication_info: asText(d.publication_info ?? d.publicationInfo),
-            citation: asText(d.citation),
-            journal_url: asText(d.journal_url ?? d.journalUrl),
-            journal_apc_note: asText(d.journal_apc_note ?? d.journalApcNote),
-            status: validStatuses.has(status as any) ? status : 'preparing',
-            lang: asText(d.lang) || 'zh',
-            quartile_jcr: asText(d.quartile_jcr ?? d.quartileJcr),
-            quartile_cas: asText(d.quartile_cas ?? d.quartileCas),
-            quartile_new: asText(d.quartile_new ?? d.quartileNew),
-            quartile_cust: asText(d.quartile_cust ?? d.quartileCust),
-            quartile_zh: Array.isArray(d.quartile_zh ?? d.quartileZh) ? (d.quartile_zh ?? d.quartileZh).filter((item: unknown) => typeof item === 'string') : [],
-            authors: Array.isArray(d.authors) ? d.authors.filter((item: unknown) => typeof item === 'string') : [],
-            corresponding_author: asText(d.corresponding_author ?? d.correspondingAuthor),
-            submitted_date: asText(d.submittedDate ?? d.submitted_date),
-            resolve_date: asText(d.resolveDate ?? d.resolve_date),
-            deadline: asText(d.deadline),
-            tracking_url: asText(d.trackingUrl ?? d.tracking_url),
-            published_url: asText(d.publishedUrl ?? d.published_url),
-            timeline: asText(d.timeline),
-            notes: asText(d.notes),
+            title: asText(source.title) || '未命名',
+            title_zh: asText(source.title_zh ?? source.titleZh),
+            journal: asText(source.journal),
+            manuscript_no: asText(source.manuscript_no ?? source.manuscriptNo),
+            submission_system: asText(source.submission_system ?? source.submissionSystem),
+            system_status: asText(source.system_status ?? source.systemStatus),
+            last_status_date: asText(source.last_status_date ?? source.lastStatusDate),
+            next_action: asText(source.next_action ?? source.nextAction),
+            reminder_level: asText(source.reminder_level ?? source.reminderLevel) || 'none',
+            apc_amount: apcNumber !== null && Number.isFinite(apcNumber) && apcNumber >= 0 ? apcNumber : null,
+            apc_currency: asText(source.apc_currency ?? source.apcCurrency) || 'USD',
+            revision_round: Number.isFinite(revisionNumber) ? Math.max(0, Math.trunc(revisionNumber)) : 0,
+            followup_log: asText(source.followup_log ?? source.followupLog),
+            doi: asText(source.doi),
+            publication_info: asText(source.publication_info ?? source.publicationInfo),
+            citation: asText(source.citation),
+            journal_url: asText(source.journal_url ?? source.journalUrl),
+            journal_apc_note: asText(source.journal_apc_note ?? source.journalApcNote),
+            status: validStatuses.has(status) ? status : 'preparing',
+            lang: asText(source.lang) || 'zh',
+            quartile_jcr: asText(source.quartile_jcr ?? source.quartileJcr),
+            quartile_cas: asText(source.quartile_cas ?? source.quartileCas),
+            quartile_new: asText(source.quartile_new ?? source.quartileNew),
+            quartile_cust: asText(source.quartile_cust ?? source.quartileCust),
+            quartile_zh: Array.isArray(source.quartile_zh ?? source.quartileZh) ? (source.quartile_zh ?? source.quartileZh).filter((item: unknown) => typeof item === 'string') : [],
+            authors: Array.isArray(source.authors) ? source.authors.filter((item: unknown) => typeof item === 'string') : [],
+            corresponding_author: asText(source.corresponding_author ?? source.correspondingAuthor),
+            submitted_date: asText(source.submittedDate ?? source.submitted_date),
+            resolve_date: asText(source.resolveDate ?? source.resolve_date),
+            deadline: asText(source.deadline),
+            tracking_url: asText(source.trackingUrl ?? source.tracking_url),
+            published_url: asText(source.publishedUrl ?? source.published_url),
+            timeline: asText(source.timeline),
+            notes: asText(source.notes),
             prev_id: sourcePrevId ? idMap.get(sourcePrevId) || (existingIds.has(sourcePrevId) ? sourcePrevId : null) : null,
-            files: Array.isArray(d.files) ? d.files.map((item: any) => ({ n: asText(item?.n ?? item?.name) || '', p: asText(item?.p ?? item?.url) || '', t: asText(item?.t ?? item?.type) || '其它' })).filter((item: any) => item.n || item.p) : null,
+            files: Array.isArray(source.files) ? source.files.map((item: any) => ({ n: asText(item?.n ?? item?.name) || '', p: asText(item?.p ?? item?.url) || '', t: asText(item?.t ?? item?.type) || '其它' })).filter((item: any) => item.n || item.p) : null,
             created_at: now,
             updated_at: now,
           }
@@ -262,7 +266,7 @@ export default function Dashboard() {
         <div className="header-actions">
           {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
           <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
-          {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入 JSON"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出 JSON"><Download size={14} /> 导出</button><button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button></>}
+          {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} title="导入兼容备份"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={handleExport} title="导出版本化备份"><Download size={14} /> 备份</button><button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button></>}
           {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={openSettings} title="个人设置"><Settings size={15} /></button>}
           {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
         </div>
@@ -273,6 +277,7 @@ export default function Dashboard() {
           {stats.map(status => <MetricCard key={status.key} icon={status.emoji} value={status.count} label={status.label} helper="点击筛选" color={status.color} tone={`${status.color}18`} active={statusFilter === status.key} onClick={() => setStatusFilter(statusFilter === status.key ? 'all' : status.key)} />)}
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
+        <ActionCenter papers={papers} onOpen={isDemo ? undefined : openPaperForm} />
         <div className="paper-grid">{filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((paper, index) => <PaperCard key={paper.id} paper={paper} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={index} onClick={isDemo ? undefined : () => openPaperForm(paper)} />)}</div>
       </>}
 
