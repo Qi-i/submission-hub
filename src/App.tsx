@@ -20,6 +20,7 @@ import './visual-refresh.css'
 import './unified-ui.css'
 import './unified-ui-additions.css'
 import './ui-regression-fixes.css'
+import './release-polish.css'
 
 function AppContent() {
   const { user, loading } = useAuth()
