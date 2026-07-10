@@ -26,7 +26,6 @@ import './visual-refresh.css'
 import './unified-ui.css'
 import './unified-ui-additions.css'
 import './ui-regression-fixes.css'
-import './modal-scroll-fix.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
