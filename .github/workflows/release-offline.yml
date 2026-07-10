@@ -4,13 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, for example v1.3.0
+        description: Release tag, for example v1.4.0
         required: true
-        default: v1.3.0
+        default: v1.4.0
       title:
         description: Release title
         required: true
-        default: Submission Hub v1.3.0
+        default: Submission Hub v1.4.0
+  push:
+    branches: [main]
+    paths:
+      - '.github/release-v1.4.0'
 
 permissions:
   contents: write
@@ -23,27 +27,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Verify privacy-safe samples
+        run: npm run check:privacy
       - run: npm run build:offline
       - run: npm run check:offline
       - run: mkdir -p release && cp dist-offline/offline.html release/submission-hub-offline.html
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.event.inputs.tag }}
-          RELEASE_TITLE: ${{ github.event.inputs.title }}
+          TAG_NAME: ${{ github.event.inputs.tag || 'v1.4.0' }}
+          RELEASE_TITLE: ${{ github.event.inputs.title || 'Submission Hub v1.4.0' }}
           RELEASE_NOTES: |
-            Submission Hub v1.3.0 离线版。
+            Submission Hub v1.4.0
 
-            - 单文件：submission-hub-offline.html
-            - 无需登录或服务器，不包含 Supabase 与 R2 代码
-            - 新增投稿准备工作区：选题池、草稿准备、期刊库和期刊比较
-            - 支持草稿就绪度诊断、自定义投稿检查项与一键转入投稿管理
-            - 期刊档案可记录官网、作者指南、分区、影响因子、开放获取、APC、审稿周期、接收率和第三方介绍
-            - 完整备份同时包含投稿记录、期刊、选题和草稿，并兼容旧版备份
+            主要更新：
+            - 统一投稿管理、个人统计和投稿准备的页面宽度、边距与紧凑布局
+            - 投稿状态与期刊胶囊等高，期刊名称按内容宽度收缩并保持右对齐
+            - 审稿子状态改为带状态色圆点的次级状态，不再挤占期刊名称位置
+            - 同一行投稿卡片等高，并增加低对比度序号水印
+            - 修复投稿记录编辑弹窗滚动与底部操作区可见性
+            - 完善投稿准备、期刊收藏与比较、草稿就绪度和正式投出联动
+            - 示例数据和文档截图全部使用虚构内容，并增加自动隐私检查
+            - 离线版继续保持单文件、本地存储、无 Supabase/R2/EasyScholar 密钥依赖
+
+            附件：submission-hub-offline.html
         run: |
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" release/submission-hub-offline.html --clobber
+            gh release edit "$TAG_NAME" --title "$RELEASE_TITLE" --notes "$RELEASE_NOTES" --latest
           else
             gh release create "$TAG_NAME" release/submission-hub-offline.html --title "$RELEASE_TITLE" --notes "$RELEASE_NOTES" --latest
           fi
