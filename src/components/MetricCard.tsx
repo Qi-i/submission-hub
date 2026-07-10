@@ -23,7 +23,6 @@ export default function MetricCard({ icon, value, label, helper, color = 'var(--
       onClick={clickable ? onClick : undefined}
       disabled={disabled}
     >
-      <span className="metric-accent" />
       <span className="metric-icon">{icon}</span>
       <span className="metric-copy">
         <span className="metric-value">{value}</span>
