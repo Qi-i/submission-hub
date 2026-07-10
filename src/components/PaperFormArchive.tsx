@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react'
 import { FileText, Loader, Save, Trash2, X } from 'lucide-react'
 import type { Paper, PaperFile } from '../lib/types'
 import { CAS_OPTIONS, FILE_TYPE_OPTIONS, JCR_OPTIONS, NEXT_ACTION_OPTIONS, REMINDER_LEVELS, STATUSES, SUBMISSION_SYSTEM_OPTIONS, inferNextAction } from '../lib/types'
-import { uploadFile } from '../lib/storage'
 import Timeline from './Timeline'
 
 type FormState = {
@@ -17,6 +16,8 @@ type FormState = {
   followup_log: string; notes: string; files: PaperFile[];
 }
 
+type UploadResult = { fileUrl: string; fileName: string } | null
+
 interface Props {
   paper: Paper | 'new'
   allPapers: Paper[]
@@ -24,6 +25,7 @@ interface Props {
   onSave: (data: Partial<Paper>) => void | Promise<void>
   onDelete: (id: string) => void | Promise<void>
   onClose: () => void
+  onUploadFile?: (file: File) => Promise<UploadResult>
 }
 
 const blankZhQuartile = ['', '', '', '']
@@ -69,12 +71,12 @@ function latestTimelineState(timeline: string, fallbackStatus: string, fallbackD
 function deriveMainStatus(systemStatus: string | null, currentStatus: string) {
   const raw = (systemStatus || '').toLowerCase()
   if (!raw) return currentStatus
-  if (/(accepted|accept|published|online|proof)/.test(raw)) return 'accepted'
-  if (/(reject|rejected|declined)/.test(raw)) return 'rejected'
-  if (/(withdraw|withdrawn)/.test(raw)) return 'withdrawn'
-  if (/(revision|required revision|major revision|minor revision|revise|revision required|revision incomplete)/.test(raw)) return 'revision'
-  if (/(out for review|under review|with editor|editor invited|decision pending|required reviews complete|review complete|with journal administrator|revised manuscript submitted)/.test(raw)) return 'under_review'
-  if (/(submitted|submission received|new submission)/.test(raw)) return 'submitted'
+  if (/(accepted|accept|published|online|proof|录用|接收|见刊|在线发表|校样)/.test(raw)) return 'accepted'
+  if (/(reject|rejected|declined|拒稿|被拒|退稿)/.test(raw)) return 'rejected'
+  if (/(withdraw|withdrawn|撤稿)/.test(raw)) return 'withdrawn'
+  if (/(revision|required revision|major revision|minor revision|revise|revision required|revision incomplete|修回|大修|小修)/.test(raw)) return 'revision'
+  if (/(out for review|under review|with editor|editor invited|decision pending|required reviews complete|review complete|with journal administrator|revised manuscript submitted|外审|审稿|编辑处理|等待决定)/.test(raw)) return 'under_review'
+  if (/(submitted|submission received|new submission|已投稿|投稿成功)/.test(raw)) return 'submitted'
   return currentStatus
 }
 
@@ -86,12 +88,13 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
   return <label className={`compact-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</label>
 }
 
-export default function PaperFormArchive({ paper, allPapers, currentUsername, onSave, onDelete, onClose }: Props) {
+export default function PaperFormArchive({ paper, allPapers, currentUsername, onSave, onDelete, onClose, onUploadFile }: Props) {
   const isNew = paper === 'new'
   const currentId = isNew ? '' : paper.id
   const [form, setForm] = useState<FormState>(() => initial(paper, currentUsername))
   const [authorsText, setAuthorsText] = useState(form.authors.join(', '))
   const [uploading, setUploading] = useState<number | null>(null)
+  const [saving, setSaving] = useState(false)
   const [customTl, setCustomTl] = useState<string[]>([])
   const authors = authorsText.split(/[，,;；、\s]+/).map(a => a.trim()).filter(Boolean)
   const set = <K extends keyof FormState>(key: K, next: FormState[K]) => setForm(prev => ({ ...prev, [key]: next }))
@@ -128,6 +131,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
   const removeFile = (idx: number) => setForm(prev => ({ ...prev, files: prev.files.filter((_, i) => i !== idx) }))
 
   const upload = async (idx: number) => {
+    if (!onUploadFile || uploading !== null) return
     const input = document.createElement('input')
     input.type = 'file'
     input.onchange = async event => {
@@ -136,43 +140,57 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
       updateFile(idx, 'n', file.name)
       updateFile(idx, 'p', '上传中...')
       setUploading(idx)
-      const result = await uploadFile(file)
-      setUploading(null)
-      if (!result) {
-        updateFile(idx, 'p', '')
-        alert('上传失败：文件存储尚未配置完整，或当前网络/权限不可用。')
-        return
+      try {
+        const result = await onUploadFile(file)
+        if (!result) {
+          updateFile(idx, 'p', '')
+          alert('上传失败：文件存储尚未配置完整，或当前网络/权限不可用。')
+          return
+        }
+        updateFile(idx, 'p', result.fileUrl)
+      } finally {
+        setUploading(null)
       }
-      updateFile(idx, 'p', result.fileUrl)
     }
     input.click()
   }
 
-  const save = () => {
+  const save = async () => {
+    if (saving) return
     const latest = latestTimelineState(form.timeline, form.system_status, form.last_status_date)
     const mainStatus = deriveMainStatus(latest.status, form.status)
     const inferred = inferNextAction({ status: mainStatus, system_status: latest.status, last_status_date: latest.date, submitted_date: form.submitted_date || null, deadline: form.deadline || null, published_url: form.published_url || null, doi: form.doi || null, publication_info: form.publication_info || null })
     const apc = form.apc_amount ? Number(form.apc_amount) : null
     const revisionRound = form.revision_round ? Number(form.revision_round) : 0
     const files = form.files.filter(file => /^https?:\/\//i.test(file.p)).map(file => ({ n: file.n, p: file.p, t: file.t || '其它' }))
-    onSave({
-      title: form.title || '未命名', title_zh: form.title_zh || null, journal: form.journal || null,
-      manuscript_no: form.manuscript_no || null, submission_system: form.submission_system || null,
-      system_status: latest.status, last_status_date: latest.date,
-      next_action: form.next_action || inferred.action, reminder_level: form.reminder_level !== 'none' ? form.reminder_level : inferred.reminder,
-      apc_amount: apc !== null && Number.isFinite(apc) ? apc : null, apc_currency: form.apc_currency || 'USD', revision_round: Number.isFinite(revisionRound) ? revisionRound : 0,
-      followup_log: form.followup_log || null,
-      doi: form.doi || null, publication_info: form.publication_info || null, citation: form.citation || null, journal_url: form.journal_url || null, journal_apc_note: form.journal_apc_note || null,
-      status: mainStatus, lang: form.lang, quartile_jcr: form.quartile_jcr, quartile_cas: form.quartile_cas, quartile_new: form.quartile_new, quartile_cust: form.quartile_cust, quartile_zh: form.quartile_zh,
-      authors, corresponding_author: form.corresponding_author || null,
-      submitted_date: form.submitted_date || null, resolve_date: form.resolve_date || null, deadline: form.deadline || null,
-      tracking_url: form.tracking_url || null, published_url: form.published_url || null, timeline: form.timeline || null, notes: form.notes || null, prev_id: form.prev_id || null,
-      files: files.length ? files : null, updated_at: new Date().toISOString(),
-    })
+    setSaving(true)
+    try {
+      await onSave({
+        title: form.title || '未命名', title_zh: form.title_zh || null, journal: form.journal || null,
+        manuscript_no: form.manuscript_no || null, submission_system: form.submission_system || null,
+        system_status: latest.status, last_status_date: latest.date,
+        next_action: form.next_action || inferred.action, reminder_level: form.reminder_level !== 'none' ? form.reminder_level : inferred.reminder,
+        apc_amount: apc !== null && Number.isFinite(apc) ? apc : null, apc_currency: form.apc_currency || 'USD', revision_round: Number.isFinite(revisionRound) ? revisionRound : 0,
+        followup_log: form.followup_log || null,
+        doi: form.doi || null, publication_info: form.publication_info || null, citation: form.citation || null, journal_url: form.journal_url || null, journal_apc_note: form.journal_apc_note || null,
+        status: mainStatus, lang: form.lang, quartile_jcr: form.quartile_jcr, quartile_cas: form.quartile_cas, quartile_new: form.quartile_new, quartile_cust: form.quartile_cust, quartile_zh: form.quartile_zh,
+        authors, corresponding_author: form.corresponding_author || null,
+        submitted_date: form.submitted_date || null, resolve_date: form.resolve_date || null, deadline: form.deadline || null,
+        tracking_url: form.tracking_url || null, published_url: form.published_url || null, timeline: form.timeline || null, notes: form.notes || null, prev_id: form.prev_id || null,
+        files: files.length ? files : null, updated_at: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.error('Save paper failed:', error)
+      alert('保存失败，请检查网络或数据格式后重试。')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  return <div className="modal-overlay" onClick={onClose}><div className="modal compact-form-modal" onClick={e => e.stopPropagation()}>
-    <div className="compact-form-header"><div><h3>{isNew ? '新建投稿记录' : '编辑投稿记录'}</h3><p>{form.journal || '未填写期刊'} · {STATUSES.find(s => s.key === form.status)?.label || form.status}</p></div><button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button></div>
+  const close = () => { if (!saving) onClose() }
+
+  return <div className="modal-overlay" onClick={close}><div className="modal compact-form-modal" onClick={e => e.stopPropagation()}>
+    <div className="compact-form-header"><div><h3>{isNew ? '新建投稿记录' : '编辑投稿记录'}</h3><p>{form.journal || '未填写期刊'} · {STATUSES.find(s => s.key === form.status)?.label || form.status}</p></div><button className="btn btn-ghost btn-icon" onClick={close} disabled={saving}><X size={18} /></button></div>
     <div className="compact-form-body">
       <Section title="基本信息" subtitle="题名、期刊、主状态" tone="blue">
         <div className="compact-grid two"><Field label="文章语言"><select className="select" value={form.lang} onChange={e => set('lang', e.target.value)}><option value="zh">中文</option><option value="en">英文</option></select></Field><Field label="当前主状态"><select className="select" value={form.status} onChange={e => set('status', e.target.value)}>{STATUSES.map(s => <option key={s.key} value={s.key}>{s.emoji} {s.label}</option>)}</select></Field></div>
@@ -205,12 +223,12 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
         <Field label="标准引用格式" wide><textarea className="textarea" value={form.citation} onChange={e => set('citation', e.target.value)} placeholder="可粘贴 GB/T、APA 或期刊要求的引用格式" /></Field>
       </Section>
 
-      <Section title="文件与备注" subtitle="附件分类、催稿、补充说明" tone="slate">
+      <Section title="文件与备注" subtitle={onUploadFile ? '附件分类、催稿、补充说明' : '离线版仅记录文件名称和外部链接'} tone="slate">
         <div className="compact-file-head"><span>文件归档</span><button className="btn btn-ghost btn-sm" onClick={addFile}>+ 添加文件</button></div>
-        {form.files.length > 0 && <div className="compact-files">{form.files.map((file, i) => <div key={i} className="compact-file-row archive-file-row"><select className="select" value={file.t || '其它'} onChange={e => updateFile(i, 't', e.target.value)}>{FILE_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select><button type="button" className="file-icon" onClick={() => upload(i)}>{uploading === i ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</button><input className="input" value={file.n} onChange={e => updateFile(i, 'n', e.target.value)} placeholder="文件名称" /><input className="input" value={file.p} onChange={e => updateFile(i, 'p', e.target.value)} placeholder="在线文件 URL" /><button className="file-action-btn" onClick={() => removeFile(i)}><Trash2 size={13} /></button></div>)}</div>}
+        {form.files.length > 0 && <div className="compact-files">{form.files.map((file, i) => <div key={i} className="compact-file-row archive-file-row"><select className="select" value={file.t || '其它'} onChange={e => updateFile(i, 't', e.target.value)}>{FILE_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select>{onUploadFile ? <button type="button" className="file-icon" onClick={() => upload(i)} disabled={uploading !== null}>{uploading === i ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</button> : <span className="file-icon" title="离线版不上传文件"><FileText size={15} /></span>}<input className="input" value={file.n} onChange={e => updateFile(i, 'n', e.target.value)} placeholder="文件名称" /><input className="input" value={file.p} onChange={e => updateFile(i, 'p', e.target.value)} placeholder="在线文件 URL" /><button className="file-action-btn" onClick={() => removeFile(i)}><Trash2 size={13} /></button></div>)}</div>}
         <div className="compact-grid two textarea-grid"><Field label="沟通记录"><textarea className="textarea" value={form.followup_log} onChange={e => set('followup_log', e.target.value)} /></Field><Field label="备注 / 意见"><textarea className="textarea" value={form.notes} onChange={e => set('notes', e.target.value)} /></Field></div>
       </Section>
     </div>
-    <div className="compact-form-footer">{!isNew ? <button className="btn btn-danger btn-sm" onClick={() => onDelete((paper as Paper).id)}><Trash2 size={14} /> 删除记录</button> : <div />}<div className="compact-footer-actions"><button className="btn btn-ghost" onClick={onClose}>取消</button><button className="btn btn-primary" onClick={save}><Save size={14} /> 保存</button></div></div>
+    <div className="compact-form-footer">{!isNew ? <button className="btn btn-danger btn-sm" disabled={saving} onClick={() => onDelete((paper as Paper).id)}><Trash2 size={14} /> 删除记录</button> : <div />}<div className="compact-footer-actions"><button className="btn btn-ghost" onClick={close} disabled={saving}>取消</button><button className="btn btn-primary" onClick={save} disabled={saving}><Save size={14} /> {saving ? '保存中...' : '保存'}</button></div></div>
   </div></div>
 }
