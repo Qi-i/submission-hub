@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { BadgeCheck, ExternalLink, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react'
 import { journalLookupHint, lookupJournalMetadata } from '../lib/journal-lookup'
-import { rankItemsFromValues } from '../lib/journal-rank'
+import { rankFieldSuggestions, rankItemsFromValues, type JournalRankLookupResult } from '../lib/journal-rank'
 import type { ExternalLink as JournalLink, JournalProfile } from '../lib/preparation'
 import { INDEXING_OPTIONS, OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
 
@@ -10,7 +10,7 @@ interface Props {
   onSave: (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onClose: () => void
-  onLookupRanks?: unknown
+  onLookupRanks?: (publicationName: string) => Promise<JournalRankLookupResult>
 }
 
 type RankedJournal = JournalProfile & {
@@ -41,15 +41,18 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
   return <div className={`prep-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</div>
 }
 
-export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }: Props) {
+export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, onLookupRanks }: Props) {
   const source = value === 'new' ? null : value as RankedJournal
   const [saving, setSaving] = useState(false)
   const [lookingUp, setLookingUp] = useState(false)
+  const [rankLookingUp, setRankLookingUp] = useState(false)
   const [lookupInput, setLookupInput] = useState(source?.issn || source?.eissn || source?.website_url || '')
   const [lookupMessage, setLookupMessage] = useState('')
   const [lookupSource, setLookupSource] = useState('')
-  const [rankData] = useState<Record<string, string>>(source?.rank_data || {})
-  const [rankUpdatedAt] = useState(source?.rank_updated_at || '')
+  const [rankMessage, setRankMessage] = useState('')
+  const [rankMessageError, setRankMessageError] = useState(false)
+  const [rankData, setRankData] = useState<Record<string, string>>(source?.rank_data || {})
+  const [rankUpdatedAt, setRankUpdatedAt] = useState(source?.rank_updated_at || '')
   const [name, setName] = useState(source?.name || '')
   const [publisher, setPublisher] = useState(source?.publisher || '')
   const [website, setWebsite] = useState(source?.website_url || '')
@@ -78,6 +81,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }
 
   const hint = useMemo(() => journalLookupHint(lookupInput), [lookupInput])
   const rankItems = useMemo(() => rankItemsFromValues(rankData), [rankData])
+  const busy = saving || lookingUp || rankLookingUp
 
   const lookup = async () => {
     if (!lookupInput.trim() || lookingUp) return
@@ -93,12 +97,44 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }
       if (result.websiteUrl) setWebsite(result.websiteUrl)
       setLookupMessage(result.note)
       setLookupSource(result.sourceUrl)
-      const sourceLink = `${result.sourceLabel}|${result.sourceUrl}`
-      setThirdParty(previous => previous.includes(result.sourceUrl) ? previous : [previous, sourceLink].filter(Boolean).join('\n'))
+      if (safeUrl(result.sourceUrl)) {
+        const sourceLink = `${result.sourceLabel}|${result.sourceUrl}`
+        setThirdParty(previous => previous.includes(result.sourceUrl) ? previous : [previous, sourceLink].filter(Boolean).join('\n'))
+      }
     } catch (error) {
       setLookupMessage(error instanceof Error ? error.message : '自动识别失败，请手动填写。')
     } finally {
       setLookingUp(false)
+    }
+  }
+
+  const lookupRanks = async () => {
+    if (!onLookupRanks || rankLookingUp) return
+    if (!name.trim()) {
+      setRankMessageError(true)
+      setRankMessage('请先填写期刊名称。')
+      return
+    }
+
+    setRankLookingUp(true)
+    setRankMessage('')
+    setRankMessageError(false)
+    try {
+      const result = await onLookupRanks(name.trim())
+      const suggestions = rankFieldSuggestions(result.values)
+      setRankData(result.values)
+      setRankUpdatedAt(result.fetchedAt)
+      if (suggestions.jcr) setJcr(suggestions.jcr)
+      if (suggestions.cas) setCas(suggestions.cas)
+      if (suggestions.impactFactor) setImpactFactor(suggestions.impactFactor)
+      if (suggestions.indexing.length) setIndexing(previous => Array.from(new Set([...previous, ...suggestions.indexing])))
+      if (suggestions.risk) setRisk(suggestions.risk)
+      setRankMessage(`${result.cached ? '已读取缓存' : '查询完成'}：获取 ${result.items.length} 项等级信息。`)
+    } catch (error) {
+      setRankMessageError(true)
+      setRankMessage(error instanceof Error ? error.message : '期刊等级查询失败，请稍后再试。')
+    } finally {
+      setRankLookingUp(false)
     }
   }
 
@@ -107,6 +143,13 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }
       if (!name.trim()) alert('请填写期刊名称。')
       return
     }
+
+    const invalidUrl = [website, guide, submission].find(item => item.trim() && !safeUrl(item.trim()))
+    if (invalidUrl) {
+      alert('期刊官网、作者指南和投稿系统必须填写完整的 http:// 或 https:// 地址。')
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
@@ -141,11 +184,11 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }
     finally { setSaving(false) }
   }
 
-  return <div className="modal-overlay" onClick={() => !saving && onClose()}>
-    <div className="modal prep-modal journal-form-modal" onClick={event => event.stopPropagation()}>
+  return <div className="modal-overlay" onClick={() => !busy && onClose()}>
+    <div className="modal prep-modal journal-form-modal" role="dialog" aria-modal="true" aria-labelledby="journal-form-title" onClick={event => event.stopPropagation()}>
       <div className="prep-modal-head journal-modal-head">
-        <div><span className="journal-modal-kicker">JOURNAL LIBRARY</span><h3>{source ? '编辑期刊档案' : '收藏期刊'}</h3><p>先识别基础信息，再记录真正影响投稿决策的分区、费用和周期。</p></div>
-        <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} disabled={saving}><X size={18} /></button>
+        <div><span className="journal-modal-kicker">JOURNAL LIBRARY</span><h3 id="journal-form-title">{source ? '编辑期刊档案' : '收藏期刊'}</h3><p>先识别基础信息，再记录真正影响投稿决策的分区、费用和周期。</p></div>
+        <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} disabled={busy} aria-label="关闭期刊档案"><X size={18} /></button>
       </div>
 
       <div className="prep-modal-body">
@@ -153,26 +196,27 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }
           <div className="journal-lookup-icon"><Sparkles size={20} /></div>
           <div className="journal-lookup-copy"><strong>快速识别期刊</strong><span>粘贴任意一篇论文 DOI、doi.org 链接、ISSN 或期刊官网</span></div>
           <div className="journal-lookup-control"><input className="input" value={lookupInput} onChange={event => setLookupInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void lookup() } }} placeholder="例如 10.1002/esp.70113 或 1365-3091" /><button type="button" className="btn btn-primary" onClick={() => void lookup()} disabled={lookingUp || !lookupInput.trim()}>{lookingUp ? <RefreshCw size={15} className="spin" /> : <Sparkles size={15} />} {lookingUp ? '识别中' : '自动填充'}</button></div>
-          <small className="journal-lookup-hint">{lookupMessage || hint}</small>
-          {lookupSource && <a className="journal-lookup-source" href={lookupSource} target="_blank" rel="noopener noreferrer">查看数据来源 <ExternalLink size={11} /></a>}
+          <small className="journal-lookup-hint" aria-live="polite">{lookupMessage || hint}</small>
+          {lookupSource && safeUrl(lookupSource) && <a className="journal-lookup-source" href={lookupSource} target="_blank" rel="noopener noreferrer">查看数据来源 <ExternalLink size={11} /></a>}
         </section>
 
         <section className="journal-form-section identity"><div className="journal-form-section-head"><b>基础身份</b><span>DOI / ISSN 可自动填充</span></div>
-          <div className="prep-form-grid two"><Field label="期刊名称" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus={!source} /></Field><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="收藏优先级"><select className="select" value={priority} onChange={event => setPriority(event.target.value)}>{PRIORITY_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field></div>
+          <div className="prep-form-grid two"><Field label="期刊名称" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus={!source} maxLength={200} /></Field><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="收藏优先级"><select className="select" value={priority} onChange={event => setPriority(event.target.value)}>{PRIORITY_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field></div>
           <div className="prep-form-grid four"><Field label="ISSN"><input className="input" value={issn} onChange={event => setIssn(event.target.value)} /></Field><Field label="EISSN"><input className="input" value={eissn} onChange={event => setEissn(event.target.value)} /></Field><Field label="JCR 分区"><input className="input" value={jcr} onChange={event => setJcr(event.target.value)} placeholder="Q1" /></Field><Field label="中科院分区"><input className="input" value={cas} onChange={event => setCas(event.target.value)} placeholder="一区" /></Field></div>
         </section>
 
         <section className="journal-form-section links"><div className="journal-form-section-head"><b>投稿入口</b><span>卡片底部直接打开</span></div><div className="prep-form-grid three"><Field label="期刊官网"><input className="input" value={website} onChange={event => setWebsite(event.target.value)} placeholder="https://..." /></Field><Field label="作者指南"><input className="input" value={guide} onChange={event => setGuide(event.target.value)} placeholder="https://..." /></Field><Field label="投稿系统"><input className="input" value={submission} onChange={event => setSubmission(event.target.value)} placeholder="https://..." /></Field></div></section>
 
         <section className="journal-rank-panel">
-          <div className="journal-rank-head"><div><BadgeCheck size={17} /><span><strong>期刊等级记录</strong><small>分区与影响因子请按已核实数据填写</small></span></div></div>
-          {rankItems.length > 0 ? <div className="journal-rank-chips">{rankItems.slice(0, 18).map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div> : <div className="journal-rank-empty">暂无等级快照，请在表单中填写 JCR 分区、中科院分区和影响因子。</div>}
-          {rankUpdatedAt && <small className="journal-rank-time">历史更新时间：{new Date(rankUpdatedAt).toLocaleString()}</small>}
+          <div className="journal-rank-head"><div><BadgeCheck size={17} /><span><strong>期刊等级记录</strong><small>{onLookupRanks ? '可按期刊名称查询，也可按已核实数据手动填写' : '请按已核实数据填写'}</small></span></div>{onLookupRanks && <button type="button" className="btn btn-ghost btn-sm" onClick={() => void lookupRanks()} disabled={rankLookingUp || !name.trim()}>{rankLookingUp ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />} {rankItems.length ? '刷新等级' : '查询等级'}</button>}</div>
+          {rankItems.length > 0 ? <div className="journal-rank-chips">{rankItems.slice(0, 18).map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div> : <div className="journal-rank-empty">暂无等级快照，可点击查询或在下方填写 JCR 分区、中科院分区和影响因子。</div>}
+          {rankMessage && <small className={`journal-rank-time ${rankMessageError ? 'danger' : ''}`} role="status" aria-live="polite">{rankMessage}</small>}
+          {rankUpdatedAt && <small className="journal-rank-time">更新时间：{new Date(rankUpdatedAt).toLocaleString()}</small>}
         </section>
 
         <section className="journal-form-section decision"><div className="journal-form-section-head"><b>投稿决策</b><span>费用和审稿周期需要人工核对</span></div>
           <div className="prep-form-grid four"><Field label="影响因子"><input type="number" step="0.001" min="0" className="input" value={impactFactor} onChange={event => setImpactFactor(event.target.value)} /></Field><Field label="开放获取"><select className="select" value={oaType} onChange={event => setOaType(event.target.value)}>{OA_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field><Field label="APC"><input type="number" min="0" className="input" value={apc} onChange={event => setApc(event.target.value)} /></Field><Field label="币种"><input className="input" value={currency} onChange={event => setCurrency(event.target.value)} maxLength={8} /></Field></div>
-          <div className="prep-form-grid three"><Field label="首轮决定（天）"><input type="number" min="0" step="1" className="input" value={firstDecision} onChange={event => setFirstDecision(event.target.value)} /></Field><Field label="总审稿周期（天）"><input type="number" min="0" step="1" className="input" value={totalReview} onChange={event => setTotalReview(event.target.value)} /></Field><Field label="接收率（%）"><input type="number" min="0" max="100" className="input" value={acceptanceRate} onChange={event => setAcceptanceRate(event.target.value)} /></Field></div>
+          <div className="prep-form-grid three"><Field label="首轮决定（天）"><input type="number" min="0" step="1" className="input" value={firstDecision} onChange={event => setFirstDecision(event.target.value)} /></Field><Field label="总审稿周期（天）"><input type="number" min="0" step="1" className="input" value={totalReview} onChange={event => setTotalReview(event.target.value)} /></Field><Field label="接收率（%）"><input type="number" min="0" max="100" step="0.1" className="input" value={acceptanceRate} onChange={event => setAcceptanceRate(event.target.value)} /></Field></div>
           <Field label="收录情况" wide><div className="prep-check-row">{INDEXING_OPTIONS.map(option => <label key={option}><input type="checkbox" checked={indexing.includes(option)} onChange={event => setIndexing(previous => event.target.checked ? Array.from(new Set([...previous, option])) : previous.filter(item => item !== option))} /> {option}</label>)}</div></Field>
         </section>
 
@@ -185,7 +229,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }
         </section>
       </div>
 
-      <div className="prep-modal-footer">{source ? <button type="button" className="btn btn-danger btn-sm" onClick={() => void remove()} disabled={saving}><Trash2 size={14} /> 删除</button> : <span />}<div><button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>取消</button><button type="button" className="btn btn-primary" onClick={() => void save()} disabled={saving}><Save size={14} /> {saving ? '保存中...' : '保存期刊'}</button></div></div>
+      <div className="prep-modal-footer">{source ? <button type="button" className="btn btn-danger btn-sm" onClick={() => void remove()} disabled={busy}><Trash2 size={14} /> 删除</button> : <span />}<div><button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>取消</button><button type="button" className="btn btn-primary" onClick={() => void save()} disabled={busy}><Save size={14} /> {saving ? '保存中...' : '保存期刊'}</button></div></div>
     </div>
   </div>
 }
