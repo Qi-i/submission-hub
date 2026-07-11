@@ -1,8 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { BadgeCheck, ExternalLink, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react'
 import { journalLookupHint, lookupJournalMetadata } from '../lib/journal-lookup'
-import type { JournalRankLookupResult } from '../lib/journal-rank'
-import { rankFieldSuggestions, rankItemsFromValues } from '../lib/journal-rank'
+import { rankItemsFromValues } from '../lib/journal-rank'
 import type { ExternalLink as JournalLink, JournalProfile } from '../lib/preparation'
 import { INDEXING_OPTIONS, OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
 
@@ -11,7 +10,6 @@ interface Props {
   onSave: (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onClose: () => void
-  onLookupRanks?: (publicationName: string) => Promise<JournalRankLookupResult>
 }
 
 type RankedJournal = JournalProfile & {
@@ -42,17 +40,15 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
   return <div className={`prep-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</div>
 }
 
-export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, onLookupRanks }: Props) {
+export default function JournalFormEnhanced({ value, onSave, onDelete, onClose }: Props) {
   const source = value === 'new' ? null : value as RankedJournal
   const [saving, setSaving] = useState(false)
   const [lookingUp, setLookingUp] = useState(false)
-  const [ranking, setRanking] = useState(false)
   const [lookupInput, setLookupInput] = useState(source?.issn || source?.eissn || source?.website_url || '')
   const [lookupMessage, setLookupMessage] = useState('')
   const [lookupSource, setLookupSource] = useState('')
-  const [rankMessage, setRankMessage] = useState('')
-  const [rankData, setRankData] = useState<Record<string, string>>(source?.rank_data || {})
-  const [rankUpdatedAt, setRankUpdatedAt] = useState(source?.rank_updated_at || '')
+  const [rankData] = useState<Record<string, string>>(source?.rank_data || {})
+  const [rankUpdatedAt] = useState(source?.rank_updated_at || '')
   const [name, setName] = useState(source?.name || '')
   const [publisher, setPublisher] = useState(source?.publisher || '')
   const [website, setWebsite] = useState(source?.website_url || '')
@@ -102,31 +98,6 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
       setLookupMessage(error instanceof Error ? error.message : '自动识别失败，请手动填写。')
     } finally {
       setLookingUp(false)
-    }
-  }
-
-  const lookupRanks = async () => {
-    if (!onLookupRanks || !name.trim() || ranking) {
-      if (!name.trim()) alert('请先填写或识别期刊名称。')
-      return
-    }
-    setRanking(true)
-    setRankMessage('')
-    try {
-      const result = await onLookupRanks(name.trim())
-      setRankData(result.values)
-      setRankUpdatedAt(result.fetchedAt)
-      const suggestions = rankFieldSuggestions(result.values)
-      if (!jcr && suggestions.jcr) setJcr(suggestions.jcr)
-      if (!cas && suggestions.cas) setCas(suggestions.cas)
-      if (!impactFactor && suggestions.impactFactor) setImpactFactor(suggestions.impactFactor)
-      if (suggestions.risk) setRisk(suggestions.risk)
-      setIndexing(previous => Array.from(new Set([...previous, ...suggestions.indexing])))
-      setRankMessage(result.items.length ? `${result.cached ? '缓存命中' : '查询完成'}，获得 ${result.items.length} 项等级信息。` : '接口未返回可展示的等级。')
-    } catch (error) {
-      setRankMessage(error instanceof Error ? error.message : '期刊等级查询失败。')
-    } finally {
-      setRanking(false)
     }
   }
 
@@ -193,10 +164,9 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
         <section className="journal-form-section links"><div className="journal-form-section-head"><b>投稿入口</b><span>卡片底部直接打开</span></div><div className="prep-form-grid three"><Field label="期刊官网"><input className="input" value={website} onChange={event => setWebsite(event.target.value)} placeholder="https://..." /></Field><Field label="作者指南"><input className="input" value={guide} onChange={event => setGuide(event.target.value)} placeholder="https://..." /></Field><Field label="投稿系统"><input className="input" value={submission} onChange={event => setSubmission(event.target.value)} placeholder="https://..." /></Field></div></section>
 
         <section className="journal-rank-panel">
-          <div className="journal-rank-head"><div><BadgeCheck size={17} /><span><strong>期刊等级</strong><small>EasyScholar 服务端查询，不在浏览器暴露密钥</small></span></div>{onLookupRanks ? <button type="button" className="btn btn-rank btn-sm" onClick={() => void lookupRanks()} disabled={ranking || !name.trim()}>{ranking ? <RefreshCw size={14} className="spin" /> : <BadgeCheck size={14} />} {ranking ? '查询中' : rankItems.length ? '刷新等级' : '查询等级'}</button> : <em>离线版不提供联网等级查询</em>}</div>
-          {rankMessage && <p>{rankMessage}</p>}
-          {rankItems.length > 0 ? <div className="journal-rank-chips">{rankItems.slice(0, 18).map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div> : <div className="journal-rank-empty">尚无等级快照。JCR、中科院分区和影响因子不会从普通网页猜测。</div>}
-          {rankUpdatedAt && <small className="journal-rank-time">更新时间：{new Date(rankUpdatedAt).toLocaleString()}</small>}
+          <div className="journal-rank-head"><div><BadgeCheck size={17} /><span><strong>期刊等级记录</strong><small>分区与影响因子请按已核实数据填写</small></span></div></div>
+          {rankItems.length > 0 ? <div className="journal-rank-chips">{rankItems.slice(0, 18).map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div> : <div className="journal-rank-empty">暂无等级快照，请在表单中填写 JCR 分区、中科院分区和影响因子。</div>}
+          {rankUpdatedAt && <small className="journal-rank-time">历史更新时间：{new Date(rankUpdatedAt).toLocaleString()}</small>}
         </section>
 
         <section className="journal-form-section decision"><div className="journal-form-section-head"><b>投稿决策</b><span>费用和审稿周期需要人工核对</span></div>
