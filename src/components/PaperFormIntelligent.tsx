@@ -1,12 +1,16 @@
-import { useEffect, type ComponentProps } from 'react'
+import { useEffect, useMemo, type ComponentProps } from 'react'
 import { convertToCny, formatCny } from '../lib/exchange-rate'
+import { appendJournalProfiles, findJournalProfile } from '../lib/journal-paper-sync'
+import type { JournalProfile } from '../lib/preparation'
 import { CHINESE_SUBMISSION_STATUS_PRESETS, inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
 import type { Paper } from '../lib/types'
 import PaperFormArchive from './PaperFormArchive'
 
-type Props = ComponentProps<typeof PaperFormArchive>
+type Props = ComponentProps<typeof PaperFormArchive> & {
+  journalProfiles?: JournalProfile[]
+}
 
-function installFormEnhancements() {
+function installFormEnhancements(journalProfiles: JournalProfile[]) {
   const modal = document.querySelector<HTMLElement>('.compact-form-modal')
   if (!modal) return () => {}
   const cleanups: Array<() => void> = []
@@ -72,18 +76,62 @@ function installFormEnhancements() {
       datalist.appendChild(option)
     })
   }
+
+  let lastAutoLinked = ''
+  const enhanceJournalLink = () => {
+    const journalField = Array.from(modal.querySelectorAll<HTMLElement>('.compact-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim() === '目标期刊 / 会议')
+    const journalInput = journalField?.querySelector<HTMLInputElement>('input')
+    const suggestion = modal.querySelector<HTMLElement>('.profile-suggestion')
+    const button = suggestion?.querySelector<HTMLButtonElement>('button')
+    const profile = findJournalProfile(journalProfiles, journalInput?.value)
+
+    if (profile && suggestion && button) {
+      const label = suggestion.querySelector<HTMLElement>('span')
+      if (label) label.textContent = `已关联期刊库：${profile.name}`
+      button.textContent = '同步期刊库信息'
+      suggestion.dataset.source = 'journal-library'
+      const key = profile.id
+      if (lastAutoLinked !== key) {
+        lastAutoLinked = key
+        window.setTimeout(() => button.click(), 0)
+      }
+    } else if (!profile) {
+      lastAutoLinked = ''
+    }
+  }
+
   addChinesePresets()
-  const observer = new MutationObserver(addChinesePresets)
-  observer.observe(modal, { childList: true, subtree: true })
+  enhanceJournalLink()
+  const observer = new MutationObserver(() => {
+    addChinesePresets()
+    enhanceJournalLink()
+  })
+  observer.observe(modal, { childList: true, subtree: true, characterData: true })
   cleanups.push(() => observer.disconnect())
+
+  const journalInput = Array.from(modal.querySelectorAll<HTMLElement>('.compact-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim() === '目标期刊 / 会议')?.querySelector<HTMLInputElement>('input')
+  if (journalInput) {
+    const onJournalChange = () => window.setTimeout(enhanceJournalLink, 0)
+    journalInput.addEventListener('input', onJournalChange)
+    journalInput.addEventListener('change', onJournalChange)
+    cleanups.push(() => {
+      journalInput.removeEventListener('input', onJournalChange)
+      journalInput.removeEventListener('change', onJournalChange)
+    })
+  }
 
   return () => cleanups.forEach(cleanup => cleanup())
 }
 
-export default function PaperFormIntelligent(props: Props) {
+export default function PaperFormIntelligent({ journalProfiles = [], ...props }: Props) {
+  const linkedPapers = useMemo(
+    () => appendJournalProfiles(props.allPapers, journalProfiles),
+    [props.allPapers, journalProfiles],
+  )
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const cleanup = installFormEnhancements()
+      const cleanup = installFormEnhancements(journalProfiles)
       ;(window as any).__submissionHubPaperFormCleanup = cleanup
     }, 0)
     return () => {
@@ -92,7 +140,7 @@ export default function PaperFormIntelligent(props: Props) {
       if (typeof cleanup === 'function') cleanup()
       delete (window as any).__submissionHubPaperFormCleanup
     }
-  }, [])
+  }, [journalProfiles])
 
   const save: Props['onSave'] = async data => {
     const manualRound = Number(data.revision_round || 0)
@@ -104,5 +152,5 @@ export default function PaperFormIntelligent(props: Props) {
     await props.onSave(normalized)
   }
 
-  return <PaperFormArchive {...props} onSave={save} />
+  return <PaperFormArchive {...props} allPapers={linkedPapers} onSave={save} />
 }
