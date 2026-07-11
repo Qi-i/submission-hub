@@ -1,0 +1,284 @@
+/* Larger, denser and easier-to-scan journal overview. */
+.preparation-workspace[data-section="overview"] .prep-overview-grid {
+  grid-template-columns: minmax(0, .88fr) minmax(500px, 1.12fr) !important;
+  align-items: start;
+}
+
+.prep-overview-journals {
+  padding: 18px !important;
+}
+
+.prep-overview-journals .prep-panel-head h2 {
+  font-size: 17px !important;
+  font-weight: 760 !important;
+}
+
+.prep-overview-journals .prep-panel-head p {
+  font-size: 11.5px !important;
+  font-weight: 520 !important;
+  line-height: 1.5;
+}
+
+.prep-overview-journal-list {
+  display: grid;
+  gap: 11px;
+}
+
+.prep-journal-overview-card {
+  width: 100%;
+  display: grid;
+  gap: 11px;
+  padding: 14px 15px;
+  border: 1px solid rgba(14, 165, 233, .18);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(240, 249, 255, .9), rgba(255, 255, 255, .96) 48%, rgba(245, 243, 255, .82));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .055);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.prep-journal-overview-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, .32);
+  box-shadow: 0 13px 30px rgba(15, 23, 42, .085);
+}
+
+.prep-overview-journal-head,
+.prep-overview-journal-title {
+  display: flex;
+  align-items: center;
+}
+
+.prep-overview-journal-head {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prep-overview-journal-title {
+  min-width: 0;
+  gap: 9px;
+}
+
+.prep-overview-journal-title > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.prep-overview-journal-title b {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 14.5px;
+  font-weight: 760;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prep-overview-journal-title small {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 11.2px;
+  font-weight: 520;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prep-journal-star {
+  flex: 0 0 auto;
+  color: #d97706;
+  font-size: 17px;
+}
+
+.prep-journal-overview-card .prep-risk {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.prep-journal-rank-blocks,
+.prep-overview-journal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.prep-journal-rank-blocks > span,
+.prep-overview-journal-meta > span,
+.prep-journal-facts > span[data-tone] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 29px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 11.2px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.prep-journal-rank-blocks > span b {
+  font-weight: 760;
+}
+
+.prep-journal-rank-blocks > span em {
+  font-style: normal;
+  font-weight: 620;
+}
+
+.prep-journal-rank-blocks.empty {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.prep-journal-rank-blocks [data-tone="xinkey"] {
+  border-color: rgba(124, 58, 237, .2);
+  background: rgba(237, 233, 254, .9);
+  color: #6d28d9;
+}
+
+.prep-journal-rank-blocks [data-tone="cas"] {
+  border-color: rgba(14, 116, 144, .2);
+  background: rgba(207, 250, 254, .84);
+  color: #0e7490;
+}
+
+.prep-journal-rank-blocks [data-tone="jcr"] {
+  border-color: rgba(37, 99, 235, .2);
+  background: rgba(219, 234, 254, .9);
+  color: #1d4ed8;
+}
+
+.prep-journal-rank-blocks [data-tone="if"] {
+  border-color: rgba(5, 150, 105, .2);
+  background: rgba(209, 250, 229, .9);
+  color: #047857;
+}
+
+.prep-journal-rank-blocks [data-tone="ei"] {
+  border-color: rgba(217, 119, 6, .22);
+  background: rgba(254, 243, 199, .92);
+  color: #b45309;
+}
+
+.prep-journal-rank-blocks [data-tone="pku"] {
+  border-color: rgba(220, 38, 38, .18);
+  background: rgba(254, 226, 226, .9);
+  color: #b91c1c;
+}
+
+.prep-journal-rank-blocks [data-tone="cscd"] {
+  border-color: rgba(8, 145, 178, .2);
+  background: rgba(207, 250, 254, .84);
+  color: #0e7490;
+}
+
+.prep-journal-rank-blocks [data-tone="tech"] {
+  border-color: rgba(234, 88, 12, .2);
+  background: rgba(255, 237, 213, .9);
+  color: #c2410c;
+}
+
+.prep-journal-rank-blocks [data-tone="cssci"] {
+  border-color: rgba(147, 51, 234, .2);
+  background: rgba(243, 232, 255, .9);
+  color: #7e22ce;
+}
+
+.prep-journal-rank-blocks [data-tone="other"] {
+  border-color: rgba(100, 116, 139, .18);
+  background: rgba(241, 245, 249, .92);
+  color: #475569;
+}
+
+.prep-overview-journal-meta > span[data-tone="fit"] {
+  background: rgba(224, 231, 255, .82);
+  color: #4338ca;
+}
+
+.prep-overview-journal-meta > span[data-tone="oa"],
+.prep-journal-facts > span[data-tone="oa"] {
+  background: rgba(204, 251, 241, .82);
+  color: #0f766e;
+}
+
+.prep-overview-journal-meta > span[data-tone="speed"] {
+  background: rgba(254, 249, 195, .86);
+  color: #a16207;
+}
+
+.prep-overview-journal-meta > span[data-tone="index"],
+.prep-journal-facts > span[data-tone="index"] {
+  background: rgba(226, 232, 240, .86);
+  color: #334155;
+}
+
+.prep-journal-card-main h3 {
+  font-size: 15px !important;
+  font-weight: 740 !important;
+}
+
+.prep-journal-card-main > p {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+}
+
+.prep-journal-rank-blocks.full {
+  margin-top: 11px;
+}
+
+.prep-journal-card .prep-journal-facts {
+  margin-top: 10px;
+}
+
+[data-theme="dark"] .prep-journal-overview-card {
+  border-color: rgba(56, 189, 248, .18);
+  background: linear-gradient(145deg, rgba(15, 23, 42, .98), rgba(17, 24, 39, .96));
+}
+
+[data-theme="dark"] .prep-journal-rank-blocks > span,
+[data-theme="dark"] .prep-overview-journal-meta > span,
+[data-theme="dark"] .prep-journal-facts > span[data-tone] {
+  filter: saturate(.82) brightness(.82);
+}
+
+@media (max-width: 1180px) {
+  .preparation-workspace[data-section="overview"] .prep-overview-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 660px) {
+  .prep-overview-journals {
+    padding: 13px !important;
+  }
+
+  .prep-journal-overview-card {
+    padding: 12px;
+  }
+
+  .prep-overview-journal-head {
+    align-items: flex-start;
+  }
+
+  .prep-overview-journal-title b {
+    font-size: 13.5px;
+    white-space: normal;
+  }
+
+  .prep-journal-rank-blocks > span,
+  .prep-overview-journal-meta > span,
+  .prep-journal-facts > span[data-tone] {
+    font-size: 10.8px;
+  }
+}
