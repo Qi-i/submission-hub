@@ -1,1 +1,1 @@
-export { default } from './PaperCardEnhanced'
+export { default } from './OnlinePaperCard'
