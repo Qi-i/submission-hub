@@ -50,6 +50,10 @@
   border-radius: 999px !important;
   opacity: .66 !important;
 }
+.paper-grid .paper-card-v3::after {
+  opacity: .035 !important;
+  font-size: 34px !important;
+}
 
 /* Paper header: two structural columns. The journal slot may grow; the pill never does. */
 .paper-grid .paper-card-v3 .paper-card-head {
@@ -165,6 +169,11 @@
   white-space: nowrap;
 }
 
+.paper-grid .paper-date-info {
+  font-size: 9.6px !important;
+  font-weight: 560 !important;
+}
+
 [data-theme="dark"] .paper-grid .paper-card-v3 .paper-substatus {
   background: linear-gradient(135deg,
     color-mix(in srgb, var(--paper-status-color) 20%, #111827),
@@ -186,6 +195,11 @@
     top: 5px !important;
   }
 
+  .paper-grid .paper-card-v3::after {
+    opacity: .026 !important;
+    font-size: 30px !important;
+  }
+
   .paper-grid .paper-card-v3 .paper-card-head {
     gap: 7px !important;
   }
@@ -205,5 +219,12 @@
 
   .paper-grid .paper-card-v3 .journal-pill {
     max-width: 56vw !important;
+  }
+
+  .paper-grid .paper-date-info {
+    max-width: 170px !important;
+    font-size: 9.7px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
   }
 }
