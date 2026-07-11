@@ -208,16 +208,17 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     })
     if (paperError) throw paperError
 
-    const { error: draftError } = await (supabase.from('manuscript_drafts') as any).update({
+    const { data: updatedDrafts, error: draftError } = await (supabase.from('manuscript_drafts') as any).update({
       stage: 'submitted',
       submitted_paper_id: paperId,
       updated_at: now,
-    }).eq('id', draft.id).is('submitted_paper_id', null)
+    }).eq('id', draft.id).is('submitted_paper_id', null).select('id')
 
-    if (draftError) {
+    if (draftError || !updatedDrafts?.length) {
       const { error: rollbackError } = await (supabase.from('papers') as any).delete().eq('id', paperId)
       if (rollbackError) console.error('Rollback promoted paper failed:', rollbackError)
-      throw draftError
+      if (draftError) throw draftError
+      throw new Error('该草稿已被转入投稿管理，请刷新后查看。')
     }
 
     await load()
