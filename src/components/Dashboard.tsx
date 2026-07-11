@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
+import type { JournalProfile } from '../lib/preparation'
+import { findJournalProfile } from '../lib/journal-paper-sync'
 import { inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
 import { createOnlineBackup, importOnlineBackup } from '../lib/online-backup'
 import { DEMO_PAPERS } from '../lib/demo-data'
@@ -34,10 +36,20 @@ function normalizePaperWorkflow(paper: Paper): Paper {
   }
 }
 
+function normalizeJournalProfile(profile: JournalProfile): JournalProfile {
+  return {
+    ...profile,
+    third_party_links: Array.isArray(profile.third_party_links) ? profile.third_party_links : [],
+    subject_tags: Array.isArray(profile.subject_tags) ? profile.subject_tags : [],
+    indexing: Array.isArray(profile.indexing) ? profile.indexing : [],
+  }
+}
+
 export default function Dashboard() {
   const { user, signOut, isDemo, exitDemo } = useAuth()
   const { mode, setMode } = useTheme()
   const [papers, setPapers] = useState<Paper[]>([])
+  const [journalProfiles, setJournalProfiles] = useState<JournalProfile[]>([])
   const [loading, setLoading] = useState(!isDemo)
   const [search, setSearch] = useState('')
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all')
@@ -72,11 +84,6 @@ export default function Dashboard() {
     setEditing(target)
   }
 
-  const openSettings = () => {
-    closeTools()
-    setShowSettings(true)
-  }
-
   const cycleTheme = () => {
     const next: Record<string, 'light' | 'dark' | 'system'> = { light: 'dark', dark: 'system', system: 'light' }
     setMode(next[mode])
@@ -97,7 +104,29 @@ export default function Dashboard() {
     setLoading(false)
   }, [isDemo])
 
-  useEffect(() => { void loadPapers() }, [loadPapers])
+  const loadJournalProfiles = useCallback(async () => {
+    if (isDemo) {
+      setJournalProfiles([])
+      return
+    }
+    const { data, error } = await (supabase.from('journal_profiles') as any)
+      .select('*')
+      .order('updated_at', { ascending: false })
+    if (error) {
+      console.error('Load journal profiles for submission cards failed:', error)
+      return
+    }
+    setJournalProfiles(((data || []) as JournalProfile[]).map(normalizeJournalProfile))
+  }, [isDemo])
+
+  useEffect(() => {
+    void loadPapers()
+    void loadJournalProfiles()
+  }, [loadPapers, loadJournalProfiles])
+
+  useEffect(() => {
+    if (tab === 'dashboard') void loadJournalProfiles()
+  }, [tab, loadJournalProfiles])
 
   const allAuthors = Array.from(new Set(papers.flatMap(paper => paper.authors || []))).sort()
   const matchName = user?.author_name || user?.username || ''
@@ -122,7 +151,6 @@ export default function Dashboard() {
       (paper.publication_info || '').toLocaleLowerCase().includes(query) ||
       (paper.citation || '').toLocaleLowerCase().includes(query) ||
       (paper.journal_url || '').toLocaleLowerCase().includes(query) ||
-      (paper.journal_apc_note || '').toLocaleLowerCase().includes(query) ||
       (paper.authors || []).some(author => author.toLocaleLowerCase().includes(query)) ||
       (paper.files || []).some(file => `${file.n || ''} ${file.p || ''} ${file.t || ''}`.toLocaleLowerCase().includes(query))
     )
@@ -170,7 +198,7 @@ export default function Dashboard() {
       setTransferring(true)
       try {
         const result = await importOnlineBackup(await file.text(), user.id, papers)
-        await loadPapers()
+        await Promise.all([loadPapers(), loadJournalProfiles()])
         alert(`导入完成：投稿 ${result.papers} 条、期刊 ${result.journals} 条、选题 ${result.topics} 条、草稿 ${result.drafts} 条。`)
       } catch (error) {
         console.error('Import backup failed:', error)
@@ -208,7 +236,7 @@ export default function Dashboard() {
   if (loading) return <div className="loading-screen"><div className="spinner" /><span style={{ fontSize: 13 }}>加载数据中...</span></div>
 
   return (
-    <div className="app-layout">
+    <div className="app-layout" data-online-build="2026-07-12-journal-sync">
       {isDemo && <div className="demo-banner"><span>🎭 演示模式 — 数据为示例，不会保存更改</span><button className="btn btn-sm btn-ghost" onClick={exitDemo}><X size={14} /> 退出演示</button></div>}
 
       <header className="app-header app-header-refined">
@@ -226,12 +254,12 @@ export default function Dashboard() {
           {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
           <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
           {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入完整备份"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={() => void handleExport()} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>{tab === 'dashboard' && <button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}</>}
-          {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={openSettings} title="个人设置"><Settings size={15} /></button>}
+          {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { closeTools(); setShowSettings(true) }} title="个人设置"><Settings size={15} /></button>}
           {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
         </div>
       </header>
 
-      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} onPaperCreated={() => void loadPapers()} />}
+      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
 
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
@@ -239,7 +267,7 @@ export default function Dashboard() {
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
         <ActionCenter papers={papers} onOpen={isDemo ? undefined : openPaperForm} />
-        <div className="paper-grid">{filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((paper, index) => <PaperCard key={paper.id} paper={paper} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={index} onClick={isDemo ? undefined : () => openPaperForm(paper)} />)}</div>
+        <div className="paper-grid">{filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((paper, index) => <PaperCard key={paper.id} paper={paper} journalProfile={findJournalProfile(journalProfiles, paper.journal)} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={index} onClick={isDemo ? undefined : () => openPaperForm(paper)} />)}</div>
       </>}
 
       {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} authorName={user?.author_name || ''} />}
@@ -255,7 +283,7 @@ export default function Dashboard() {
           if (error) throw error
         }
         setEditing(null)
-        await loadPapers()
+        await Promise.all([loadPapers(), loadJournalProfiles()])
       }} onDelete={async id => {
         if (!confirm('确认删除这条投稿记录？')) return
         const { error } = await supabase.from('papers').delete().eq('id', id)
