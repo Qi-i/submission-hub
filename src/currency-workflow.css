@@ -1,0 +1,112 @@
+.currency-cny {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font: inherit;
+}
+
+.currency-original {
+  font-weight: 760;
+  color: inherit;
+}
+
+.currency-estimate {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #047857;
+  font-weight: 760;
+}
+
+.currency-estimate small {
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, .1);
+  color: #047857;
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+.currency-loading,
+.currency-unavailable {
+  color: var(--text-muted);
+  font-size: .9em;
+  font-weight: 560;
+}
+
+.currency-cny.compact {
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.currency-cny.compact .currency-estimate {
+  padding-left: 5px;
+  border-left: 1px solid rgba(5, 150, 105, .22);
+}
+
+.paper-apc-badge {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px !important;
+  max-width: 100%;
+  border-color: rgba(5, 150, 105, .22) !important;
+  background: rgba(236, 253, 245, .82) !important;
+  color: #065f46 !important;
+}
+
+.paper-cny-live,
+.paper-auto-field-hint {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 580;
+  line-height: 1.4;
+}
+
+.paper-cny-live[data-state="ready"] {
+  color: #047857;
+}
+
+.paper-cny-live[data-state="loading"] {
+  color: #2563eb;
+}
+
+.paper-cny-live[data-state="error"] {
+  color: #b45309;
+}
+
+.journal-compare-table .currency-cny {
+  justify-content: center;
+  line-height: 1.45;
+}
+
+.journal-compare-table .currency-estimate {
+  flex-basis: 100%;
+  justify-content: center;
+}
+
+[data-theme="dark"] .currency-estimate,
+[data-theme="dark"] .currency-estimate small,
+[data-theme="dark"] .paper-cny-live[data-state="ready"] {
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .paper-apc-badge {
+  border-color: rgba(52, 211, 153, .25) !important;
+  background: rgba(6, 78, 59, .32) !important;
+  color: #a7f3d0 !important;
+}
+
+@media (max-width: 660px) {
+  .currency-cny.compact {
+    white-space: normal;
+  }
+
+  .paper-apc-badge {
+    align-items: flex-start;
+  }
+}
