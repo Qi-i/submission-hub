@@ -68,6 +68,8 @@ export function primaryJournalRankItems(journal: RankedJournalProfile, limit = 6
   return result.slice(0, limit)
 }
 
+export const journalPrimaryRankItems = primaryJournalRankItems
+
 export function journalRankTone(key: string) {
   if (key === 'xr' || key.startsWith('xr')) return 'xinkey'
   if (key === 'sciUp' || key === 'sciBase' || key.startsWith('profile:cas')) return 'cas'
