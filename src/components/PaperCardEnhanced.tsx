@@ -1,6 +1,8 @@
 import type { KeyboardEvent } from 'react'
 import type { Paper } from '../lib/types'
 import { daysBetweenDates, daysUntilDate, getStatus, getWorkflowSignal } from '../lib/types'
+import { inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
+import CurrencyCny from './CurrencyCny'
 
 interface Props {
   paper: Paper
@@ -99,12 +101,15 @@ function authorItems(paper: Paper, currentUsername: string, authorName: string) 
 }
 
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, index = 0, onClick }: Props) {
-  const status = getStatus(paper.status)
-  const deadline = getDeadlineInfo(paper.deadline, paper.status)
-  const rawSignal = getWorkflowSignal(paper)
+  const effectiveStatus = inferMainSubmissionStatus(paper.system_status, paper.status)
+  const revisionRound = inferRevisionRound(paper.timeline, paper.system_status, Number(paper.revision_round || 0))
+  const effectivePaper: Paper = { ...paper, status: effectiveStatus, revision_round: revisionRound }
+  const status = getStatus(effectiveStatus)
+  const deadline = getDeadlineInfo(paper.deadline, effectiveStatus)
+  const rawSignal = getWorkflowSignal(effectivePaper)
   const chain = previousChain(paper, allPapers)
   const nextCount = allPapers.filter(item => item.prev_id === paper.id).length
-  const signal = shouldSuppressSignal(paper, rawSignal, nextCount) ? null : rawSignal
+  const signal = shouldSuppressSignal(effectivePaper, rawSignal, nextCount) ? null : rawSignal
   const authors = authorItems(paper, currentUsername, authorName)
   const authorTitle = (paper.authors || []).join('、')
 
@@ -114,7 +119,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
     const endDate = paper.resolve_date || localDateString()
     const days = daysBetweenDates(paper.submitted_date, endDate)
     if (paper.resolve_date) dateInfo += ` · 终: ${formatDate(paper.resolve_date)}`
-    if (paper.status !== 'preparing' && days !== null && days >= 0) dateInfo += ` · ${days}天`
+    if (effectiveStatus !== 'preparing' && days !== null && days >= 0) dateInfo += ` · ${days}天`
   }
 
   const badges: { label: string; cls: string }[] = []
@@ -146,10 +151,10 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       tabIndex={onClick ? 0 : undefined}
     >
       <div className="paper-card-head">
-        <div className="paper-status-area" data-status={paper.status}>
-          <span className={`badge status-${paper.status}`}>{status.emoji} {status.label}</span>
+        <div className="paper-status-area" data-status={effectiveStatus}>
+          <span className={`badge status-${effectiveStatus}`}>{status.emoji} {status.label}</span>
           {paper.system_status && (
-            <span className="paper-substatus" title={paper.system_status}>
+            <span className="paper-substatus" title={`${paper.system_status} · 已自动归类为${status.label}`}>
               <span className="paper-substatus-dot" aria-hidden="true" />
               <span className="paper-substatus-text">{paper.system_status}</span>
             </span>
@@ -165,11 +170,11 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         </div>
       </div>
 
-      {(paper.manuscript_no || paper.submission_system || paper.revision_round || paper.apc_amount || isUrl(paper.published_url)) && <div className="paper-meta-row paper-meta-compact">
+      {(paper.manuscript_no || paper.submission_system || revisionRound || paper.apc_amount || isUrl(paper.published_url)) && <div className="paper-meta-row paper-meta-compact">
         {paper.manuscript_no && <span className="badge badge-sm badge-outline" title={paper.manuscript_no}>ID {paper.manuscript_no}</span>}
         {paper.submission_system && <span className="badge badge-sm badge-outline" title={paper.submission_system}>{paper.submission_system}</span>}
-        {!!paper.revision_round && <span className="badge badge-sm badge-outline">R{paper.revision_round}</span>}
-        {!!paper.apc_amount && <span className="badge badge-sm badge-outline">APC {paper.apc_amount} {paper.apc_currency || ''}</span>}
+        {!!revisionRound && <span className="badge badge-sm badge-outline" title="根据审稿时间线自动识别">R{revisionRound}</span>}
+        {!!paper.apc_amount && <span className="badge badge-sm badge-outline paper-apc-badge"><span>APC</span><CurrencyCny amount={paper.apc_amount} currency={paper.apc_currency} compact /></span>}
         {isUrl(paper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={paper.published_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>见刊 ↗</a>}
       </div>}
 
