@@ -1,5 +1,6 @@
 {
   "release": "2026-07-12-journal-sync",
+  "published_via": "verified-pr-deployment",
   "features": [
     "hide-apc-from-submission-cards",
     "link-journal-library-to-submissions",
