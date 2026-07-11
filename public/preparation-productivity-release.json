@@ -1,0 +1,10 @@
+{
+  "release": "2026-07-12-preparation-productivity",
+  "features": [
+    "paper-preparation-action-center",
+    "journal-match-recommendations",
+    "standard-outline-generator",
+    "draft-stage-suggestions",
+    "markdown-preparation-report"
+  ]
+}
