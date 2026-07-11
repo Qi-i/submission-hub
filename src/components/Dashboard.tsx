@@ -11,6 +11,7 @@ import PaperForm from './PaperForm'
 import MetricCard from './MetricCard'
 import ActionCenter from './ActionCenter'
 import OnlinePreparationWorkspace from './OnlinePreparationWorkspace'
+import AccountSettingsModal from './AccountSettingsModal'
 import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
@@ -25,7 +26,7 @@ const localDateLabel = () => {
 }
 
 export default function Dashboard() {
-  const { user, signOut, isDemo, exitDemo, updateAuthorName } = useAuth()
+  const { user, signOut, isDemo, exitDemo } = useAuth()
   const { mode, setMode } = useTheme()
   const [papers, setPapers] = useState<Paper[]>([])
   const [loading, setLoading] = useState(!isDemo)
@@ -38,7 +39,6 @@ export default function Dashboard() {
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
   const [showSettings, setShowSettings] = useState(false)
-  const [authorNameInput, setAuthorNameInput] = useState('')
   const [transferring, setTransferring] = useState(false)
 
   const canAccessAdmin = user?.is_admin === true && !isDemo
@@ -65,7 +65,6 @@ export default function Dashboard() {
 
   const openSettings = () => {
     closeTools()
-    setAuthorNameInput(user?.author_name || '')
     setShowSettings(true)
   }
 
@@ -256,7 +255,7 @@ export default function Dashboard() {
         await loadPapers()
       }} onClose={() => setEditing(null)} />}
 
-      {showSettings && <div className="modal-overlay" onClick={() => setShowSettings(false)}><div className="modal" onClick={event => event.stopPropagation()} style={{ maxWidth: 480 }}><div className="modal-header"><h3 className="modal-title">个人设置</h3><button className="btn btn-ghost btn-icon" onClick={() => setShowSettings(false)}><X size={18} /></button></div><div className="modal-body"><div className="field"><label className="field-label">论文署名</label><input className="input" value={authorNameInput} onChange={event => setAuthorNameInput(event.target.value)} placeholder="输入您在论文中使用的姓名，如：Zhang Wei" style={{ fontSize: 14, fontWeight: 600 }} /><span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>设置后，系统将自动识别您作为作者或通讯作者的论文，用于个人统计。</span></div></div><div className="modal-footer"><div /><div style={{ display: 'flex', gap: 10 }}><button className="btn btn-ghost" onClick={() => setShowSettings(false)}>取消</button><button className="btn btn-primary" onClick={async () => { const ok = await updateAuthorName(authorNameInput.trim()); if (!ok) { alert('保存失败：请确认数据库已执行 002_author_identity.sql 迁移（添加 author_name 列）'); return } setShowSettings(false) }}>保存</button></div></div></div></div>}
+      {showSettings && <AccountSettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   )
 }
