@@ -1,0 +1,164 @@
+/* A real, unmistakable workbench module built from the existing navigation actions. */
+.preparation-workspace[data-section="overview"] .prep-nav {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 16px 0 18px !important;
+  padding: 16px !important;
+  border: 1px solid rgba(99, 102, 241, .16) !important;
+  border-radius: 18px !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(124, 58, 237, .08), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .96)) !important;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, .06) !important;
+  overflow: visible !important;
+}
+
+.preparation-workspace[data-section="overview"] .prep-nav::before {
+  content: '投稿前工作台';
+  grid-column: 1 / -1;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.preparation-workspace[data-section="overview"] .prep-nav::after {
+  content: '从选题论证、草稿准备到期刊筛选与横向比较，点击下方色块直接进入';
+  grid-column: 1 / -1;
+  margin-top: -7px;
+  margin-bottom: 2px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 540;
+  line-height: 1.5;
+}
+
+.preparation-workspace[data-section="overview"] .prep-nav button {
+  position: relative;
+  min-height: 78px !important;
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: stretch !important;
+  gap: 8px !important;
+  padding: 13px 14px !important;
+  border: 1px solid transparent !important;
+  border-radius: 14px !important;
+  text-align: left;
+  font-size: 13px !important;
+  font-weight: 760 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, .045);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.preparation-workspace[data-section="overview"] .prep-nav button::before {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .68);
+  box-shadow: inset 0 0 0 1px currentColor;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.preparation-workspace[data-section="overview"] .prep-nav button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 28px rgba(15, 23, 42, .08);
+}
+
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="overview"] {
+  border-color: rgba(37, 99, 235, .18) !important;
+  background: linear-gradient(135deg, rgba(219, 234, 254, .9), rgba(239, 246, 255, .96)) !important;
+  color: #1d4ed8 !important;
+}
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="overview"]::before { content: '总'; }
+
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="topic"] {
+  border-color: rgba(234, 88, 12, .16) !important;
+  background: linear-gradient(135deg, rgba(255, 237, 213, .9), rgba(255, 247, 237, .96)) !important;
+  color: #c2410c !important;
+}
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="topic"]::before { content: '题'; }
+
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="draft"] {
+  border-color: rgba(124, 58, 237, .17) !important;
+  background: linear-gradient(135deg, rgba(237, 233, 254, .94), rgba(245, 243, 255, .98)) !important;
+  color: #6d28d9 !important;
+}
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="draft"]::before { content: '稿'; }
+
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="journal"] {
+  border-color: rgba(5, 150, 105, .17) !important;
+  background: linear-gradient(135deg, rgba(209, 250, 229, .9), rgba(236, 253, 245, .98)) !important;
+  color: #047857 !important;
+}
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="journal"]::before { content: '刊'; }
+
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="compare"] {
+  border-color: rgba(8, 145, 178, .17) !important;
+  background: linear-gradient(135deg, rgba(207, 250, 254, .9), rgba(236, 254, 255, .98)) !important;
+  color: #0e7490 !important;
+}
+.preparation-workspace[data-section="overview"] .prep-nav button[data-tone="compare"]::before { content: '比'; }
+
+.preparation-workspace[data-section="overview"] .prep-nav button svg {
+  display: none;
+}
+
+.preparation-workspace[data-section="overview"] .prep-nav button span {
+  min-width: 27px !important;
+  justify-self: end;
+  padding: 3px 7px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, .72) !important;
+  color: currentColor !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="dark"] .preparation-workspace[data-section="overview"] .prep-nav {
+  background: linear-gradient(135deg, rgba(15, 23, 42, .98), rgba(30, 41, 59, .96)) !important;
+}
+
+[data-theme="dark"] .preparation-workspace[data-section="overview"] .prep-nav button[data-tone] {
+  background: rgba(30, 41, 59, .92) !important;
+}
+
+@media (max-width: 1080px) {
+  .preparation-workspace[data-section="overview"] .prep-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .preparation-workspace[data-section="overview"] .prep-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding: 13px !important;
+  }
+
+  .preparation-workspace[data-section="overview"] .prep-nav::before,
+  .preparation-workspace[data-section="overview"] .prep-nav::after {
+    grid-column: 1 / -1;
+  }
+
+  .preparation-workspace[data-section="overview"] .prep-nav button {
+    min-height: 68px !important;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    padding: 11px !important;
+    font-size: 12px !important;
+  }
+
+  .preparation-workspace[data-section="overview"] .prep-nav button::before {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width: 430px) {
+  .preparation-workspace[data-section="overview"] .prep-nav {
+    grid-template-columns: 1fr !important;
+  }
+}
