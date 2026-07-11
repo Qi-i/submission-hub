@@ -8,6 +8,8 @@ on:
     paths:
       - 'src/**'
       - 'scripts/**'
+      - 'tests/visual/**'
+      - 'supabase/functions/**'
       - 'index.html'
       - 'offline.html'
       - 'package.json'
@@ -31,7 +33,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify privacy-safe samples
+        run: npm run check:privacy
       - name: Build online app
         run: npm run build
         env:
