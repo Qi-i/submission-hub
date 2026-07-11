@@ -1,6 +1,7 @@
 import type { Paper, PaperFile } from './types'
 import { STATUSES } from './types'
 import { createBackup, parseBackup } from './backup'
+import { inferMainSubmissionStatus, inferRevisionRound } from './submission-intelligence'
 
 const STORAGE_KEY = 'submission-hub-papers'
 const validStatuses = new Set<string>(STATUSES.map(status => status.key))
@@ -35,12 +36,22 @@ function finiteNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function normalizeWorkflow(paper: Paper): Paper {
+  return {
+    ...paper,
+    status: inferMainSubmissionStatus(paper.system_status, paper.status),
+    revision_round: inferRevisionRound(paper.timeline, paper.system_status, Number(paper.revision_round || 0)),
+  }
+}
+
 export function getPapers(): Paper[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const data = JSON.parse(raw)
-    return Array.isArray(data) ? data.filter(item => item && typeof item === 'object') as Paper[] : []
+    return Array.isArray(data)
+      ? data.filter(item => item && typeof item === 'object').map(item => normalizeWorkflow(item as Paper))
+      : []
   } catch {
     return []
   }
@@ -48,7 +59,7 @@ export function getPapers(): Paper[] {
 
 export function savePapers(papers: Paper[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(papers))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(papers.map(normalizeWorkflow)))
   } catch (error) {
     console.error('Save offline papers failed:', error)
     throw new Error('本地存储失败，可能是浏览器存储空间不足或隐私模式限制。')
@@ -56,11 +67,12 @@ export function savePapers(papers: Paper[]) {
 }
 
 export function addPaper(paper: Paper) {
-  savePapers([paper, ...getPapers()])
+  savePapers([normalizeWorkflow(paper), ...getPapers()])
 }
 
 export function updatePaper(updated: Paper) {
-  savePapers(getPapers().map(paper => paper.id === updated.id ? updated : paper))
+  const normalized = normalizeWorkflow(updated)
+  savePapers(getPapers().map(paper => paper.id === normalized.id ? normalized : paper))
 }
 
 export function deletePaper(id: string) {
@@ -95,7 +107,7 @@ export function importPapers(json: string): Paper[] {
     const apcAmount = finiteNumber(d.apc_amount ?? d.apcAmount)
     const revisionRound = finiteNumber(d.revision_round ?? d.revisionRound)
 
-    return {
+    return normalizeWorkflow({
       id: assignedIds[index],
       user_id: 'offline',
       title: text(d.title) || '未命名',
@@ -136,7 +148,7 @@ export function importPapers(json: string): Paper[] {
       files: files(d.files),
       created_at: text(d.created_at ?? d.createdAt) || now,
       updated_at: now,
-    }
+    })
   })
 
   savePapers([...imported, ...existing])
