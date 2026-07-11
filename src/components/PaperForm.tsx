@@ -1,10 +1,10 @@
 import type { ComponentProps } from 'react'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
 import { uploadFile } from '../lib/storage'
-import PaperFormArchive from './PaperFormArchive'
+import PaperFormIntelligent from './PaperFormIntelligent'
 
-type Props = Omit<ComponentProps<typeof PaperFormArchive>, 'onUploadFile' | 'onLookupJournalRanks'>
+type Props = Omit<ComponentProps<typeof PaperFormIntelligent>, 'onUploadFile' | 'onLookupJournalRanks'>
 
 export default function PaperForm(props: Props) {
-  return <PaperFormArchive {...props} onUploadFile={uploadFile} onLookupJournalRanks={lookupJournalRanks} />
+  return <PaperFormIntelligent {...props} onUploadFile={uploadFile} onLookupJournalRanks={lookupJournalRanks} />
 }
