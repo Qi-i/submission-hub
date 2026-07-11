@@ -155,12 +155,14 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
             </span>
           )}
         </div>
-        {paper.journal && (
-          <span className="journal-pill" title={paper.journal}>
-            <span className="journal-pill-icon" aria-hidden="true">📖</span>
-            <span className="journal-pill-text">{paper.journal}</span>
-          </span>
-        )}
+        <div className="paper-journal-slot">
+          {paper.journal && (
+            <span className="journal-pill" title={paper.journal}>
+              <span className="journal-pill-icon" aria-hidden="true">📖</span>
+              <span className="journal-pill-text">{paper.journal}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {(paper.manuscript_no || paper.submission_system || paper.revision_round || paper.apc_amount || isUrl(paper.published_url)) && <div className="paper-meta-row paper-meta-compact">
