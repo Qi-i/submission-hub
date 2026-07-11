@@ -1,0 +1,507 @@
+/* Product-dashboard refresh for the real preparation workspace. */
+.preparation-workspace {
+  --prep-blue: #2563eb;
+  --prep-indigo: #4f46e5;
+  --prep-purple: #7c3aed;
+  --prep-teal: #0f766e;
+  --prep-amber: #b45309;
+}
+
+.preparation-workspace .prep-topbar {
+  position: relative;
+  min-height: 154px;
+  align-items: center !important;
+  padding: 24px 26px !important;
+  border: 1px solid rgba(59, 130, 246, .18) !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 88% 14%, rgba(124, 58, 237, .16), transparent 30%),
+    radial-gradient(circle at 9% 95%, rgba(14, 165, 233, .13), transparent 34%),
+    linear-gradient(125deg, rgba(239, 246, 255, .98), rgba(245, 243, 255, .96) 56%, rgba(238, 242, 255, .98)) !important;
+  box-shadow: 0 18px 48px rgba(30, 64, 175, .09) !important;
+  overflow: hidden;
+}
+
+.preparation-workspace .prep-topbar::before {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -92px;
+  top: -142px;
+  border: 1px solid rgba(79, 70, 229, .14);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgba(99, 102, 241, .04), 0 0 0 58px rgba(14, 165, 233, .025);
+  pointer-events: none;
+}
+
+.preparation-workspace[data-section="overview"] .prep-topbar::after {
+  content: '选题  →  草稿  →  期刊  →  投稿';
+  position: absolute;
+  left: 26px;
+  bottom: 17px;
+  padding: 5px 10px;
+  border: 1px solid rgba(79, 70, 229, .12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .62);
+  color: #4f46e5;
+  font-size: 10.5px;
+  font-weight: 720;
+  letter-spacing: .025em;
+  pointer-events: none;
+}
+
+.preparation-workspace .prep-heading {
+  position: relative;
+  z-index: 1;
+  padding-bottom: 22px;
+}
+
+.preparation-workspace .prep-eyebrow {
+  width: max-content;
+  margin-bottom: 8px !important;
+  padding: 4px 9px;
+  border: 1px solid rgba(37, 99, 235, .15);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .64);
+  color: #1d4ed8 !important;
+  font-size: 10px !important;
+  font-weight: 780 !important;
+  letter-spacing: .11em !important;
+}
+
+.preparation-workspace .prep-topbar h1 {
+  font-size: clamp(28px, 3vw, 34px) !important;
+  font-weight: 790 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -.035em !important;
+  color: #172554 !important;
+}
+
+.preparation-workspace .prep-topbar p {
+  max-width: 720px;
+  margin-top: 8px !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 520 !important;
+  line-height: 1.65 !important;
+}
+
+.preparation-workspace .prep-top-actions {
+  position: relative;
+  z-index: 2;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .7);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, .06);
+  backdrop-filter: blur(14px);
+}
+
+.preparation-workspace .prep-top-actions .btn {
+  min-height: 38px;
+  padding-inline: 14px;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.preparation-workspace .prep-search {
+  min-width: min(360px, 34vw);
+  border-color: rgba(37, 99, 235, .13) !important;
+  background: rgba(255, 255, 255, .86) !important;
+}
+
+.preparation-workspace .prep-search input {
+  height: 38px;
+  font-size: 12.5px !important;
+  font-weight: 520;
+}
+
+.preparation-workspace .prep-nav {
+  padding: 7px !important;
+  border-radius: 15px !important;
+  border-color: rgba(99, 102, 241, .12) !important;
+  background: color-mix(in srgb, var(--bg-card) 94%, rgba(238, 242, 255, .7)) !important;
+  box-shadow: 0 9px 26px rgba(15, 23, 42, .045) !important;
+}
+
+.preparation-workspace .prep-nav button {
+  min-height: 38px !important;
+  padding-inline: 15px !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+}
+
+.preparation-workspace .prep-nav button span {
+  font-size: 10.5px !important;
+  font-weight: 760;
+}
+
+.preparation-workspace .prep-metrics {
+  gap: 12px !important;
+  margin-bottom: 18px !important;
+}
+
+.preparation-workspace .prep-metrics > div {
+  grid-template-columns: 46px minmax(0, 1fr) auto !important;
+  grid-template-areas: 'icon label value' 'icon helper value' !important;
+  min-height: 102px;
+  gap: 4px 12px !important;
+  padding: 16px 17px 16px 70px !important;
+  border-radius: 17px !important;
+  border: 1px solid rgba(148, 163, 184, .13) !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, .06) !important;
+}
+
+.preparation-workspace .prep-metrics > div::before {
+  width: 5px !important;
+  border-radius: 0 999px 999px 0;
+}
+
+.preparation-workspace .prep-metrics > div::after {
+  position: absolute;
+  left: 17px;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border-radius: 13px;
+  color: currentColor;
+  background: rgba(255, 255, 255, .7);
+  box-shadow: inset 0 0 0 1px currentColor, 0 8px 18px rgba(15, 23, 42, .05);
+  font-size: 15px;
+  font-weight: 820;
+  opacity: .9;
+}
+
+.preparation-workspace .prep-metrics > div[data-tone="topic"]::after { content: '题'; }
+.preparation-workspace .prep-metrics > div[data-tone="draft"]::after { content: '稿'; }
+.preparation-workspace .prep-metrics > div[data-tone="ready"]::after { content: '投'; }
+.preparation-workspace .prep-metrics > div[data-tone="journal"]::after { content: '刊'; }
+
+.preparation-workspace .prep-metrics > div[data-tone="topic"] {
+  background: linear-gradient(140deg, rgba(255, 247, 237, .96), rgba(255, 255, 255, .98)) !important;
+}
+
+.preparation-workspace .prep-metrics > div[data-tone="draft"] {
+  background: linear-gradient(140deg, rgba(245, 243, 255, .98), rgba(255, 255, 255, .98)) !important;
+}
+
+.preparation-workspace .prep-metrics > div[data-tone="ready"] {
+  background: linear-gradient(140deg, rgba(236, 253, 245, .96), rgba(255, 255, 255, .98)) !important;
+}
+
+.preparation-workspace .prep-metrics > div[data-tone="journal"] {
+  background: linear-gradient(140deg, rgba(239, 246, 255, .98), rgba(255, 255, 255, .98)) !important;
+}
+
+.preparation-workspace .prep-metrics > div > span {
+  grid-area: label !important;
+  align-self: end;
+  color: currentColor !important;
+  font-size: 13px !important;
+  font-weight: 760 !important;
+}
+
+.preparation-workspace .prep-metrics > div > b {
+  grid-area: value !important;
+  align-self: center;
+  color: currentColor !important;
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  letter-spacing: -.03em;
+}
+
+.preparation-workspace .prep-metrics > div > small {
+  grid-area: helper !important;
+  align-self: start;
+  color: var(--text-secondary) !important;
+  font-size: 10.5px !important;
+  font-weight: 560;
+}
+
+.preparation-workspace[data-section="overview"] .prep-overview-grid {
+  grid-template-columns: minmax(0, .82fr) minmax(540px, 1.18fr) !important;
+  gap: 16px !important;
+}
+
+.preparation-workspace .prep-panel {
+  border-radius: 18px !important;
+  border-color: rgba(100, 116, 139, .13) !important;
+  box-shadow: 0 13px 36px rgba(15, 23, 42, .055) !important;
+}
+
+.preparation-workspace .prep-panel-head {
+  margin-bottom: 14px !important;
+}
+
+.preparation-workspace .prep-panel-head h2 {
+  font-size: 17px !important;
+  font-weight: 760 !important;
+  letter-spacing: -.018em;
+}
+
+.preparation-workspace .prep-panel-head p {
+  margin-top: 5px !important;
+  font-size: 11.5px !important;
+  font-weight: 520 !important;
+  line-height: 1.5;
+}
+
+.preparation-workspace .prep-panel-head > button {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  font-size: 11px !important;
+  font-weight: 700;
+}
+
+.preparation-workspace .prep-draft-card.compact {
+  margin-bottom: 10px;
+  padding: 14px !important;
+  border-radius: 13px !important;
+  background: linear-gradient(145deg, rgba(250, 245, 255, .86), var(--bg-card) 56%) !important;
+}
+
+.preparation-workspace .prep-draft-card h3 {
+  margin-top: 9px !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.45;
+}
+
+.preparation-workspace .prep-draft-meta {
+  gap: 6px !important;
+}
+
+.preparation-workspace .prep-draft-meta > span {
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: rgba(238, 242, 255, .86);
+  color: #4338ca;
+  font-size: 10.5px;
+  font-weight: 620;
+}
+
+.preparation-workspace .prep-draft-meta > span:nth-child(2) {
+  background: rgba(219, 234, 254, .88);
+  color: #1d4ed8;
+}
+
+.preparation-workspace .prep-draft-meta > span:nth-child(3) {
+  background: rgba(209, 250, 229, .86);
+  color: #047857;
+}
+
+.preparation-workspace .prep-draft-meta > span:nth-child(4) {
+  background: rgba(254, 243, 199, .9);
+  color: #a16207;
+}
+
+.preparation-workspace .prep-readiness-note {
+  padding: 8px 10px !important;
+  font-size: 10.5px !important;
+  font-weight: 560;
+}
+
+.preparation-workspace .prep-readiness-note strong {
+  font-size: 11px !important;
+  font-weight: 760;
+}
+
+.preparation-workspace .prep-overview-journals {
+  padding: 20px !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(59, 130, 246, .07), transparent 34%),
+    color-mix(in srgb, var(--bg-card) 96%, #eff6ff 4%) !important;
+}
+
+.preparation-workspace .prep-overview-journal-list {
+  gap: 12px !important;
+}
+
+.preparation-workspace .prep-journal-overview-card {
+  padding: 15px 16px !important;
+  border-radius: 15px !important;
+  border-color: rgba(59, 130, 246, .16) !important;
+  box-shadow: 0 9px 26px rgba(15, 23, 42, .055) !important;
+}
+
+.preparation-workspace .prep-overview-journal-title b {
+  font-size: 15px !important;
+  font-weight: 790 !important;
+}
+
+.preparation-workspace .prep-overview-journal-title small {
+  font-size: 11.5px !important;
+  font-weight: 540 !important;
+}
+
+.preparation-workspace .prep-journal-rank-blocks > span,
+.preparation-workspace .prep-overview-journal-meta > span,
+.preparation-workspace .prep-journal-facts > span[data-tone] {
+  min-height: 31px !important;
+  padding: 6px 10px !important;
+  border-radius: 9px !important;
+  font-size: 11.5px !important;
+  font-weight: 680 !important;
+}
+
+.preparation-workspace .prep-journal-rank-blocks > span b {
+  font-weight: 800 !important;
+}
+
+.preparation-workspace .prep-journal-rank-blocks > span em {
+  font-weight: 680 !important;
+}
+
+.preparation-workspace .prep-topic-overview {
+  margin-top: 17px;
+  padding: 18px !important;
+}
+
+.preparation-workspace .prep-topic-strip {
+  gap: 11px !important;
+}
+
+.preparation-workspace .prep-topic-card.compact {
+  min-height: 150px !important;
+  border-radius: 14px !important;
+}
+
+.preparation-workspace .prep-topic-card.compact .prep-topic-main {
+  min-height: 132px !important;
+  padding: 14px !important;
+}
+
+.preparation-workspace .prep-topic-card h3 {
+  font-size: 14px !important;
+  font-weight: 710 !important;
+}
+
+.preparation-workspace .prep-tags span {
+  padding: 4px 8px !important;
+  border-radius: 7px !important;
+  font-size: 10px !important;
+  font-weight: 620;
+}
+
+[data-theme="dark"] .preparation-workspace .prep-topbar {
+  border-color: rgba(96, 165, 250, .18) !important;
+  background:
+    radial-gradient(circle at 88% 14%, rgba(124, 58, 237, .18), transparent 30%),
+    radial-gradient(circle at 9% 95%, rgba(14, 165, 233, .12), transparent 34%),
+    linear-gradient(125deg, rgba(15, 23, 42, .98), rgba(24, 24, 48, .98)) !important;
+}
+
+[data-theme="dark"] .preparation-workspace .prep-topbar h1 { color: #eff6ff !important; }
+[data-theme="dark"] .preparation-workspace .prep-topbar p { color: #cbd5e1 !important; }
+[data-theme="dark"] .preparation-workspace .prep-eyebrow,
+[data-theme="dark"] .preparation-workspace[data-section="overview"] .prep-topbar::after,
+[data-theme="dark"] .preparation-workspace .prep-top-actions {
+  background: rgba(15, 23, 42, .7);
+}
+
+[data-theme="dark"] .preparation-workspace .prep-metrics > div[data-tone] {
+  background: linear-gradient(140deg, rgba(30, 41, 59, .98), rgba(15, 23, 42, .98)) !important;
+}
+
+[data-theme="dark"] .preparation-workspace .prep-metrics > div::after {
+  background: rgba(15, 23, 42, .72);
+}
+
+[data-theme="dark"] .preparation-workspace .prep-draft-meta > span {
+  filter: saturate(.8) brightness(.8);
+}
+
+@media (max-width: 1180px) {
+  .preparation-workspace[data-section="overview"] .prep-overview-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .preparation-workspace .prep-search {
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 760px) {
+  .preparation-workspace .prep-topbar {
+    min-height: 0;
+    padding: 18px !important;
+  }
+
+  .preparation-workspace[data-section="overview"] .prep-topbar::after {
+    left: 18px;
+    bottom: 14px;
+    font-size: 9.5px;
+  }
+
+  .preparation-workspace .prep-heading {
+    padding-bottom: 24px;
+  }
+
+  .preparation-workspace .prep-topbar h1 {
+    font-size: 26px !important;
+  }
+
+  .preparation-workspace .prep-top-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .preparation-workspace .prep-search {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100% !important;
+  }
+
+  .preparation-workspace .prep-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .preparation-workspace .prep-metrics > div {
+    min-height: 88px;
+    grid-template-columns: 36px minmax(0, 1fr) auto !important;
+    padding: 13px 13px 13px 56px !important;
+  }
+
+  .preparation-workspace .prep-metrics > div::after {
+    left: 13px;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+  }
+
+  .preparation-workspace .prep-metrics > div > b {
+    font-size: 26px !important;
+  }
+
+  .preparation-workspace .prep-overview-journals,
+  .preparation-workspace .prep-topic-overview {
+    padding: 14px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .preparation-workspace[data-section="overview"] .prep-topbar::after {
+    content: '选题 → 草稿 → 期刊 → 投稿';
+  }
+
+  .preparation-workspace .prep-metrics > div {
+    padding-left: 14px !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-areas: 'label value' 'helper value' !important;
+  }
+
+  .preparation-workspace .prep-metrics > div::after {
+    display: none;
+  }
+
+  .preparation-workspace .prep-metrics > div > span {
+    font-size: 12px !important;
+  }
+}
