@@ -10,6 +10,13 @@ type Props = ComponentProps<typeof PaperFormArchive> & {
   journalProfiles?: JournalProfile[]
 }
 
+function setControlledInput(input: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+  setter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
 function installFormEnhancements(journalProfiles: JournalProfile[]) {
   const modal = document.querySelector<HTMLElement>('.compact-form-modal')
   if (!modal) return () => {}
@@ -87,13 +94,21 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
 
     if (profile && suggestion && button) {
       const label = suggestion.querySelector<HTMLElement>('span')
-      if (label) label.textContent = `已关联期刊库：${profile.name}`
-      button.textContent = '同步期刊库信息'
+      const nextLabel = `已关联期刊库：${profile.name}`
+      if (label && label.textContent !== nextLabel) label.textContent = nextLabel
+      if (button.textContent !== '同步期刊库信息') button.textContent = '同步期刊库信息'
       suggestion.dataset.source = 'journal-library'
       const key = profile.id
       if (lastAutoLinked !== key) {
         lastAutoLinked = key
-        window.setTimeout(() => button.click(), 0)
+        window.setTimeout(() => {
+          button.click()
+          const currentFeeInputs = modal.querySelector<HTMLElement>('.compact-fee')?.querySelectorAll<HTMLInputElement>('input')
+          if (currentFeeInputs?.length === 2) {
+            if (profile.apc_amount != null && !currentFeeInputs[0].value) setControlledInput(currentFeeInputs[0], String(profile.apc_amount))
+            if (profile.apc_currency) setControlledInput(currentFeeInputs[1], profile.apc_currency.toUpperCase())
+          }
+        }, 0)
       }
     } else if (!profile) {
       lastAutoLinked = ''
