@@ -23,9 +23,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - name: Synchronize package lock metadata
-        run: npm install --package-lock-only --ignore-scripts --silent
-      - run: npm ci --silent
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
       - name: Verify sample privacy
         run: npm run check:privacy
       - name: Build visual harness
@@ -55,13 +54,13 @@ jobs:
           npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=dark" docs/screenshots/dashboard-dark.png
           npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="390,844" --wait-for-selector="html[data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light" docs/screenshots/dashboard-mobile.png
           npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-modal-scroll-ready='true'] .compact-form-footer" "http://127.0.0.1:4174/tests/visual/index.html?view=editor&theme=light" docs/screenshots/editor-form.png
-      - name: Commit updated screenshots and lockfile
+      - name: Commit updated screenshots
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add docs/screenshots package-lock.json
+          git add docs/screenshots
           if git diff --cached --quiet; then
-            echo "Documentation screenshots and lockfile are already current."
+            echo "Documentation screenshots are already current."
             exit 0
           fi
           git commit -m "Refresh privacy-safe documentation screenshots"
