@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { convertToCny, formatCny } from '../lib/exchange-rate'
+import { CHINESE_SUBMISSION_STATUS_PRESETS } from '../lib/submission-intelligence'
 
 function numericText(value?: string | null) {
   if (!value) return null
@@ -92,20 +93,42 @@ function enhanceJournalForm() {
   })
 }
 
-function enhanceOfflinePaperForm() {
-  document.querySelectorAll<HTMLElement>('.compact-fee').forEach(fee => {
-    const inputs = fee.querySelectorAll<HTMLInputElement>('input')
-    const host = fee.parentElement
-    if (inputs.length === 2 && host && !host.querySelector('.paper-cny-live')) {
+function enhancePaperForm() {
+  document.querySelectorAll<HTMLElement>('.compact-form-modal').forEach(modal => {
+    const fee = modal.querySelector<HTMLElement>('.compact-fee')
+    const inputs = fee?.querySelectorAll<HTMLInputElement>('input')
+    const host = fee?.parentElement
+    if (inputs?.length === 2 && host && !host.querySelector('.paper-cny-live')) {
       installInputPreview(inputs[0], inputs[1], host, 'paper-cny-live')
     }
+
+    const revisionField = Array.from(modal.querySelectorAll<HTMLElement>('.compact-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim() === '返修轮次')
+    if (revisionField && !revisionField.querySelector('.paper-auto-field-hint')) {
+      const hint = document.createElement('small')
+      hint.className = 'paper-auto-field-hint'
+      hint.textContent = '保存时根据时间线自动重算；没有可识别记录时保留手填值'
+      revisionField.appendChild(hint)
+    }
+  })
+}
+
+function enhanceTimelinePresets() {
+  document.querySelectorAll<HTMLDataListElement>('#timeline-event-options').forEach(datalist => {
+    const existing = new Set(Array.from(datalist.options).map(option => option.value))
+    CHINESE_SUBMISSION_STATUS_PRESETS.forEach(value => {
+      if (existing.has(value)) return
+      const option = document.createElement('option')
+      option.value = value
+      datalist.appendChild(option)
+    })
   })
 }
 
 function enhanceAll() {
   enhanceJournalCards()
   enhanceJournalForm()
-  enhanceOfflinePaperForm()
+  enhancePaperForm()
+  enhanceTimelinePresets()
 }
 
 export default function ApcAutoConverter() {
