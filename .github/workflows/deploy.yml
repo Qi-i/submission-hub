@@ -2,14 +2,14 @@ name: Deploy to GitHub Pages
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
     branches: [main]
-    types: [closed]
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write
 
 concurrency:
   group: pages
@@ -17,7 +17,6 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       deployed_sha: ${{ steps.version.outputs.sha }}
@@ -73,3 +72,23 @@ jobs:
           done
           echo "Live site did not return expected build SHA: $EXPECTED_SHA"
           exit 1
+
+  report:
+    if: always()
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record deployment result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          DEPLOYED_SHA: ${{ needs.build.outputs.deployed_sha }}
+        run: |
+          if [ "$BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
+            result="SUCCESS"
+          else
+            result="FAILURE"
+          fi
+          body="Pages deployment **${result}**\n\n- SHA: \`${DEPLOYED_SHA:-unknown}\`\n- Build: \`${BUILD_RESULT}\`\n- Deploy and live SHA check: \`${DEPLOY_RESULT}\`\n- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 39 --repo "$GITHUB_REPOSITORY" --body "$body"
