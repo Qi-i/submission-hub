@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
+import { inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
 import { createOnlineBackup, importOnlineBackup } from '../lib/online-backup'
 import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
@@ -23,6 +24,14 @@ type StatusFilter = 'all' | string
 const localDateLabel = () => {
   const date = new Date()
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function normalizePaperWorkflow(paper: Paper): Paper {
+  return {
+    ...paper,
+    status: inferMainSubmissionStatus(paper.system_status, paper.status),
+    revision_round: inferRevisionRound(paper.timeline, paper.system_status, Number(paper.revision_round || 0)),
+  }
 }
 
 export default function Dashboard() {
@@ -75,7 +84,7 @@ export default function Dashboard() {
 
   const loadPapers = useCallback(async () => {
     if (isDemo) {
-      setPapers(DEMO_PAPERS)
+      setPapers(DEMO_PAPERS.map(normalizePaperWorkflow))
       setLoading(false)
       return
     }
@@ -84,7 +93,7 @@ export default function Dashboard() {
       .select('*')
       .order('submitted_date', { ascending: false, nullsFirst: false })
     if (error) console.error('Load papers error:', error)
-    else setPapers(data || [])
+    else setPapers(((data || []) as Paper[]).map(normalizePaperWorkflow))
     setLoading(false)
   }, [isDemo])
 
