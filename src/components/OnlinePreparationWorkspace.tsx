@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
 import { supabase } from '../lib/supabase'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
@@ -22,55 +22,70 @@ function localDateString() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
+function readableError(error: unknown, fallback: string) {
+  return error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+    ? error.message
+    : fallback
+}
+
 export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: Props) {
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const loadVersion = useRef(0)
 
   const load = useCallback(async () => {
+    const version = ++loadVersion.current
     setLoading(true)
     setError('')
-    const [journalResult, topicResult, draftResult] = await Promise.all([
-      (supabase.from('journal_profiles') as any).select('*').order('updated_at', { ascending: false }),
-      (supabase.from('research_topics') as any).select('*').order('updated_at', { ascending: false }),
-      (supabase.from('manuscript_drafts') as any).select('*').order('updated_at', { ascending: false }),
-    ])
 
-    const firstError = journalResult.error || topicResult.error || draftResult.error
-    if (firstError) {
-      console.error('Load preparation workspace failed:', firstError)
-      setError(firstError.message || '投稿准备数据加载失败')
-      setLoading(false)
-      return
+    try {
+      const [journalResult, topicResult, draftResult] = await Promise.all([
+        (supabase.from('journal_profiles') as any).select('*').order('updated_at', { ascending: false }),
+        (supabase.from('research_topics') as any).select('*').order('updated_at', { ascending: false }),
+        (supabase.from('manuscript_drafts') as any).select('*').order('updated_at', { ascending: false }),
+      ])
+
+      if (version !== loadVersion.current) return
+      const firstError = journalResult.error || topicResult.error || draftResult.error
+      if (firstError) throw firstError
+
+      setSnapshot({
+        journals: ((journalResult.data || []) as JournalProfile[]).map(journal => ({
+          ...journal,
+          third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
+          subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
+          indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
+        })),
+        topics: ((topicResult.data || []) as ResearchTopic[]).map(topic => ({
+          ...topic,
+          keywords: Array.isArray(topic.keywords) ? topic.keywords : [],
+          methods: Array.isArray(topic.methods) ? topic.methods : [],
+          data_sources: Array.isArray(topic.data_sources) ? topic.data_sources : [],
+          links: Array.isArray(topic.links) ? topic.links : [],
+        })),
+        drafts: ((draftResult.data || []) as ManuscriptDraft[]).map(draft => ({
+          ...draft,
+          checklist: Array.isArray(draft.checklist) && draft.checklist.length ? draft.checklist : createDefaultChecklist(),
+          target_journal_ids: Array.isArray(draft.target_journal_ids) ? draft.target_journal_ids : [],
+          external_links: Array.isArray(draft.external_links) ? draft.external_links : [],
+          keywords: Array.isArray(draft.keywords) ? draft.keywords : [],
+          authors: Array.isArray(draft.authors) ? draft.authors : [],
+        })),
+      })
+    } catch (caught) {
+      if (version !== loadVersion.current) return
+      console.error('Load preparation workspace failed:', caught)
+      setError(readableError(caught, '投稿准备数据加载失败'))
+    } finally {
+      if (version === loadVersion.current) setLoading(false)
     }
-
-    setSnapshot({
-      journals: ((journalResult.data || []) as JournalProfile[]).map(journal => ({
-        ...journal,
-        third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
-        subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
-        indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
-      })),
-      topics: ((topicResult.data || []) as ResearchTopic[]).map(topic => ({
-        ...topic,
-        keywords: Array.isArray(topic.keywords) ? topic.keywords : [],
-        methods: Array.isArray(topic.methods) ? topic.methods : [],
-        data_sources: Array.isArray(topic.data_sources) ? topic.data_sources : [],
-        links: Array.isArray(topic.links) ? topic.links : [],
-      })),
-      drafts: ((draftResult.data || []) as ManuscriptDraft[]).map(draft => ({
-        ...draft,
-        checklist: Array.isArray(draft.checklist) && draft.checklist.length ? draft.checklist : createDefaultChecklist(),
-        target_journal_ids: Array.isArray(draft.target_journal_ids) ? draft.target_journal_ids : [],
-        external_links: Array.isArray(draft.external_links) ? draft.external_links : [],
-        keywords: Array.isArray(draft.keywords) ? draft.keywords : [],
-        authors: Array.isArray(draft.authors) ? draft.authors : [],
-      })),
-    })
-    setLoading(false)
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    void load()
+    return () => { loadVersion.current += 1 }
+  }, [load])
 
   const saveJournal = async (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => {
     const now = new Date().toISOString()
@@ -86,14 +101,15 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
 
   const deleteJournal = async (journalId: string) => {
     const affectedDrafts = snapshot.drafts.filter(draft => draft.primary_journal_id === journalId || draft.target_journal_ids.includes(journalId))
-    for (const draft of affectedDrafts) {
+    await Promise.all(affectedDrafts.map(async draft => {
       const { error } = await (supabase.from('manuscript_drafts') as any).update({
         primary_journal_id: draft.primary_journal_id === journalId ? null : draft.primary_journal_id,
         target_journal_ids: draft.target_journal_ids.filter(id => id !== journalId),
         updated_at: new Date().toISOString(),
       }).eq('id', draft.id)
       if (error) throw error
-    }
+    }))
+
     const { error } = await (supabase.from('journal_profiles') as any).delete().eq('id', journalId)
     if (error) throw error
     await load()
@@ -196,13 +212,19 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       stage: 'submitted',
       submitted_paper_id: paperId,
       updated_at: now,
-    }).eq('id', draft.id)
-    if (draftError) throw draftError
+    }).eq('id', draft.id).is('submitted_paper_id', null)
+
+    if (draftError) {
+      const { error: rollbackError } = await (supabase.from('papers') as any).delete().eq('id', paperId)
+      if (rollbackError) console.error('Rollback promoted paper failed:', rollbackError)
+      throw draftError
+    }
+
     await load()
     onPaperCreated?.()
   }
 
-  if (error) return <div className="prep-load-error"><h3>投稿准备模块尚未初始化</h3><p>{error}</p><p>请确认 Supabase 已执行 008–011 迁移。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
+  if (error) return <div className="prep-load-error"><h3>投稿准备数据暂时无法加载</h3><p>请检查网络连接后重试；若问题持续，请查看浏览器控制台中的错误详情。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
 
   return <PreparationWorkspace snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} />
 }
