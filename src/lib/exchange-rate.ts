@@ -62,11 +62,12 @@ async function fetchRate(currency: string): Promise<CachedRate | null> {
         headers: { Accept: 'application/json' },
       })
       if (!response.ok) throw new Error(`FX ${response.status}`)
-      const payload = await response.json() as { rate?: number; date?: string }
-      if (!Number.isFinite(payload.rate) || Number(payload.rate) <= 0) throw new Error('Invalid FX response')
+      const payload = await response.json() as { rate?: unknown; date?: unknown }
+      const parsedRate = Number(payload.rate)
+      if (!Number.isFinite(parsedRate) || parsedRate <= 0) throw new Error('Invalid FX response')
       const next: CachedRate = {
-        rate: Number(payload.rate),
-        date: payload.date || new Date().toISOString().slice(0, 10),
+        rate: parsedRate,
+        date: typeof payload.date === 'string' && payload.date ? payload.date : new Date().toISOString().slice(0, 10),
         fetchedAt: Date.now(),
       }
       writeCache(currency, next)
