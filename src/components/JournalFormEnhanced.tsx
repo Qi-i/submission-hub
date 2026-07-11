@@ -129,7 +129,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
       if (suggestions.impactFactor) setImpactFactor(suggestions.impactFactor)
       if (suggestions.indexing.length) setIndexing(previous => Array.from(new Set([...previous, ...suggestions.indexing])))
       if (suggestions.risk) setRisk(suggestions.risk)
-      setRankMessage(`${result.cached ? '已读取缓存' : '查询完成'}：获取 ${result.items.length} 项等级信息。`)
+      setRankMessage(`${result.cached ? '已读取缓存' : '查询完成'}：获取 ${result.items.length} 项等级信息，已更新当前表单；请点击“保存期刊”。`)
     } catch (error) {
       setRankMessageError(true)
       setRankMessage(error instanceof Error ? error.message : '期刊等级查询失败，请稍后再试。')
@@ -208,7 +208,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
         <section className="journal-form-section links"><div className="journal-form-section-head"><b>投稿入口</b><span>卡片底部直接打开</span></div><div className="prep-form-grid three"><Field label="期刊官网"><input className="input" value={website} onChange={event => setWebsite(event.target.value)} placeholder="https://..." /></Field><Field label="作者指南"><input className="input" value={guide} onChange={event => setGuide(event.target.value)} placeholder="https://..." /></Field><Field label="投稿系统"><input className="input" value={submission} onChange={event => setSubmission(event.target.value)} placeholder="https://..." /></Field></div></section>
 
         <section className="journal-rank-panel">
-          <div className="journal-rank-head"><div><BadgeCheck size={17} /><span><strong>期刊等级记录</strong><small>{onLookupRanks ? '可按期刊名称查询，也可按已核实数据手动填写' : '请按已核实数据填写'}</small></span></div>{onLookupRanks && <button type="button" className="btn btn-ghost btn-sm" onClick={() => void lookupRanks()} disabled={rankLookingUp || !name.trim()}>{rankLookingUp ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />} {rankItems.length ? '刷新等级' : '查询等级'}</button>}</div>
+          <div className="journal-rank-head"><div><BadgeCheck size={17} /><span><strong>期刊等级记录</strong><small>{onLookupRanks ? '查询后自动回填可识别的 JCR、中科院分区和影响因子；点击“保存期刊”后生效' : '请按已核实数据填写'}</small></span></div>{onLookupRanks && <button type="button" className="btn btn-rank btn-sm" onClick={() => void lookupRanks()} disabled={rankLookingUp || !name.trim()}>{rankLookingUp ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />} {rankItems.length ? '刷新等级' : '查询等级'}</button>}</div>
           {rankItems.length > 0 ? <div className="journal-rank-chips">{rankItems.slice(0, 18).map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div> : <div className="journal-rank-empty">暂无等级快照，可点击查询或在下方填写 JCR 分区、中科院分区和影响因子。</div>}
           {rankMessage && <small className={`journal-rank-time ${rankMessageError ? 'danger' : ''}`} role="status" aria-live="polite">{rankMessage}</small>}
           {rankUpdatedAt && <small className="journal-rank-time">更新时间：{new Date(rankUpdatedAt).toLocaleString()}</small>}
