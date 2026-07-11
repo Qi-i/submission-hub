@@ -39,7 +39,8 @@ for (const url of visualUrls) {
   if (!url.startsWith('https://example.com/')) failures.push(`tests/visual/visual.tsx: non-example external URL found: ${url}`)
 }
 
-const visualIds = [...visual.matchAll(/id:\s*'([^']+)'/g)].map(match => match[1])
+// Match only the standalone `id` property, not `user_id`, `topic_id`, etc.
+const visualIds = [...visual.matchAll(/\bid:\s*'([^']+)'/g)].map(match => match[1])
 for (const value of visualIds) {
   if (!/^(paper|journal|topic|draft)-/.test(value)) failures.push(`tests/visual/visual.tsx: unexpected sample id: ${value}`)
 }
@@ -59,7 +60,7 @@ for (const required of [
   if (!demo.includes(required)) failures.push(`src/lib/demo-data.ts: missing privacy-safe demo marker: ${required}`)
 }
 
-const demoIds = [...demo.matchAll(/id:\s*'([^']+)'/g)].map(match => match[1])
+const demoIds = [...demo.matchAll(/\bid:\s*'([^']+)'/g)].map(match => match[1])
 for (const value of demoIds) {
   if (!value.startsWith('demo-')) failures.push(`src/lib/demo-data.ts: non-demo id found: ${value}`)
 }
