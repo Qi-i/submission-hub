@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    types: [closed]
 
 permissions:
   contents: read
@@ -16,9 +19,14 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    outputs:
+      deployed_sha: ${{ steps.version.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -31,9 +39,12 @@ jobs:
           VITE_ADMIN_ID: ${{ vars.VITE_ADMIN_ID }}
       - name: Verify current dashboard is bundled
         run: grep -R "2026-07-12-journal-sync" dist/assets >/dev/null
-      - name: Write deployment version
+      - id: version
+        name: Write deployment version
         run: |
-          printf '{"sha":"%s","built_at":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/build-info.json
+          sha="$(git rev-parse HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          printf '{"sha":"%s","built_at":"%s"}\n' "$sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/build-info.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -47,3 +58,20 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify live site serves this build
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_SHA: ${{ needs.build.outputs.deployed_sha }}
+        run: |
+          url="${PAGE_URL%/}/build-info.json?run=${GITHUB_RUN_ID}"
+          for attempt in $(seq 1 18); do
+            body="$(curl --fail --silent --show-error --location --max-time 15 "$url" || true)"
+            if printf '%s' "$body" | grep --fixed-strings --quiet "$EXPECTED_SHA"; then
+              echo "Verified live Pages build: $EXPECTED_SHA"
+              exit 0
+            fi
+            echo "Waiting for Pages CDN propagation ($attempt/18)..."
+            sleep 5
+          done
+          echo "Live site did not return expected build SHA: $EXPECTED_SHA"
+          exit 1
