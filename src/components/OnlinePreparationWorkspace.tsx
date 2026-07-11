@@ -3,6 +3,7 @@ import { lookupJournalRanks } from '../lib/journal-rank-client'
 import { supabase } from '../lib/supabase'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import { createDefaultChecklist } from '../lib/preparation'
+import { invalidateOnlineJournalProfileCache } from './OnlinePaperCard'
 import PreparationWorkspace from './PreparationWorkspace'
 
 interface Props {
@@ -96,6 +97,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       const { error } = await (supabase.from('journal_profiles') as any).insert({ ...cleanPayload(data), id: crypto.randomUUID(), user_id: userId, created_at: now, updated_at: now })
       if (error) throw error
     }
+    invalidateOnlineJournalProfileCache()
     await load()
   }
 
@@ -112,6 +114,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
 
     const { error } = await (supabase.from('journal_profiles') as any).delete().eq('id', journalId)
     if (error) throw error
+    invalidateOnlineJournalProfileCache()
     await load()
   }
 
