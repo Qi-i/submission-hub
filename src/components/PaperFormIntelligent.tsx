@@ -1,6 +1,7 @@
-import { useEffect, useMemo, type ComponentProps } from 'react'
+import { useEffect, type ComponentProps } from 'react'
 import { convertToCny, formatCny } from '../lib/exchange-rate'
-import { appendJournalProfiles, findJournalProfile } from '../lib/journal-paper-sync'
+import { findJournalProfile } from '../lib/journal-paper-sync'
+import { primaryJournalRankItems, type RankedJournalProfile } from '../lib/journal-display'
 import type { JournalProfile } from '../lib/preparation'
 import { CHINESE_SUBMISSION_STATUS_PRESETS, inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
 import type { Paper } from '../lib/types'
@@ -10,11 +11,16 @@ type Props = ComponentProps<typeof PaperFormArchive> & {
   journalProfiles?: JournalProfile[]
 }
 
-function setControlledInput(input: HTMLInputElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-  setter?.call(input, value)
-  input.dispatchEvent(new Event('input', { bubbles: true }))
-  input.dispatchEvent(new Event('change', { bubbles: true }))
+function setControlledValue(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: string) {
+  const prototype = control instanceof HTMLSelectElement
+    ? HTMLSelectElement.prototype
+    : control instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype
+  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set
+  setter?.call(control, value)
+  control.dispatchEvent(new Event('input', { bubbles: true }))
+  control.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
 function installFormEnhancements(journalProfiles: JournalProfile[]) {
@@ -22,7 +28,19 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
   if (!modal) return () => {}
   const cleanups: Array<() => void> = []
 
-  const revisionField = Array.from(modal.querySelectorAll<HTMLElement>('.compact-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim() === '返修轮次')
+  const fields = () => Array.from(modal.querySelectorAll<HTMLElement>('.compact-field'))
+  const fieldByLabel = (label: string) => fields().find(field => field.querySelector(':scope > span')?.textContent?.trim() === label)
+  const controlByLabel = (label: string) => fieldByLabel(label)?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')
+  const setField = (label: string, value?: string | null, overwrite = false, emptyValues: string[] = []) => {
+    if (!value) return
+    const control = controlByLabel(label)
+    if (!control) return
+    const current = control.value.trim()
+    if (!overwrite && current && !emptyValues.includes(current)) return
+    if (current !== value) setControlledValue(control, value)
+  }
+
+  const revisionField = fieldByLabel('返修轮次')
   if (revisionField && !revisionField.querySelector('.paper-auto-field-hint')) {
     const hint = document.createElement('small')
     hint.className = 'paper-auto-field-hint'
@@ -72,59 +90,101 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
     update()
   }
 
-  const addChinesePresets = () => {
-    const datalist = modal.querySelector<HTMLDataListElement>('#timeline-event-options')
-    if (!datalist) return
-    const existing = new Set(Array.from(datalist.options).map(option => option.value))
-    CHINESE_SUBMISSION_STATUS_PRESETS.forEach(value => {
-      if (existing.has(value)) return
-      const option = document.createElement('option')
-      option.value = value
-      datalist.appendChild(option)
-    })
+  const addPresets = () => {
+    const timelineList = modal.querySelector<HTMLDataListElement>('#timeline-event-options')
+    if (timelineList) {
+      const existing = new Set(Array.from(timelineList.options).map(option => option.value))
+      CHINESE_SUBMISSION_STATUS_PRESETS.forEach(value => {
+        if (existing.has(value)) return
+        const option = document.createElement('option')
+        option.value = value
+        timelineList.appendChild(option)
+      })
+    }
+
+    const journalList = modal.querySelector<HTMLDataListElement>('#journal-options')
+    if (journalList) {
+      const existing = new Set(Array.from(journalList.options).map(option => option.value))
+      journalProfiles.forEach(profile => {
+        if (existing.has(profile.name)) return
+        const option = document.createElement('option')
+        option.value = profile.name
+        journalList.appendChild(option)
+      })
+    }
+  }
+
+  const syncProfile = (profile: JournalProfile, overwrite: boolean) => {
+    const ranked = profile as RankedJournalProfile
+    const rankItems = primaryJournalRankItems(ranked, 10)
+    const newRank = rankItems.find(item => item.key === 'xr' || item.key.startsWith('xr'))?.value
+    const domestic = rankItems
+      .filter(item => ['eii', 'pku', 'cscd', 'zhongguokejihexin', 'cssci'].includes(item.key) || item.key.startsWith('index:'))
+      .map(item => item.value === '收录' ? item.label : `${item.label} ${item.value}`)
+
+    setField('投稿后台 URL', profile.submission_url, overwrite)
+    setField('期刊官网 / 作者指南', profile.website_url || profile.author_guide_url, overwrite)
+    setField('APC / 开源 / 期刊备注', profile.fee_notes, overwrite)
+    setField('JCR', profile.jcr_quartile, overwrite, ['未定'])
+    setField('中科院', profile.cas_quartile, overwrite, ['未定'])
+    setField('新锐', newRank, overwrite, ['无'])
+
+    domestic.slice(0, 4).forEach((value, index) => setField(`分类 ${index + 1}`, value, overwrite))
+
+    const currentFeeInputs = modal.querySelector<HTMLElement>('.compact-fee')?.querySelectorAll<HTMLInputElement>('input')
+    if (currentFeeInputs?.length === 2) {
+      if (profile.apc_amount != null && (overwrite || !currentFeeInputs[0].value)) setControlledValue(currentFeeInputs[0], String(profile.apc_amount))
+      if (profile.apc_currency && (overwrite || !currentFeeInputs[1].value || currentFeeInputs[1].value === 'USD')) setControlledValue(currentFeeInputs[1], profile.apc_currency.toUpperCase())
+    }
   }
 
   let lastAutoLinked = ''
   const enhanceJournalLink = () => {
-    const journalField = Array.from(modal.querySelectorAll<HTMLElement>('.compact-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim() === '目标期刊 / 会议')
-    const journalInput = journalField?.querySelector<HTMLInputElement>('input')
-    const suggestion = modal.querySelector<HTMLElement>('.profile-suggestion')
-    const button = suggestion?.querySelector<HTMLButtonElement>('button')
+    addPresets()
+    const journalInput = controlByLabel('目标期刊 / 会议') as HTMLInputElement | undefined
     const profile = findJournalProfile(journalProfiles, journalInput?.value)
+    const tools = modal.querySelector<HTMLElement>('.paper-journal-tools')
+    let suggestion = tools?.querySelector<HTMLElement>('.library-profile-suggestion')
 
-    if (profile && suggestion && button) {
-      const label = suggestion.querySelector<HTMLElement>('span')
-      const nextLabel = `已关联期刊库：${profile.name}`
-      if (label && label.textContent !== nextLabel) label.textContent = nextLabel
-      if (button.textContent !== '同步期刊库信息') button.textContent = '同步期刊库信息'
-      suggestion.dataset.source = 'journal-library'
-      const key = profile.id
-      if (lastAutoLinked !== key) {
-        lastAutoLinked = key
-        window.setTimeout(() => {
-          button.click()
-          const currentFeeInputs = modal.querySelector<HTMLElement>('.compact-fee')?.querySelectorAll<HTMLInputElement>('input')
-          if (currentFeeInputs?.length === 2) {
-            if (profile.apc_amount != null && !currentFeeInputs[0].value) setControlledInput(currentFeeInputs[0], String(profile.apc_amount))
-            if (profile.apc_currency) setControlledInput(currentFeeInputs[1], profile.apc_currency.toUpperCase())
-          }
-        }, 0)
-      }
-    } else if (!profile) {
+    if (!profile || !tools) {
+      suggestion?.remove()
       lastAutoLinked = ''
+      return
+    }
+
+    if (!suggestion) {
+      suggestion = document.createElement('div')
+      suggestion.className = 'profile-suggestion library-profile-suggestion'
+      const label = document.createElement('span')
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'timeline-link-btn'
+      button.textContent = '同步最新信息'
+      button.addEventListener('click', () => {
+        const latest = findJournalProfile(journalProfiles, journalInput?.value)
+        if (latest) syncProfile(latest, true)
+      })
+      suggestion.append(label, button)
+      tools.prepend(suggestion)
+    }
+
+    const label = suggestion.querySelector<HTMLElement>('span')
+    const nextLabel = `已关联期刊库：${profile.name}`
+    if (label && label.textContent !== nextLabel) label.textContent = nextLabel
+
+    if (lastAutoLinked !== profile.id) {
+      lastAutoLinked = profile.id
+      window.setTimeout(() => syncProfile(profile, false), 0)
     }
   }
 
-  addChinesePresets()
+  addPresets()
   enhanceJournalLink()
-  const observer = new MutationObserver(() => {
-    addChinesePresets()
-    enhanceJournalLink()
-  })
-  observer.observe(modal, { childList: true, subtree: true, characterData: true })
+  const observer = new MutationObserver(enhanceJournalLink)
+  observer.observe(modal, { childList: true, subtree: true })
   cleanups.push(() => observer.disconnect())
 
-  const journalInput = Array.from(modal.querySelectorAll<HTMLElement>('.compact-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim() === '目标期刊 / 会议')?.querySelector<HTMLInputElement>('input')
+  const journalInput = controlByLabel('目标期刊 / 会议') as HTMLInputElement | undefined
   if (journalInput) {
     const onJournalChange = () => window.setTimeout(enhanceJournalLink, 0)
     journalInput.addEventListener('input', onJournalChange)
@@ -139,11 +199,6 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
 }
 
 export default function PaperFormIntelligent({ journalProfiles = [], ...props }: Props) {
-  const linkedPapers = useMemo(
-    () => appendJournalProfiles(props.allPapers, journalProfiles),
-    [props.allPapers, journalProfiles],
-  )
-
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const cleanup = installFormEnhancements(journalProfiles)
@@ -167,5 +222,5 @@ export default function PaperFormIntelligent({ journalProfiles = [], ...props }:
     await props.onSave(normalized)
   }
 
-  return <PaperFormArchive {...props} allPapers={linkedPapers} onSave={save} />
+  return <PaperFormArchive {...props} onSave={save} />
 }
