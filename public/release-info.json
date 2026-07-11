@@ -1,0 +1,8 @@
+{
+  "release": "2026-07-12-journal-sync",
+  "features": [
+    "hide-apc-from-submission-cards",
+    "link-journal-library-to-submissions",
+    "convert-foreign-apc-to-cny-in-journal-views"
+  ]
+}
