@@ -1,6 +1,29 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Github, Mail, Lock, User, LogIn, UserPlus, Eye, BookOpen, FileText, BarChart3, GraduationCap } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+
+function readOAuthError() {
+  if (typeof window === 'undefined') return ''
+  const search = new URLSearchParams(window.location.search)
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  return search.get('error_description') || hash.get('error_description') || search.get('error') || hash.get('error') || ''
+}
+
+function clearOAuthError() {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  const errorKeys = ['error', 'error_code', 'error_description']
+  errorKeys.forEach(key => url.searchParams.delete(key))
+
+  if (url.hash) {
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ''))
+    errorKeys.forEach(key => hash.delete(key))
+    const cleanedHash = hash.toString()
+    url.hash = cleanedHash ? `#${cleanedHash}` : ''
+  }
+
+  window.history.replaceState({}, document.title, url.toString())
+}
 
 export default function Login() {
   const { signInWithGithub, signInWithEmail, signUpWithEmail, enterDemo } = useAuth()
@@ -10,21 +33,39 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [githubLoading, setGithubLoading] = useState(false)
+
+  useEffect(() => {
+    const oauthError = readOAuthError()
+    if (!oauthError) return
+    setError(oauthError)
+    clearOAuthError()
+  }, [])
+
+  const handleGithubLogin = async () => {
+    if (githubLoading || loading) return
+    setError('')
+    setGithubLoading(true)
+    const oauthError = await signInWithGithub()
+    if (oauthError) {
+      setError(oauthError)
+      setGithubLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const err = mode === 'login'
+    const authError = mode === 'login'
       ? await signInWithEmail(email, password)
       : await signUpWithEmail(email, password, username)
 
-    if (err) setError(err)
+    if (authError) setError(authError)
     setLoading(false)
   }
 
-  // Floating academic icons for decoration
   const floatingIcons = [
     { Icon: BookOpen, x: '8%', y: '15%', size: 28, delay: 0, color: 'var(--accent)' },
     { Icon: FileText, x: '85%', y: '20%', size: 24, delay: 1.5, color: 'var(--purple)' },
@@ -34,10 +75,8 @@ export default function Login() {
 
   return (
     <div className="auth-page">
-      {/* Decorative dot grid */}
       <div className="auth-decor-grid" />
 
-      {/* Floating academic icons */}
       {floatingIcons.map(({ Icon, x, y, size, delay, color }, i) => (
         <div key={i} style={{
           position: 'absolute', left: x, top: y, zIndex: 0,
@@ -59,10 +98,11 @@ export default function Login() {
         <button
           className="btn btn-primary"
           style={{ width: '100%', padding: '13px', fontSize: '14px', marginBottom: '4px', borderRadius: 12 }}
-          onClick={() => signInWithGithub()}
+          onClick={() => void handleGithubLogin()}
+          disabled={githubLoading || loading}
         >
-          <Github size={18} />
-          使用 GitHub 登录
+          {githubLoading ? <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <Github size={18} />}
+          {githubLoading ? '正在跳转 GitHub...' : '使用 GitHub 登录'}
         </button>
 
         <div className="auth-divider">或使用邮箱</div>
@@ -136,7 +176,7 @@ export default function Login() {
             type="submit"
             className="btn btn-primary"
             style={{ width: '100%', padding: '12px', marginTop: '4px', borderRadius: 12 }}
-            disabled={loading}
+            disabled={loading || githubLoading}
           >
             {loading ? (
               <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
@@ -154,6 +194,7 @@ export default function Login() {
           className="btn btn-ghost"
           style={{ width: '100%', padding: '12px', fontSize: '13px', borderRadius: 12 }}
           onClick={enterDemo}
+          disabled={loading || githubLoading}
         >
           <Eye size={16} />
           无需注册，立即体验演示 →
