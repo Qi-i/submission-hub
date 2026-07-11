@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ExternalLink, Scale, X } from 'lucide-react'
+import { journalPrimarySummary, type RankedJournalProfile } from '../lib/journal-display'
 import type { JournalProfile } from '../lib/preparation'
 import { OA_OPTIONS } from '../lib/preparation'
 
@@ -17,6 +18,7 @@ type Row = {
 }
 
 const rows: Row[] = [
+  { label: '主要分区 / 核心收录', value: journal => journalPrimarySummary(journal as RankedJournalProfile, 5) },
   { label: 'JCR 分区', value: journal => journal.jcr_quartile || '未定' },
   { label: '中科院分区', value: journal => journal.cas_quartile || '未定' },
   { label: '影响因子', value: journal => journal.impact_factor == null ? '未知' : String(journal.impact_factor), numeric: journal => journal.impact_factor, preference: 'higher' },
@@ -58,12 +60,12 @@ export default function JournalComparison({ journals, initialIds, onEdit }: Prop
 
   return <section className="journal-compare">
     <div className="journal-compare-head">
-      <div><h2><Scale size={17} /> 期刊横向比较</h2><p>指标来自您的期刊档案，应定期依据官网和可靠数据库更新。</p></div>
+      <div><h2><Scale size={17} /> 期刊横向比较</h2><p>中文期刊优先比较核心与收录体系，英文期刊优先比较新锐、中科院、JCR 与影响因子。</p></div>
       {selectedIds.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => setSelectedIds([])}>清空选择</button>}
     </div>
 
     <div className="journal-compare-picker">
-      {journals.map(journal => <label key={journal.id} className={selectedIds.includes(journal.id) ? 'selected' : ''}><input type="checkbox" checked={selectedIds.includes(journal.id)} onChange={() => toggle(journal.id)} /><span>{journal.name}</span><em>{journal.jcr_quartile || 'JCR 未定'} · {journal.cas_quartile || '中科院未定'}</em></label>)}
+      {journals.map(journal => <label key={journal.id} className={selectedIds.includes(journal.id) ? 'selected' : ''}><input type="checkbox" checked={selectedIds.includes(journal.id)} onChange={() => toggle(journal.id)} /><span>{journal.name}</span><em>{journalPrimarySummary(journal as RankedJournalProfile, 3)}</em></label>)}
       {!journals.length && <div className="prep-empty"><span>期刊库为空，请先收藏目标期刊。</span></div>}
     </div>
 
