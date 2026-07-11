@@ -3,7 +3,7 @@ import type { Paper } from '../lib/types'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import * as prepStore from '../lib/local-preparation-store'
 import * as paperStore from '../lib/local-store'
-import PreparationWorkspace from './PreparationWorkspace'
+import PreparationWorkspaceSuite from './PreparationWorkspaceSuite'
 
 interface Props {
   authorName: string
@@ -111,5 +111,5 @@ export default function OfflinePreparationWorkspace({ authorName, refreshToken, 
     onPaperCreated?.()
   }
 
-  return <PreparationWorkspace snapshot={snapshot} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} />
+  return <PreparationWorkspaceSuite snapshot={snapshot} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} />
 }

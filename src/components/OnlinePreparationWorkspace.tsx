@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import { createDefaultChecklist } from '../lib/preparation'
 import { invalidateOnlineJournalProfileCache } from './OnlinePaperCard'
-import PreparationWorkspace from './PreparationWorkspace'
+import PreparationWorkspaceSuite from './PreparationWorkspaceSuite'
 
 interface Props {
   userId: string
@@ -230,5 +230,5 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
 
   if (error) return <div className="prep-load-error"><h3>投稿准备数据暂时无法加载</h3><p>请检查网络连接后重试；若问题持续，请查看浏览器控制台中的错误详情。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
 
-  return <PreparationWorkspace snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} />
+  return <PreparationWorkspaceSuite snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} />
 }
