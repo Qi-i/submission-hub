@@ -57,6 +57,7 @@
 }
 
 .paper-cny-live,
+.journal-apc-cny-live,
 .paper-auto-field-hint {
   display: block;
   width: 100%;
@@ -67,16 +68,43 @@
   line-height: 1.4;
 }
 
-.paper-cny-live[data-state="ready"] {
+.paper-cny-live[data-state="ready"],
+.journal-apc-cny-live[data-state="ready"] {
   color: #047857;
 }
 
-.paper-cny-live[data-state="loading"] {
+.paper-cny-live[data-state="loading"],
+.journal-apc-cny-live[data-state="loading"] {
   color: #2563eb;
 }
 
-.paper-cny-live[data-state="error"] {
+.paper-cny-live[data-state="error"],
+.journal-apc-cny-live[data-state="error"] {
   color: #b45309;
+}
+
+.journal-apc-cny-live {
+  grid-column: 1 / -1;
+  margin: -4px 0 4px;
+  padding: 7px 10px;
+  border: 1px solid rgba(5, 150, 105, .14);
+  border-radius: 8px;
+  background: rgba(236, 253, 245, .72);
+}
+
+.prep-journal-numbers > div:last-child {
+  position: relative;
+}
+
+.journal-card-cny {
+  display: block !important;
+  width: 100%;
+  margin-top: 3px;
+  color: #047857 !important;
+  font-size: 9.5px !important;
+  font-weight: 720 !important;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .journal-compare-table .currency-cny {
@@ -91,14 +119,21 @@
 
 [data-theme="dark"] .currency-estimate,
 [data-theme="dark"] .currency-estimate small,
-[data-theme="dark"] .paper-cny-live[data-state="ready"] {
-  color: #6ee7b7;
+[data-theme="dark"] .paper-cny-live[data-state="ready"],
+[data-theme="dark"] .journal-apc-cny-live[data-state="ready"],
+[data-theme="dark"] .journal-card-cny {
+  color: #6ee7b7 !important;
 }
 
 [data-theme="dark"] .paper-apc-badge {
   border-color: rgba(52, 211, 153, .25) !important;
   background: rgba(6, 78, 59, .32) !important;
   color: #a7f3d0 !important;
+}
+
+[data-theme="dark"] .journal-apc-cny-live {
+  border-color: rgba(52, 211, 153, .18);
+  background: rgba(6, 78, 59, .22);
 }
 
 @media (max-width: 660px) {
