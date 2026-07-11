@@ -8,36 +8,66 @@ function numericText(value?: string | null) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
 }
 
+function isCny(currency: string) {
+  return ['CNY', 'RMB', 'CNH'].includes(currency)
+}
+
+function renderConversion(output: HTMLElement, amount: number, currency: string, key: string) {
+  if (output.dataset.key === key) return
+  output.dataset.key = key
+  output.textContent = isCny(currency) ? formatCny(amount) : '换算中…'
+  output.dataset.state = isCny(currency) ? 'ready' : 'loading'
+  if (isCny(currency)) return
+
+  void convertToCny(amount, currency).then(result => {
+    if (output.dataset.key !== key) return
+    output.textContent = result ? `≈ ${formatCny(result.cny)}` : '人民币价暂不可用'
+    output.dataset.state = result ? 'ready' : 'error'
+    output.title = result
+      ? `参考汇率：1 ${result.currency} = ${result.rate.toFixed(4)} CNY；日期 ${result.date}${result.stale ? '；使用缓存' : ''}`
+      : '原始 APC 金额仍保留'
+  })
+}
+
 function enhanceJournalCards() {
   document.querySelectorAll<HTMLElement>('.prep-journal-card').forEach(card => {
     const cells = card.querySelectorAll<HTMLElement>('.prep-journal-numbers > div')
     const feeCell = cells[cells.length - 1]
     const amountNode = feeCell?.querySelector<HTMLElement>('b')
-    const currencyNode = feeCell?.querySelector<HTMLElement>('small')
+    const currencyNode = feeCell?.querySelector<HTMLElement>('small:not(.journal-card-cny)')
     const amount = numericText(amountNode?.textContent)
     const currency = (currencyNode?.textContent || '').trim().toUpperCase()
     if (!feeCell || amount === null || !currency || currency === 'APC') return
 
-    const key = `${amount}:${currency}`
     let output = feeCell.querySelector<HTMLElement>('.journal-card-cny')
     if (!output) {
       output = document.createElement('small')
       output.className = 'journal-card-cny'
       feeCell.appendChild(output)
     }
-    if (output.dataset.key === key) return
-    output.dataset.key = key
-    output.textContent = currency === 'CNY' || currency === 'RMB' || currency === 'CNH'
-      ? formatCny(amount)
-      : '换算中…'
+    renderConversion(output, amount, currency, `${amount}:${currency}`)
+  })
+}
 
-    if (currency !== 'CNY' && currency !== 'RMB' && currency !== 'CNH') {
-      void convertToCny(amount, currency).then(result => {
-        if (output?.dataset.key !== key) return
-        output.textContent = result ? `≈ ${formatCny(result.cny)}` : '人民币价暂不可用'
-        output.title = result ? `参考汇率日期 ${result.date}${result.stale ? '；使用离线缓存' : ''}` : '原始 APC 金额仍保留'
-      })
+function enhanceOverviewCards() {
+  document.querySelectorAll<HTMLElement>('.prep-journal-overview-card').forEach(card => {
+    const fit = card.querySelector<HTMLElement>('.prep-overview-journal-meta [data-tone="fit"]')
+    if (!fit) return
+    const raw = fit.dataset.rawText || fit.childNodes[0]?.textContent || fit.textContent || ''
+    if (!fit.dataset.rawText) fit.dataset.rawText = raw.trim()
+    const match = raw.match(/(\d[\d,]*(?:\.\d+)?)\s+([A-Z]{3})\b/)
+    if (!match) return
+    const amount = numericText(match[1])
+    const currency = match[2].toUpperCase()
+    if (amount === null) return
+
+    let output = fit.querySelector<HTMLElement>('.journal-overview-cny')
+    if (!output) {
+      output = document.createElement('small')
+      output.className = 'journal-overview-cny'
+      fit.appendChild(output)
     }
+    renderConversion(output, amount, currency, `${amount}:${currency}`)
   })
 }
 
@@ -57,7 +87,7 @@ function installInputPreview(amountInput: HTMLInputElement, currencyInput: HTMLI
       output.dataset.state = 'idle'
       return
     }
-    if (currency === 'CNY' || currency === 'RMB' || currency === 'CNH') {
+    if (isCny(currency)) {
       output.textContent = `人民币金额：${formatCny(amount)}`
       output.dataset.state = 'ready'
       return
@@ -70,6 +100,7 @@ function installInputPreview(amountInput: HTMLInputElement, currencyInput: HTMLI
         ? `参考价 ≈ ${formatCny(result.cny)} · 汇率日期 ${result.date}${result.stale ? '（离线缓存）' : ''}`
         : '当前无法获取人民币参考价，原始 APC 不受影响'
       output.dataset.state = result ? 'ready' : 'error'
+      output.title = result ? `1 ${result.currency} = ${result.rate.toFixed(4)} CNY` : ''
     })
   }
 
@@ -126,6 +157,7 @@ function enhanceTimelinePresets() {
 
 function enhanceAll() {
   enhanceJournalCards()
+  enhanceOverviewCards()
   enhanceJournalForm()
   enhancePaperForm()
   enhanceTimelinePresets()
