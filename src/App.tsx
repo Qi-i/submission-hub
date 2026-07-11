@@ -2,6 +2,7 @@ import { ThemeProvider } from './lib/theme'
 import { AuthProvider, useAuth } from './lib/auth'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
+import ApcAutoConverter from './components/ApcAutoConverter'
 
 function AppContent() {
   const { user, loading } = useAuth()
@@ -23,6 +24,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <ApcAutoConverter />
         <AppContent />
       </AuthProvider>
     </ThemeProvider>
