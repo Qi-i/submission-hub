@@ -11,6 +11,15 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/visual-review.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/visual/**'
+      - 'vite.config.visual.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/visual-review.yml'
 
 permissions:
   contents: read
@@ -28,7 +37,10 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci --silent
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify sample privacy
+        run: npm run check:privacy
       - name: Typecheck and build visual harness
         run: npm run typecheck && npx vite build --config vite.config.visual.ts
       - name: Install Playwright and Chromium
@@ -65,7 +77,6 @@ jobs:
           npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-modal-rendered='true'] .compact-form-modal" "http://127.0.0.1:4174/tests/visual/index.html?view=editor&theme=light" visual-review/editor-rendered-light-desktop.png
       - name: Verify editor modal scrolling
         run: |
-          set -euxo pipefail
           npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-modal-scroll-ready='true'] .compact-form-footer" "http://127.0.0.1:4174/tests/visual/index.html?view=editor&theme=light" visual-review/editor-bottom-light-desktop.png
       - name: Capture dark desktop pages
         run: |
