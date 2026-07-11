@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { ExternalLink, Scale, X } from 'lucide-react'
 import { journalPrimarySummary, type RankedJournalProfile } from '../lib/journal-display'
 import type { JournalProfile } from '../lib/preparation'
 import { OA_OPTIONS } from '../lib/preparation'
+import CurrencyCny from './CurrencyCny'
 
 interface Props {
   journals: JournalProfile[]
@@ -12,7 +13,7 @@ interface Props {
 
 type Row = {
   label: string
-  value: (journal: JournalProfile) => string
+  value: (journal: JournalProfile) => ReactNode
   numeric?: (journal: JournalProfile) => number | null
   preference?: 'lower' | 'higher'
 }
@@ -23,7 +24,14 @@ const rows: Row[] = [
   { label: '中科院分区', value: journal => journal.cas_quartile || '未定' },
   { label: '影响因子', value: journal => journal.impact_factor == null ? '未知' : String(journal.impact_factor), numeric: journal => journal.impact_factor, preference: 'higher' },
   { label: '开放获取', value: journal => OA_OPTIONS.find(option => option.key === journal.oa_type)?.label || '未确认' },
-  { label: 'APC', value: journal => journal.oa_type === 'diamond' || journal.apc_amount === 0 ? '无 APC' : journal.apc_amount == null ? '未知' : `${journal.apc_amount} ${journal.apc_currency || ''}`.trim(), numeric: journal => journal.oa_type === 'diamond' ? 0 : journal.apc_amount, preference: 'lower' },
+  {
+    label: 'APC / 人民币参考价',
+    value: journal => journal.oa_type === 'diamond' || journal.apc_amount === 0
+      ? '无 APC'
+      : journal.apc_amount == null
+        ? '未知'
+        : <CurrencyCny amount={journal.apc_amount} currency={journal.apc_currency} />,
+  },
   { label: '首轮决定', value: journal => journal.first_decision_days == null ? '未知' : `${journal.first_decision_days} 天`, numeric: journal => journal.first_decision_days, preference: 'lower' },
   { label: '总审稿周期', value: journal => journal.total_review_days == null ? '未知' : `${journal.total_review_days} 天`, numeric: journal => journal.total_review_days, preference: 'lower' },
   { label: '接收率', value: journal => journal.acceptance_rate == null ? '未知' : `${journal.acceptance_rate}%`, numeric: journal => journal.acceptance_rate, preference: 'higher' },
@@ -60,7 +68,7 @@ export default function JournalComparison({ journals, initialIds, onEdit }: Prop
 
   return <section className="journal-compare">
     <div className="journal-compare-head">
-      <div><h2><Scale size={17} /> 期刊横向比较</h2><p>中文期刊优先比较核心与收录体系，英文期刊优先比较新锐、中科院、JCR 与影响因子。</p></div>
+      <div><h2><Scale size={17} /> 期刊横向比较</h2><p>中文期刊优先比较核心与收录体系，英文期刊优先比较新锐、中科院、JCR 与影响因子；外币 APC 自动显示人民币参考价。</p></div>
       {selectedIds.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => setSelectedIds([])}>清空选择</button>}
     </div>
 
