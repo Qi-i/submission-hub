@@ -46,16 +46,6 @@
   border-left: 1px solid rgba(5, 150, 105, .22);
 }
 
-.paper-apc-badge {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 5px !important;
-  max-width: 100%;
-  border-color: rgba(5, 150, 105, .22) !important;
-  background: rgba(236, 253, 245, .82) !important;
-  color: #065f46 !important;
-}
-
 .paper-cny-live,
 .journal-apc-cny-live,
 .paper-auto-field-hint {
@@ -107,6 +97,27 @@
   white-space: nowrap;
 }
 
+.journal-overview-cny {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(5, 150, 105, .22);
+  color: #047857;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.journal-overview-cny[data-state="loading"] {
+  color: #2563eb;
+}
+
+.journal-overview-cny[data-state="error"] {
+  color: #b45309;
+}
+
 .journal-compare-table .currency-cny {
   justify-content: center;
   line-height: 1.45;
@@ -117,18 +128,23 @@
   justify-content: center;
 }
 
+.library-profile-suggestion {
+  border-color: rgba(14, 165, 233, .22);
+  background: rgba(224, 242, 254, .7);
+}
+
+.library-profile-suggestion > span {
+  color: #0369a1;
+  font-weight: 700;
+}
+
 [data-theme="dark"] .currency-estimate,
 [data-theme="dark"] .currency-estimate small,
 [data-theme="dark"] .paper-cny-live[data-state="ready"],
 [data-theme="dark"] .journal-apc-cny-live[data-state="ready"],
-[data-theme="dark"] .journal-card-cny {
+[data-theme="dark"] .journal-card-cny,
+[data-theme="dark"] .journal-overview-cny {
   color: #6ee7b7 !important;
-}
-
-[data-theme="dark"] .paper-apc-badge {
-  border-color: rgba(52, 211, 153, .25) !important;
-  background: rgba(6, 78, 59, .32) !important;
-  color: #a7f3d0 !important;
 }
 
 [data-theme="dark"] .journal-apc-cny-live {
@@ -136,12 +152,24 @@
   background: rgba(6, 78, 59, .22);
 }
 
+[data-theme="dark"] .library-profile-suggestion {
+  border-color: rgba(56, 189, 248, .24);
+  background: rgba(7, 89, 133, .22);
+}
+
+[data-theme="dark"] .library-profile-suggestion > span {
+  color: #7dd3fc;
+}
+
 @media (max-width: 660px) {
   .currency-cny.compact {
     white-space: normal;
   }
 
-  .paper-apc-badge {
-    align-items: flex-start;
+  .journal-overview-cny {
+    flex-basis: 100%;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
   }
 }
