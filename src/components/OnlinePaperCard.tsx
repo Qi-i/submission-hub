@@ -4,7 +4,7 @@ import type { JournalProfile } from '../lib/preparation'
 import { supabase } from '../lib/supabase'
 import PaperCardEnhanced from './PaperCardEnhanced'
 
-type Props = Omit<ComponentProps<typeof PaperCardEnhanced>, 'journalProfile'>
+type Props = ComponentProps<typeof PaperCardEnhanced>
 
 let cachedProfiles: JournalProfile[] | null = null
 let pendingProfiles: Promise<JournalProfile[]> | null = null
@@ -30,22 +30,26 @@ export function invalidateOnlineJournalProfileCache() {
   cachedProfiles = null
 }
 
-export default function OnlinePaperCard(props: Props) {
-  const [journalProfile, setJournalProfile] = useState<JournalProfile | undefined>()
+export default function OnlinePaperCard({ journalProfile: providedProfile, ...props }: Props) {
+  const [loadedProfile, setLoadedProfile] = useState<JournalProfile | undefined>(providedProfile)
 
   useEffect(() => {
     let active = true
+    if (providedProfile) {
+      setLoadedProfile(providedProfile)
+      return () => { active = false }
+    }
     if (!props.paper.journal) {
-      setJournalProfile(undefined)
+      setLoadedProfile(undefined)
       return () => { active = false }
     }
     void loadProfiles().then(profiles => {
-      if (active) setJournalProfile(findJournalProfile(profiles, props.paper.journal))
+      if (active) setLoadedProfile(findJournalProfile(profiles, props.paper.journal))
     }).catch(error => {
       if (active) console.error('Load linked journal profile failed:', error)
     })
     return () => { active = false }
-  }, [props.paper.journal])
+  }, [providedProfile, props.paper.journal])
 
-  return <PaperCardEnhanced {...props} journalProfile={journalProfile} />
+  return <PaperCardEnhanced {...props} journalProfile={providedProfile || loadedProfile} />
 }
