@@ -18,17 +18,23 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Capture build output
+      - name: Capture privacy and build output
         run: |
           set +e
+          npm run check:privacy > privacy.log 2>&1
+          privacy_code=$?
           npm run build > build.log 2>&1
-          code=$?
+          build_code=$?
+          cat privacy.log
           cat build.log
-          echo "$code" > build-exit-code.txt
+          printf '%s\n' "$privacy_code" > privacy-exit-code.txt
+          printf '%s\n' "$build_code" > build-exit-code.txt
           exit 0
       - uses: actions/upload-artifact@v4
         with:
           name: build-diagnostics
           path: |
+            privacy.log
+            privacy-exit-code.txt
             build.log
             build-exit-code.txt
