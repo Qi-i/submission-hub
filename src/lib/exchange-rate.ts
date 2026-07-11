@@ -1,6 +1,8 @@
-const API_BASE = 'https://api.frankfurter.dev/v2/rate'
-const CACHE_PREFIX = 'submission-hub:fx:v2:'
+const API_V2 = 'https://api.frankfurter.dev/v2/rate'
+const API_V1 = 'https://api.frankfurter.dev/v1/latest'
+const CACHE_PREFIX = 'submission-hub:fx:v3:'
 const CACHE_TTL = 24 * 60 * 60 * 1000
+const REQUEST_TIMEOUT = 8000
 
 export type CnyConversion = {
   amount: number
@@ -9,12 +11,14 @@ export type CnyConversion = {
   cny: number
   date: string
   stale: boolean
+  source: 'v2' | 'v1' | 'cache'
 }
 
 type CachedRate = {
   rate: number
   date: string
   fetchedAt: number
+  source: 'v2' | 'v1'
 }
 
 const requests = new Map<string, Promise<CachedRate | null>>()
@@ -35,7 +39,7 @@ function readCache(currency: string): CachedRate | null {
     if (!raw) return null
     const parsed = JSON.parse(raw) as CachedRate
     if (!Number.isFinite(parsed.rate) || parsed.rate <= 0 || !parsed.date || !Number.isFinite(parsed.fetchedAt)) return null
-    return parsed
+    return { ...parsed, source: parsed.source === 'v1' ? 'v1' : 'v2' }
   } catch {
     return null
   }
@@ -45,7 +49,47 @@ function writeCache(currency: string, value: CachedRate) {
   try {
     localStorage.setItem(cacheKey(currency), JSON.stringify(value))
   } catch {
-    // Storage may be unavailable in privacy mode. The current conversion still works.
+    // 隐私模式或存储受限时仅跳过缓存，不影响本次换算。
+  }
+}
+
+async function fetchJson(url: string) {
+  const controller = new AbortController()
+  const timer = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+    if (!response.ok) throw new Error(`FX ${response.status}`)
+    return await response.json() as any
+  } finally {
+    globalThis.clearTimeout(timer)
+  }
+}
+
+async function fetchV2(currency: string): Promise<CachedRate> {
+  const payload = await fetchJson(`${API_V2}/${encodeURIComponent(currency)}/CNY`)
+  const rate = Number(payload?.rate)
+  if (!Number.isFinite(rate) || rate <= 0) throw new Error('Invalid v2 FX response')
+  return {
+    rate,
+    date: String(payload?.date || new Date().toISOString().slice(0, 10)),
+    fetchedAt: Date.now(),
+    source: 'v2',
+  }
+}
+
+async function fetchV1(currency: string): Promise<CachedRate> {
+  const payload = await fetchJson(`${API_V1}?base=${encodeURIComponent(currency)}&symbols=CNY`)
+  const rate = Number(payload?.rates?.CNY)
+  if (!Number.isFinite(rate) || rate <= 0) throw new Error('Invalid v1 FX response')
+  return {
+    rate,
+    date: String(payload?.date || new Date().toISOString().slice(0, 10)),
+    fetchedAt: Date.now(),
+    source: 'v1',
   }
 }
 
@@ -58,17 +102,11 @@ async function fetchRate(currency: string): Promise<CachedRate | null> {
 
   const request = (async () => {
     try {
-      const response = await fetch(`${API_BASE}/${encodeURIComponent(currency)}/CNY`, {
-        headers: { Accept: 'application/json' },
-      })
-      if (!response.ok) throw new Error(`FX ${response.status}`)
-      const payload = await response.json() as { rate?: unknown; date?: unknown }
-      const parsedRate = Number(payload.rate)
-      if (!Number.isFinite(parsedRate) || parsedRate <= 0) throw new Error('Invalid FX response')
-      const next: CachedRate = {
-        rate: parsedRate,
-        date: typeof payload.date === 'string' && payload.date ? payload.date : new Date().toISOString().slice(0, 10),
-        fetchedAt: Date.now(),
+      let next: CachedRate
+      try {
+        next = await fetchV2(currency)
+      } catch {
+        next = await fetchV1(currency)
       }
       writeCache(currency, next)
       return next
@@ -95,18 +133,21 @@ export async function convertToCny(amount?: number | null, currency?: string | n
       cny: amount,
       date: new Date().toISOString().slice(0, 10),
       stale: false,
+      source: 'cache',
     }
   }
 
   const rate = await fetchRate(normalized)
   if (!rate) return null
+  const stale = Date.now() - rate.fetchedAt >= CACHE_TTL
   return {
     amount,
     currency: normalized,
     rate: rate.rate,
     cny: amount * rate.rate,
     date: rate.date,
-    stale: Date.now() - rate.fetchedAt >= CACHE_TTL,
+    stale,
+    source: stale ? 'cache' : rate.source,
   }
 }
 
