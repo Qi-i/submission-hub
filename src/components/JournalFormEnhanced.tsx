@@ -10,6 +10,7 @@ interface Props {
   onSave: (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onClose: () => void
+  onLookupRanks?: unknown
 }
 
 type RankedJournal = JournalProfile & {
