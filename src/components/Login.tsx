@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Github, Mail, Lock, User, LogIn, UserPlus, Eye, BookOpen, FileText, BarChart3, GraduationCap } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
@@ -25,6 +25,10 @@ function clearOAuthError() {
   window.history.replaceState({}, document.title, url.toString())
 }
 
+function messageFrom(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
 export default function Login() {
   const { signInWithGithub, signInWithEmail, signUpWithEmail, enterDemo } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -46,24 +50,40 @@ export default function Login() {
     if (githubLoading || loading) return
     setError('')
     setGithubLoading(true)
-    const oauthError = await signInWithGithub()
-    if (oauthError) {
-      setError(oauthError)
+    try {
+      const oauthError = await signInWithGithub()
+      if (oauthError) {
+        setError(oauthError)
+        setGithubLoading(false)
+      }
+    } catch (caught) {
+      setError(messageFrom(caught, 'GitHub 登录启动失败，请稍后重试。'))
       setGithubLoading(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (loading || githubLoading) return
     setError('')
     setLoading(true)
 
-    const authError = mode === 'login'
-      ? await signInWithEmail(email, password)
-      : await signUpWithEmail(email, password, username)
+    try {
+      const authError = mode === 'login'
+        ? await signInWithEmail(email.trim(), password)
+        : await signUpWithEmail(email.trim(), password, username)
+      if (authError) setError(authError)
+    } catch (caught) {
+      setError(messageFrom(caught, mode === 'login' ? '登录失败，请稍后重试。' : '注册失败，请稍后重试。'))
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    if (authError) setError(authError)
-    setLoading(false)
+  const switchMode = (next: 'login' | 'register') => {
+    if (loading || githubLoading) return
+    setMode(next)
+    setError('')
   }
 
   const floatingIcons = [
@@ -77,11 +97,11 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-decor-grid" />
 
-      {floatingIcons.map(({ Icon, x, y, size, delay, color }, i) => (
-        <div key={i} style={{
+      {floatingIcons.map(({ Icon, x, y, size, delay, color }, index) => (
+        <div key={index} aria-hidden="true" style={{
           position: 'absolute', left: x, top: y, zIndex: 0,
           opacity: 0.12, color,
-          animation: `float ${4 + i}s ease-in-out ${delay}s infinite`,
+          animation: `float ${4 + index}s ease-in-out ${delay}s infinite`,
           pointerEvents: 'none',
         }}>
           <Icon size={size} strokeWidth={1.5} />
@@ -96,6 +116,7 @@ export default function Login() {
         </div>
 
         <button
+          type="button"
           className="btn btn-primary"
           style={{ width: '100%', padding: '13px', fontSize: '14px', marginBottom: '4px', borderRadius: 12 }}
           onClick={() => void handleGithubLogin()}
@@ -107,68 +128,83 @@ export default function Login() {
 
         <div className="auth-divider">或使用邮箱</div>
 
-        <div className="auth-tabs">
+        <div className="auth-tabs" role="tablist" aria-label="账户操作">
           <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'login'}
             className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
-            onClick={() => { setMode('login'); setError('') }}
+            onClick={() => switchMode('login')}
           >
             登录
           </button>
           <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'register'}
             className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
-            onClick={() => { setMode('register'); setError('') }}
+            onClick={() => switchMode('register')}
           >
             注册
           </button>
         </div>
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && <div className="auth-error" role="alert" aria-live="polite">{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {mode === 'register' && (
             <div className="field">
-              <label className="field-label">用户名</label>
+              <label className="field-label" htmlFor="auth-username">用户名</label>
               <div style={{ position: 'relative' }}>
-                <User size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <User size={15} aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
+                  id="auth-username"
                   className="input"
                   placeholder="输入用户名"
                   value={username}
-                  onChange={e => setUsername(e.target.value)}
+                  onChange={event => setUsername(event.target.value)}
                   style={{ paddingLeft: 36, borderRadius: 10 }}
+                  autoComplete="username"
+                  maxLength={80}
                   required
                 />
               </div>
             </div>
           )}
           <div className="field">
-            <label className="field-label">邮箱</label>
+            <label className="field-label" htmlFor="auth-email">邮箱</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <Mail size={15} aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
+                id="auth-email"
                 className="input"
                 type="email"
                 placeholder="your@email.com"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={event => setEmail(event.target.value)}
                 style={{ paddingLeft: 36, borderRadius: 10 }}
+                autoComplete="email"
+                maxLength={254}
                 required
               />
             </div>
           </div>
           <div className="field">
-            <label className="field-label">密码</label>
+            <label className="field-label" htmlFor="auth-password">密码</label>
             <div style={{ position: 'relative' }}>
-              <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <Lock size={15} aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
+                id="auth-password"
                 className="input"
                 type="password"
                 placeholder="至少 6 位"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={event => setPassword(event.target.value)}
                 style={{ paddingLeft: 36, borderRadius: 10 }}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 required
                 minLength={6}
+                maxLength={128}
               />
             </div>
           </div>
@@ -191,6 +227,7 @@ export default function Login() {
         <div className="auth-divider">或</div>
 
         <button
+          type="button"
           className="btn btn-ghost"
           style={{ width: '100%', padding: '12px', fontSize: '13px', borderRadius: 12 }}
           onClick={enterDemo}
