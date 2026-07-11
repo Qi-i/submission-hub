@@ -1,7 +1,7 @@
 /* Release UI consolidation layer. Keep all final cross-page geometry fixes here. */
 :root {
   --release-page-width: 1760px;
-  --release-page-gutter: 16px;
+  --release-page-gutter: 18px;
 }
 
 /* One horizontal rhythm for header, metrics, cards, statistics and preparation. */
@@ -29,20 +29,19 @@
 .metric-grid.dashboard-metrics,
 .paper-grid,
 .stats-panel,
-.preparation-workspace {
+.preparation-workspace,
+.stats-bar,
+.tab-bar {
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
 
-.dashboard-metrics {
-  gap: 10px !important;
-}
+.dashboard-metrics { gap: 10px !important; }
+.action-center,
+.toolbar { padding-left: 0 !important; padding-right: 0 !important; }
 
 /* Keep the semantic accent fully inside the rounded card. */
-.paper-grid .paper-card-v3 {
-  border-radius: 18px !important;
-}
-
+.paper-grid .paper-card-v3 { border-radius: 18px !important; }
 .paper-grid .paper-card-v3::before {
   top: 6px !important;
   left: 20px !important;
@@ -52,27 +51,34 @@
   opacity: .66 !important;
 }
 
-/* Paper header: status and journal are peers, not competing full-width blocks. */
+/* Paper header: two structural columns. The journal slot may grow; the pill never does. */
 .paper-grid .paper-card-v3 .paper-card-head {
   width: 100% !important;
   min-width: 0 !important;
   min-height: 32px;
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
+  display: grid !important;
+  grid-template-columns: max-content minmax(0, 1fr) !important;
+  align-items: start !important;
   gap: 10px !important;
 }
 
 .paper-grid .paper-card-v3 .paper-status-area {
-  flex: 0 0 auto !important;
+  grid-column: 1;
   width: max-content !important;
-  max-width: 46% !important;
+  max-width: 190px !important;
   min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-start !important;
-  gap: 4px !important;
+  gap: 5px !important;
+}
+
+.paper-grid .paper-card-v3 .paper-journal-slot {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
 }
 
 .paper-grid .paper-card-v3 .paper-status-area > .badge,
@@ -95,13 +101,11 @@
 }
 
 .paper-grid .paper-card-v3 .journal-pill {
-  flex: 0 1 auto !important;
-  flex-basis: auto !important;
   width: max-content !important;
   min-width: 0 !important;
-  max-width: min(68%, 460px) !important;
-  margin: 0 0 0 auto !important;
-  justify-self: auto !important;
+  max-width: min(100%, 460px) !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
   justify-content: flex-start !important;
   text-align: right !important;
   overflow: hidden !important;
@@ -122,33 +126,36 @@
   white-space: nowrap;
 }
 
-/* The workflow substatus is a visible secondary state, not an unrelated grey label. */
+/* The workflow substatus is a clear secondary state under the main state. */
 .paper-grid .paper-card-v3 .paper-substatus {
   width: max-content !important;
-  max-width: 100% !important;
-  min-height: 21px !important;
+  max-width: 190px !important;
+  min-height: 22px !important;
   margin: 0 !important;
-  padding: 3px 8px !important;
+  padding: 3px 9px !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
-  border: 1px solid color-mix(in srgb, var(--paper-status-color) 26%, transparent) !important;
+  gap: 6px !important;
+  border: 1px solid color-mix(in srgb, var(--paper-status-color) 34%, transparent) !important;
   border-radius: 999px !important;
-  background: color-mix(in srgb, var(--paper-status-color) 10%, white) !important;
-  color: color-mix(in srgb, var(--paper-status-color) 74%, #0f172a) !important;
-  font-size: 10px !important;
-  font-weight: 680 !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--paper-status-color) 14%, white),
+    color-mix(in srgb, var(--paper-status-color) 7%, white)) !important;
+  color: color-mix(in srgb, var(--paper-status-color) 82%, #0f172a) !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--paper-status-color) 10%, transparent);
+  font-size: 10.3px !important;
+  font-weight: 720 !important;
   line-height: 1.2 !important;
   overflow: hidden;
 }
 
 .paper-substatus-dot {
   flex: 0 0 auto;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--paper-status-color);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--paper-status-color) 13%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--paper-status-color) 15%, transparent);
 }
 
 .paper-substatus-text {
@@ -159,8 +166,10 @@
 }
 
 [data-theme="dark"] .paper-grid .paper-card-v3 .paper-substatus {
-  background: color-mix(in srgb, var(--paper-status-color) 16%, #111827) !important;
-  color: color-mix(in srgb, var(--paper-status-color) 44%, #f8fafc) !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--paper-status-color) 20%, #111827),
+    color-mix(in srgb, var(--paper-status-color) 11%, #111827)) !important;
+  color: color-mix(in srgb, var(--paper-status-color) 48%, #f8fafc) !important;
 }
 
 @media (max-width: 720px) {
@@ -182,7 +191,7 @@
   }
 
   .paper-grid .paper-card-v3 .paper-status-area {
-    max-width: 42% !important;
+    max-width: 42vw !important;
   }
 
   .paper-grid .paper-card-v3 .paper-status-area > .badge,
@@ -195,6 +204,6 @@
   }
 
   .paper-grid .paper-card-v3 .journal-pill {
-    max-width: 58% !important;
+    max-width: 56vw !important;
   }
 }
