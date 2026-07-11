@@ -8,9 +8,12 @@ interface AuthState {
   user: UserProfile | null
   loading: boolean
   isDemo: boolean
-  signInWithGithub: () => Promise<void>
+  signInWithGithub: () => Promise<string | null>
   signInWithEmail: (email: string, password: string) => Promise<string | null>
   signUpWithEmail: (email: string, password: string, username: string) => Promise<string | null>
+  linkGithubIdentity: () => Promise<string | null>
+  setAccountPassword: (password: string) => Promise<string | null>
+  getLinkedProviders: () => Promise<string[]>
   signOut: () => Promise<void>
   enterDemo: () => void
   exitDemo: () => void
@@ -21,9 +24,12 @@ const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
   isDemo: false,
-  signInWithGithub: async () => {},
+  signInWithGithub: async () => null,
   signInWithEmail: async () => null,
   signUpWithEmail: async () => null,
+  linkGithubIdentity: async () => null,
+  setAccountPassword: async () => null,
+  getLinkedProviders: async () => [],
   signOut: async () => {},
   enterDemo: () => {},
   exitDemo: () => {},
@@ -37,7 +43,8 @@ function usernameFromUser(user: { email?: string | null; user_metadata?: Record<
 
 function oauthRedirectUrl() {
   if (typeof window === 'undefined') return undefined
-  return new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
+  const base = import.meta.env.BASE_URL || './'
+  return new URL(base, window.location.href).toString()
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -150,7 +157,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: 'github',
       options: redirectTo ? { redirectTo } : undefined,
     })
-    if (error) throw error
+    return error?.message || null
+  }
+
+  const linkGithubIdentity = async () => {
+    const redirectTo = oauthRedirectUrl()
+    const { error } = await supabase.auth.linkIdentity({
+      provider: 'github',
+      options: redirectTo ? { redirectTo } : undefined,
+    })
+    return error?.message || null
+  }
+
+  const setAccountPassword = async (password: string) => {
+    if (password.length < 6) return '密码至少需要 6 位。'
+    const { error } = await supabase.auth.updateUser({ password })
+    return error?.message || null
+  }
+
+  const getLinkedProviders = async () => {
+    const { data, error } = await supabase.auth.getUserIdentities()
+    if (error) return []
+    return data.identities.map(identity => identity.provider)
   }
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -192,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, isDemo, signInWithGithub, signInWithEmail, signUpWithEmail, signOut, enterDemo, exitDemo, updateAuthorName }}>
+    <AuthContext.Provider value={{ user, loading, isDemo, signInWithGithub, signInWithEmail, signUpWithEmail, linkGithubIdentity, setAccountPassword, getLinkedProviders, signOut, enterDemo, exitDemo, updateAuthorName }}>
       {children}
     </AuthContext.Provider>
   )
