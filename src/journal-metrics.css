@@ -1,0 +1,156 @@
+/* Journal public metrics and dual-path hybrid OA presentation. */
+.journal-oa-cost {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.journal-oa-route {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 1px solid rgba(100, 116, 139, .16);
+  border-radius: 9px;
+  background: rgba(248, 250, 252, .86);
+  color: #334155;
+  line-height: 1.2;
+}
+
+.journal-oa-route b {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.journal-oa-route em {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.journal-oa-route.subscription {
+  border-color: rgba(34, 197, 94, .2);
+  background: rgba(240, 253, 244, .9);
+  color: #15803d;
+}
+
+.journal-oa-route.open {
+  border-color: rgba(124, 58, 237, .2);
+  background: rgba(245, 243, 255, .92);
+  color: #6d28d9;
+}
+
+.journal-oa-separator {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.journal-oa-cost.compact .journal-oa-route {
+  min-height: 24px;
+  padding: 3px 6px;
+}
+
+.journal-oa-cost.compact .journal-oa-route b,
+.journal-oa-cost.compact .journal-oa-route em,
+.journal-oa-cost.compact .currency-cny {
+  font-size: 10px;
+}
+
+.journal-hybrid-note,
+.journal-metric-caveat {
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(124, 58, 237, .15);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(245, 243, 255, .9), rgba(239, 246, 255, .86));
+  color: #5b21b6;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.journal-form-section.public-metrics {
+  border-color: rgba(14, 165, 233, .2);
+  background: linear-gradient(145deg, rgba(240, 249, 255, .84), rgba(248, 250, 252, .95));
+}
+
+.journal-form-section.public-metrics .journal-form-section-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.journal-form-section.public-metrics .journal-form-section-head > span {
+  margin-right: auto;
+}
+
+.journal-metric-message {
+  display: block;
+  margin-top: 8px;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.journal-metric-message.danger {
+  color: #b91c1c;
+}
+
+.journal-compare-table td .journal-oa-cost {
+  justify-content: center;
+}
+
+.journal-compare-table td > a,
+.journal-compare-table td span > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #2563eb;
+  font-weight: 720;
+  text-decoration: none;
+}
+
+[data-theme='dark'] .journal-oa-route {
+  border-color: rgba(148, 163, 184, .18);
+  background: rgba(30, 41, 59, .7);
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .journal-oa-route.subscription {
+  border-color: rgba(74, 222, 128, .25);
+  background: rgba(20, 83, 45, .28);
+  color: #86efac;
+}
+
+[data-theme='dark'] .journal-oa-route.open {
+  border-color: rgba(167, 139, 250, .28);
+  background: rgba(76, 29, 149, .26);
+  color: #c4b5fd;
+}
+
+[data-theme='dark'] .journal-hybrid-note,
+[data-theme='dark'] .journal-metric-caveat,
+[data-theme='dark'] .journal-form-section.public-metrics {
+  border-color: rgba(125, 211, 252, .2);
+  background: rgba(15, 23, 42, .72);
+  color: #bae6fd;
+}
+
+@media (max-width: 720px) {
+  .journal-oa-cost {
+    align-items: stretch;
+  }
+
+  .journal-oa-route {
+    flex: 1 1 100%;
+  }
+
+  .journal-oa-separator {
+    display: none;
+  }
+}

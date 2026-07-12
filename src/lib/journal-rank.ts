@@ -83,12 +83,14 @@ function sortRankItems(items: JournalRankItem[]) {
 }
 
 export function rankItemsFromValues(values: Record<string, string> | null | undefined) {
-  return sortRankItems(Object.entries(values || {}).filter(([, value]) => !!text(value)).map(([key, value]) => ({
-    key,
-    label: journalRankLabel(key),
-    value: text(value),
-    group: key.startsWith('custom:') ? 'custom' as const : 'official' as const,
-  })))
+  return sortRankItems(Object.entries(values || {})
+    .filter(([key, value]) => !key.startsWith('metric_') && !!text(value))
+    .map(([key, value]) => ({
+      key,
+      label: journalRankLabel(key),
+      value: text(value),
+      group: key.startsWith('custom:') ? 'custom' as const : 'official' as const,
+    })))
 }
 
 export function parseJournalRankResponse(response: unknown): JournalRankLookupResult {
@@ -149,7 +151,7 @@ function normalizeJcr(value?: string) {
 function normalizeCas(value?: string) {
   const raw = (value || '').trim()
   if (/预警/.test(raw)) return '预警'
-  const match = raw.match(/([一二三四1-4])\s*区?/) 
+  const match = raw.match(/([一二三四1-4])\s*区?/)
   if (!match) return ''
   const map: Record<string, string> = {
     '1': '一区', '2': '二区', '3': '三区', '4': '四区',

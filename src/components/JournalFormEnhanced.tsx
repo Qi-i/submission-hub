@@ -1,6 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { BadgeCheck, ExternalLink, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react'
 import { journalLookupHint, lookupJournalMetadata } from '../lib/journal-lookup'
+import {
+  lookupAnnualPublicationVolume,
+  readJournalPublicMetrics,
+  SELF_CITATION_BASIS_OPTIONS,
+  writeJournalPublicMetrics,
+  type SelfCitationBasis,
+} from '../lib/journal-metrics'
 import { rankFieldSuggestions, rankItemsFromValues, type JournalRankLookupResult } from '../lib/journal-rank'
 import type { ExternalLink as JournalLink, JournalProfile } from '../lib/preparation'
 import { INDEXING_OPTIONS, OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
@@ -43,14 +50,18 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
 
 export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, onLookupRanks }: Props) {
   const source = value === 'new' ? null : value as RankedJournal
+  const initialMetrics = readJournalPublicMetrics(source?.rank_data)
   const [saving, setSaving] = useState(false)
   const [lookingUp, setLookingUp] = useState(false)
   const [rankLookingUp, setRankLookingUp] = useState(false)
+  const [metricLookingUp, setMetricLookingUp] = useState(false)
   const [lookupInput, setLookupInput] = useState(source?.issn || source?.eissn || source?.website_url || '')
   const [lookupMessage, setLookupMessage] = useState('')
   const [lookupSource, setLookupSource] = useState('')
   const [rankMessage, setRankMessage] = useState('')
   const [rankMessageError, setRankMessageError] = useState(false)
+  const [metricMessage, setMetricMessage] = useState('')
+  const [metricMessageError, setMetricMessageError] = useState(false)
   const [rankData, setRankData] = useState<Record<string, string>>(source?.rank_data || {})
   const [rankUpdatedAt, setRankUpdatedAt] = useState(source?.rank_updated_at || '')
   const [name, setName] = useState(source?.name || '')
@@ -74,6 +85,14 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
   const [firstDecision, setFirstDecision] = useState(source?.first_decision_days?.toString() || '')
   const [totalReview, setTotalReview] = useState(source?.total_review_days?.toString() || '')
   const [acceptanceRate, setAcceptanceRate] = useState(source?.acceptance_rate?.toString() || '')
+  const [annualCount, setAnnualCount] = useState(initialMetrics.annualPublicationCount?.toString() || '')
+  const [annualYear, setAnnualYear] = useState(initialMetrics.annualPublicationYear?.toString() || String(new Date().getFullYear() - 1))
+  const [annualSource, setAnnualSource] = useState(initialMetrics.annualPublicationSource || '')
+  const [selfCitationRate, setSelfCitationRate] = useState(initialMetrics.selfCitationRate?.toString() || '')
+  const [selfCitationBasis, setSelfCitationBasis] = useState<SelfCitationBasis>(initialMetrics.selfCitationBasis)
+  const [selfCitationSource, setSelfCitationSource] = useState(initialMetrics.selfCitationSource || '')
+  const [reviewSource, setReviewSource] = useState(initialMetrics.reviewSource || '')
+  const [metricsUpdatedAt, setMetricsUpdatedAt] = useState(initialMetrics.metricsUpdatedAt || '')
   const [risk, setRisk] = useState<string>(source?.risk_level || 'normal')
   const [favorite, setFavorite] = useState(source?.is_favorite ?? true)
   const [priority, setPriority] = useState<string>(source?.priority || 'medium')
@@ -81,7 +100,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
 
   const hint = useMemo(() => journalLookupHint(lookupInput), [lookupInput])
   const rankItems = useMemo(() => rankItemsFromValues(rankData), [rankData])
-  const busy = saving || lookingUp || rankLookingUp
+  const busy = saving || lookingUp || rankLookingUp || metricLookingUp
 
   const lookup = async () => {
     if (!lookupInput.trim() || lookingUp) return
@@ -122,7 +141,10 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
     try {
       const result = await onLookupRanks(name.trim())
       const suggestions = rankFieldSuggestions(result.values)
-      setRankData(result.values)
+      setRankData(previous => ({
+        ...Object.fromEntries(Object.entries(previous).filter(([key]) => key.startsWith('metric_'))),
+        ...result.values,
+      }))
       setRankUpdatedAt(result.fetchedAt)
       if (suggestions.jcr) setJcr(suggestions.jcr)
       if (suggestions.cas) setCas(suggestions.cas)
@@ -138,20 +160,50 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
     }
   }
 
+  const lookupPublicMetrics = async () => {
+    if (metricLookingUp) return
+    setMetricLookingUp(true)
+    setMetricMessage('')
+    setMetricMessageError(false)
+    try {
+      const result = await lookupAnnualPublicationVolume({ issn, eissn, year: integerOrNull(annualYear) })
+      setAnnualCount(String(result.annualPublicationCount))
+      setAnnualYear(String(result.annualPublicationYear))
+      setAnnualSource(result.annualPublicationSource)
+      setMetricsUpdatedAt(result.metricsUpdatedAt)
+      setMetricMessage(`已获取 ${result.annualPublicationYear} 年 Crossref DOI 记录 ${result.annualPublicationCount} 条。该值是公开索引统计，不等同于出版社公布的全部发文量。`)
+    } catch (error) {
+      setMetricMessageError(true)
+      setMetricMessage(error instanceof Error ? error.message : '公开年发文量获取失败，请稍后重试。')
+    } finally {
+      setMetricLookingUp(false)
+    }
+  }
+
   const save = async () => {
     if (!name.trim() || saving) {
       if (!name.trim()) alert('请填写期刊名称。')
       return
     }
 
-    const invalidUrl = [website, guide, submission].find(item => item.trim() && !safeUrl(item.trim()))
+    const invalidUrl = [website, guide, submission, annualSource, selfCitationSource, reviewSource].find(item => item.trim() && !safeUrl(item.trim()))
     if (invalidUrl) {
-      alert('期刊官网、作者指南和投稿系统必须填写完整的 http:// 或 https:// 地址。')
+      alert('官网、投稿入口及指标来源必须填写完整的 http:// 或 https:// 地址。')
       return
     }
 
     setSaving(true)
     try {
+      const publicMetricsRankData = writeJournalPublicMetrics(rankData, {
+        annualPublicationCount: integerOrNull(annualCount),
+        annualPublicationYear: integerOrNull(annualYear),
+        annualPublicationSource: annualSource.trim() || null,
+        selfCitationRate: percentageOrNull(selfCitationRate),
+        selfCitationBasis,
+        selfCitationSource: selfCitationSource.trim() || null,
+        reviewSource: reviewSource.trim() || null,
+        metricsUpdatedAt: metricsUpdatedAt || new Date().toISOString(),
+      })
       const payload = {
         ...(source || {}), name: name.trim(), publisher: publisher.trim() || null,
         website_url: website.trim() || null, author_guide_url: guide.trim() || null,
@@ -164,7 +216,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
         total_review_days: integerOrNull(totalReview), acceptance_rate: percentageOrNull(acceptanceRate),
         risk_level: risk as JournalProfile['risk_level'], is_favorite: favorite,
         priority: priority as JournalProfile['priority'], notes: notes.trim() || null,
-        rank_data: rankData, rank_updated_at: rankUpdatedAt || null,
+        rank_data: publicMetricsRankData, rank_updated_at: rankUpdatedAt || null,
       }
       await onSave(payload as any)
       onClose()
@@ -187,7 +239,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
   return <div className="modal-overlay" onClick={() => !busy && onClose()}>
     <div className="modal prep-modal journal-form-modal" role="dialog" aria-modal="true" aria-labelledby="journal-form-title" onClick={event => event.stopPropagation()}>
       <div className="prep-modal-head journal-modal-head">
-        <div><span className="journal-modal-kicker">JOURNAL LIBRARY</span><h3 id="journal-form-title">{source ? '编辑期刊档案' : '收藏期刊'}</h3><p>先识别基础信息，再记录真正影响投稿决策的分区、费用和周期。</p></div>
+        <div><span className="journal-modal-kicker">JOURNAL LIBRARY</span><h3 id="journal-form-title">{source ? '编辑期刊档案' : '收藏期刊'}</h3><p>先识别基础信息，再记录真正影响投稿决策的分区、费用、公开指标与周期来源。</p></div>
         <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} disabled={busy} aria-label="关闭期刊档案"><X size={18} /></button>
       </div>
 
@@ -215,9 +267,18 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
         </section>
 
         <section className="journal-form-section decision"><div className="journal-form-section-head"><b>投稿决策</b><span>费用和审稿周期需要人工核对</span></div>
-          <div className="prep-form-grid four"><Field label="影响因子"><input type="number" step="0.001" min="0" className="input" value={impactFactor} onChange={event => setImpactFactor(event.target.value)} /></Field><Field label="开放获取"><select className="select" value={oaType} onChange={event => setOaType(event.target.value)}>{OA_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field><Field label="APC"><input type="number" min="0" className="input" value={apc} onChange={event => setApc(event.target.value)} /></Field><Field label="币种"><input className="input" value={currency} onChange={event => setCurrency(event.target.value)} maxLength={8} /></Field></div>
+          <div className="prep-form-grid four"><Field label="影响因子"><input type="number" step="0.001" min="0" className="input" value={impactFactor} onChange={event => setImpactFactor(event.target.value)} /></Field><Field label="开放获取"><select className="select" value={oaType} onChange={event => setOaType(event.target.value)}>{OA_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field><Field label="OA 路径 APC"><input type="number" min="0" className="input" value={apc} onChange={event => setApc(event.target.value)} /></Field><Field label="币种"><input className="input" value={currency} onChange={event => setCurrency(event.target.value)} maxLength={8} /></Field></div>
+          {oaType === 'hybrid' && <div className="journal-hybrid-note"><b>混合 OA 双路径：</b>订阅发表按“无 APC”展示；选择开放获取时才显示上方 APC。版面费、彩图费等其它费用请写入费用备注。</div>}
           <div className="prep-form-grid three"><Field label="首轮决定（天）"><input type="number" min="0" step="1" className="input" value={firstDecision} onChange={event => setFirstDecision(event.target.value)} /></Field><Field label="总审稿周期（天）"><input type="number" min="0" step="1" className="input" value={totalReview} onChange={event => setTotalReview(event.target.value)} /></Field><Field label="接收率（%）"><input type="number" min="0" max="100" step="0.1" className="input" value={acceptanceRate} onChange={event => setAcceptanceRate(event.target.value)} /></Field></div>
           <Field label="收录情况" wide><div className="prep-check-row">{INDEXING_OPTIONS.map(option => <label key={option}><input type="checkbox" checked={indexing.includes(option)} onChange={event => setIndexing(previous => event.target.checked ? Array.from(new Set([...previous, option])) : previous.filter(item => item !== option))} /> {option}</label>)}</div></Field>
+        </section>
+
+        <section className="journal-form-section public-metrics">
+          <div className="journal-form-section-head"><b>公开指标与来源</b><span>发文量可自动获取；自引率和审稿周期须保留口径与来源</span><button type="button" className="btn btn-ghost btn-sm" onClick={() => void lookupPublicMetrics()} disabled={metricLookingUp || (!issn.trim() && !eissn.trim())}>{metricLookingUp ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />} 获取年发文量</button></div>
+          <div className="prep-form-grid four"><Field label="统计年份"><input type="number" min="1900" max={new Date().getFullYear()} className="input" value={annualYear} onChange={event => setAnnualYear(event.target.value)} /></Field><Field label="年发文量（篇）"><input type="number" min="0" step="1" className="input" value={annualCount} onChange={event => setAnnualCount(event.target.value)} /></Field><Field label="期刊自引率（%）"><input type="number" min="0" max="100" step="0.01" className="input" value={selfCitationRate} onChange={event => setSelfCitationRate(event.target.value)} /></Field><Field label="自引率口径"><select className="select" value={selfCitationBasis} onChange={event => setSelfCitationBasis(event.target.value as SelfCitationBasis)}>{SELF_CITATION_BASIS_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field></div>
+          <div className="prep-form-grid three"><Field label="年发文量来源"><input className="input" value={annualSource} onChange={event => setAnnualSource(event.target.value)} placeholder="https://api.crossref.org/..." /></Field><Field label="自引率来源"><input className="input" value={selfCitationSource} onChange={event => setSelfCitationSource(event.target.value)} placeholder="JCR / Scopus / 估算说明链接" /></Field><Field label="审稿周期来源"><input className="input" value={reviewSource} onChange={event => setReviewSource(event.target.value)} placeholder="出版社或第三方统计页面" /></Field></div>
+          {metricMessage && <small className={`journal-metric-message ${metricMessageError ? 'danger' : ''}`} role="status" aria-live="polite">{metricMessage}</small>}
+          <div className="journal-metric-caveat">公开年发文量按 Crossref 中该 ISSN、指定年份的 journal-article DOI 记录数统计；自引率不从无授权来源伪造，正式值需从 JCR/Scopus 核对，开放数据计算值必须标记为“估算”。{metricsUpdatedAt && ` 最近更新：${new Date(metricsUpdatedAt).toLocaleString()}`}</div>
         </section>
 
         <section className="journal-form-section notes"><div className="journal-form-section-head"><b>适配与备注</b><span>记录为什么投、为什么不投</span></div>
