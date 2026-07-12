@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { mergePaperWithJournalProfile } from '../lib/journal-paper-sync'
 import type { JournalProfile } from '../lib/preparation'
 import type { Paper } from '../lib/types'
@@ -14,6 +14,8 @@ interface Props {
   index?: number
   onClick?: () => void
 }
+
+type RankBadge = { label: string; cls: string }
 
 function formatDate(date?: string | null) {
   if (!date) return ''
@@ -102,7 +104,45 @@ function authorItems(paper: Paper, currentUsername: string, authorName: string) 
   }))
 }
 
+function oaLabel(value?: JournalProfile['oa_type']) {
+  if (value === 'closed') return '订阅制'
+  if (value === 'hybrid') return '混合 OA'
+  if (value === 'gold') return '全开放获取'
+  if (value === 'diamond') return '钻石 OA'
+  return 'OA 未确认'
+}
+
+function JournalQuickView({ paper, profile, badges, onClose }: { paper: Paper; profile?: JournalProfile; badges: RankBadge[]; onClose: () => void }) {
+  const website = profile?.website_url || paper.journal_url
+  const submission = profile?.submission_url || paper.tracking_url
+  const scope = profile?.scope
+  const indexing = profile?.indexing || []
+  return <div className="journal-quick-overlay" onClick={event => { event.stopPropagation(); onClose() }}>
+    <div className="journal-quick-card" role="dialog" aria-modal="true" aria-label="期刊信息" onClick={event => event.stopPropagation()}>
+      <div className="journal-quick-head">
+        <div><span>期刊信息</span><h3>{profile?.name || paper.journal || '未填写期刊'}</h3>{profile?.publisher && <p>{profile.publisher}</p>}</div>
+        <button type="button" onClick={onClose} aria-label="关闭">×</button>
+      </div>
+      {badges.length > 0 && <div className="journal-quick-ranks">{badges.map((badge, index) => <span key={`${badge.label}-${index}`} className={badge.cls}>{badge.label}</span>)}</div>}
+      <div className="journal-quick-facts">
+        <div><b>{profile?.impact_factor ?? '—'}</b><span>影响因子</span></div>
+        <div><b>{profile?.first_decision_days ?? '—'}</b><span>首轮决定/天</span></div>
+        <div><b>{profile?.total_review_days ?? '—'}</b><span>总审稿/天</span></div>
+        <div><b>{oaLabel(profile?.oa_type)}</b><span>开放获取</span></div>
+      </div>
+      {indexing.length > 0 && <div className="journal-quick-indexing">{indexing.map(item => <span key={item}>{item}</span>)}</div>}
+      {scope && <p className="journal-quick-scope">{scope}</p>}
+      <div className="journal-quick-links">
+        {isUrl(website) && <a href={website!} target="_blank" rel="noopener noreferrer">期刊官网 ↗</a>}
+        {isUrl(profile?.author_guide_url) && <a href={profile!.author_guide_url!} target="_blank" rel="noopener noreferrer">作者指南 ↗</a>}
+        {isUrl(submission) && <a href={submission!} target="_blank" rel="noopener noreferrer">投稿入口 ↗</a>}
+      </div>
+    </div>
+  </div>
+}
+
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, journalProfile, index = 0, onClick }: Props) {
+  const [journalOpen, setJournalOpen] = useState(false)
   const linkedPaper = mergePaperWithJournalProfile(paper, journalProfile)
   const effectiveStatus = inferMainSubmissionStatus(linkedPaper.system_status, linkedPaper.status)
   const revisionRound = inferRevisionRound(linkedPaper.timeline, linkedPaper.system_status, Number(linkedPaper.revision_round || 0))
@@ -125,7 +165,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
     if (effectiveStatus !== 'preparing' && days !== null && days >= 0) dateInfo += ` · ${days}天`
   }
 
-  const badges: { label: string; cls: string }[] = []
+  const badges: RankBadge[] = []
   if (linkedPaper.lang === 'en') {
     if (linkedPaper.quartile_new && linkedPaper.quartile_new !== '无') badges.push({ label: `新锐 ${linkedPaper.quartile_new}`, cls: 'q-new' })
     if (linkedPaper.quartile_cas && linkedPaper.quartile_cas !== '未定') badges.push({ label: `中科院 ${linkedPaper.quartile_cas}`, cls: 'q-cas' })
@@ -156,31 +196,19 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       <div className="paper-card-head">
         <div className="paper-status-area" data-status={effectiveStatus}>
           <span className={`badge status-${effectiveStatus}`}>{status.emoji} {status.label}</span>
-          {linkedPaper.system_status && (
-            <span className="paper-substatus" title={`${linkedPaper.system_status} · 已自动归类为${status.label}`}>
-              <span className="paper-substatus-dot" aria-hidden="true" />
-              <span className="paper-substatus-text">{linkedPaper.system_status}</span>
-            </span>
-          )}
+          {linkedPaper.system_status && <span className="paper-substatus" title={`${linkedPaper.system_status} · 已自动归类为${status.label}`}><span className="paper-substatus-dot" aria-hidden="true" /><span className="paper-substatus-text">{linkedPaper.system_status}</span></span>}
+          {!!revisionRound && <span className="paper-revision-inline" title="根据审稿时间线自动识别">R{revisionRound}</span>}
         </div>
         <div className="paper-journal-slot">
-          {linkedPaper.journal && (
-            <span className="journal-pill" title={journalProfile ? `${linkedPaper.journal} · 已关联期刊库` : linkedPaper.journal}>
-              <span className="journal-pill-icon" aria-hidden="true">📖</span>
-              <span className="journal-pill-text">{linkedPaper.journal}</span>
-            </span>
-          )}
+          {linkedPaper.journal && <button type="button" className="journal-pill journal-pill-button" title="点击查看期刊信息" onClick={event => { event.stopPropagation(); setJournalOpen(true) }}><span className="journal-pill-icon" aria-hidden="true">📖</span><span className="journal-pill-text">{linkedPaper.journal}</span><span className="journal-pill-hint">详情</span></button>}
         </div>
       </div>
 
-      {(linkedPaper.manuscript_no || linkedPaper.submission_system || revisionRound || isUrl(linkedPaper.published_url)) && <div className="paper-meta-row paper-meta-compact">
+      {(linkedPaper.manuscript_no || linkedPaper.submission_system || isUrl(linkedPaper.published_url)) && <div className="paper-meta-row paper-meta-compact">
         {linkedPaper.manuscript_no && <span className="badge badge-sm badge-outline" title={linkedPaper.manuscript_no}>ID {linkedPaper.manuscript_no}</span>}
         {linkedPaper.submission_system && <span className="badge badge-sm badge-outline" title={linkedPaper.submission_system}>{linkedPaper.submission_system}</span>}
-        {!!revisionRound && <span className="badge badge-sm badge-outline" title="根据审稿时间线自动识别">R{revisionRound}</span>}
         {isUrl(linkedPaper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={linkedPaper.published_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>见刊 ↗</a>}
       </div>}
-
-      {isUrl(linkedPaper.journal_url) && <div className="journal-profile-row"><a href={linkedPaper.journal_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{journalProfile ? '期刊库 / 官网 ↗' : '期刊官网 ↗'}</a></div>}
 
       <div className="title-block" title={linkedPaper.title || '（未命名）'}>
         <div className="card-title">{linkedPaper.lang === 'en' && <span className="lang-tag lang-en">EN</span>}{linkedPaper.lang === 'zh' && <span className="lang-tag lang-zh">ZH</span>}{linkedPaper.title || '（未命名）'}</div>
@@ -189,14 +217,22 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
       {(linkedPaper.doi || linkedPaper.publication_info || linkedPaper.citation) && <div className="archive-chip-row">{linkedPaper.doi && <a className="archive-chip doi" href={doiHref(linkedPaper.doi)} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>DOI ↗</a>}{linkedPaper.publication_info && <span className="archive-chip pub" title={linkedPaper.publication_info}>{linkedPaper.publication_info}</span>}{linkedPaper.citation && <button type="button" className="archive-chip cite archive-copy-chip" title="点击复制引用格式" onClick={event => { event.stopPropagation(); void copyText(linkedPaper.citation) }}>复制引用</button>}</div>}
 
-      {badges.length > 0 && <div className="paper-meta-row">{badges.map((badge, badgeIndex) => <span key={badgeIndex} className={`badge badge-sm badge-outline ${badge.cls}`} title={badge.label}>{badge.label}</span>)}</div>}
+      {badges.length > 0 && <div className="paper-meta-row paper-rank-row">{badges.map((badge, badgeIndex) => <span key={badgeIndex} className={`badge badge-sm badge-outline ${badge.cls}`} title={badge.label}>{badge.label}</span>)}</div>}
 
       <div className="author-list-v2" title={authorTitle}><span className="author-prefix">👥</span>{authors.map(({ name, index: authorIndex, first, matched, corresponding }) => { const classes = ['author-badge-v2', first ? 'first-author' : '', matched ? 'matched-author' : '', corresponding ? 'corresponding-author' : ''].filter(Boolean).join(' '); return <span key={`${name}-${authorIndex}`} className={classes}><span className="author-name-v2">{name}</span><span className="author-tags-v2">{first && <span className="author-tag-v2 tag-first">一作</span>}{!first && matched && <span className="author-tag-v2 tag-rank">第{authorIndex + 1}作</span>}{corresponding && <span className="author-tag-v2 tag-corresponding">通讯</span>}</span></span> })}{authors.length === 0 && <span style={{ color: 'var(--text-muted)' }}>--</span>}</div>
 
       {(chain.length > 0 || nextCount > 0) && <div className="paper-history" title={`版本链：${chain.map(item => item.journal || '未知期刊').join(' → ')}${chain.length > 0 ? ' → ' : ''}${linkedPaper.journal || '当前稿'}${nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}`}>↳ 版本链：{chain.map(item => item.journal || '未知期刊').join(' → ')}{chain.length > 0 ? ' → ' : ''}{linkedPaper.journal || '当前稿'}{nextCount > 0 ? ` → 后续 ${nextCount} 条` : ''}</div>}
-      {signal && signalColors && signal.level !== 'success' && <div className="workflow-signal workflow-signal-inline" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}><span>下一步：{signal.text}</span></div>}
 
-      <div className="paper-card-footer"><div className="paper-footer-left">{deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}{(linkedPaper.files || []).filter(file => file.p || file.n).map((file, fileIndex) => isUrl(file.p) ? <a key={fileIndex} className="file-dot" href={file.p} target="_blank" rel="noopener noreferrer" title={`${file.t ? `${file.t}｜` : ''}${file.n || file.p}`} onClick={event => event.stopPropagation()}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</a> : <span key={fileIndex} className="file-dot file-dot-disabled" title={`${file.t ? `${file.t}｜` : ''}${file.n || '本地文件记录'}：未设置在线链接`}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</span>)}</div><span className="paper-date-info">{dateInfo}</span></div>
+      <div className="paper-card-footer">
+        <div className="paper-footer-left">
+          {deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}
+          {signal && signalColors && signal.level !== 'success' && <span className="paper-next-action-chip" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}>下一步 · {signal.text}</span>}
+          {(linkedPaper.files || []).filter(file => file.p || file.n).map((file, fileIndex) => isUrl(file.p) ? <a key={fileIndex} className="file-dot" href={file.p} target="_blank" rel="noopener noreferrer" title={`${file.t ? `${file.t}｜` : ''}${file.n || file.p}`} onClick={event => event.stopPropagation()}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</a> : <span key={fileIndex} className="file-dot file-dot-disabled" title={`${file.t ? `${file.t}｜` : ''}${file.n || '本地文件记录'}：未设置在线链接`}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</span>)}
+        </div>
+        <span className="paper-date-info">{dateInfo}</span>
+      </div>
+
+      {journalOpen && <JournalQuickView paper={linkedPaper} profile={journalProfile} badges={badges} onClose={() => setJournalOpen(false)} />}
     </div>
   )
 }
