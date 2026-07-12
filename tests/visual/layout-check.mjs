@@ -63,14 +63,18 @@ try {
           const statusStyle = getComputedStyle(status)
           const textStyle = getComputedStyle(text)
           const pillRect = pill.getBoundingClientRect()
+          const textRect = text.getBoundingClientRect()
           const lineHeight = Number.parseFloat(textStyle.lineHeight)
           const expectedRight = cardRect.right - Number.parseFloat(cardStyle.paddingRight) - Number.parseFloat(cardStyle.borderRightWidth)
 
           if (Number.parseFloat(textStyle.fontSize) <= Number.parseFloat(statusStyle.fontSize)) failures.push(`card ${index + 1}: journal name is not visually dominant`)
           if (Number.isFinite(lineHeight) && text.scrollHeight > lineHeight * 2.35) failures.push(`card ${index + 1}: journal name exceeds two lines`)
           if (Math.abs(expectedRight - pillRect.right) > 3) failures.push(`card ${index + 1}: journal pill is not right aligned`)
+          if (textRect.top < pillRect.top - tol || textRect.bottom > pillRect.bottom + tol) failures.push(`card ${index + 1}: journal text escapes its pill`)
+          if (pill.scrollHeight > pill.clientHeight + 2) failures.push(`card ${index + 1}: journal pill has hidden vertical overflow`)
+          if (Number.parseFloat(textStyle.fontSize) < 11) failures.push(`card ${index + 1}: journal text shrinks below readable minimum`)
 
-          check.journal = { fontSize: textStyle.fontSize, right: pillRect.right, expectedRight, height: pillRect.height }
+          check.journal = { fontSize: textStyle.fontSize, right: pillRect.right, expectedRight, height: pillRect.height, textTop: textRect.top, textBottom: textRect.bottom }
         }
       }
 
@@ -127,6 +131,7 @@ try {
     const failures = []
     const panel = document.querySelector('.preparation-workspace')
     const productivity = document.querySelector('.prep-productivity')
+    const topbar = document.querySelector('.prep-topbar')
     const workbench = document.querySelector('.prep-nav')
     const dashboard = document.querySelector('.prep-dashboard')
     const overviewPanels = Array.from(document.querySelectorAll('.prep-overview-grid > .prep-panel'))
@@ -135,11 +140,14 @@ try {
     const navButtons = Array.from(document.querySelectorAll('.prep-nav button'))
     const rect = panel.getBoundingClientRect()
 
+    if (!topbar) failures.push('preparation topbar is missing')
+    if (topbar && topbar.getBoundingClientRect().height > 92) failures.push('preparation topbar wastes too much vertical space')
     if (!workbench || !dashboard) failures.push('preparation workbench or dashboard is missing')
     if (workbench && dashboard) {
       const workbenchRect = workbench.getBoundingClientRect()
       const dashboardRect = dashboard.getBoundingClientRect()
       if (Math.abs(workbenchRect.height - dashboardRect.height) > tol) failures.push('preparation workbench and dashboard heights differ')
+      if (workbenchRect.height > 190 || dashboardRect.height > 190) failures.push('preparation workbench row is not compact')
       const beforeContent = getComputedStyle(workbench, '::before').content
       const afterContent = getComputedStyle(workbench, '::after').content
       if (!['none', 'normal', '""', "''"].includes(beforeContent)) failures.push('preparation workbench still renders an overlapping pseudo title')
@@ -156,13 +164,23 @@ try {
     }
     navButtons.forEach((button, index) => {
       if (button.scrollWidth > button.clientWidth + 2) failures.push(`preparation workbench button ${index + 1} overflows`)
+      if (button.getBoundingClientRect().height > 82) failures.push(`preparation workbench button ${index + 1} is too tall`)
     })
     if (productivity) {
       const productivityRect = productivity.getBoundingClientRect()
       if (Math.abs(productivityRect.left - rect.left) > tol || Math.abs(productivityRect.right - rect.right) > tol) failures.push('paper assistant edges differ from preparation page')
     }
 
-    return { failures, details: { left: rect.left, right: rect.right } }
+    return {
+      failures,
+      details: {
+        left: rect.left,
+        right: rect.right,
+        topbarHeight: topbar?.getBoundingClientRect().height,
+        workbenchHeight: workbench?.getBoundingClientRect().height,
+        dashboardHeight: dashboard?.getBoundingClientRect().height,
+      },
+    }
   }, tolerance)
   failures.push(...preparation.failures)
   details.preparation = preparation.details
