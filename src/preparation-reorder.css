@@ -35,6 +35,22 @@
   border-radius: 16px;
 }
 
+.prep-topic-overview .prep-panel-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto auto !important;
+  align-items: center !important;
+  justify-content: initial !important;
+  gap: 6px !important;
+}
+
+.prep-topic-overview .prep-panel-head > div {
+  min-width: 0;
+}
+
+.prep-topic-overview .prep-panel-head > button {
+  margin: 0 !important;
+}
+
 .prep-module-order-control {
   min-height: 28px !important;
   display: inline-flex !important;
@@ -92,12 +108,18 @@
 }
 
 @media (max-width: 720px) {
+  .prep-topic-overview .prep-panel-head {
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
+  }
+
+  .prep-topic-overview .prep-panel-head > button:last-child {
+    grid-column: 1 / -1;
+    width: max-content;
+    justify-self: end;
+  }
+
   .prep-productivity-actions .prep-module-order-control {
     min-width: 32px !important;
     padding-inline: 6px !important;
-  }
-
-  .prep-productivity-actions .prep-module-order-control svg + * {
-    display: none;
   }
 }
