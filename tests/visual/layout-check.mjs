@@ -50,9 +50,10 @@ try {
       const pill = card.querySelector('.journal-pill')
       const slot = card.querySelector('.paper-journal-slot')
       const substatus = card.querySelector('.paper-substatus')
+      const revision = card.querySelector('.paper-revision-inline')
       const cardRect = card.getBoundingClientRect()
       const cardStyle = getComputedStyle(card)
-      const check = { index, journal: null, substatus: null }
+      const check = { index, journal: null, substatus: null, revision: null }
 
       if (pill) {
         const icon = pill.querySelector('.journal-pill-icon')
@@ -84,9 +85,20 @@ try {
         const statusRect = status.getBoundingClientRect()
         const subRect = substatus.getBoundingClientRect()
         const style = getComputedStyle(substatus)
+        const statusCenter = statusRect.top + statusRect.height / 2
+        const subCenter = subRect.top + subRect.height / 2
         if (style.display === 'none' || Number(style.opacity || 1) < 0.65 || subRect.height < 18) failures.push(`card ${index + 1}: substatus is not visually prominent`)
-        if (subRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: substatus overlaps main status`)
-        check.substatus = { top: subRect.top, statusBottom: statusRect.bottom, height: subRect.height }
+        if (Math.abs(statusCenter - subCenter) > 3) failures.push(`card ${index + 1}: substatus is not on the main status row`)
+        check.substatus = { top: subRect.top, height: subRect.height, center: subCenter, statusCenter }
+      }
+
+      if (revision && status) {
+        const statusRect = status.getBoundingClientRect()
+        const revisionRect = revision.getBoundingClientRect()
+        const statusCenter = statusRect.top + statusRect.height / 2
+        const revisionCenter = revisionRect.top + revisionRect.height / 2
+        if (Math.abs(statusCenter - revisionCenter) > 3) failures.push(`card ${index + 1}: revision round is not on the main status row`)
+        check.revision = { top: revisionRect.top, height: revisionRect.height, center: revisionCenter, statusCenter }
       }
 
       const accent = getComputedStyle(card, '::before')
@@ -119,11 +131,33 @@ try {
   })
 
   await openView('preparation', '.preparation-workspace')
-  details.preparation = await page.evaluate(() => {
+  const preparation = await page.evaluate((tol) => {
+    const failures = []
     const panel = document.querySelector('.preparation-workspace')
+    const workbench = document.querySelector('.prep-nav')
+    const dashboard = document.querySelector('.prep-dashboard')
+    const overviewPanels = Array.from(document.querySelectorAll('.prep-overview-grid > .prep-panel'))
+    const navButtons = Array.from(document.querySelectorAll('.prep-nav button'))
     const rect = panel.getBoundingClientRect()
-    return { left: rect.left, right: rect.right }
-  })
+
+    if (!workbench || !dashboard) failures.push('preparation workbench or dashboard is missing')
+    if (workbench && dashboard) {
+      const workbenchRect = workbench.getBoundingClientRect()
+      const dashboardRect = dashboard.getBoundingClientRect()
+      if (Math.abs(workbenchRect.height - dashboardRect.height) > tol) failures.push('preparation workbench and dashboard heights differ')
+    }
+    if (overviewPanels.length >= 2) {
+      const heights = overviewPanels.map(item => item.getBoundingClientRect().height)
+      if (Math.max(...heights) - Math.min(...heights) > tol) failures.push('priority draft and saved journal panel heights differ')
+    }
+    navButtons.forEach((button, index) => {
+      if (button.scrollWidth > button.clientWidth + 2) failures.push(`preparation workbench button ${index + 1} overflows`)
+    })
+
+    return { failures, details: { left: rect.left, right: rect.right } }
+  }, tolerance)
+  failures.push(...preparation.failures)
+  details.preparation = preparation.details
 
   const dashboardEdges = details.dashboard.grid
   for (const [name, rect] of [['stats', details.stats], ['preparation', details.preparation]]) {

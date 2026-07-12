@@ -3,18 +3,103 @@
 .paper-card-v3 .journal-pill-button { gap: 8px !important; }
 .paper-card-v3 .journal-pill-icon { margin-right: 0 !important; }
 
+/* Keep the real header text hidden when the gradient wordmark pseudo-elements are active. */
+.header-title {
+  font-size: 0 !important;
+  line-height: 1.05 !important;
+}
+
+/* Main status, editorial substatus and revision round must remain one compact row. */
+.paper-card-v3 .paper-status-area {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+.paper-card-v3 .paper-status-area > * {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+.paper-card-v3 .paper-revision-inline {
+  min-height: 27px !important;
+  padding: 4px 8px !important;
+  line-height: 1 !important;
+}
+
+/* Remove the old long anonymous button labels and replace them with short, stable labels. */
+.preparation-workspace[data-section='overview'] .prep-nav::after {
+  content: none !important;
+  display: none !important;
+}
+.preparation-workspace[data-section='overview'] .prep-nav button {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) auto !important;
+  grid-template-rows: 1fr !important;
+  align-items: center !important;
+  min-height: 68px !important;
+  padding: 10px 11px !important;
+  overflow: hidden !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+.preparation-workspace[data-section='overview'] .prep-nav button::before {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+.preparation-workspace[data-section='overview'] .prep-nav button::after {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+  min-width: 0 !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+}
+.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='overview']::after { content: '总览'; }
+.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='topic']::after { content: '选题'; }
+.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='draft']::after { content: '草稿'; }
+.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='journal']::after { content: '期刊'; }
+.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='compare']::after { content: '比较'; }
+.preparation-workspace[data-section='overview'] .prep-nav button > span {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  margin: 0 !important;
+  min-width: 24px !important;
+  padding: 3px 6px !important;
+  font-size: 10.5px !important;
+  line-height: 1.2 !important;
+}
+
+/* The dashboard already contains the next action; duplicate quick buttons waste vertical space. */
+.prep-dashboard .prep-quick-actions { display: none !important; }
+.prep-dashboard-grid { align-items: stretch !important; }
+:is(.prep-dashboard-score-card, .prep-dashboard-attention-card, .prep-dashboard-next-card) {
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
+.prep-attention-grid button { min-height: 36px !important; }
+.prep-dashboard-next-card p {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
 @media (min-width: 721px) {
   .paper-card-v3 .paper-card-head {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
     align-items: start !important;
   }
-  .paper-card-v3 .paper-status-area {
-    min-width: 0 !important;
-    flex-wrap: nowrap !important;
-  }
   .paper-card-v3 .paper-substatus {
-    max-width: 128px !important;
+    max-width: 132px !important;
     min-width: 0 !important;
     font-size: 10.5px !important;
   }
@@ -29,5 +114,59 @@
     width: max-content !important;
     max-width: min(100%, 320px) !important;
     margin-left: auto !important;
+  }
+}
+
+@media (min-width: 1080px) {
+  /* Workbench and dashboard occupy one row and exactly the same height. */
+  .preparation-workspace[data-section='overview'] {
+    grid-template-columns: minmax(520px, .94fr) minmax(720px, 1.36fr) !important;
+    align-items: stretch !important;
+  }
+  .preparation-workspace[data-section='overview'] > .prep-nav,
+  .preparation-workspace[data-section='overview'] > .prep-dashboard {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .preparation-workspace[data-section='overview'] > .prep-nav {
+    padding: 32px 10px 10px !important;
+    align-content: stretch !important;
+  }
+  .preparation-workspace[data-section='overview'] > .prep-dashboard {
+    padding: 9px !important;
+  }
+
+  /* Priority drafts and saved journals use one bounded row; extra records scroll inside. */
+  .prep-overview-grid {
+    grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr) !important;
+    align-items: stretch !important;
+    grid-auto-rows: 320px !important;
+  }
+  .prep-overview-grid > .prep-panel {
+    height: 320px !important;
+    min-height: 320px !important;
+    max-height: 320px !important;
+    overflow: auto !important;
+    box-sizing: border-box !important;
+    scrollbar-gutter: stable !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .paper-card-v3 .paper-status-area {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
+  }
+  .paper-card-v3 .paper-substatus {
+    flex: 1 1 auto !important;
+    max-width: none !important;
+  }
+  .preparation-workspace[data-section='overview'] .prep-nav button {
+    min-height: 58px !important;
+    grid-template-columns: 30px minmax(0, 1fr) auto !important;
   }
 }
