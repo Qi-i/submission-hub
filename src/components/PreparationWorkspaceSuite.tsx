@@ -156,7 +156,7 @@ export default function PreparationWorkspaceSuite(props: Props) {
     const handleDragLeave = () => topic.classList.remove('is-drag-target')
     const handleDrop = (event: DragEvent) => {
       event.preventDefault()
-      const source = (event.dataTransfer?.getData(DRAG_MIME) || event.dataTransfer?.getData('text/plain') || dragging) as ModuleKey
+      const source = (event.dataTransfer?.getData(DRAG_MIME) || event.dataTransfer?.getData('text/plain')) as ModuleKey
       if (source === 'assistant' || source === 'topics') moveModule(source, 'topics')
       topic.classList.remove('is-drag-target')
       setDragging(null)
@@ -186,7 +186,7 @@ export default function PreparationWorkspaceSuite(props: Props) {
       dragHandle.remove()
       collapseButton.remove()
     }
-  }, [workspace, portalHost, isOverview, order, topicCollapsed, dragging, moveModule])
+  }, [workspace, portalHost, isOverview, order, topicCollapsed, moveModule])
 
   const handleAssistantDragStart = (event: ReactDragEvent<HTMLButtonElement>) => {
     event.dataTransfer.setData(DRAG_MIME, 'assistant')
@@ -207,7 +207,7 @@ export default function PreparationWorkspaceSuite(props: Props) {
         onDragLeave={event => event.currentTarget.classList.remove('is-drag-target')}
         onDrop={event => {
           event.preventDefault()
-          const source = (event.dataTransfer.getData(DRAG_MIME) || event.dataTransfer.getData('text/plain') || dragging) as ModuleKey
+          const source = (event.dataTransfer.getData(DRAG_MIME) || event.dataTransfer.getData('text/plain')) as ModuleKey
           if (source === 'assistant' || source === 'topics') moveModule(source, 'assistant')
           event.currentTarget.classList.remove('is-drag-target')
           setDragging(null)
