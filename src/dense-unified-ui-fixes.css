@@ -1,0 +1,33 @@
+/* Geometry corrections validated by the visual review harness. */
+.paper-card-v3 .journal-pill-hint { display: none !important; }
+.paper-card-v3 .journal-pill-button { gap: 8px !important; }
+.paper-card-v3 .journal-pill-icon { margin-right: 0 !important; }
+
+@media (min-width: 721px) {
+  .paper-card-v3 .paper-card-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+  }
+  .paper-card-v3 .paper-status-area {
+    min-width: 0 !important;
+    flex-wrap: nowrap !important;
+  }
+  .paper-card-v3 .paper-substatus {
+    max-width: 128px !important;
+    min-width: 0 !important;
+    font-size: 10.5px !important;
+  }
+  .paper-card-v3 .paper-journal-slot {
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+  }
+  .paper-card-v3 .journal-pill-button {
+    width: max-content !important;
+    max-width: min(100%, 320px) !important;
+    margin-left: auto !important;
+  }
+}

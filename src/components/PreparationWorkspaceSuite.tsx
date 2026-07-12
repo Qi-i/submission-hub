@@ -5,8 +5,8 @@ import PreparationWorkspace from './PreparationWorkspace'
 type Props = ComponentProps<typeof PreparationWorkspace>
 
 export default function PreparationWorkspaceSuite(props: Props) {
-  return <div className="preparation-suite" data-preparation-suite="productivity-v1">
-    <PreparationProductivityPanel snapshot={props.snapshot} loading={props.loading} onSaveDraft={props.onSaveDraft} />
+  return <div className="preparation-suite" data-preparation-suite="productivity-v2">
     <PreparationWorkspace {...props} />
+    <PreparationProductivityPanel snapshot={props.snapshot} loading={props.loading} onSaveDraft={props.onSaveDraft} />
   </div>
 }
