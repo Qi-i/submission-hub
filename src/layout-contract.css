@@ -1,0 +1,94 @@
+/* Final layout contract: only cross-page geometry that must not be overridden by legacy layers. */
+.preparation-workspace .prep-topbar {
+  height: 76px !important;
+  min-height: 76px !important;
+  max-height: 76px !important;
+  padding: 8px 12px !important;
+  gap: 12px !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+.preparation-workspace .prep-topbar::before,
+.preparation-workspace[data-section='overview'] .prep-topbar::after {
+  content: none !important;
+  display: none !important;
+}
+
+.preparation-workspace .prep-heading {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+}
+
+.preparation-workspace .prep-eyebrow { display: none !important; }
+
+.preparation-workspace .prep-topbar h1 {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  font-size: 26px !important;
+  line-height: 1.08 !important;
+  white-space: nowrap !important;
+}
+
+.preparation-workspace .prep-topbar p {
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.preparation-workspace .prep-top-actions {
+  flex: 0 0 auto !important;
+  gap: 6px !important;
+  padding: 5px !important;
+  border-radius: 11px !important;
+  flex-wrap: nowrap !important;
+}
+
+.preparation-workspace .prep-search {
+  width: min(320px, 30vw) !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  padding: 0 9px !important;
+}
+
+.preparation-workspace .prep-search input {
+  height: 32px !important;
+  font-size: 11.5px !important;
+}
+
+.preparation-workspace .prep-top-actions .btn {
+  min-height: 34px !important;
+  padding: 0 11px !important;
+  font-size: 11px !important;
+}
+
+@media (max-width: 1079px) {
+  .preparation-workspace .prep-topbar {
+    height: auto !important;
+    min-height: 72px !important;
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .preparation-workspace .prep-topbar {
+    min-height: 0 !important;
+    padding: 10px !important;
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .preparation-workspace .prep-heading { align-items: center !important; }
+  .preparation-workspace .prep-topbar h1 { font-size: 22px !important; }
+  .preparation-workspace .prep-topbar p { white-space: normal !important; }
+  .preparation-workspace .prep-top-actions { width: 100% !important; flex-wrap: wrap !important; }
+  .preparation-workspace .prep-search { width: 100% !important; }
+}
