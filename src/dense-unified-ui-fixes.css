@@ -1,83 +1,161 @@
-/* Geometry corrections validated by the visual review harness. */
-.paper-card-v3 .journal-pill-hint { display: none !important; }
-.paper-card-v3 .journal-pill-button { gap: 8px !important; }
-.paper-card-v3 .journal-pill-icon { margin-right: 0 !important; }
+/* Authoritative geometry and hierarchy rules. Keep this file as the single final correction layer. */
+:root {
+  --ui-page-gutter: 18px;
+}
 
-/* Keep the real header text hidden when the gradient wordmark pseudo-elements are active. */
+/* Preserve the gradient wordmark without duplicating the real text. */
 .header-title {
   font-size: 0 !important;
   line-height: 1.05 !important;
 }
 
-/* Main status, editorial substatus and revision round must remain one compact row. */
+/* Every top-level page uses the same outer edges. Do not add a second horizontal gutter inside these roots. */
+.dashboard-metrics,
+.action-center,
+.paper-grid,
+.stats-panel,
+.preparation-workspace,
+.prep-productivity,
+.admin-panel {
+  width: min(calc(100% - (var(--ui-page-gutter) * 2)), var(--ui-page-width)) !important;
+  max-width: var(--ui-page-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+.dashboard-metrics { padding: 12px 0 8px !important; }
+.action-center { margin-top: 4px !important; margin-bottom: 10px !important; }
+.paper-grid { padding: 8px 0 18px !important; }
+.stats-panel,
+.admin-panel { padding: 20px 0 38px !important; }
+.preparation-workspace { padding: 10px 0 14px !important; }
+.prep-productivity { margin-top: 0 !important; margin-bottom: 18px !important; }
+
+/* Submission card header: journal is the primary information; workflow labels are secondary. */
+.paper-card-v3 .paper-card-head {
+  display: grid !important;
+  grid-template-columns: minmax(112px, .42fr) minmax(240px, 1.58fr) !important;
+  align-items: start !important;
+  gap: 12px !important;
+  margin: 0 0 10px !important;
+}
 .paper-card-v3 .paper-status-area {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  flex-wrap: nowrap !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  justify-items: start !important;
+  align-content: start !important;
   gap: 5px !important;
-  width: 100% !important;
-  max-width: 100% !important;
+  width: auto !important;
+  max-width: 156px !important;
   min-width: 0 !important;
 }
-.paper-card-v3 .paper-status-area > * {
-  flex: 0 0 auto !important;
+.paper-card-v3 .paper-status-area > .badge {
   margin: 0 !important;
   white-space: nowrap !important;
 }
-.paper-card-v3 .paper-revision-inline {
-  min-height: 27px !important;
-  padding: 4px 8px !important;
-  line-height: 1 !important;
+.paper-card-v3 .paper-substatus {
+  display: inline-flex !important;
+  width: auto !important;
+  max-width: 150px !important;
+  min-width: 0 !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 2px 7px !important;
+  border-radius: 999px !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  opacity: .82 !important;
 }
+.paper-card-v3 .paper-substatus-dot {
+  width: 6px !important;
+  height: 6px !important;
+  flex: 0 0 6px !important;
+}
+.paper-card-v3 .paper-substatus-text {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+/* Revision round remains available in edit/history data but is not important enough for card display. */
+.paper-card-v3 .paper-revision-inline { display: none !important; }
 
-/* Remove the old long anonymous button labels and replace them with short, stable labels. */
-.preparation-workspace[data-section='overview'] .prep-nav::after {
+.paper-card-v3 .paper-journal-slot {
+  display: flex !important;
+  justify-content: flex-end !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+.paper-card-v3 .journal-pill-button {
+  width: max-content !important;
+  max-width: 100% !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 7px 11px !important;
+  gap: 8px !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+.paper-card-v3 .journal-pill-icon {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+.paper-card-v3 .journal-pill-text {
+  display: -webkit-box !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  font-size: 14.5px !important;
+  font-weight: 900 !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+.paper-card-v3 .journal-pill-hint { display: none !important; }
+
+/* Navigation uses its real labels and icons. Remove pseudo titles/letters that overlap after tab switches. */
+.prep-nav::before,
+.prep-nav::after,
+.prep-nav button::before,
+.prep-nav button::after {
   content: none !important;
   display: none !important;
 }
-.preparation-workspace[data-section='overview'] .prep-nav button {
+.prep-nav {
   display: grid !important;
-  grid-template-columns: 34px minmax(0, 1fr) auto !important;
-  grid-template-rows: 1fr !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  margin: 0 0 10px !important;
+  padding: 5px !important;
+  overflow: visible !important;
+}
+.prep-nav button {
+  display: inline-flex !important;
   align-items: center !important;
-  min-height: 68px !important;
-  padding: 10px 11px !important;
-  overflow: hidden !important;
-  font-size: 0 !important;
-  line-height: 1 !important;
-}
-.preparation-workspace[data-section='overview'] .prep-nav button::before {
-  grid-column: 1 !important;
-  grid-row: 1 !important;
-}
-.preparation-workspace[data-section='overview'] .prep-nav button::after {
-  grid-column: 2 !important;
-  grid-row: 1 !important;
-  justify-self: start !important;
+  justify-content: flex-start !important;
   min-width: 0 !important;
-  font-size: 12px !important;
-  font-weight: 820 !important;
-  line-height: 1.15 !important;
+  min-height: 42px !important;
+  padding: 7px 9px !important;
+  gap: 6px !important;
+  overflow: hidden !important;
+  font-size: 11.5px !important;
+  line-height: 1.2 !important;
   white-space: nowrap !important;
 }
-.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='overview']::after { content: '总览'; }
-.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='topic']::after { content: '选题'; }
-.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='draft']::after { content: '草稿'; }
-.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='journal']::after { content: '期刊'; }
-.preparation-workspace[data-section='overview'] .prep-nav button[data-tone='compare']::after { content: '比较'; }
-.preparation-workspace[data-section='overview'] .prep-nav button > span {
-  grid-column: 3 !important;
-  grid-row: 1 !important;
-  justify-self: end !important;
-  margin: 0 !important;
-  min-width: 24px !important;
-  padding: 3px 6px !important;
-  font-size: 10.5px !important;
-  line-height: 1.2 !important;
+.prep-nav button svg { display: block !important; flex: 0 0 auto !important; }
+.prep-nav button > span {
+  min-width: 20px !important;
+  margin-left: auto !important;
+  padding: 2px 6px !important;
+  font-size: 10px !important;
+  text-align: center !important;
 }
 
-/* The dashboard already contains the next action; duplicate quick buttons waste vertical space. */
+/* Dashboard internals remain compact and equal height. */
+.prep-dashboard { margin: 0 !important; }
 .prep-dashboard .prep-quick-actions { display: none !important; }
 .prep-dashboard-grid { align-items: stretch !important; }
 :is(.prep-dashboard-score-card, .prep-dashboard-attention-card, .prep-dashboard-next-card) {
@@ -87,86 +165,92 @@
 .prep-attention-grid button { min-height: 36px !important; }
 .prep-dashboard-next-card p {
   display: -webkit-box !important;
+  overflow: hidden !important;
   -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
 }
 
-@media (min-width: 721px) {
-  .paper-card-v3 .paper-card-head {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    align-items: start !important;
-  }
-  .paper-card-v3 .paper-substatus {
-    max-width: 132px !important;
-    min-width: 0 !important;
-    font-size: 10.5px !important;
-  }
-  .paper-card-v3 .paper-journal-slot {
-    display: flex !important;
-    justify-content: flex-end !important;
-    width: auto !important;
-    max-width: 100% !important;
-    margin-left: auto !important;
-  }
-  .paper-card-v3 .journal-pill-button {
-    width: max-content !important;
-    max-width: min(100%, 320px) !important;
-    margin-left: auto !important;
-  }
+/* Journal library should use available width instead of leaving empty auto-fill columns. */
+.prep-card-grid.journal-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)) !important;
+  align-items: stretch !important;
+}
+.prep-journal-card { height: 100% !important; }
+
+/* Compact overview journal cards so two complete journals remain visible without page-level scrolling. */
+.prep-overview-journals { padding: 11px !important; }
+.prep-overview-journal-list { gap: 9px !important; }
+.prep-journal-overview-card {
+  gap: 7px !important;
+  padding: 10px 12px !important;
+}
+.prep-journal-overview-card .prep-journal-rank-blocks,
+.prep-journal-overview-card .prep-overview-journal-meta { gap: 5px !important; }
+.prep-journal-overview-card .prep-journal-rank-blocks > span,
+.prep-journal-overview-card .prep-overview-journal-meta > span {
+  min-height: 24px !important;
+  padding: 3px 7px !important;
+  font-size: 10px !important;
 }
 
 @media (min-width: 1080px) {
-  /* Workbench and dashboard occupy one row and exactly the same height. */
   .preparation-workspace[data-section='overview'] {
-    grid-template-columns: minmax(520px, .94fr) minmax(720px, 1.36fr) !important;
+    display: grid !important;
+    grid-template-columns: minmax(430px, .78fr) minmax(680px, 1.22fr) !important;
+    column-gap: 12px !important;
     align-items: stretch !important;
   }
-  .preparation-workspace[data-section='overview'] > .prep-nav,
-  .preparation-workspace[data-section='overview'] > .prep-dashboard {
+  .preparation-workspace[data-section='overview'] > .prep-topbar { grid-column: 1 / -1 !important; }
+  .preparation-workspace[data-section='overview'] > .prep-nav {
+    grid-column: 1 !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(3, minmax(46px, 1fr)) !important;
+    align-content: stretch !important;
     align-self: stretch !important;
     height: 100% !important;
-    min-height: 0 !important;
     margin: 0 !important;
-    box-sizing: border-box !important;
+    padding: 8px !important;
   }
-  .preparation-workspace[data-section='overview'] > .prep-nav {
-    padding: 32px 10px 10px !important;
-    align-content: stretch !important;
-  }
+  .preparation-workspace[data-section='overview'] > .prep-nav button[data-tone='compare'] { grid-column: 1 / -1 !important; }
   .preparation-workspace[data-section='overview'] > .prep-dashboard {
-    padding: 9px !important;
+    grid-column: 2 !important;
+    align-self: stretch !important;
+    height: 100% !important;
   }
+  .preparation-workspace[data-section='overview'] > .prep-overview-grid,
+  .preparation-workspace[data-section='overview'] > .prep-topic-overview { grid-column: 1 / -1 !important; }
 
-  /* Priority drafts and saved journals use one bounded row; extra records scroll inside. */
   .prep-overview-grid {
     grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr) !important;
+    grid-auto-rows: 420px !important;
     align-items: stretch !important;
-    grid-auto-rows: 320px !important;
   }
   .prep-overview-grid > .prep-panel {
-    height: 320px !important;
-    min-height: 320px !important;
-    max-height: 320px !important;
+    height: 420px !important;
+    min-height: 420px !important;
+    max-height: 420px !important;
     overflow: auto !important;
     box-sizing: border-box !important;
     scrollbar-gutter: stable !important;
   }
 }
 
+@media (max-width: 1079px) {
+  .prep-nav { overflow-x: auto !important; grid-template-columns: repeat(5, minmax(120px, 1fr)) !important; }
+  .prep-dashboard-grid { grid-template-columns: 1fr !important; }
+}
+
 @media (max-width: 720px) {
-  .paper-card-v3 .paper-status-area {
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    overflow: hidden !important;
+  :root { --ui-page-gutter: 10px; }
+  .dashboard-metrics { padding-top: 9px !important; }
+  .paper-grid { padding-top: 7px !important; }
+  .paper-card-v3 .paper-card-head {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
   }
-  .paper-card-v3 .paper-substatus {
-    flex: 1 1 auto !important;
-    max-width: none !important;
-  }
-  .preparation-workspace[data-section='overview'] .prep-nav button {
-    min-height: 58px !important;
-    grid-template-columns: 30px minmax(0, 1fr) auto !important;
-  }
+  .paper-card-v3 .paper-status-area { max-width: 100% !important; }
+  .paper-card-v3 .paper-journal-slot { justify-content: flex-start !important; }
+  .paper-card-v3 .journal-pill-button { width: 100% !important; }
+  .prep-nav { grid-template-columns: repeat(2, minmax(118px, 1fr)) !important; overflow-x: auto !important; }
+  .prep-productivity { margin-bottom: 12px !important; }
 }
