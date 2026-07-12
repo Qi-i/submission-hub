@@ -46,7 +46,7 @@ function dateStamp() {
 }
 
 export default function PreparationProductivityPanel({ snapshot, loading, onSaveDraft }: Props) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const actions = useMemo(() => buildDraftActionItems(snapshot), [snapshot])
