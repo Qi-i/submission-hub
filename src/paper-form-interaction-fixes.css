@@ -1,17 +1,17 @@
 /* Paper editor interaction fixes: compact revision input, usable APC field, actionable URLs. */
 .compact-paper-workflow-grid{
-  display:grid;
-  grid-template-columns:repeat(12,minmax(0,1fr));
-  gap:9px;
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  gap:9px!important;
   align-items:start;
 }
-.compact-paper-workflow-grid>.compact-field:nth-child(1){grid-column:span 3}
-.compact-paper-workflow-grid>.compact-field:nth-child(2){grid-column:span 3}
-.compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 2}
-.compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:span 4}
+.compact-paper-workflow-grid>.compact-field:nth-child(1){grid-column:span 3!important}
+.compact-paper-workflow-grid>.compact-field:nth-child(2){grid-column:span 3!important}
+.compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 2!important}
+.compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:span 4!important}
 .compact-paper-workflow-grid .compact-fee{
   display:grid!important;
-  grid-template-columns:minmax(92px,1fr) 78px!important;
+  grid-template-columns:minmax(96px,1fr) 78px!important;
   gap:7px!important;
   min-width:0;
 }
@@ -23,15 +23,27 @@
   text-align:center;
   padding-inline:6px!important;
 }
-.compact-url-control{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 68px;
-  gap:7px;
-  align-items:center;
-  min-width:0;
+.compact-url-field{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 68px!important;
+  grid-template-rows:auto 34px!important;
+  column-gap:7px!important;
+  row-gap:4px!important;
+  align-items:center!important;
 }
-.compact-url-control>.input{min-width:0!important;width:100%!important}
+.compact-url-field>span{
+  grid-column:1 / -1!important;
+  grid-row:1!important;
+}
+.compact-url-field>.input{
+  grid-column:1!important;
+  grid-row:2!important;
+  min-width:0!important;
+  width:100%!important;
+}
 .compact-url-open{
+  grid-column:2!important;
+  grid-row:2!important;
   height:34px!important;
   min-width:0!important;
   padding:0 8px!important;
@@ -48,16 +60,16 @@
 }
 @media(max-width:980px){
   .compact-paper-workflow-grid>.compact-field:nth-child(1),
-  .compact-paper-workflow-grid>.compact-field:nth-child(2){grid-column:span 4}
-  .compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 2}
-  .compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:span 6}
+  .compact-paper-workflow-grid>.compact-field:nth-child(2){grid-column:span 4!important}
+  .compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 2!important}
+  .compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:span 6!important}
 }
 @media(max-width:720px){
-  .compact-paper-workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .compact-paper-workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
   .compact-paper-workflow-grid>.compact-field:nth-child(1),
   .compact-paper-workflow-grid>.compact-field:nth-child(2),
-  .compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 1}
-  .compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:1 / -1}
+  .compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 1!important}
+  .compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:1 / -1!important}
   .compact-paper-workflow-grid .compact-fee{grid-template-columns:minmax(120px,1fr) 82px!important}
-  .compact-url-control{grid-template-columns:minmax(0,1fr) 64px}
+  .compact-url-field{grid-template-columns:minmax(0,1fr) 64px!important}
 }
