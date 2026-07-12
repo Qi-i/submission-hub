@@ -53,52 +53,44 @@ try {
       const revision = card.querySelector('.paper-revision-inline')
       const cardRect = card.getBoundingClientRect()
       const cardStyle = getComputedStyle(card)
-      const check = { index, journal: null, substatus: null, revision: null }
+      const check = { index, journal: null, substatus: null, revisionVisible: false }
 
       if (pill) {
-        const icon = pill.querySelector('.journal-pill-icon')
         const text = pill.querySelector('.journal-pill-text')
-        if (!status || !icon || !text || !slot) {
+        if (!status || !text || !slot) {
           failures.push(`card ${index + 1}: paper header elements are incomplete`)
         } else {
-          const statusRect = status.getBoundingClientRect()
+          const statusStyle = getComputedStyle(status)
+          const textStyle = getComputedStyle(text)
           const pillRect = pill.getBoundingClientRect()
-          const pillStyle = getComputedStyle(pill)
-          const expectedWidth = icon.getBoundingClientRect().width
-            + text.scrollWidth
-            + Number.parseFloat(pillStyle.paddingLeft)
-            + Number.parseFloat(pillStyle.paddingRight)
-            + Number.parseFloat(pillStyle.borderLeftWidth)
-            + Number.parseFloat(pillStyle.borderRightWidth)
-            + 8
+          const lineHeight = Number.parseFloat(textStyle.lineHeight)
           const expectedRight = cardRect.right - Number.parseFloat(cardStyle.paddingRight) - Number.parseFloat(cardStyle.borderRightWidth)
 
-          if (Math.abs(statusRect.height - pillRect.height) > tol) failures.push(`card ${index + 1}: status and journal pills have different heights`)
-          if (pillRect.width - expectedWidth > 3) failures.push(`card ${index + 1}: journal pill contains unnecessary blank width`)
+          if (Number.parseFloat(textStyle.fontSize) <= Number.parseFloat(statusStyle.fontSize)) failures.push(`card ${index + 1}: journal name is not visually dominant`)
+          if (Number.isFinite(lineHeight) && text.scrollHeight > lineHeight * 2.35) failures.push(`card ${index + 1}: journal name exceeds two lines`)
           if (Math.abs(expectedRight - pillRect.right) > 3) failures.push(`card ${index + 1}: journal pill is not right aligned`)
 
-          check.journal = { height: pillRect.height, width: pillRect.width, expectedWidth, right: pillRect.right, expectedRight }
+          check.journal = { fontSize: textStyle.fontSize, right: pillRect.right, expectedRight, height: pillRect.height }
         }
       }
 
       if (substatus && status) {
         const statusRect = status.getBoundingClientRect()
         const subRect = substatus.getBoundingClientRect()
+        const statusStyle = getComputedStyle(status)
         const style = getComputedStyle(substatus)
-        const statusCenter = statusRect.top + statusRect.height / 2
-        const subCenter = subRect.top + subRect.height / 2
-        if (style.display === 'none' || Number(style.opacity || 1) < 0.65 || subRect.height < 18) failures.push(`card ${index + 1}: substatus is not visually prominent`)
-        if (Math.abs(statusCenter - subCenter) > 3) failures.push(`card ${index + 1}: substatus is not on the main status row`)
-        check.substatus = { top: subRect.top, height: subRect.height, center: subCenter, statusCenter }
+        if (style.display === 'none' || Number(style.opacity || 1) < 0.65 || subRect.height < 16) failures.push(`card ${index + 1}: substatus is not readable`)
+        if (Number.parseFloat(style.fontSize) >= Number.parseFloat(statusStyle.fontSize)) failures.push(`card ${index + 1}: substatus is not visually secondary`)
+        if (subRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: substatus overlaps main status instead of sitting below it`)
+        check.substatus = { top: subRect.top, statusBottom: statusRect.bottom, height: subRect.height, fontSize: style.fontSize }
       }
 
-      if (revision && status) {
-        const statusRect = status.getBoundingClientRect()
+      if (revision) {
+        const revisionStyle = getComputedStyle(revision)
         const revisionRect = revision.getBoundingClientRect()
-        const statusCenter = statusRect.top + statusRect.height / 2
-        const revisionCenter = revisionRect.top + revisionRect.height / 2
-        if (Math.abs(statusCenter - revisionCenter) > 3) failures.push(`card ${index + 1}: revision round is not on the main status row`)
-        check.revision = { top: revisionRect.top, height: revisionRect.height, center: revisionCenter, statusCenter }
+        const visible = revisionStyle.display !== 'none' && revisionStyle.visibility !== 'hidden' && revisionRect.width > 0 && revisionRect.height > 0
+        if (visible) failures.push(`card ${index + 1}: revision round is still externally visible`)
+        check.revisionVisible = visible
       }
 
       const accent = getComputedStyle(card, '::before')
@@ -134,9 +126,12 @@ try {
   const preparation = await page.evaluate((tol) => {
     const failures = []
     const panel = document.querySelector('.preparation-workspace')
+    const productivity = document.querySelector('.prep-productivity')
     const workbench = document.querySelector('.prep-nav')
     const dashboard = document.querySelector('.prep-dashboard')
     const overviewPanels = Array.from(document.querySelectorAll('.prep-overview-grid > .prep-panel'))
+    const journalPanel = document.querySelector('.prep-overview-journals')
+    const journalCards = Array.from(document.querySelectorAll('.prep-overview-journals .prep-journal-overview-card'))
     const navButtons = Array.from(document.querySelectorAll('.prep-nav button'))
     const rect = panel.getBoundingClientRect()
 
@@ -145,19 +140,53 @@ try {
       const workbenchRect = workbench.getBoundingClientRect()
       const dashboardRect = dashboard.getBoundingClientRect()
       if (Math.abs(workbenchRect.height - dashboardRect.height) > tol) failures.push('preparation workbench and dashboard heights differ')
+      const beforeContent = getComputedStyle(workbench, '::before').content
+      const afterContent = getComputedStyle(workbench, '::after').content
+      if (!['none', 'normal', '""', "''"].includes(beforeContent)) failures.push('preparation workbench still renders an overlapping pseudo title')
+      if (!['none', 'normal', '""', "''"].includes(afterContent)) failures.push('preparation workbench still renders overlapping pseudo copy')
     }
     if (overviewPanels.length >= 2) {
       const heights = overviewPanels.map(item => item.getBoundingClientRect().height)
       if (Math.max(...heights) - Math.min(...heights) > tol) failures.push('priority draft and saved journal panel heights differ')
     }
+    if (journalPanel && journalCards.length >= 2) {
+      const panelRect = journalPanel.getBoundingClientRect()
+      const secondRect = journalCards[1].getBoundingClientRect()
+      if (secondRect.bottom > panelRect.bottom + tol) failures.push('saved journal overview cannot fully show two journal cards')
+    }
     navButtons.forEach((button, index) => {
       if (button.scrollWidth > button.clientWidth + 2) failures.push(`preparation workbench button ${index + 1} overflows`)
     })
+    if (productivity) {
+      const productivityRect = productivity.getBoundingClientRect()
+      if (Math.abs(productivityRect.left - rect.left) > tol || Math.abs(productivityRect.right - rect.right) > tol) failures.push('paper assistant edges differ from preparation page')
+    }
 
     return { failures, details: { left: rect.left, right: rect.right } }
   }, tolerance)
   failures.push(...preparation.failures)
   details.preparation = preparation.details
+
+  const journalTab = page.locator('.prep-nav button[data-tone="journal"]')
+  if (await journalTab.count()) {
+    await journalTab.first().click()
+    await page.locator('.prep-card-grid.journal-grid').waitFor({ state: 'visible' })
+    await page.waitForTimeout(120)
+    const journalTabGeometry = await page.evaluate((tol) => {
+      const failures = []
+      const panel = document.querySelector('.preparation-workspace')
+      const nav = document.querySelector('.prep-nav')
+      const grid = document.querySelector('.prep-card-grid.journal-grid')
+      if (!panel || !nav || !grid) return { failures: ['journal tab geometry is incomplete'] }
+      const panelRect = panel.getBoundingClientRect()
+      const navRect = nav.getBoundingClientRect()
+      const gridRect = grid.getBoundingClientRect()
+      if (navRect.bottom > gridRect.top + tol) failures.push('workbench overlaps journal library after tab switch')
+      if (Math.abs(panelRect.left - gridRect.left) > tol || Math.abs(panelRect.right - gridRect.right) > tol) failures.push('journal library edges differ from preparation page')
+      return { failures }
+    }, tolerance)
+    failures.push(...journalTabGeometry.failures)
+  }
 
   const dashboardEdges = details.dashboard.grid
   for (const [name, rect] of [['stats', details.stats], ['preparation', details.preparation]]) {
