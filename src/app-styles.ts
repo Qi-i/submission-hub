@@ -1,3 +1,4 @@
+import './paper-form-interactions'
 import './index.css'
 import './refined-ui.css'
 import './polish-ui.css'
