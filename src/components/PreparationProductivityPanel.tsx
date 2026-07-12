@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { CheckCircle2, ClipboardList, Download, FileText, Sparkles, Target, Wand2 } from 'lucide-react'
 import type { ManuscriptDraft, PreparationSnapshot } from '../lib/preparation'
 import {
@@ -14,6 +14,7 @@ interface Props {
   snapshot: PreparationSnapshot
   loading?: boolean
   onSaveDraft: (data: Partial<ManuscriptDraft> & Pick<ManuscriptDraft, 'title'>) => Promise<void>
+  reorderControls?: ReactNode
 }
 
 function downloadText(filename: string, content: string) {
@@ -45,8 +46,8 @@ function dateStamp() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-export default function PreparationProductivityPanel({ snapshot, loading, onSaveDraft }: Props) {
-  const [expanded, setExpanded] = useState(false)
+export default function PreparationProductivityPanel({ snapshot, loading, onSaveDraft, reorderControls }: Props) {
+  const [expanded, setExpanded] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const actions = useMemo(() => buildDraftActionItems(snapshot), [snapshot])
@@ -111,6 +112,7 @@ export default function PreparationProductivityPanel({ snapshot, loading, onSave
         <div><b>论文准备助手</b><small>自动整理待办、生成提纲、推荐期刊并建议草稿阶段</small></div>
       </div>
       <div className="prep-productivity-actions">
+        {reorderControls}
         <button type="button" onClick={() => void copyTodayPlan()}><ClipboardList size={13} /> {copied ? '已复制' : '复制今日任务'}</button>
         <button type="button" onClick={exportReport}><Download size={13} /> 导出准备报告</button>
         <button type="button" className="prep-productivity-toggle" onClick={() => setExpanded(value => !value)}>{expanded ? '收起' : `展开（${actions.length}）`}</button>
