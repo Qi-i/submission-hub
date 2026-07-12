@@ -1,0 +1,63 @@
+/* Paper editor interaction fixes: compact revision input, usable APC field, actionable URLs. */
+.compact-paper-workflow-grid{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:9px;
+  align-items:start;
+}
+.compact-paper-workflow-grid>.compact-field:nth-child(1){grid-column:span 3}
+.compact-paper-workflow-grid>.compact-field:nth-child(2){grid-column:span 3}
+.compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 2}
+.compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:span 4}
+.compact-paper-workflow-grid .compact-fee{
+  display:grid!important;
+  grid-template-columns:minmax(92px,1fr) 78px!important;
+  gap:7px!important;
+  min-width:0;
+}
+.compact-paper-workflow-grid .compact-fee>.input{
+  min-width:0!important;
+  width:100%!important;
+}
+.compact-paper-workflow-grid>.compact-field:nth-child(3) .input{
+  text-align:center;
+  padding-inline:6px!important;
+}
+.compact-url-control{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 68px;
+  gap:7px;
+  align-items:center;
+  min-width:0;
+}
+.compact-url-control>.input{min-width:0!important;width:100%!important}
+.compact-url-open{
+  height:34px!important;
+  min-width:0!important;
+  padding:0 8px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  white-space:nowrap!important;
+  text-decoration:none!important;
+}
+.compact-url-open[aria-disabled="true"]{
+  pointer-events:none;
+  opacity:.45;
+}
+@media(max-width:980px){
+  .compact-paper-workflow-grid>.compact-field:nth-child(1),
+  .compact-paper-workflow-grid>.compact-field:nth-child(2){grid-column:span 4}
+  .compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 2}
+  .compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:span 6}
+}
+@media(max-width:720px){
+  .compact-paper-workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .compact-paper-workflow-grid>.compact-field:nth-child(1),
+  .compact-paper-workflow-grid>.compact-field:nth-child(2),
+  .compact-paper-workflow-grid>.compact-field:nth-child(3){grid-column:span 1}
+  .compact-paper-workflow-grid>.compact-field:nth-child(4){grid-column:1 / -1}
+  .compact-paper-workflow-grid .compact-fee{grid-template-columns:minmax(120px,1fr) 82px!important}
+  .compact-url-control{grid-template-columns:minmax(0,1fr) 64px}
+}
