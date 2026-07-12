@@ -1,5 +1,7 @@
 /* Geometry corrections validated by the visual review harness. */
 .paper-card-v3 .journal-pill-hint { display: none !important; }
+.paper-card-v3 .journal-pill-button { gap: 8px !important; }
+.paper-card-v3 .journal-pill-icon { margin-right: 0 !important; }
 
 @media (min-width: 721px) {
   .paper-card-v3 .paper-card-head {
