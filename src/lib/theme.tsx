@@ -44,17 +44,25 @@ function getSystemTheme(): ResolvedTheme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+function getVisualUiOverride(): UiMode | undefined {
+  if (typeof window === 'undefined' || !window.location.pathname.includes('/tests/visual/')) return undefined
+  const requested = new URLSearchParams(window.location.search).get('ui')
+  return isUiMode(requested) ? requested : undefined
+}
+
 function readStoredPreferences(): Required<StoredPreferences> {
   try {
     const raw = localStorage.getItem('sh-prefs')
-    if (!raw) return DEFAULT_PREFERENCES
-    const parsed = JSON.parse(raw) as StoredPreferences
+    const parsed = raw ? JSON.parse(raw) as StoredPreferences : {}
     return {
       mode: isThemeMode(parsed.mode) ? parsed.mode : DEFAULT_PREFERENCES.mode,
-      uiMode: isUiMode(parsed.uiMode) ? parsed.uiMode : DEFAULT_PREFERENCES.uiMode,
+      uiMode: getVisualUiOverride() || (isUiMode(parsed.uiMode) ? parsed.uiMode : DEFAULT_PREFERENCES.uiMode),
     }
   } catch {
-    return DEFAULT_PREFERENCES
+    return {
+      ...DEFAULT_PREFERENCES,
+      uiMode: getVisualUiOverride() || DEFAULT_PREFERENCES.uiMode,
+    }
   }
 }
 
