@@ -1,0 +1,35 @@
+/* Targeted corrections for the consolidated Luminous X rebuild. */
+
+html[data-ui='luminous-x'] .header-title::before,
+html[data-ui='luminous-x'] .header-title::after {
+  content: none !important;
+  display: none !important;
+}
+
+html[data-ui='luminous-x'][data-theme='light'] body {
+  background:
+    radial-gradient(circle at 12% -8%, rgba(60, 245, 255, .08), transparent 25%),
+    radial-gradient(circle at 96% 0%, rgba(255, 79, 159, .06), transparent 24%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+}
+
+html[data-ui='luminous-x'][data-theme='dark'] body {
+  background:
+    radial-gradient(circle at 12% -8%, rgba(60, 245, 255, .13), transparent 25%),
+    radial-gradient(circle at 96% 0%, rgba(255, 79, 159, .10), transparent 24%),
+    linear-gradient(180deg, #0b1021 0%, #080d1b 100%) !important;
+}
+
+html[data-ui='luminous-x'][data-theme='light'] .paper-grid .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='light'] .lx-board-stack .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='light'] .lx-journal-group-grid .paper-card-v3 {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
+  background-color: #11182d !important;
+  background-image: none !important;
+}
