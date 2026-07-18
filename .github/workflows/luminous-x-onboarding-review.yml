@@ -41,11 +41,13 @@ jobs:
           done
           cat /tmp/submission-hub-focused.log
           exit 1
-      - name: Verify compact layouts and first-run guide
-        run: |
-          node tests/visual/luminous-x-compact-check.mjs
-          node tests/visual/first-run-guide-check.mjs
+      - name: Verify compact Luminous X layouts
+        run: node tests/visual/luminous-x-compact-check.mjs
+      - name: Verify first-run guide and defaults
+        if: always()
+        run: node tests/visual/first-run-guide-check.mjs
       - name: Capture first-run guide
+        if: always()
         run: |
           mkdir -p focused-review
           npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1280,900" --wait-for-selector=".first-run-guide" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous-x&guide=1" focused-review/luminous-x-first-run-guide.png
@@ -53,5 +55,7 @@ jobs:
         if: always()
         with:
           name: luminous-x-onboarding-review
-          path: focused-review/*.png
+          path: |
+            focused-review/*.png
+            /tmp/submission-hub-focused.log
           retention-days: 14
