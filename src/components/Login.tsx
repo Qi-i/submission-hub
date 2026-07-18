@@ -108,6 +108,26 @@ export default function Login() {
         </div>
       ))}
 
+      <section className="auth-x-hero" aria-label="Luminous X 功能介绍">
+        <div className="auth-x-orbit" aria-hidden="true">
+          <span className="auth-x-orbit-core">SH</span>
+          <i /><i /><i />
+        </div>
+        <div className="auth-x-eyebrow"><span /> LUMINOUS X · ACADEMIC CONTROL SYSTEM</div>
+        <h1>让每一篇论文<br /><em>沿着可见的轨道前进</em></h1>
+        <p>把选题、期刊匹配、投稿、返修与成果归档压缩进同一条高可见度工作流。</p>
+        <div className="auth-x-signals">
+          <span><BookOpen size={15} /> 选题与写作</span>
+          <span><FileText size={15} /> 投稿与返修</span>
+          <span><BarChart3 size={15} /> 统计与复盘</span>
+        </div>
+        <div className="auth-x-console" aria-hidden="true">
+          <span>RESEARCH FLOW</span>
+          <b>ACTIVE</b>
+          <i />
+        </div>
+      </section>
+
       <div className="auth-card">
         <div className="auth-brand">
           <div className="auth-logo">SH</div>
