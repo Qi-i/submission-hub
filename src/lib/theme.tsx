@@ -62,7 +62,7 @@ function getSystemTheme(): ResolvedTheme {
 function getVisualUiOverride(): UiMode | undefined {
   if (typeof window === 'undefined' || !window.location.pathname.includes('/tests/visual/')) return undefined
   const requested = new URLSearchParams(window.location.search).get('ui')
-  return isUiMode(requested) ? requested : undefined
+  return isUiMode(requested) ? requested : 'classic'
 }
 
 function readStoredPreferences(): Required<StoredPreferences> {
