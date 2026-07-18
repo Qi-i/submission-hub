@@ -32,10 +32,16 @@ async function inspectPage(page, name, expectedUi = 'luminous') {
       failures.push(`${name}: UI mode switcher is missing`)
     } else {
       const rect = switcher.getBoundingClientRect()
+      const currentLabel = switcher.querySelector('.ui-mode-switcher-label')?.textContent || ''
+      const actionLabel = switcher.querySelector('button')?.getAttribute('aria-label') || ''
       if (rect.left < -1 || rect.right > viewportWidth + 1) failures.push(`${name}: UI mode switcher escapes the viewport`)
-      const active = switcher.querySelector('button.active')?.textContent || ''
-      if (expectedUi === 'luminous' && !active.includes('Luminous')) failures.push(`${name}: luminous switch state is not visible`)
-      if (expectedUi === 'classic' && !active.includes('经典')) failures.push(`${name}: classic switch state is not visible`)
+      if (viewportWidth <= 640 && rect.width > 70) failures.push(`${name}: mobile UI switcher is too wide`)
+      if (expectedUi === 'luminous' && (currentLabel !== 'Luminous' || !actionLabel.includes('返回经典'))) {
+        failures.push(`${name}: luminous switch state or return action is unclear`)
+      }
+      if (expectedUi === 'classic' && (currentLabel !== '经典' || !actionLabel.includes('Luminous'))) {
+        failures.push(`${name}: classic switch state or luminous action is unclear`)
+      }
     }
 
     if (header) {
