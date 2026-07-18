@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
@@ -15,7 +15,7 @@ import MetricCard from './MetricCard'
 import ActionCenter from './ActionCenter'
 import OnlinePreparationWorkspace from './OnlinePreparationWorkspace'
 import AccountSettingsModal from './AccountSettingsModal'
-import LuminousXStatusBar from './LuminousXStatusBar'
+import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
 import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
@@ -29,6 +29,13 @@ const TAB_LABELS: Record<Tab, string> = {
   dashboard: '投稿管理控制台',
   stats: '个人统计分析舱',
   admin: '后台管理中心',
+}
+
+const TAB_SUBTITLES: Record<Tab, string> = {
+  preparation: '组织选题、论文草稿和目标期刊，形成清晰的投稿前流程。',
+  dashboard: '集中管理与跟踪学术投稿的状态、作者、期刊和版本链。',
+  stats: '从投稿状态、周期、期刊与作者维度审视个人成果进展。',
+  admin: '管理系统账户、权限和后台配置。',
 }
 
 const localDateLabel = () => {
@@ -55,7 +62,7 @@ function normalizeJournalProfile(profile: JournalProfile): JournalProfile {
 
 export default function Dashboard() {
   const { user, signOut, isDemo, exitDemo } = useAuth()
-  const { mode, setMode } = useTheme()
+  const { mode, setMode, uiMode } = useTheme()
   const [papers, setPapers] = useState<Paper[]>([])
   const [journalProfiles, setJournalProfiles] = useState<JournalProfile[]>([])
   const [loading, setLoading] = useState(!isDemo)
@@ -67,10 +74,12 @@ export default function Dashboard() {
   const [showTools, setShowTools] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
   const [showSettings, setShowSettings] = useState(false)
   const [transferring, setTransferring] = useState(false)
 
   const canAccessAdmin = user?.is_admin === true && !isDemo
+  const effectiveLayoutMode = uiMode === 'luminous-x' ? layoutMode : 'workflow'
 
   useEffect(() => {
     if (tab === 'admin' && !canAccessAdmin) setTab('dashboard')
@@ -241,6 +250,55 @@ export default function Dashboard() {
     </div>
   )
 
+  const renderPaperCard = (paper: Paper, index: number) => (
+    <PaperCard
+      key={paper.id}
+      paper={paper}
+      journalProfile={findJournalProfile(journalProfiles, paper.journal)}
+      currentUsername={user?.username || ''}
+      authorName={user?.author_name || ''}
+      allPapers={papers}
+      index={index}
+      onClick={isDemo ? undefined : () => openPaperForm(paper)}
+    />
+  )
+
+  const journalGroups = useMemo(() => {
+    const groups = new Map<string, Paper[]>()
+    filtered.forEach(paper => {
+      const key = paper.journal?.trim() || '未指定期刊'
+      groups.set(key, [...(groups.get(key) || []), paper])
+    })
+    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right))
+  }, [filtered])
+
+  const paperCollection = filtered.length === 0 ? (
+    <div className="paper-grid"><div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击「新建投稿」开始记录'}</div></div></div>
+  ) : effectiveLayoutMode === 'board' ? (
+    <div className="lx-board-view">
+      {STATUSES.map(status => {
+        const items = filtered.filter(paper => paper.status === status.key)
+        return (
+          <section className="lx-board-column" key={status.key} style={{ ['--lx-column-accent' as any]: status.color }}>
+            <header><span>{status.emoji} {status.label}</span><b>{items.length}</b></header>
+            <div className="lx-board-stack">{items.length ? items.map((paper, index) => renderPaperCard(paper, index)) : <div className="lx-column-empty">暂无记录</div>}</div>
+          </section>
+        )
+      })}
+    </div>
+  ) : effectiveLayoutMode === 'journal' ? (
+    <div className="lx-journal-view">
+      {journalGroups.map(([journal, items]) => (
+        <section className="lx-journal-group" key={journal}>
+          <header><div><small>JOURNAL GROUP</small><h2>{journal}</h2></div><b>{items.length} 篇</b></header>
+          <div className="paper-grid lx-journal-group-grid">{items.map((paper, index) => renderPaperCard(paper, index))}</div>
+        </section>
+      ))}
+    </div>
+  ) : (
+    <div className="paper-grid lx-workflow-view">{filtered.map((paper, index) => renderPaperCard(paper, index))}</div>
+  )
+
   if (loading) return <div className="loading-screen"><div className="spinner" /><span style={{ fontSize: 13 }}>加载数据中...</span></div>
 
   return (
@@ -259,19 +317,27 @@ export default function Dashboard() {
         </div>
 
         <div className="header-actions">
-          {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
-          <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
-          {!isDemo && <><button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入完整备份"><Upload size={14} /> 导入</button><button className="btn btn-ghost btn-sm" onClick={() => void handleExport()} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>{tab === 'dashboard' && <button className="btn btn-primary btn-sm" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}</>}
-          {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { closeTools(); setShowSettings(true) }} title="个人设置"><Settings size={15} /></button>}
-          {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
+          <div className="header-utility-stack">
+            {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
+            <div className="header-utility-grid">
+              <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
+              {!isDemo && <button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入完整备份"><Upload size={14} /> 导入</button>}
+              {!isDemo && <button className="btn btn-ghost btn-sm" onClick={() => void handleExport()} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>}
+              {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { closeTools(); setShowSettings(true) }} title="个人设置"><Settings size={15} /></button>}
+            </div>
+            {!isDemo && tab === 'dashboard' && <button className="btn btn-primary btn-sm lx-new-paper" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}
+            {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
+          </div>
         </div>
       </header>
 
-      <LuminousXStatusBar
+      {uiMode === 'luminous-x' && <LuminousXStatusBar
         modeLabel={TAB_LABELS[tab]}
+        subtitle={TAB_SUBTITLES[tab]}
         recordCount={papers.length}
-        channelLabel={isDemo ? '演示沙盒' : '云端工作区'}
-      />
+        layoutMode={layoutMode}
+        onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
+      />}
 
       {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
 
@@ -281,7 +347,7 @@ export default function Dashboard() {
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
         <ActionCenter papers={papers} onOpen={isDemo ? undefined : openPaperForm} />
-        <div className="paper-grid">{filtered.length === 0 ? <div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录'}</div></div> : filtered.map((paper, index) => <PaperCard key={paper.id} paper={paper} journalProfile={findJournalProfile(journalProfiles, paper.journal)} currentUsername={user?.username || ''} authorName={user?.author_name || ''} allPapers={papers} index={index} onClick={isDemo ? undefined : () => openPaperForm(paper)} />)}</div>
+        {paperCollection}
       </>}
 
       {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} authorName={user?.author_name || ''} />}
