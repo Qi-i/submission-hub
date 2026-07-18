@@ -33,3 +33,187 @@ html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card
   background-color: #11182d !important;
   background-image: none !important;
 }
+
+/* Keep the page header as a strict three-part row on every main page. */
+html[data-ui='luminous-x'] .app-layout {
+  position: relative !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-bar {
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr) 96px !important;
+  padding-right: 0 !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: visible;
+}
+
+html[data-ui='luminous-x'] .lx-status-count {
+  align-self: stretch !important;
+  min-height: 76px !important;
+  margin: -12px 0 -12px 0 !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 0 !important;
+  border-left: 1px solid var(--lx-line) !important;
+  border-radius: 0 17px 17px 0 !important;
+}
+
+/* All submission summary units stay in one row on desktop. */
+@media (min-width: 1221px) {
+  html[data-ui='luminous-x'] .dashboard-metrics {
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  html[data-ui='luminous-x'] .dashboard-metrics .metric-card {
+    min-height: 68px !important;
+    padding: 9px 8px !important;
+  }
+
+  html[data-ui='luminous-x'] .dashboard-metrics .metric-icon {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+  }
+
+  html[data-ui='luminous-x'] .dashboard-metrics .metric-value {
+    font-size: 18px !important;
+  }
+
+  html[data-ui='luminous-x'] .dashboard-metrics .metric-helper {
+    display: none !important;
+  }
+}
+
+/* The board wraps into a complete grid instead of hiding columns off-screen. */
+html[data-ui='luminous-x'] .lx-board-view {
+  display: grid !important;
+  grid-auto-flow: row !important;
+  grid-auto-columns: auto !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  align-items: start !important;
+  gap: 12px !important;
+  padding: 2px 0 12px !important;
+  overflow: visible !important;
+  scroll-snap-type: none !important;
+}
+
+html[data-ui='luminous-x'] .lx-board-column {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+@media (min-width: 981px) and (max-width: 1499px) {
+  html[data-ui='luminous-x'] .lx-board-view {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Move preparation navigation and statistics module switches into the top control row. */
+@media (min-width: 981px) {
+  html[data-ui='luminous-x'] .stats-panel,
+  html[data-ui='luminous-x'] .preparation-suite,
+  html[data-ui='luminous-x'] .preparation-workspace {
+    position: static !important;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls,
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav {
+    position: absolute !important;
+    z-index: 40 !important;
+    top: 35px !important;
+    right: 112px !important;
+    width: max-content !important;
+    max-width: calc(100vw - var(--lx-sidebar) - 430px) !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    scrollbar-width: thin;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls button,
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav button {
+    flex: 0 0 auto !important;
+    min-height: 36px !important;
+    padding: 0 11px !important;
+    border: 1px solid var(--lx-line) !important;
+    border-radius: 10px !important;
+    background: var(--lx-surface-soft) !important;
+    color: var(--text-secondary) !important;
+    box-shadow: none !important;
+    white-space: nowrap !important;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls button.active,
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav button.active {
+    border-color: rgba(60, 245, 255, .52) !important;
+    background: var(--lx-nav-active) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--lx-focus) !important;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-heading {
+    display: none !important;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-topbar {
+    min-height: 0 !important;
+    padding: 10px 12px !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-top-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+}
+
+@media (max-width: 1220px) and (min-width: 981px) {
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls,
+  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav {
+    right: 16px !important;
+    max-width: calc(100vw - var(--lx-sidebar) - 350px) !important;
+  }
+}
+
+@media (max-width: 980px) {
+  html[data-ui='luminous-x'] .lx-status-bar {
+    padding-right: 12px !important;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-count {
+    display: none !important;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-controls-host {
+    width: 100%;
+  }
+
+  html[data-ui='luminous-x'] .lx-board-view {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  html[data-ui='luminous-x'] .lx-board-view {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
