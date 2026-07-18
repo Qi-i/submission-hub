@@ -1,5 +1,64 @@
 /* Luminous X geometry safeguards loaded after the main style system. */
 
+@media (min-width: 861px) {
+  html[data-ui="luminous-x"] .app-layout > .tab-bar {
+    position: fixed !important;
+    z-index: 720 !important;
+    left: 30px !important;
+    right: auto !important;
+    top: 128px !important;
+    width: calc(var(--lx-sidebar) - 28px) !important;
+    max-width: calc(var(--lx-sidebar) - 28px) !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html[data-ui="luminous-x"] .app-layout > .tab-bar .tab-btn {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui="luminous-x"] .app-header .header-left-cluster,
+  html[data-ui="luminous-x"] .app-header .header-tabs {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    contain: inline-size;
+  }
+
+  html[data-ui="luminous-x"] .app-header .header-tabs button {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
 html[data-ui="luminous-x"] .preparation-suite {
   min-width: 0;
   max-width: calc(100% - 40px);
