@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type UiMode = 'classic' | 'luminous' | 'luminous-x'
@@ -18,9 +18,16 @@ interface ThemeState {
   setUiMode: (uiMode: UiMode) => void
 }
 
+interface ThemeProviderProps {
+  children: ReactNode
+  accountKey?: string
+  accountPreferences?: StoredPreferences
+  onAccountPreferencesChange?: (patch: StoredPreferences) => void | Promise<void>
+}
+
 const DEFAULT_PREFERENCES: Required<StoredPreferences> = {
   mode: 'light',
-  uiMode: 'classic',
+  uiMode: 'luminous-x',
 }
 
 const UI_SEQUENCE: UiMode[] = ['classic', 'luminous', 'luminous-x']
@@ -104,11 +111,17 @@ function UiModeSwitcher({ uiMode, setUiMode }: Pick<ThemeState, 'uiMode' | 'setU
   )
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({
+  children,
+  accountKey,
+  accountPreferences,
+  onAccountPreferencesChange,
+}: ThemeProviderProps) {
   const [initialPreferences] = useState(readStoredPreferences)
   const [mode, setModeState] = useState<ThemeMode>(initialPreferences.mode)
   const [uiMode, setUiModeState] = useState<UiMode>(initialPreferences.uiMode)
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme)
+  const seededAccountRef = useRef('')
 
   const resolved = mode === 'system' ? systemTheme : mode
 
@@ -120,6 +133,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (!accountKey || getVisualUiOverride()) return
+    const nextMode = isThemeMode(accountPreferences?.mode) ? accountPreferences.mode : DEFAULT_PREFERENCES.mode
+    const nextUiMode = isUiMode(accountPreferences?.uiMode) ? accountPreferences.uiMode : DEFAULT_PREFERENCES.uiMode
+    setModeState(nextMode)
+    setUiModeState(nextUiMode)
+    mergeStoredPreferences({ mode: nextMode, uiMode: nextUiMode })
+
+    const needsSeed = !isThemeMode(accountPreferences?.mode) || !isUiMode(accountPreferences?.uiMode)
+    if (needsSeed && seededAccountRef.current !== accountKey) {
+      seededAccountRef.current = accountKey
+      void onAccountPreferencesChange?.({ mode: nextMode, uiMode: nextUiMode })
+    }
+  }, [accountKey, accountPreferences?.mode, accountPreferences?.uiMode, onAccountPreferencesChange])
+
+  useEffect(() => {
     document.documentElement.setAttribute('data-theme', resolved)
     document.documentElement.setAttribute('data-ui', uiMode)
   }, [resolved, uiMode])
@@ -127,11 +155,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setMode = (nextMode: ThemeMode) => {
     setModeState(nextMode)
     mergeStoredPreferences({ mode: nextMode })
+    if (accountKey) void onAccountPreferencesChange?.({ mode: nextMode })
   }
 
   const setUiMode = (nextUiMode: UiMode) => {
     setUiModeState(nextUiMode)
     mergeStoredPreferences({ uiMode: nextUiMode })
+    if (accountKey) void onAccountPreferencesChange?.({ uiMode: nextUiMode })
   }
 
   return (
