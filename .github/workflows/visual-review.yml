@@ -89,6 +89,19 @@ jobs:
           npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="390,844" --wait-for-selector="html[data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light" visual-review/dashboard-light-mobile.png
           npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="390,844" --wait-for-selector="html[data-visual-ready='true'] .stats-panel" "http://127.0.0.1:4174/tests/visual/index.html?view=stats&theme=light" visual-review/statistics-light-mobile.png
           npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="390,844" --wait-for-selector="html[data-visual-ready='true'] .preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light" visual-review/preparation-light-mobile.png
+      - name: Capture Luminous Glow pages
+        run: |
+          set -euxo pipefail
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous" visual-review/luminous-dashboard-light-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=dark&ui=luminous" visual-review/luminous-dashboard-dark-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light&ui=luminous" visual-review/luminous-preparation-light-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .stats-panel" "http://127.0.0.1:4174/tests/visual/index.html?view=stats&theme=light&ui=luminous" visual-review/luminous-statistics-light-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="390,844" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous" visual-review/luminous-dashboard-light-mobile.png
+          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-ui='luminous'][data-modal-scroll-ready='true'] .compact-form-footer" "http://127.0.0.1:4174/tests/visual/index.html?view=editor&theme=light&ui=luminous" visual-review/luminous-editor-bottom-light-desktop.png
+      - name: Verify Luminous Glow geometry and fallback
+        run: |
+          set -euxo pipefail
+          node tests/visual/luminous-layout-check.mjs | tee /tmp/luminous-layout-check.log
       - name: Upload screenshots and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,5 +111,6 @@ jobs:
             visual-review/*.png
             /tmp/submission-hub-visual.log
             /tmp/layout-check.log
+            /tmp/luminous-layout-check.log
           if-no-files-found: warn
           retention-days: 14

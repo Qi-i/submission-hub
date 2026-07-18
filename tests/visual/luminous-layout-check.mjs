@@ -1,0 +1,122 @@
+import { chromium } from 'playwright'
+
+const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
+const browser = await chromium.launch({ headless: true })
+const failures = []
+const details = {}
+
+async function openView({ view, theme = 'light', ui = 'luminous', viewport = { width: 1440, height: 1000 }, selector }) {
+  const page = await browser.newPage({ viewport })
+  await page.goto(`${baseUrl}?view=${view}&theme=${theme}&ui=${ui}`)
+  await page.locator(`html[data-visual-ready='true'] ${selector}`).first().waitFor({ state: 'visible', timeout: 45000 })
+  await page.waitForTimeout(300)
+  return page
+}
+
+async function inspectPage(page, name, expectedUi = 'luminous') {
+  const result = await page.evaluate(({ name, expectedUi }) => {
+    const failures = []
+    const root = document.documentElement
+    const rootStyle = getComputedStyle(root)
+    const switcher = document.querySelector('.ui-mode-switcher')
+    const header = document.querySelector('.app-header')
+    const viewportWidth = window.innerWidth
+
+    if (root.dataset.ui !== expectedUi) failures.push(`${name}: expected data-ui=${expectedUi}, received ${root.dataset.ui || 'unset'}`)
+    if (expectedUi === 'luminous' && rootStyle.getPropertyValue('--luminous-cyan').trim().toLowerCase() !== '#3cf5ff') {
+      failures.push(`${name}: luminous cyan design token is missing`)
+    }
+    if (document.documentElement.scrollWidth > viewportWidth + 2) failures.push(`${name}: page has horizontal overflow`)
+
+    if (!switcher) {
+      failures.push(`${name}: UI mode switcher is missing`)
+    } else {
+      const rect = switcher.getBoundingClientRect()
+      const currentLabel = switcher.querySelector('.ui-mode-switcher-label')?.textContent || ''
+      const actionLabel = switcher.querySelector('button')?.getAttribute('aria-label') || ''
+      if (rect.left < -1 || rect.right > viewportWidth + 1) failures.push(`${name}: UI mode switcher escapes the viewport`)
+      if (viewportWidth <= 640 && rect.width > 70) failures.push(`${name}: mobile UI switcher is too wide`)
+      if (expectedUi === 'luminous' && (currentLabel !== 'Luminous' || !actionLabel.includes('返回经典'))) {
+        failures.push(`${name}: luminous switch state or return action is unclear`)
+      }
+      if (expectedUi === 'classic' && (currentLabel !== '经典' || !actionLabel.includes('Luminous'))) {
+        failures.push(`${name}: classic switch state or luminous action is unclear`)
+      }
+    }
+
+    if (header) {
+      const rect = header.getBoundingClientRect()
+      if (rect.left < -1 || rect.right > viewportWidth + 1) failures.push(`${name}: header escapes the viewport`)
+    }
+
+    const panels = Array.from(document.querySelectorAll('.paper-card-v3, .metric-card, .stat-card, .prep-panel, .stats-panel, .modal'))
+    panels.forEach((panel, index) => {
+      const rect = panel.getBoundingClientRect()
+      if (rect.left < -2 || rect.right > viewportWidth + 2) failures.push(`${name}: panel ${index + 1} escapes the viewport`)
+    })
+
+    const journalLabels = Array.from(document.querySelectorAll('.journal-pill-text'))
+    journalLabels.forEach((label, index) => {
+      const style = getComputedStyle(label)
+      const lineHeight = Number.parseFloat(style.lineHeight)
+      if (Number.isFinite(lineHeight) && label.scrollHeight > lineHeight * 2.35) failures.push(`${name}: journal label ${index + 1} exceeds two lines`)
+      if (Number.parseFloat(style.fontSize) < 11) failures.push(`${name}: journal label ${index + 1} is too small`)
+    })
+
+    return {
+      failures,
+      details: {
+        ui: root.dataset.ui,
+        theme: root.dataset.theme,
+        viewportWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        panelCount: panels.length,
+        switcher: switcher ? switcher.getBoundingClientRect().toJSON() : null,
+        background: getComputedStyle(document.body).backgroundImage,
+      },
+    }
+  }, { name, expectedUi })
+
+  failures.push(...result.failures)
+  details[name] = result.details
+}
+
+try {
+  const dashboardLight = await openView({ view: 'dashboard', theme: 'light', selector: '.paper-card-v3' })
+  await inspectPage(dashboardLight, 'luminous dashboard light')
+  await dashboardLight.close()
+
+  const dashboardDark = await openView({ view: 'dashboard', theme: 'dark', selector: '.paper-card-v3' })
+  await inspectPage(dashboardDark, 'luminous dashboard dark')
+  await dashboardDark.close()
+
+  const preparationLight = await openView({ view: 'preparation', theme: 'light', selector: '.preparation-workspace' })
+  await inspectPage(preparationLight, 'luminous preparation light')
+  await preparationLight.close()
+
+  const statisticsLight = await openView({ view: 'stats', theme: 'light', selector: '.stats-panel' })
+  await inspectPage(statisticsLight, 'luminous statistics light')
+  await statisticsLight.close()
+
+  const dashboardMobile = await openView({
+    view: 'dashboard',
+    theme: 'light',
+    viewport: { width: 390, height: 844 },
+    selector: '.paper-card-v3',
+  })
+  await inspectPage(dashboardMobile, 'luminous dashboard mobile')
+  await dashboardMobile.close()
+
+  const classicFallback = await openView({ view: 'dashboard', theme: 'light', ui: 'classic', selector: '.paper-card-v3' })
+  await inspectPage(classicFallback, 'classic fallback', 'classic')
+  await classicFallback.close()
+
+  if (details['luminous dashboard light']?.background === details['luminous dashboard dark']?.background) {
+    failures.push('luminous light and dark themes use the same page background')
+  }
+
+  console.log(JSON.stringify({ failures, details }, null, 2))
+  if (failures.length > 0) throw new Error(failures.join(' | '))
+} finally {
+  await browser.close()
+}

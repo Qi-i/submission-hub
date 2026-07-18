@@ -1,64 +1,134 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
+export type UiMode = 'classic' | 'luminous'
+
+type ResolvedTheme = 'light' | 'dark'
+
+type StoredPreferences = {
+  mode?: ThemeMode
+  uiMode?: UiMode
+}
 
 interface ThemeState {
   mode: ThemeMode
-  resolved: 'light' | 'dark'
-  setMode: (m: ThemeMode) => void
+  resolved: ResolvedTheme
+  uiMode: UiMode
+  setMode: (mode: ThemeMode) => void
+  setUiMode: (uiMode: UiMode) => void
+}
+
+const DEFAULT_PREFERENCES: Required<StoredPreferences> = {
+  mode: 'light',
+  uiMode: 'classic',
 }
 
 const ThemeContext = createContext<ThemeState>({
-  mode: 'system',
+  mode: DEFAULT_PREFERENCES.mode,
   resolved: 'light',
+  uiMode: DEFAULT_PREFERENCES.uiMode,
   setMode: () => {},
+  setUiMode: () => {},
 })
 
-function getSystemTheme(): 'light' | 'dark' {
+function isThemeMode(value: unknown): value is ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system'
+}
+
+function isUiMode(value: unknown): value is UiMode {
+  return value === 'classic' || value === 'luminous'
+}
+
+function getSystemTheme(): ResolvedTheme {
   if (typeof window === 'undefined') return 'light'
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-function loadMode(): ThemeMode {
-  try {
-    const raw = localStorage.getItem('sh-prefs')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed.mode) return parsed.mode
-    }
-  } catch {}
-  return 'system'
+function getVisualUiOverride(): UiMode | undefined {
+  if (typeof window === 'undefined' || !window.location.pathname.includes('/tests/visual/')) return undefined
+  const requested = new URLSearchParams(window.location.search).get('ui')
+  return isUiMode(requested) ? requested : undefined
 }
 
-function saveMode(mode: ThemeMode) {
-  try { localStorage.setItem('sh-prefs', JSON.stringify({ mode })) } catch {}
+function readStoredPreferences(): Required<StoredPreferences> {
+  try {
+    const raw = localStorage.getItem('sh-prefs')
+    const parsed = raw ? JSON.parse(raw) as StoredPreferences : {}
+    return {
+      mode: isThemeMode(parsed.mode) ? parsed.mode : DEFAULT_PREFERENCES.mode,
+      uiMode: getVisualUiOverride() || (isUiMode(parsed.uiMode) ? parsed.uiMode : DEFAULT_PREFERENCES.uiMode),
+    }
+  } catch {
+    return {
+      ...DEFAULT_PREFERENCES,
+      uiMode: getVisualUiOverride() || DEFAULT_PREFERENCES.uiMode,
+    }
+  }
+}
+
+function mergeStoredPreferences(patch: StoredPreferences) {
+  try {
+    const current = readStoredPreferences()
+    localStorage.setItem('sh-prefs', JSON.stringify({ ...current, ...patch }))
+  } catch {
+    // Preferences are optional when browser storage is unavailable.
+  }
+}
+
+function UiModeSwitcher({ uiMode, setUiMode }: Pick<ThemeState, 'uiMode' | 'setUiMode'>) {
+  const nextMode: UiMode = uiMode === 'classic' ? 'luminous' : 'classic'
+  const actionLabel = uiMode === 'classic' ? '试用 Luminous UI' : '返回经典 UI'
+
+  return (
+    <div className="ui-mode-switcher" data-ui-mode={uiMode} role="group" aria-label="界面版本切换">
+      <span className="ui-mode-switcher-label">{uiMode === 'classic' ? '经典' : 'Luminous'}</span>
+      <button
+        type="button"
+        className="active"
+        aria-label={actionLabel}
+        title={actionLabel}
+        onClick={() => setUiMode(nextMode)}
+      >
+        <span className="ui-mode-spark" aria-hidden="true">{uiMode === 'classic' ? '✦' : '↺'}</span>
+      </button>
+    </div>
+  )
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>(loadMode)
-  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(getSystemTheme)
+  const [initialPreferences] = useState(readStoredPreferences)
+  const [mode, setModeState] = useState<ThemeMode>(initialPreferences.mode)
+  const [uiMode, setUiModeState] = useState<UiMode>(initialPreferences.uiMode)
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme)
 
   const resolved = mode === 'system' ? systemTheme : mode
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => setSystemTheme(e.matches ? 'dark' : 'light')
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (event: MediaQueryListEvent) => setSystemTheme(event.matches ? 'dark' : 'light')
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', resolved)
-  }, [resolved])
+    document.documentElement.setAttribute('data-ui', uiMode)
+  }, [resolved, uiMode])
 
-  const setMode = (m: ThemeMode) => {
-    setModeState(m)
-    saveMode(m)
+  const setMode = (nextMode: ThemeMode) => {
+    setModeState(nextMode)
+    mergeStoredPreferences({ mode: nextMode })
+  }
+
+  const setUiMode = (nextUiMode: UiMode) => {
+    setUiModeState(nextUiMode)
+    mergeStoredPreferences({ uiMode: nextUiMode })
   }
 
   return (
-    <ThemeContext.Provider value={{ mode, resolved, setMode }}>
+    <ThemeContext.Provider value={{ mode, resolved, uiMode, setMode, setUiMode }}>
       {children}
+      <UiModeSwitcher uiMode={uiMode} setUiMode={setUiMode} />
     </ThemeContext.Provider>
   )
 }
