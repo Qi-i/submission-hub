@@ -65,25 +65,29 @@ html[data-ui='luminous-x'] .lx-status-count {
   border-radius: 0 17px 17px 0 !important;
 }
 
-/* All submission summary units stay in one row on desktop. */
+/* All submission summary units stay in one row on desktop, online and offline. */
 @media (min-width: 1221px) {
-  html[data-ui='luminous-x'] .dashboard-metrics {
+  html[data-ui='luminous-x'] .dashboard-metrics,
+  html[data-ui='luminous-x'] .stats-bar {
     grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
     gap: 8px !important;
   }
 
-  html[data-ui='luminous-x'] .dashboard-metrics .metric-card {
+  html[data-ui='luminous-x'] .dashboard-metrics .metric-card,
+  html[data-ui='luminous-x'] .stats-bar .stat-card {
     min-height: 68px !important;
     padding: 9px 8px !important;
   }
 
-  html[data-ui='luminous-x'] .dashboard-metrics .metric-icon {
+  html[data-ui='luminous-x'] .dashboard-metrics .metric-icon,
+  html[data-ui='luminous-x'] .stats-bar .stat-value {
     width: 30px !important;
     min-width: 30px !important;
     height: 30px !important;
   }
 
-  html[data-ui='luminous-x'] .dashboard-metrics .metric-value {
+  html[data-ui='luminous-x'] .dashboard-metrics .metric-value,
+  html[data-ui='luminous-x'] .stats-bar .stat-value {
     font-size: 18px !important;
   }
 
@@ -129,13 +133,16 @@ html[data-ui='luminous-x'] .lx-board-column {
     position: absolute !important;
     z-index: 40 !important;
     top: 35px !important;
-    right: 112px !important;
+    right: 124px !important;
     width: max-content !important;
-    max-width: calc(100vw - var(--lx-sidebar) - 430px) !important;
+    max-width: calc(100vw - var(--lx-sidebar) - 442px) !important;
+    height: 38px !important;
     min-height: 38px !important;
+    max-height: 38px !important;
     margin: 0 !important;
     padding: 0 !important;
     display: flex !important;
+    flex: 0 0 38px !important;
     align-items: center !important;
     justify-content: flex-end !important;
     gap: 6px !important;
@@ -151,7 +158,10 @@ html[data-ui='luminous-x'] .lx-board-column {
   html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls button,
   html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav button {
     flex: 0 0 auto !important;
+    align-self: center !important;
+    height: 36px !important;
     min-height: 36px !important;
+    max-height: 36px !important;
     padding: 0 11px !important;
     border: 1px solid var(--lx-line) !important;
     border-radius: 10px !important;
