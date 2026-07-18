@@ -1,0 +1,147 @@
+/* Luminous X geometry safeguards loaded after the main style system. */
+
+@media (min-width: 861px) {
+  html[data-ui="luminous-x"] .app-layout > .tab-bar {
+    position: fixed !important;
+    z-index: 720 !important;
+    left: 30px !important;
+    right: auto !important;
+    top: 128px !important;
+    width: calc(var(--lx-sidebar) - 28px) !important;
+    max-width: calc(var(--lx-sidebar) - 28px) !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html[data-ui="luminous-x"] .app-layout > .tab-bar .tab-btn {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui="luminous-x"] .app-header .header-left-cluster,
+  html[data-ui="luminous-x"] .app-header .header-tabs {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    contain: inline-size;
+  }
+
+  html[data-ui="luminous-x"] .app-header .header-tabs button {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+html[data-ui="luminous-x"] .preparation-suite {
+  min-width: 0;
+  max-width: calc(100% - 40px);
+  overflow-x: clip;
+}
+
+html[data-ui="luminous-x"] .preparation-suite > .preparation-workspace,
+html[data-ui="luminous-x"] .preparation-suite .preparation-workspace {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  overflow-x: clip;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace[data-section="overview"] {
+  grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr) !important;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace .prep-overview-grid,
+html[data-ui="luminous-x"] .preparation-workspace .prep-productivity,
+html[data-ui="luminous-x"] .preparation-workspace .prep-productivity-grid,
+html[data-ui="luminous-x"] .preparation-workspace .prep-reorder-module,
+html[data-ui="luminous-x"] .preparation-workspace .prep-panel,
+html[data-ui="luminous-x"] .preparation-workspace .prep-topic-overview,
+html[data-ui="luminous-x"] .preparation-workspace .prep-productivity-host,
+html[data-ui="luminous-x"] .preparation-workspace .prep-overview-journal-list,
+html[data-ui="luminous-x"] .preparation-workspace .prep-topic-strip {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace .prep-overview-grid {
+  width: auto !important;
+  max-width: none !important;
+  grid-column: 1 / -1 !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace .prep-panel-draft,
+html[data-ui="luminous-x"] .preparation-workspace .prep-panel-journal,
+html[data-ui="luminous-x"] .preparation-workspace .prep-topic-overview {
+  width: auto !important;
+  max-width: none !important;
+  justify-self: stretch !important;
+  overflow: hidden;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace .prep-overview-journal-list,
+html[data-ui="luminous-x"] .preparation-workspace .prep-topic-strip {
+  width: 100% !important;
+  overflow: hidden;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace .prep-topic-strip {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace .prep-productivity-grid {
+  width: 100% !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+html[data-ui="luminous-x"] .preparation-workspace .prep-productivity,
+html[data-ui="luminous-x"] .preparation-workspace .prep-reorder-module {
+  width: 100% !important;
+}
+
+@media (max-width: 860px) {
+  html[data-ui="luminous-x"] .preparation-suite {
+    max-width: calc(100% - 24px);
+  }
+
+  html[data-ui="luminous-x"] .preparation-workspace[data-section="overview"] {
+    display: block !important;
+  }
+}
+
+@media (max-width: 720px) {
+  html[data-ui="luminous-x"] .preparation-workspace .prep-overview-grid,
+  html[data-ui="luminous-x"] .preparation-workspace .prep-productivity-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

@@ -102,6 +102,20 @@ jobs:
         run: |
           set -euxo pipefail
           node tests/visual/luminous-layout-check.mjs | tee /tmp/luminous-layout-check.log
+      - name: Capture Luminous X pages
+        run: |
+          set -euxo pipefail
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous-x" visual-review/luminous-x-dashboard-light-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=dark&ui=luminous-x" visual-review/luminous-x-dashboard-dark-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light&ui=luminous-x" visual-review/luminous-x-preparation-light-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .stats-panel" "http://127.0.0.1:4174/tests/visual/index.html?view=stats&theme=light&ui=luminous-x" visual-review/luminous-x-statistics-light-desktop.png
+          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="390,844" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous-x" visual-review/luminous-x-dashboard-light-mobile.png
+          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-ui='luminous-x'][data-modal-scroll-ready='true'] .compact-form-footer" "http://127.0.0.1:4174/tests/visual/index.html?view=editor&theme=light&ui=luminous-x" visual-review/luminous-x-editor-bottom-light-desktop.png
+      - name: Verify Luminous X structure and fallback
+        run: |
+          set -euxo pipefail
+          node tests/visual/luminous-x-layout-check.mjs | tee /tmp/luminous-x-layout-check.log
+          node tests/visual/luminous-x-offline-nav-check.mjs | tee /tmp/luminous-x-offline-nav-check.log
       - name: Upload screenshots and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -112,5 +126,7 @@ jobs:
             /tmp/submission-hub-visual.log
             /tmp/layout-check.log
             /tmp/luminous-layout-check.log
+            /tmp/luminous-x-layout-check.log
+            /tmp/luminous-x-offline-nav-check.log
           if-no-files-found: warn
           retention-days: 14

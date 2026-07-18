@@ -15,6 +15,7 @@ import MetricCard from './MetricCard'
 import ActionCenter from './ActionCenter'
 import OnlinePreparationWorkspace from './OnlinePreparationWorkspace'
 import AccountSettingsModal from './AccountSettingsModal'
+import LuminousXStatusBar from './LuminousXStatusBar'
 import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
@@ -22,6 +23,13 @@ import AdminPanel from './AdminPanel'
 type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'preparation' | 'dashboard' | 'stats' | 'admin'
 type StatusFilter = 'all' | string
+
+const TAB_LABELS: Record<Tab, string> = {
+  preparation: '投稿准备工作区',
+  dashboard: '投稿管理控制台',
+  stats: '个人统计分析舱',
+  admin: '后台管理中心',
+}
 
 const localDateLabel = () => {
   const date = new Date()
@@ -258,6 +266,12 @@ export default function Dashboard() {
           {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
         </div>
       </header>
+
+      <LuminousXStatusBar
+        modeLabel={TAB_LABELS[tab]}
+        recordCount={papers.length}
+        channelLabel={isDemo ? '演示沙盒' : '云端工作区'}
+      />
 
       {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
 
