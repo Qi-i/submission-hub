@@ -90,5 +90,27 @@ jobs:
           else
             result="FAILURE"
           fi
-          body="Pages deployment **${result}**\n\n- SHA: \`${DEPLOYED_SHA:-unknown}\`\n- Build: \`${BUILD_RESULT}\`\n- Deploy and live SHA check: \`${DEPLOY_RESULT}\`\n- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          body="$(cat <<EOF
+          Pages deployment **${result}**
+
+          - SHA: \`${DEPLOYED_SHA:-unknown}\`
+          - Build: \`${BUILD_RESULT}\`
+          - Deploy and live SHA check: \`${DEPLOY_RESULT}\`
+          - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          )"
+
+          issue_body="$(cat <<EOF
+          此议题由 GitHub Pages 发布工作流自动记录部署结果、线上 build SHA 和工作流链接。请勿在此处填写密钥或个人数据。
+
+          ## 最新部署状态
+
+          ${body}
+
+          历史部署结果保留在评论中。
+          EOF
+          )"
+
           gh issue comment 39 --repo "$GITHUB_REPOSITORY" --body "$body"
+          gh issue edit 39 --repo "$GITHUB_REPOSITORY" --body "$issue_body"
