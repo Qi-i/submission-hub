@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
@@ -10,8 +10,8 @@ import PaperCard from './OfflinePaperCard'
 import PaperForm from './OfflinePaperForm'
 import ActionCenter from './ActionCenter'
 import OfflinePreparationWorkspace from './OfflinePreparationWorkspace'
-import LuminousXStatusBar from './LuminousXStatusBar'
-import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb } from 'lucide-react'
+import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
+import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb, Settings, HardDrive } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 
 type ViewFilter = 'all' | 'me' | 'author'
@@ -23,13 +23,19 @@ const TAB_LABELS: Record<Tab, string> = {
   stats: '个人统计分析舱',
 }
 
+const TAB_SUBTITLES: Record<Tab, string> = {
+  preparation: '在本地组织选题、草稿和目标期刊，所有数据仅保存在当前浏览器。',
+  dashboard: '离线集中管理投稿状态、作者、期刊、版本链和备份文件。',
+  stats: '从投稿状态、周期、期刊与作者维度审视本地成果进展。',
+}
+
 const localDateLabel = () => {
   const date = new Date()
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 export default function OfflineDashboard() {
-  const { mode, setMode } = useTheme()
+  const { mode, setMode, uiMode } = useTheme()
   const cycleTheme = () => {
     const next: Record<string, 'light' | 'dark' | 'system'> = { light: 'dark', dark: 'system', system: 'light' }
     setMode(next[mode])
@@ -40,13 +46,17 @@ export default function OfflineDashboard() {
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all')
   const [filterAuthor, setFilterAuthor] = useState('')
   const [showFilterDrop, setShowFilterDrop] = useState(false)
+  const [showTools, setShowTools] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
   const [authorName, setAuthorName] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [authorNameInput, setAuthorNameInput] = useState('')
   const [prepRefresh, setPrepRefresh] = useState(0)
   const [transferring, setTransferring] = useState(false)
+
+  const effectiveLayoutMode = uiMode === 'luminous-x' ? layoutMode : 'workflow'
 
   useEffect(() => {
     setPapers(store.getPapers())
@@ -89,6 +99,14 @@ export default function OfflineDashboard() {
     ...status,
     count: papers.filter(paper => paper.status === status.key).length,
   }))
+  const hasActiveTools = !!search.trim() || viewFilter !== 'all'
+
+  const clearTools = () => {
+    setSearch('')
+    setViewFilter('all')
+    setFilterAuthor('')
+    setShowFilterDrop(false)
+  }
 
   const handleExport = () => {
     if (transferring) return
@@ -108,6 +126,7 @@ export default function OfflineDashboard() {
 
   const handleImport = () => {
     if (transferring) return
+    setShowTools(false)
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.json,application/json'
@@ -152,9 +171,67 @@ export default function OfflineDashboard() {
   }
 
   const filterLabel =
-    viewFilter === 'all' ? '🌎 全部记录' :
-    viewFilter === 'me' ? '🔥 我的' :
-    `👤 ${filterAuthor}`
+    viewFilter === 'all' ? '全部记录' :
+    viewFilter === 'me' ? `我的 (${matchName || '未设置'})` :
+    filterAuthor
+
+  const toolPanel = showTools && tab === 'dashboard' && (
+    <div className="tool-popover header-tool-popover">
+      <div className="search-wrap">
+        <Search size={15} className="search-icon" />
+        <input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或 DOI..." value={search} onChange={event => setSearch(event.target.value)} autoFocus />
+      </div>
+      <div className="dropdown smart-filter-dropdown">
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}><Filter size={13} /> {filterLabel} <ChevronDown size={12} /></button>
+        <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
+          <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>查看全部记录</div>
+          {matchName && <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>仅看我的 ({matchName})</div>}
+          {allAuthors.length > 0 && <><div className="dropdown-sep">指定作者</div>{allAuthors.filter(author => !sameName(author, matchName)).map(author => <div key={author} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === author ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(author); setShowFilterDrop(false) }}>{author}</div>)}</>}
+        </div>
+      </div>
+      {hasActiveTools && <button className="btn btn-ghost btn-sm toolbar-clear" onClick={clearTools}>清除条件</button>}
+    </div>
+  )
+
+  const renderPaperCard = (paper: Paper, index: number) => (
+    <PaperCard key={paper.id} paper={paper} currentUsername="" authorName={authorName} allPapers={papers} index={index} onClick={() => setEditing(paper)} />
+  )
+
+  const journalGroups = useMemo(() => {
+    const groups = new Map<string, Paper[]>()
+    filtered.forEach(paper => {
+      const key = paper.journal?.trim() || '未指定期刊'
+      groups.set(key, [...(groups.get(key) || []), paper])
+    })
+    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right))
+  }, [filtered])
+
+  const paperCollection = filtered.length === 0 ? (
+    <div className="paper-grid"><div className="empty-state"><div className="empty-icon">📑</div><div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div><div className="empty-sub">{papers.length === 0 && '点击「新建投稿」开始记录，或导入备份文件'}</div></div></div>
+  ) : effectiveLayoutMode === 'board' ? (
+    <div className="lx-board-view">
+      {STATUSES.map(status => {
+        const items = filtered.filter(paper => paper.status === status.key)
+        return (
+          <section className="lx-board-column" key={status.key} style={{ ['--lx-column-accent' as any]: status.color }}>
+            <header><span>{status.emoji} {status.label}</span><b>{items.length}</b></header>
+            <div className="lx-board-stack">{items.length ? items.map((paper, index) => renderPaperCard(paper, index)) : <div className="lx-column-empty">暂无记录</div>}</div>
+          </section>
+        )
+      })}
+    </div>
+  ) : effectiveLayoutMode === 'journal' ? (
+    <div className="lx-journal-view">
+      {journalGroups.map(([journal, items]) => (
+        <section className="lx-journal-group" key={journal}>
+          <header><div><small>JOURNAL GROUP</small><h2>{journal}</h2></div><b>{items.length} 篇</b></header>
+          <div className="paper-grid lx-journal-group-grid">{items.map((paper, index) => renderPaperCard(paper, index))}</div>
+        </section>
+      ))}
+    </div>
+  ) : (
+    <div className="paper-grid lx-workflow-view">{filtered.map((paper, index) => renderPaperCard(paper, index))}</div>
+  )
 
   return (
     <div className="app-layout">
@@ -167,28 +244,33 @@ export default function OfflineDashboard() {
           </div>
         </div>
         <div className="header-actions">
-          <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>
-            {mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入新旧版本完整备份"><Upload size={14} /> 导入</button>
-          <button className="btn btn-ghost btn-sm" onClick={handleExport} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>
-          {tab === 'dashboard' && <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}><Plus size={14} /> 新建投稿</button>}
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setAuthorNameInput(authorName); setShowSettings(true) }} title="设置署名"><FileText size={15} /></button>
+          <div className="header-utility-stack">
+            {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
+            <div className="header-utility-grid">
+              <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
+              <button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入新旧版本完整备份"><Upload size={14} /> 导入</button>
+              <button className="btn btn-ghost btn-sm" onClick={handleExport} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setAuthorNameInput(authorName); setShowSettings(true) }} title="设置署名"><Settings size={15} /></button>
+            </div>
+            {tab === 'dashboard' && <button className="btn btn-primary btn-sm lx-new-paper" onClick={() => setEditing('new')}><Plus size={14} /> 新建投稿</button>}
+            <div className="header-user offline-user"><HardDrive size={15} /><span>{authorName || '本地工作区'}</span></div>
+          </div>
         </div>
       </header>
 
       <div className="tab-bar">
-        <button className={`tab-btn ${tab === 'preparation' ? 'active' : ''}`} onClick={() => setTab('preparation')}><Lightbulb size={14} /> 投稿准备</button>
+        <button className={`tab-btn ${tab === 'preparation' ? 'active' : ''}`} onClick={() => { setTab('preparation'); setShowTools(false) }}><Lightbulb size={14} /> 投稿准备</button>
         <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}><FileText size={14} /> 投稿管理</button>
-        <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}><BarChart3 size={14} /> 个人统计</button>
+        <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => { setTab('stats'); setShowTools(false) }}><BarChart3 size={14} /> 个人统计</button>
       </div>
 
-      <LuminousXStatusBar
+      {uiMode === 'luminous-x' && <LuminousXStatusBar
         modeLabel={TAB_LABELS[tab]}
+        subtitle={TAB_SUBTITLES[tab]}
         recordCount={papers.length}
-        channelLabel="本地工作区"
-        offline
-      />
+        layoutMode={layoutMode}
+        onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
+      />}
 
       {tab === 'preparation' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} onPaperCreated={refreshPapers} />}
 
@@ -209,40 +291,23 @@ export default function OfflineDashboard() {
 
           <ActionCenter papers={papers} onOpen={paper => setEditing(paper)} />
 
-          <div className="toolbar">
+          <div className="toolbar offline-main-toolbar">
             <div className="search-wrap">
               <Search size={15} className="search-icon" />
               <input className="search-input" placeholder="搜索标题、期刊、作者、稿件编号或 DOI..." value={search} onChange={event => setSearch(event.target.value)} />
             </div>
-
             <div className="dropdown" style={{ zIndex: 50 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}>
-                <Filter size={13} /> {filterLabel} <ChevronDown size={12} />
-              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowFilterDrop(!showFilterDrop)} style={{ gap: 6 }}><Filter size={13} /> {filterLabel} <ChevronDown size={12} /></button>
               <div className="dropdown-menu" style={{ display: showFilterDrop ? 'flex' : 'none' }}>
-                <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>🌎 查看全部记录</div>
-                {matchName && <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>🔥 仅看我的 ({matchName})</div>}
-                {allAuthors.length > 0 && <>
-                  <div className="dropdown-sep">指定作者</div>
-                  {allAuthors.filter(author => !sameName(author, matchName)).map(author => <div key={author} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === author ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(author); setShowFilterDrop(false) }}>👤 {author}</div>)}
-                </>}
+                <div className={`dropdown-item ${viewFilter === 'all' ? 'active' : ''}`} onClick={() => { setViewFilter('all'); setShowFilterDrop(false) }}>查看全部记录</div>
+                {matchName && <div className={`dropdown-item ${viewFilter === 'me' ? 'active' : ''}`} onClick={() => { setViewFilter('me'); setShowFilterDrop(false) }}>仅看我的 ({matchName})</div>}
+                {allAuthors.length > 0 && <><div className="dropdown-sep">指定作者</div>{allAuthors.filter(author => !sameName(author, matchName)).map(author => <div key={author} className={`dropdown-item ${viewFilter === 'author' && filterAuthor === author ? 'active' : ''}`} onClick={() => { setViewFilter('author'); setFilterAuthor(author); setShowFilterDrop(false) }}>{author}</div>)}</>}
               </div>
             </div>
-
             <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>共 {filtered.length} 篇记录</span>
           </div>
 
-          <div className="paper-grid">
-            {filtered.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">📑</div>
-                <div className="empty-text">{papers.length === 0 ? '还没有投稿记录' : '没有符合条件的记录'}</div>
-                <div className="empty-sub">{papers.length === 0 && '点击右上角「新建投稿」开始记录，或导入备份文件'}</div>
-              </div>
-            ) : filtered.map((paper, index) => (
-              <PaperCard key={paper.id} paper={paper} currentUsername="" authorName={authorName} allPapers={papers} index={index} onClick={() => setEditing(paper)} />
-            ))}
-          </div>
+          {paperCollection}
         </>
       )}
 
