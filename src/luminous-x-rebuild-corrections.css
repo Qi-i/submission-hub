@@ -49,13 +49,13 @@ html[data-ui='luminous-x'] .lx-status-controls-host {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  overflow: visible;
+  overflow: hidden;
 }
 
 html[data-ui='luminous-x'] .lx-status-count {
   align-self: stretch !important;
   min-height: 76px !important;
-  margin: -12px 0 -12px 0 !important;
+  margin: -12px 0 !important;
   display: flex !important;
   flex-direction: column;
   align-items: center;
@@ -63,6 +63,68 @@ html[data-ui='luminous-x'] .lx-status-count {
   border: 0 !important;
   border-left: 1px solid var(--lx-line) !important;
   border-radius: 0 17px 17px 0 !important;
+}
+
+/* Real page controls are mirrored in the top bar; the original controls remain functional but hidden. */
+html[data-ui='luminous-x'] .preparation-workspace > .prep-nav,
+html[data-ui='luminous-x'] .stats-panel > .stats-module-controls {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls {
+  width: max-content !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 5px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  border: 1px solid var(--lx-line) !important;
+  border-radius: 12px !important;
+  background: var(--lx-surface-soft) !important;
+  box-shadow: none !important;
+  scrollbar-width: thin;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  font: inherit !important;
+  font-size: 10px !important;
+  font-weight: 730 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  cursor: pointer;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button:hover {
+  border-color: var(--lx-line) !important;
+  background: var(--lx-surface) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button.active {
+  border-color: rgba(60, 245, 255, .52) !important;
+  background: var(--lx-nav-active) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--lx-focus) !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button.lx-control-reset {
+  color: var(--text-muted) !important;
 }
 
 /* All submission summary units stay in one row on desktop, online and offline. */
@@ -114,93 +176,132 @@ html[data-ui='luminous-x'] .lx-board-column {
   min-width: 0 !important;
 }
 
+/* Journal groups use content-height cards; one manuscript expands instead of leaving a dead half-column. */
+html[data-ui='luminous-x'] .lx-journal-view {
+  align-items: start !important;
+}
+
+html[data-ui='luminous-x'] .lx-journal-group {
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: start !important;
+}
+
+html[data-ui='luminous-x'] .lx-journal-group-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)) !important;
+  grid-auto-rows: max-content !important;
+  align-items: start !important;
+  align-content: start !important;
+  gap: 12px !important;
+}
+
+html[data-ui='luminous-x'] .lx-journal-group-grid .paper-card-v3 {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  align-self: start !important;
+}
+
+html[data-ui='luminous-x'] .lx-journal-group-grid .paper-card-footer {
+  margin-top: 12px !important;
+}
+
+/* Preparation overview is a vertical workflow, not two equal-height columns. */
+html[data-ui='luminous-x'] .preparation-workspace[data-section='overview'] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 14px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace[data-section='overview'] > :not(.prep-topbar):not(.prep-nav) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  align-self: stretch !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-dashboard,
+html[data-ui='luminous-x'] .preparation-workspace .prep-dashboard-grid,
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-grid,
+html[data-ui='luminous-x'] .preparation-workspace .prep-productivity-host,
+html[data-ui='luminous-x'] .preparation-workspace .prep-reorder-module,
+html[data-ui='luminous-x'] .preparation-workspace .prep-productivity,
+html[data-ui='luminous-x'] .preparation-workspace .prep-topic-overview {
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: stretch !important;
+  align-content: start !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-dashboard-grid,
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-grid,
+html[data-ui='luminous-x'] .preparation-workspace .prep-productivity-grid {
+  align-items: start !important;
+  grid-auto-rows: max-content !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-productivity-card,
+html[data-ui='luminous-x'] .preparation-workspace .prep-panel,
+html[data-ui='luminous-x'] .preparation-workspace .prep-dashboard-score-card,
+html[data-ui='luminous-x'] .preparation-workspace .prep-dashboard-attention-card,
+html[data-ui='luminous-x'] .preparation-workspace .prep-dashboard-next-card {
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: start !important;
+}
+
+/* Search and creation actions become a compact toolbar instead of another full-width empty panel. */
+html[data-ui='luminous-x'] .preparation-workspace .prep-heading {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-topbar {
+  width: max-content !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 0 2px auto !important;
+  padding: 0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-top-actions {
+  width: auto !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 7px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-search {
+  width: min(300px, 34vw) !important;
+  min-width: 220px !important;
+  background: var(--lx-surface) !important;
+}
+
 @media (min-width: 981px) and (max-width: 1499px) {
   html[data-ui='luminous-x'] .lx-board-view {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
 
-/* Move preparation navigation and statistics module switches into the top control row. */
-@media (min-width: 981px) {
-  html[data-ui='luminous-x'] .stats-panel,
-  html[data-ui='luminous-x'] .preparation-suite,
-  html[data-ui='luminous-x'] .preparation-workspace {
-    position: static !important;
-  }
-
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls,
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav {
-    position: absolute !important;
-    z-index: 40 !important;
-    top: 35px !important;
-    right: 124px !important;
-    width: max-content !important;
-    max-width: calc(100vw - var(--lx-sidebar) - 442px) !important;
-    height: 38px !important;
-    min-height: 38px !important;
-    max-height: 38px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    display: flex !important;
-    flex: 0 0 38px !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 6px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    scrollbar-width: thin;
-  }
-
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls button,
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav button {
-    flex: 0 0 auto !important;
-    align-self: center !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    max-height: 36px !important;
-    padding: 0 11px !important;
-    border: 1px solid var(--lx-line) !important;
-    border-radius: 10px !important;
-    background: var(--lx-surface-soft) !important;
-    color: var(--text-secondary) !important;
-    box-shadow: none !important;
-    white-space: nowrap !important;
-  }
-
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls button.active,
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav button.active {
-    border-color: rgba(60, 245, 255, .52) !important;
-    background: var(--lx-nav-active) !important;
-    color: var(--text-primary) !important;
-    box-shadow: var(--lx-focus) !important;
-  }
-
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-heading {
-    display: none !important;
-  }
-
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-topbar {
-    min-height: 0 !important;
-    padding: 10px 12px !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-  }
-
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-top-actions {
-    width: 100% !important;
-    justify-content: flex-end !important;
-  }
-}
-
 @media (max-width: 1220px) and (min-width: 981px) {
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='stats'] ~ .stats-panel .stats-module-controls,
-  html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] ~ .preparation-suite .prep-nav {
-    right: 16px !important;
-    max-width: calc(100vw - var(--lx-sidebar) - 350px) !important;
+  html[data-ui='luminous-x'] .lx-status-bar {
+    grid-template-columns: minmax(230px, .8fr) minmax(0, 1.4fr) 88px !important;
   }
 }
 
@@ -215,15 +316,37 @@ html[data-ui='luminous-x'] .lx-board-column {
 
   html[data-ui='luminous-x'] .lx-status-controls-host {
     width: 100%;
+    justify-content: flex-start;
+  }
+
+  html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls {
+    width: 100% !important;
+    justify-content: flex-start !important;
   }
 
   html[data-ui='luminous-x'] .lx-board-view {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+
+  html[data-ui='luminous-x'] .preparation-workspace .prep-topbar,
+  html[data-ui='luminous-x'] .preparation-workspace .prep-top-actions {
+    width: 100% !important;
+  }
+
+  html[data-ui='luminous-x'] .preparation-workspace .prep-top-actions {
+    flex-wrap: wrap !important;
+  }
+
+  html[data-ui='luminous-x'] .preparation-workspace .prep-search {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
 }
 
 @media (max-width: 680px) {
-  html[data-ui='luminous-x'] .lx-board-view {
+  html[data-ui='luminous-x'] .lx-board-view,
+  html[data-ui='luminous-x'] .lx-journal-group-grid {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
