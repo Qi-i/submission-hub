@@ -10,11 +10,18 @@ import PaperCard from './OfflinePaperCard'
 import PaperForm from './OfflinePaperForm'
 import ActionCenter from './ActionCenter'
 import OfflinePreparationWorkspace from './OfflinePreparationWorkspace'
+import LuminousXStatusBar from './LuminousXStatusBar'
 import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 
 type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'preparation' | 'dashboard' | 'stats'
+
+const TAB_LABELS: Record<Tab, string> = {
+  preparation: '投稿准备工作区',
+  dashboard: '投稿管理控制台',
+  stats: '个人统计分析舱',
+}
 
 const localDateLabel = () => {
   const date = new Date()
@@ -175,6 +182,13 @@ export default function OfflineDashboard() {
         <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}><FileText size={14} /> 投稿管理</button>
         <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}><BarChart3 size={14} /> 个人统计</button>
       </div>
+
+      <LuminousXStatusBar
+        modeLabel={TAB_LABELS[tab]}
+        recordCount={papers.length}
+        channelLabel="本地工作区"
+        offline
+      />
 
       {tab === 'preparation' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} onPaperCreated={refreshPapers} />}
 
