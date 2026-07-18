@@ -76,25 +76,20 @@ function mergeStoredPreferences(patch: StoredPreferences) {
 }
 
 function UiModeSwitcher({ uiMode, setUiMode }: Pick<ThemeState, 'uiMode' | 'setUiMode'>) {
+  const nextMode: UiMode = uiMode === 'classic' ? 'luminous' : 'classic'
+  const actionLabel = uiMode === 'classic' ? '试用 Luminous UI' : '返回经典 UI'
+
   return (
-    <div className="ui-mode-switcher" role="group" aria-label="界面版本切换">
-      <span className="ui-mode-switcher-label">界面</span>
+    <div className="ui-mode-switcher" data-ui-mode={uiMode} role="group" aria-label="界面版本切换">
+      <span className="ui-mode-switcher-label">{uiMode === 'classic' ? '经典' : 'Luminous'}</span>
       <button
         type="button"
-        className={uiMode === 'classic' ? 'active' : ''}
-        aria-pressed={uiMode === 'classic'}
-        onClick={() => setUiMode('classic')}
+        className="active"
+        aria-label={actionLabel}
+        title={actionLabel}
+        onClick={() => setUiMode(nextMode)}
       >
-        经典
-      </button>
-      <button
-        type="button"
-        className={uiMode === 'luminous' ? 'active' : ''}
-        aria-pressed={uiMode === 'luminous'}
-        onClick={() => setUiMode('luminous')}
-      >
-        <span className="ui-mode-spark" aria-hidden="true">✦</span>
-        Luminous
+        <span className="ui-mode-spark" aria-hidden="true">{uiMode === 'classic' ? '✦' : '↺'}</span>
       </button>
     </div>
   )
