@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
-export type UiMode = 'classic' | 'luminous'
+export type UiMode = 'classic' | 'luminous' | 'luminous-x'
 
 type ResolvedTheme = 'light' | 'dark'
 
@@ -23,6 +23,14 @@ const DEFAULT_PREFERENCES: Required<StoredPreferences> = {
   uiMode: 'classic',
 }
 
+const UI_SEQUENCE: UiMode[] = ['classic', 'luminous', 'luminous-x']
+
+const UI_META: Record<UiMode, { label: string; nextLabel: string; icon: string }> = {
+  classic: { label: '经典', nextLabel: '切换到 Luminous UI', icon: '✦' },
+  luminous: { label: 'Luminous', nextLabel: '切换到 Luminous X', icon: '◆' },
+  'luminous-x': { label: 'Luminous X', nextLabel: '返回经典 UI', icon: '↺' },
+}
+
 const ThemeContext = createContext<ThemeState>({
   mode: DEFAULT_PREFERENCES.mode,
   resolved: 'light',
@@ -36,7 +44,7 @@ function isThemeMode(value: unknown): value is ThemeMode {
 }
 
 function isUiMode(value: unknown): value is UiMode {
-  return value === 'classic' || value === 'luminous'
+  return value === 'classic' || value === 'luminous' || value === 'luminous-x'
 }
 
 function getSystemTheme(): ResolvedTheme {
@@ -76,20 +84,21 @@ function mergeStoredPreferences(patch: StoredPreferences) {
 }
 
 function UiModeSwitcher({ uiMode, setUiMode }: Pick<ThemeState, 'uiMode' | 'setUiMode'>) {
-  const nextMode: UiMode = uiMode === 'classic' ? 'luminous' : 'classic'
-  const actionLabel = uiMode === 'classic' ? '试用 Luminous UI' : '返回经典 UI'
+  const currentIndex = UI_SEQUENCE.indexOf(uiMode)
+  const nextMode = UI_SEQUENCE[(currentIndex + 1) % UI_SEQUENCE.length]
+  const meta = UI_META[uiMode]
 
   return (
     <div className="ui-mode-switcher" data-ui-mode={uiMode} role="group" aria-label="界面版本切换">
-      <span className="ui-mode-switcher-label">{uiMode === 'classic' ? '经典' : 'Luminous'}</span>
+      <span className="ui-mode-switcher-label">{meta.label}</span>
       <button
         type="button"
         className="active"
-        aria-label={actionLabel}
-        title={actionLabel}
+        aria-label={meta.nextLabel}
+        title={meta.nextLabel}
         onClick={() => setUiMode(nextMode)}
       >
-        <span className="ui-mode-spark" aria-hidden="true">{uiMode === 'classic' ? '✦' : '↺'}</span>
+        <span className="ui-mode-spark" aria-hidden="true">{meta.icon}</span>
       </button>
     </div>
   )
