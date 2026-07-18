@@ -21,12 +21,35 @@ async function inspectDesktop(page, name) {
     const app = document.querySelector('.app-layout')
     const header = document.querySelector('.app-header')
     const status = document.querySelector('.lx-status-bar')
+    const utility = document.querySelector('.header-utility-stack')
+    const viewSwitch = document.querySelector('.lx-view-switch')
     const switcher = document.querySelector('.ui-mode-switcher')
     const metrics = document.querySelector('.dashboard-metrics, .stats-bar')
     const grid = document.querySelector('.paper-grid')
+    const paperCard = document.querySelector('.paper-card-v3')
+    const paperTitle = paperCard?.querySelector('.card-title')
     const panels = Array.from(document.querySelectorAll('.paper-card-v3, .metric-card, .stat-card, .prep-panel, .stats-panel, .modal'))
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
+
+    const parseRgb = value => {
+      const match = value.match(/rgba?\(([^)]+)\)/)
+      if (!match) return null
+      const parts = match[1].split(',').map(part => Number.parseFloat(part.trim()))
+      return { r: parts[0], g: parts[1], b: parts[2], a: parts[3] ?? 1 }
+    }
+    const luminance = color => {
+      const channels = [color.r, color.g, color.b].map(value => {
+        const channel = value / 255
+        return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+      })
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+    }
+    const contrast = (left, right) => {
+      const a = luminance(left)
+      const b = luminance(right)
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+    }
 
     if (root.dataset.ui !== 'luminous-x') failures.push(`${name}: Luminous X mode is not active`)
     if (rootStyle.getPropertyValue('--lx-cyan').trim().toLowerCase() !== '#3cf5ff') failures.push(`${name}: cyan token is incorrect`)
@@ -34,7 +57,7 @@ async function inspectDesktop(page, name) {
     if (rootStyle.getPropertyValue('--lx-purple').trim().toLowerCase() !== '#8b5cf6') failures.push(`${name}: purple token is incorrect`)
     if (document.documentElement.scrollWidth > viewportWidth + 2) failures.push(`${name}: horizontal overflow exists`)
 
-    if (!app || !header || !status || !switcher) {
+    if (!app || !header || !status || !utility || !switcher) {
       failures.push(`${name}: core Luminous X shell is incomplete`)
       return { failures, details: {} }
     }
@@ -42,42 +65,58 @@ async function inspectDesktop(page, name) {
     const appStyle = getComputedStyle(app)
     const headerStyle = getComputedStyle(header)
     const headerRect = header.getBoundingClientRect()
+    const utilityRect = utility.getBoundingClientRect()
     const statusRect = status.getBoundingClientRect()
     const switcherRect = switcher.getBoundingClientRect()
     const currentLabel = switcher.querySelector('.ui-mode-switcher-label')?.textContent || ''
     const actionLabel = switcher.querySelector('button')?.getAttribute('aria-label') || ''
 
     if (headerStyle.position !== 'fixed') failures.push(`${name}: desktop control rail is not fixed`)
-    if (headerRect.width < 190 || headerRect.width > 285) failures.push(`${name}: control rail width is not sidebar-like`)
+    if (headerRect.width < 190 || headerRect.width > 260) failures.push(`${name}: control rail width is not compact`)
     if (headerRect.height < viewportHeight - 80) failures.push(`${name}: control rail does not span the desktop stage`)
     if (Number.parseFloat(appStyle.paddingLeft) < 220) failures.push(`${name}: content is not offset from the control rail`)
-    if (statusRect.left <= headerRect.right + 8) failures.push(`${name}: workspace status bar overlaps the control rail`)
-    if (statusRect.right > viewportWidth + 2) failures.push(`${name}: workspace status bar escapes the viewport`)
+    if (utilityRect.left < headerRect.left - 1 || utilityRect.right > headerRect.right + 1) failures.push(`${name}: utility block escapes the sidebar`)
+    if (utilityRect.bottom > headerRect.bottom + 1) failures.push(`${name}: utility block exceeds the sidebar height`)
+    if (statusRect.left <= headerRect.right + 8) failures.push(`${name}: top control bar overlaps the sidebar`)
+    if (statusRect.right > viewportWidth + 2) failures.push(`${name}: top control bar escapes the viewport`)
+    if (statusRect.height > 98) failures.push(`${name}: top control bar is too tall and recreates the empty band`)
     if (currentLabel !== 'Luminous X' || !actionLabel.includes('经典')) failures.push(`${name}: UI switcher does not expose Luminous X and classic fallback`)
     if (switcherRect.right > viewportWidth + 1 || switcherRect.bottom > viewportHeight + 1) failures.push(`${name}: UI switcher escapes the viewport`)
 
+    if (name.includes('dashboard')) {
+      if (!viewSwitch || viewSwitch.querySelectorAll('button').length !== 3) failures.push(`${name}: three functional view controls are missing`)
+    }
+
     if (metrics) {
       const columns = getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length
-      if (columns < 2 || columns > 4) failures.push(`${name}: metric console does not use the intended two-row grid`)
+      if (columns !== 4) failures.push(`${name}: metric console should use four columns on desktop`)
     }
 
     if (grid) {
       const gridRect = grid.getBoundingClientRect()
-      if (Math.abs(gridRect.left - statusRect.left) > 4) failures.push(`${name}: paper grid and status bar are not aligned`)
-      if (Math.abs(gridRect.right - statusRect.right) > 4) failures.push(`${name}: paper grid and status bar widths differ`)
+      if (Math.abs(gridRect.left - statusRect.left) > 4) failures.push(`${name}: paper grid and top control bar are not aligned`)
+      if (Math.abs(gridRect.right - statusRect.right) > 4) failures.push(`${name}: paper grid and top control bar widths differ`)
+    }
+
+    let cardBackground = null
+    let titleColor = null
+    let titleContrast = null
+    if (paperCard && paperTitle) {
+      const cardStyle = getComputedStyle(paperCard)
+      const titleStyle = getComputedStyle(paperTitle)
+      cardBackground = parseRgb(cardStyle.backgroundColor)
+      titleColor = parseRgb(titleStyle.color)
+      if (cardBackground?.a < 0.98) failures.push(`${name}: paper card still uses a translucent gray surface`)
+      if (cardBackground && titleColor) {
+        titleContrast = contrast(cardBackground, titleColor)
+        if (titleContrast < 7) failures.push(`${name}: paper title contrast is below the high-readability target`)
+      }
     }
 
     const panelGeometry = panels.map((panel, index) => {
       const rect = panel.getBoundingClientRect()
       if (rect.left < -2 || rect.right > viewportWidth + 2) failures.push(`${name}: panel ${index + 1} escapes the viewport`)
-      return {
-        index: index + 1,
-        className: panel.className,
-        rect: rect.toJSON(),
-        width: getComputedStyle(panel).width,
-        minWidth: getComputedStyle(panel).minWidth,
-        maxWidth: getComputedStyle(panel).maxWidth,
-      }
+      return { index: index + 1, className: panel.className, rect: rect.toJSON() }
     })
 
     return {
@@ -85,10 +124,14 @@ async function inspectDesktop(page, name) {
       details: {
         theme: root.dataset.theme,
         header: headerRect.toJSON(),
+        utility: utilityRect.toJSON(),
         status: statusRect.toJSON(),
         paddingLeft: appStyle.paddingLeft,
         panelCount: panels.length,
         panels: panelGeometry,
+        cardBackground,
+        titleColor,
+        titleContrast,
         background: getComputedStyle(document.body).backgroundImage,
       },
     }
@@ -117,17 +160,13 @@ async function inspectMobile(page, name) {
     const headerStyle = getComputedStyle(header)
 
     if (headerStyle.position !== 'sticky') failures.push(`${name}: mobile header is not sticky`)
-    if (headerRect.width < viewportWidth - 4) failures.push(`${name}: mobile header does not span the viewport`)
-    if (statusRect.left < 8 || statusRect.right > viewportWidth - 8) failures.push(`${name}: mobile status bar has unsafe gutters`)
+    if (headerRect.width < viewportWidth - 20) failures.push(`${name}: mobile header does not span the safe content width`)
+    if (statusRect.left < 8 || statusRect.right > viewportWidth - 8) failures.push(`${name}: mobile top control bar has unsafe gutters`)
     if (switcherRect.width > 54) failures.push(`${name}: mobile UI switcher is too wide`)
 
     return {
       failures,
-      details: {
-        header: headerRect.toJSON(),
-        status: statusRect.toJSON(),
-        switcher: switcherRect.toJSON(),
-      },
+      details: { header: headerRect.toJSON(), status: statusRect.toJSON(), switcher: switcherRect.toJSON() },
     }
   }, name)
 
@@ -138,6 +177,14 @@ async function inspectMobile(page, name) {
 try {
   const dashboardLight = await openView({ view: 'dashboard', theme: 'light', selector: '.paper-card-v3' })
   await inspectDesktop(dashboardLight, 'luminous-x dashboard light')
+
+  await dashboardLight.getByRole('button', { name: '看板视图' }).click()
+  await dashboardLight.locator('.lx-board-view').waitFor({ state: 'visible' })
+  if (await dashboardLight.locator('.lx-board-column').count() < 3) failures.push('Luminous X board view did not create status columns')
+
+  await dashboardLight.getByRole('button', { name: '按期刊视图' }).click()
+  await dashboardLight.locator('.lx-journal-view').waitFor({ state: 'visible' })
+  if (await dashboardLight.locator('.lx-journal-group').count() < 1) failures.push('Luminous X journal view did not create journal groups')
   await dashboardLight.close()
 
   const dashboardDark = await openView({ view: 'dashboard', theme: 'dark', selector: '.paper-card-v3' })
@@ -170,10 +217,8 @@ try {
   details['legacy luminous header'] = legacyGeometry
 
   const xHeader = details['luminous-x dashboard light']?.header
-  if (xHeader && legacyGeometry) {
-    if (!(xHeader.width < 300 && xHeader.height > legacyGeometry.height * 3)) {
-      failures.push('Luminous X is not structurally distinct from the previous Luminous header')
-    }
+  if (xHeader && legacyGeometry && !(xHeader.width < 260 && xHeader.height > legacyGeometry.height * 3)) {
+    failures.push('Luminous X is not structurally distinct from the previous Luminous header')
   }
 
   if (details['luminous-x dashboard light']?.background === details['luminous-x dashboard dark']?.background) {
