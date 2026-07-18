@@ -67,9 +67,17 @@ async function inspectDesktop(page, name) {
       if (Math.abs(gridRect.right - statusRect.right) > 4) failures.push(`${name}: paper grid and status bar widths differ`)
     }
 
-    panels.forEach((panel, index) => {
+    const panelGeometry = panels.map((panel, index) => {
       const rect = panel.getBoundingClientRect()
       if (rect.left < -2 || rect.right > viewportWidth + 2) failures.push(`${name}: panel ${index + 1} escapes the viewport`)
+      return {
+        index: index + 1,
+        className: panel.className,
+        rect: rect.toJSON(),
+        width: getComputedStyle(panel).width,
+        minWidth: getComputedStyle(panel).minWidth,
+        maxWidth: getComputedStyle(panel).maxWidth,
+      }
     })
 
     return {
@@ -80,6 +88,7 @@ async function inspectDesktop(page, name) {
         status: statusRect.toJSON(),
         paddingLeft: appStyle.paddingLeft,
         panelCount: panels.length,
+        panels: panelGeometry,
         background: getComputedStyle(document.body).backgroundImage,
       },
     }
