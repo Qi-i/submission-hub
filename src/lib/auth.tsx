@@ -1,13 +1,23 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import type { UserProfile } from './types'
 import { ADMIN_ID } from './types'
 import { DEMO_PROFILE } from './demo-data'
 
+export type AccountThemeMode = 'light' | 'dark' | 'system'
+export type AccountUiMode = 'classic' | 'luminous' | 'luminous-x'
+
+export interface ExperiencePreferences {
+  mode?: AccountThemeMode
+  uiMode?: AccountUiMode
+  onboardingVersion?: string
+}
+
 interface AuthState {
   user: UserProfile | null
   loading: boolean
   isDemo: boolean
+  experiencePreferences: ExperiencePreferences
   signInWithGithub: () => Promise<string | null>
   signInWithEmail: (email: string, password: string) => Promise<string | null>
   signUpWithEmail: (email: string, password: string, username: string) => Promise<string | null>
@@ -18,6 +28,7 @@ interface AuthState {
   enterDemo: () => void
   exitDemo: () => void
   updateAuthorName: (name: string) => Promise<boolean>
+  updateExperiencePreferences: (patch: ExperiencePreferences) => Promise<boolean>
 }
 
 type AuthUserLike = {
@@ -31,6 +42,7 @@ const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
   isDemo: false,
+  experiencePreferences: {},
   signInWithGithub: async () => null,
   signInWithEmail: async () => null,
   signUpWithEmail: async () => null,
@@ -41,7 +53,33 @@ const AuthContext = createContext<AuthState>({
   enterDemo: () => {},
   exitDemo: () => {},
   updateAuthorName: async () => false,
+  updateExperiencePreferences: async () => false,
 })
+
+const EXPERIENCE_META = {
+  mode: 'submission_hub_theme_mode',
+  uiMode: 'submission_hub_ui_mode',
+  onboardingVersion: 'submission_hub_onboarding_version',
+} as const
+
+function isAccountThemeMode(value: unknown): value is AccountThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system'
+}
+
+function isAccountUiMode(value: unknown): value is AccountUiMode {
+  return value === 'classic' || value === 'luminous' || value === 'luminous-x'
+}
+
+function readExperiencePreferences(metadata?: Record<string, any>): ExperiencePreferences {
+  const mode = metadata?.[EXPERIENCE_META.mode]
+  const uiMode = metadata?.[EXPERIENCE_META.uiMode]
+  const onboardingVersion = metadata?.[EXPERIENCE_META.onboardingVersion]
+  return {
+    ...(isAccountThemeMode(mode) ? { mode } : {}),
+    ...(isAccountUiMode(uiMode) ? { uiMode } : {}),
+    ...(typeof onboardingVersion === 'string' && onboardingVersion ? { onboardingVersion } : {}),
+  }
+}
 
 function usernameFromUser(user: AuthUserLike) {
   const meta = user.user_metadata || {}
@@ -75,14 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDemo, setIsDemo] = useState(false)
+  const [experiencePreferences, setExperiencePreferences] = useState<ExperiencePreferences>({})
 
   const enterDemo = () => {
     setUser(DEMO_PROFILE)
+    setExperiencePreferences({})
     setIsDemo(true)
   }
 
   const exitDemo = () => {
     setUser(null)
+    setExperiencePreferences({})
     setIsDemo(false)
   }
 
@@ -93,7 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const username = usernameFromUser(authUser)
       await ensureProfile(authUser.id, username, authUser.user_metadata?.avatar_url)
       const profile = await fetchProfile(authUser.id)
-      if (active) setUser(profile || fallbackProfile(authUser))
+      if (active) {
+        setExperiencePreferences(readExperiencePreferences(authUser.user_metadata))
+        setUser(profile || fallbackProfile(authUser))
+      }
     }
 
     const loadSession = async () => {
@@ -102,10 +146,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) console.error('Load auth session error:', error)
         if (!active) return
         if (session?.user) await applySessionUser(session.user)
-        else setUser(null)
+        else {
+          setUser(null)
+          setExperiencePreferences({})
+        }
       } catch (error) {
         console.error('Load auth session failed:', error)
-        if (active) setUser(null)
+        if (active) {
+          setUser(null)
+          setExperiencePreferences({})
+        }
       } finally {
         if (active) setLoading(false)
       }
@@ -118,10 +168,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!active) return
         try {
           if (session?.user) await applySessionUser(session.user)
-          else setUser(null)
+          else {
+            setUser(null)
+            setExperiencePreferences({})
+          }
         } catch (error) {
           console.error('Apply auth state failed:', error)
-          if (session?.user && active) setUser(fallbackProfile(session.user))
+          if (session?.user && active) {
+            setExperiencePreferences(readExperiencePreferences(session.user.user_metadata))
+            setUser(fallbackProfile(session.user))
+          }
         } finally {
           if (active) setLoading(false)
         }
@@ -260,6 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) console.error('Sign out error:', error)
     } finally {
       setUser(null)
+      setExperiencePreferences({})
       setIsDemo(false)
     }
   }
@@ -276,8 +333,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true
   }
 
+  const updateExperiencePreferences = useCallback(async (patch: ExperiencePreferences): Promise<boolean> => {
+    if (!user || isDemo) return false
+    const metadata: Record<string, string> = {}
+    if (patch.mode) metadata[EXPERIENCE_META.mode] = patch.mode
+    if (patch.uiMode) metadata[EXPERIENCE_META.uiMode] = patch.uiMode
+    if (patch.onboardingVersion) metadata[EXPERIENCE_META.onboardingVersion] = patch.onboardingVersion
+    if (!Object.keys(metadata).length) return true
+
+    const { data, error } = await supabase.auth.updateUser({ data: metadata })
+    if (error) {
+      console.error('Update experience preferences error:', error)
+      return false
+    }
+    setExperiencePreferences(data.user
+      ? readExperiencePreferences(data.user.user_metadata)
+      : current => ({ ...current, ...patch }))
+    return true
+  }, [user, isDemo])
+
   return (
-    <AuthContext.Provider value={{ user, loading, isDemo, signInWithGithub, signInWithEmail, signUpWithEmail, linkGithubIdentity, setAccountPassword, getLinkedProviders, signOut, enterDemo, exitDemo, updateAuthorName }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      isDemo,
+      experiencePreferences,
+      signInWithGithub,
+      signInWithEmail,
+      signUpWithEmail,
+      linkGithubIdentity,
+      setAccountPassword,
+      getLinkedProviders,
+      signOut,
+      enterDemo,
+      exitDemo,
+      updateAuthorName,
+      updateExperiencePreferences,
+    }}>
       {children}
     </AuthContext.Provider>
   )

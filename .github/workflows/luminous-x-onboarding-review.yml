@@ -1,0 +1,61 @@
+name: Verify Luminous X onboarding
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/visual/**'
+      - 'vite.config.visual.ts'
+      - '.github/workflows/luminous-x-onboarding-review.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/visual/**'
+      - 'vite.config.visual.ts'
+      - '.github/workflows/luminous-x-onboarding-review.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck && npx vite build --config vite.config.visual.ts
+      - run: |
+          npm install --no-save --no-package-lock playwright@1.52.0
+          npx playwright install --with-deps chromium > /tmp/playwright-install.log 2>&1
+      - run: |
+          npx vite preview --config vite.config.visual.ts --host 127.0.0.1 --port 4174 > /tmp/submission-hub-focused.log 2>&1 &
+          for i in {1..40}; do
+            curl -fsS http://127.0.0.1:4174/tests/visual/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/submission-hub-focused.log
+          exit 1
+      - name: Verify compact Luminous X layouts
+        run: node tests/visual/luminous-x-compact-check.mjs
+      - name: Verify first-run guide and defaults
+        if: always()
+        run: node tests/visual/first-run-guide-check.mjs
+      - name: Capture first-run guide
+        if: always()
+        run: |
+          mkdir -p focused-review
+          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1280,900" --wait-for-selector=".first-run-guide" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous-x&guide=1" focused-review/luminous-x-first-run-guide.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: luminous-x-onboarding-review
+          path: |
+            focused-review/*.png
+            /tmp/submission-hub-focused.log
+          retention-days: 14
