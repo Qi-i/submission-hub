@@ -36,10 +36,10 @@ async function inspectPage(page, name, expectedUi = 'luminous') {
       const actionLabel = switcher.querySelector('button')?.getAttribute('aria-label') || ''
       if (rect.left < -1 || rect.right > viewportWidth + 1) failures.push(`${name}: UI mode switcher escapes the viewport`)
       if (viewportWidth <= 640 && rect.width > 70) failures.push(`${name}: mobile UI switcher is too wide`)
-      if (expectedUi === 'luminous' && (currentLabel !== 'Luminous' || !actionLabel.includes('返回经典'))) {
-        failures.push(`${name}: luminous switch state or return action is unclear`)
+      if (expectedUi === 'luminous' && (currentLabel !== 'Luminous' || !actionLabel.includes('Luminous X'))) {
+        failures.push(`${name}: luminous switch state or next action is unclear`)
       }
-      if (expectedUi === 'classic' && (currentLabel !== '经典' || !actionLabel.includes('Luminous'))) {
+      if (expectedUi === 'classic' && (currentLabel !== '经典' || !actionLabel.includes('Luminous UI'))) {
         failures.push(`${name}: classic switch state or luminous action is unclear`)
       }
     }
