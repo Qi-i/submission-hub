@@ -1,6 +1,7 @@
 /* Targeted corrections for the consolidated Luminous X rebuild. */
 
-html[data-ui='luminous-x'] .header-title::before {
+html[data-ui='luminous-x'] .header-title::before,
+html[data-ui='luminous-x'] .header-title::after {
   content: none !important;
   display: none !important;
 }
