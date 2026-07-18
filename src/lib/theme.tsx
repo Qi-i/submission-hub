@@ -22,7 +22,7 @@ interface ThemeProviderProps {
   children: ReactNode
   accountKey?: string
   accountPreferences?: StoredPreferences
-  onAccountPreferencesChange?: (patch: StoredPreferences) => void | Promise<void>
+  onAccountPreferencesChange?: (patch: StoredPreferences) => unknown
 }
 
 const DEFAULT_PREFERENCES: Required<StoredPreferences> = {
