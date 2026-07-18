@@ -21,6 +21,9 @@ async function inspectDesktop(page, name) {
     const app = document.querySelector('.app-layout')
     const header = document.querySelector('.app-header')
     const status = document.querySelector('.lx-status-bar')
+    const statusTitle = status?.querySelector('.lx-status-core strong')
+    const controlsHost = status?.querySelector('.lx-status-controls-host')
+    const statusCount = status?.querySelector('.lx-status-count')
     const utility = document.querySelector('.header-utility-stack')
     const viewSwitch = document.querySelector('.lx-view-switch')
     const switcher = document.querySelector('.ui-mode-switcher')
@@ -57,7 +60,7 @@ async function inspectDesktop(page, name) {
     if (rootStyle.getPropertyValue('--lx-purple').trim().toLowerCase() !== '#8b5cf6') failures.push(`${name}: purple token is incorrect`)
     if (document.documentElement.scrollWidth > viewportWidth + 2) failures.push(`${name}: horizontal overflow exists`)
 
-    if (!app || !header || !status || !utility || !switcher) {
+    if (!app || !header || !status || !controlsHost || !statusCount || !utility || !switcher) {
       failures.push(`${name}: core Luminous X shell is incomplete`)
       return { failures, details: {} }
     }
@@ -67,9 +70,12 @@ async function inspectDesktop(page, name) {
     const headerRect = header.getBoundingClientRect()
     const utilityRect = utility.getBoundingClientRect()
     const statusRect = status.getBoundingClientRect()
+    const controlsRect = controlsHost.getBoundingClientRect()
+    const countRect = statusCount.getBoundingClientRect()
     const switcherRect = switcher.getBoundingClientRect()
     const currentLabel = switcher.querySelector('.ui-mode-switcher-label')?.textContent || ''
     const actionLabel = switcher.querySelector('button')?.getAttribute('aria-label') || ''
+    const pageTitle = statusTitle?.textContent?.trim() || ''
 
     if (headerStyle.position !== 'fixed') failures.push(`${name}: desktop control rail is not fixed`)
     if (headerRect.width < 190 || headerRect.width > 260) failures.push(`${name}: control rail width is not compact`)
@@ -80,6 +86,9 @@ async function inspectDesktop(page, name) {
     if (statusRect.left <= headerRect.right + 8) failures.push(`${name}: top control bar overlaps the sidebar`)
     if (statusRect.right > viewportWidth + 2) failures.push(`${name}: top control bar escapes the viewport`)
     if (statusRect.height > 98) failures.push(`${name}: top control bar is too tall and recreates the empty band`)
+    if (Math.abs(countRect.right - statusRect.right) > 2) failures.push(`${name}: record count is not aligned to the right edge`)
+    if (controlsRect.right > countRect.left + 2) failures.push(`${name}: page controls overlap the record count`)
+    if (/工作区|分析舱|控制台/.test(pageTitle)) failures.push(`${name}: page title still uses an awkward suffix`)
     if (currentLabel !== 'Luminous X' || !actionLabel.includes('经典')) failures.push(`${name}: UI switcher does not expose Luminous X and classic fallback`)
     if (switcherRect.right > viewportWidth + 1 || switcherRect.bottom > viewportHeight + 1) failures.push(`${name}: UI switcher escapes the viewport`)
 
@@ -87,9 +96,29 @@ async function inspectDesktop(page, name) {
       if (!viewSwitch || viewSwitch.querySelectorAll('button').length !== 3) failures.push(`${name}: three functional view controls are missing`)
     }
 
+    if (name.includes('preparation')) {
+      const prepNav = document.querySelector('.prep-nav')
+      if (!prepNav) failures.push(`${name}: preparation navigation is missing`)
+      else {
+        const rect = prepNav.getBoundingClientRect()
+        if (rect.top < statusRect.top - 2 || rect.bottom > statusRect.bottom + 2) failures.push(`${name}: preparation navigation was not moved into the top row`)
+        if (rect.right > countRect.left + 2) failures.push(`${name}: preparation navigation overlaps record count`)
+      }
+    }
+
+    if (name.includes('statistics')) {
+      const moduleControls = document.querySelector('.stats-module-controls')
+      if (!moduleControls) failures.push(`${name}: statistics module controls are missing`)
+      else {
+        const rect = moduleControls.getBoundingClientRect()
+        if (rect.top < statusRect.top - 2 || rect.bottom > statusRect.bottom + 2) failures.push(`${name}: statistics controls were not moved into the top row`)
+        if (rect.right > countRect.left + 2) failures.push(`${name}: statistics controls overlap record count`)
+      }
+    }
+
     if (metrics) {
       const columns = getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length
-      if (columns !== 4) failures.push(`${name}: metric console should use four columns on desktop`)
+      if (name.includes('dashboard') && columns !== 8) failures.push(`${name}: submission metrics should use one eight-column row on desktop`)
     }
 
     if (grid) {
@@ -123,9 +152,12 @@ async function inspectDesktop(page, name) {
       failures,
       details: {
         theme: root.dataset.theme,
+        pageTitle,
         header: headerRect.toJSON(),
         utility: utilityRect.toJSON(),
         status: statusRect.toJSON(),
+        controls: controlsRect.toJSON(),
+        count: countRect.toJSON(),
         paddingLeft: appStyle.paddingLeft,
         panelCount: panels.length,
         panels: panelGeometry,
@@ -179,8 +211,16 @@ try {
   await inspectDesktop(dashboardLight, 'luminous-x dashboard light')
 
   await dashboardLight.getByRole('button', { name: '看板视图' }).click()
-  await dashboardLight.locator('.lx-board-view').waitFor({ state: 'visible' })
+  const board = dashboardLight.locator('.lx-board-view')
+  await board.waitFor({ state: 'visible' })
   if (await dashboardLight.locator('.lx-board-column').count() < 3) failures.push('Luminous X board view did not create status columns')
+  const boardGeometry = await board.evaluate(element => {
+    const outer = element.getBoundingClientRect()
+    const columns = Array.from(element.querySelectorAll('.lx-board-column')).map(column => column.getBoundingClientRect().toJSON())
+    return { clientWidth: element.clientWidth, scrollWidth: element.scrollWidth, outer: outer.toJSON(), columns }
+  })
+  if (boardGeometry.scrollWidth > boardGeometry.clientWidth + 2) failures.push('Luminous X board still requires inaccessible horizontal scrolling')
+  if (boardGeometry.columns.some(column => column.left < boardGeometry.outer.left - 2 || column.right > boardGeometry.outer.right + 2)) failures.push('Luminous X board column escapes the visible board width')
 
   await dashboardLight.getByRole('button', { name: '按期刊视图' }).click()
   await dashboardLight.locator('.lx-journal-view').waitFor({ state: 'visible' })
