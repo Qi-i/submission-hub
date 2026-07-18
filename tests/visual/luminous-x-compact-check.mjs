@@ -1,8 +1,10 @@
 import { chromium } from 'playwright'
+import { mkdirSync } from 'node:fs'
 
 const browser = await chromium.launch({ headless: true })
 const failures = []
 const base = 'http://127.0.0.1:4174/tests/visual/index.html'
+mkdirSync('focused-review', { recursive: true })
 
 async function open(view) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } })
@@ -16,6 +18,7 @@ try {
   const dashboard = await open('dashboard')
   await dashboard.getByRole('button', { name: '按期刊视图' }).click()
   await dashboard.locator('.lx-journal-group').first().waitFor()
+  await dashboard.screenshot({ path: 'focused-review/luminous-x-journal-view.png', fullPage: true })
   const journal = await dashboard.evaluate(() => Array.from(document.querySelectorAll('.lx-journal-group')).map(group => {
     const grid = group.querySelector('.lx-journal-group-grid')
     const cards = Array.from(group.querySelectorAll('.paper-card-v3'))
@@ -31,6 +34,7 @@ try {
 
   const prep = await open('preparation')
   await prep.locator('.prep-productivity-host').waitFor({ state: 'attached' })
+  await prep.screenshot({ path: 'focused-review/luminous-x-preparation-compact.png', fullPage: true })
   const prepLayout = await prep.evaluate(() => {
     const workspace = document.querySelector('.preparation-workspace')
     const topbar = workspace?.querySelector('.prep-topbar')
