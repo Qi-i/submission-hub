@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 
 type MainPage = 'preparation' | 'dashboard' | 'stats' | 'admin'
 type PreparationSection = 'overview' | 'topics' | 'drafts' | 'journals' | 'compare'
@@ -81,7 +81,7 @@ function layoutModeFromButton(button: HTMLButtonElement): LayoutMode | null {
 }
 
 export default function NavigationMemory({ scope, disabled = false }: Props) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (disabled) return
 
     let initialPageRestored = false
@@ -105,9 +105,14 @@ export default function NavigationMemory({ scope, disabled = false }: Props) {
 
       const workspace = document.querySelector('.preparation-workspace')
       if (workspace && workspace !== lastPreparationWorkspace) {
-        lastPreparationWorkspace = workspace
-        if (state.preparationSection && state.preparationSection !== 'overview') {
-          findButton('.preparation-workspace > .prep-nav button', PREPARATION_LABELS[state.preparationSection])?.click()
+        if (!state.preparationSection || state.preparationSection === 'overview') {
+          lastPreparationWorkspace = workspace
+        } else {
+          const sectionButton = findButton('.preparation-workspace > .prep-nav button', PREPARATION_LABELS[state.preparationSection])
+          if (sectionButton) {
+            lastPreparationWorkspace = workspace
+            sectionButton.click()
+          }
         }
       } else if (!workspace) {
         lastPreparationWorkspace = null
@@ -115,9 +120,14 @@ export default function NavigationMemory({ scope, disabled = false }: Props) {
 
       const layoutSwitch = document.querySelector('.lx-view-switch')
       if (layoutSwitch && layoutSwitch !== lastLayoutSwitch) {
-        lastLayoutSwitch = layoutSwitch
-        if (state.layoutMode && state.layoutMode !== 'workflow') {
-          findButton('.lx-view-switch button', LAYOUT_LABELS[state.layoutMode])?.click()
+        if (!state.layoutMode || state.layoutMode === 'workflow') {
+          lastLayoutSwitch = layoutSwitch
+        } else {
+          const layoutButton = findButton('.lx-view-switch button', LAYOUT_LABELS[state.layoutMode])
+          if (layoutButton) {
+            lastLayoutSwitch = layoutSwitch
+            layoutButton.click()
+          }
         }
       } else if (!layoutSwitch) {
         lastLayoutSwitch = null
@@ -155,7 +165,7 @@ export default function NavigationMemory({ scope, disabled = false }: Props) {
     document.addEventListener('click', handleClick, true)
     const observer = new MutationObserver(scheduleRestore)
     observer.observe(document.body, { childList: true, subtree: true })
-    scheduleRestore()
+    restore()
 
     return () => {
       document.removeEventListener('click', handleClick, true)
