@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentProps } from 'react'
 import { findJournalProfile } from '../lib/journal-paper-sync'
 import type { JournalProfile } from '../lib/preparation'
+import { openStoredFile } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import PaperCardEnhanced from './PaperCardEnhanced'
 
@@ -51,5 +52,14 @@ export default function OnlinePaperCard({ journalProfile: providedProfile, ...pr
     return () => { active = false }
   }, [providedProfile, props.paper.journal])
 
-  return <PaperCardEnhanced {...props} journalProfile={providedProfile || loadedProfile} />
+  const handleOpenStoredFile = async (path: string) => {
+    try {
+      await openStoredFile(path)
+    } catch (error) {
+      console.error('Open stored attachment failed:', error)
+      alert(error instanceof Error ? `附件打开失败：${error.message}` : '附件打开失败。')
+    }
+  }
+
+  return <PaperCardEnhanced {...props} journalProfile={providedProfile || loadedProfile} onOpenStoredFile={handleOpenStoredFile} />
 }
