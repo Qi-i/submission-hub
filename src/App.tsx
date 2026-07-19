@@ -5,6 +5,7 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import ApcAutoConverter from './components/ApcAutoConverter'
 import { OnlineFirstRunGuideGate } from './components/FirstRunGuide'
+import NavigationMemory from './components/NavigationMemory'
 
 function AccountThemeProvider({ children }: { children: ReactNode }) {
   const { user, isDemo, experiencePreferences, updateExperiencePreferences } = useAuth()
@@ -22,7 +23,7 @@ function AccountThemeProvider({ children }: { children: ReactNode }) {
 }
 
 function AppContent() {
-  const { user, loading } = useAuth()
+  const { user, loading, isDemo } = useAuth()
 
   if (loading) {
     return (
@@ -34,7 +35,11 @@ function AppContent() {
   }
 
   if (!user) return <Login />
-  return <><Dashboard /><OnlineFirstRunGuideGate /></>
+  return <>
+    <NavigationMemory scope={`online:${user.id}`} disabled={isDemo} />
+    <Dashboard />
+    <OnlineFirstRunGuideGate />
+  </>
 }
 
 export default function App() {
