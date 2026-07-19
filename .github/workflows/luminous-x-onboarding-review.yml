@@ -47,10 +47,13 @@ jobs:
       - name: Review 1 - compact Luminous X layouts
         run: node tests/visual/luminous-x-compact-check.mjs
       - name: Review 2 - cross-interface coherence and modal layering
+        if: always()
         run: node tests/visual/luminous-coherence-check.mjs
       - name: Review 3 - two-mode migration and email authentication
+        if: always()
         run: node tests/visual/email-auth-check.mjs
       - name: Review 4 - remembered navigation
+        if: always()
         run: node tests/visual/navigation-memory-check.mjs
       - name: Review 5 - first-run guide and defaults
         if: always()
@@ -69,6 +72,6 @@ jobs:
         with:
           name: luminous-two-interface-review
           path: |
-            focused-review/*.png
+            focused-review/*
             /tmp/submission-hub-focused.log
           retention-days: 14
