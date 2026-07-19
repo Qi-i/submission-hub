@@ -17,37 +17,9 @@ on:
       - '.github/workflows/luminous-x-onboarding-review.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  patch-x-review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - name: Patch the intentional edge-hidden switch assertion
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('tests/visual/luminous-x-layout-check.mjs')
-          text = path.read_text(encoding='utf-8')
-          old = "    if (switcherRect.right > viewportWidth + 1 || switcherRect.bottom > viewportHeight + 1) failures.push(`${name}: UI switcher escapes the viewport`)"
-          new = "    const visibleSwitcherWidth = viewportWidth - switcherRect.left\n    if (switcherRect.left < -1 || visibleSwitcherWidth < 28 || visibleSwitcherWidth > 54 || switcherRect.bottom > viewportHeight + 1) failures.push(`${name}: UI switcher does not expose a safe edge handle (${visibleSwitcherWidth}px visible)`)"
-          if old not in text:
-            raise SystemExit('expected X switch assertion was not found')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
-      - name: Commit patch when needed
-        run: |
-          if git diff --quiet; then exit 0; fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add tests/visual/luminous-x-layout-check.mjs
-          git commit -m "Validate the edge-hidden Luminous X switch [x-edge-review-done]"
-          git push origin HEAD:${{ github.head_ref }}
-
   verify:
     runs-on: ubuntu-latest
     steps:
