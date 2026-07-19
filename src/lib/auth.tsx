@@ -5,7 +5,7 @@ import { ADMIN_ID } from './types'
 import { DEMO_PROFILE } from './demo-data'
 
 export type AccountThemeMode = 'light' | 'dark' | 'system'
-export type AccountUiMode = 'classic' | 'luminous' | 'luminous-x'
+export type AccountUiMode = 'luminous' | 'luminous-x'
 
 export interface ExperiencePreferences {
   mode?: AccountThemeMode
@@ -67,12 +67,13 @@ function isAccountThemeMode(value: unknown): value is AccountThemeMode {
 }
 
 function isAccountUiMode(value: unknown): value is AccountUiMode {
-  return value === 'classic' || value === 'luminous' || value === 'luminous-x'
+  return value === 'luminous' || value === 'luminous-x'
 }
 
 function readExperiencePreferences(metadata?: Record<string, any>): ExperiencePreferences {
   const mode = metadata?.[EXPERIENCE_META.mode]
-  const uiMode = metadata?.[EXPERIENCE_META.uiMode]
+  const rawUiMode = metadata?.[EXPERIENCE_META.uiMode]
+  const uiMode = rawUiMode === 'classic' ? 'luminous' : rawUiMode
   const onboardingVersion = metadata?.[EXPERIENCE_META.onboardingVersion]
   return {
     ...(isAccountThemeMode(mode) ? { mode } : {}),

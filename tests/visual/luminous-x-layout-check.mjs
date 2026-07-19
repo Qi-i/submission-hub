@@ -89,7 +89,7 @@ async function inspectDesktop(page, name) {
     if (Math.abs(countRect.right - statusRect.right) > 2) failures.push(`${name}: record count is not aligned to the right edge`)
     if (controlsRect.right > countRect.left + 2) failures.push(`${name}: page controls overlap the record count`)
     if (/工作区|分析舱|控制台/.test(pageTitle)) failures.push(`${name}: page title still uses an awkward suffix`)
-    if (currentLabel !== 'Luminous X' || !actionLabel.includes('经典')) failures.push(`${name}: UI switcher does not expose Luminous X and classic fallback`)
+    if (currentLabel !== 'Luminous X' || actionLabel.includes('经典') || !actionLabel.includes('Luminous')) failures.push(`${name}: UI switcher still exposes the retired Classic interface`)
     if (switcherRect.right > viewportWidth + 1 || switcherRect.bottom > viewportHeight + 1) failures.push(`${name}: UI switcher escapes the viewport`)
 
     if (name.includes('dashboard')) {
