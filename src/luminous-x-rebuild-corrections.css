@@ -734,3 +734,14 @@ html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-a
     top: 78px !important;
   }
 }
+
+/* Match the specificity of the legacy solid-card selectors so status variables drive the final surface. */
+html[data-ui='luminous-x'][data-theme] .paper-grid .paper-card-v3,
+html[data-ui='luminous-x'][data-theme] .lx-board-stack .paper-card-v3,
+html[data-ui='luminous-x'][data-theme] .lx-journal-group-grid .paper-card-v3 {
+  background-color: var(--paper-card-end) !important;
+  background-image:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--paper-status-color) 9%, transparent), transparent 34%),
+    linear-gradient(var(--paper-card-angle), var(--paper-card-start), var(--paper-card-end)) !important;
+  border-color: var(--paper-card-border) !important;
+}
