@@ -90,7 +90,8 @@ async function inspectDesktop(page, name) {
     if (controlsRect.right > countRect.left + 2) failures.push(`${name}: page controls overlap the record count`)
     if (/工作区|分析舱|控制台/.test(pageTitle)) failures.push(`${name}: page title still uses an awkward suffix`)
     if (currentLabel !== 'Luminous X' || actionLabel.includes('经典') || !actionLabel.includes('Luminous')) failures.push(`${name}: UI switcher still exposes the retired Classic interface`)
-    if (switcherRect.right > viewportWidth + 1 || switcherRect.bottom > viewportHeight + 1) failures.push(`${name}: UI switcher escapes the viewport`)
+    const visibleSwitcherWidth = viewportWidth - switcherRect.left
+    if (switcherRect.left < -1 || visibleSwitcherWidth < 28 || visibleSwitcherWidth > 54 || switcherRect.bottom > viewportHeight + 1) failures.push(`${name}: UI switcher does not expose a safe edge handle (${visibleSwitcherWidth}px visible)`)
 
     if (name.includes('dashboard')) {
       if (!viewSwitch || viewSwitch.querySelectorAll('button').length !== 3) failures.push(`${name}: three functional view controls are missing`)
