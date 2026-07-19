@@ -11,6 +11,7 @@ try {
   const page = await context.newPage()
 
   await page.addInitScript(({ key }) => {
+    if (localStorage.getItem(key)) return
     localStorage.setItem(key, JSON.stringify({
       page: 'preparation',
       preparationSection: 'journals',
@@ -46,12 +47,13 @@ try {
   if (stored.preparationSection !== 'drafts') failures.push(`stored preparation section is ${String(stored.preparationSection)}`)
   if (stored.layoutMode !== 'board') failures.push(`stored layout mode is ${String(stored.layoutMode)}`)
 
-  const isolated = await browser.newPage()
+  const isolatedContext = await browser.newContext()
+  const isolated = await isolatedContext.newPage()
   await isolated.goto(`${base}?scope=visual-account-b`)
   await isolated.locator('main[data-current-page="dashboard"][data-current-layout="workflow"]').waitFor()
   const isolatedState = await isolated.evaluate(() => localStorage.getItem('submission-hub:navigation:visual-account-b'))
   if (isolatedState !== null) failures.push('navigation state leaked across account scopes')
-  await isolated.close()
+  await isolatedContext.close()
   await context.close()
 } catch (error) {
   failures.push(error instanceof Error ? error.message : String(error))
