@@ -42,7 +42,19 @@ try {
     const original = workspace?.querySelector(':scope > .prep-nav')
     const assistant = workspace?.querySelector('.prep-productivity-host')
     const topics = workspace?.querySelector('.prep-topic-overview')
+    const draftPanel = workspace?.querySelector('.prep-overview-drafts')
+    const journalPanel = workspace?.querySelector('.prep-overview-journals')
+    const draftList = draftPanel?.querySelector('.prep-overview-draft-list')
+    const draftCards = Array.from(draftList?.querySelectorAll('.prep-draft-card.compact') || [])
+    const draftTitle = draftPanel?.querySelector('.prep-panel-head h2')?.textContent?.trim() || ''
     if (!workspace || !topbar || !proxy || !original) return null
+
+    const listRect = draftList?.getBoundingClientRect()
+    const cardRects = draftCards.map(card => card.getBoundingClientRect())
+    const fullyVisibleDrafts = listRect
+      ? cardRects.filter(card => card.top >= listRect.top - 1 && card.bottom <= listRect.bottom + 1).length
+      : 0
+
     return {
       display: getComputedStyle(workspace).display,
       direction: getComputedStyle(workspace).flexDirection,
@@ -52,6 +64,11 @@ try {
       original: getComputedStyle(original).display,
       assistant: assistant?.getBoundingClientRect().toJSON(),
       topics: topics?.getBoundingClientRect().toJSON(),
+      draftTitle,
+      draftPanel: draftPanel?.getBoundingClientRect().toJSON(),
+      journalPanel: journalPanel?.getBoundingClientRect().toJSON(),
+      draftCards: cardRects.map(rect => rect.toJSON()),
+      fullyVisibleDrafts,
     }
   })
   if (!prepLayout) failures.push('preparation: required elements missing')
@@ -60,6 +77,10 @@ try {
     if (prepLayout.original !== 'none') failures.push('preparation: duplicate navigation is visible')
     if (prepLayout.topbar.width > prepLayout.workspace.width * .72) failures.push('preparation: action toolbar still spans the page')
     if (Math.abs(prepLayout.topbar.right - prepLayout.workspace.right) > 4) failures.push('preparation: action toolbar is not right aligned')
+    if (prepLayout.draftTitle !== '草稿推进') failures.push(`preparation: draft panel title is ${prepLayout.draftTitle || 'missing'}`)
+    if (prepLayout.draftPanel && prepLayout.journalPanel && Math.abs(prepLayout.draftPanel.height - prepLayout.journalPanel.height) > 4) failures.push('preparation: draft and journal panels are not equal height')
+    if (prepLayout.draftCards.length >= 2 && prepLayout.fullyVisibleDrafts < 2) failures.push('preparation: fewer than two complete draft records are visible')
+    if (prepLayout.draftCards.some(card => card.height > 155)) failures.push('preparation: overview draft card is still too tall')
     if (prepLayout.assistant && prepLayout.topics) {
       if (Math.abs(prepLayout.assistant.left - prepLayout.topics.left) > 4) failures.push('preparation: modules do not share one column')
       const overlap = Math.min(prepLayout.assistant.bottom, prepLayout.topics.bottom) - Math.max(prepLayout.assistant.top, prepLayout.topics.top)

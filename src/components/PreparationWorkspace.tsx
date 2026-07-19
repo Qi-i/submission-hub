@@ -323,20 +323,22 @@ export default function PreparationWorkspace({
       </div>
 
       <div className="prep-overview-grid">
-        <section className="prep-panel prep-panel-draft">
-          <PanelHead title="优先草稿" subtitle="先处理最接近截止或就绪度最高的稿件" onClick={() => setSection('drafts')} />
-          {orderedDrafts.slice(0, 4).map(draft => <DraftCard
-            key={draft.id}
-            draft={draft}
-            topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined}
-            journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]}
-            primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined}
-            onEdit={() => setEditor({ type: 'draft', value: draft })}
-            onPromote={onPromoteDraft ? () => promote(draft) : undefined}
-            promoting={promotingId === draft.id}
-            compact
-          />)}
-          {!orderedDrafts.length && <Empty text="尚无草稿准备记录" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}
+        <section className="prep-panel prep-panel-draft prep-overview-drafts">
+          <PanelHead title="草稿推进" subtitle="按截止时间与投稿就绪度排序" onClick={() => setSection('drafts')} />
+          <div className="prep-overview-draft-list">
+            {orderedDrafts.slice(0, 4).map(draft => <DraftCard
+              key={draft.id}
+              draft={draft}
+              topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined}
+              journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]}
+              primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined}
+              onEdit={() => setEditor({ type: 'draft', value: draft })}
+              onPromote={onPromoteDraft ? () => promote(draft) : undefined}
+              promoting={promotingId === draft.id}
+              compact
+            />)}
+            {!orderedDrafts.length && <Empty text="尚无草稿准备记录" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}
+          </div>
         </section>
 
         <section className="prep-panel prep-panel-journal prep-overview-journals">
@@ -483,10 +485,10 @@ function DraftCard({
   return <article className={`prep-draft-card ${compact ? 'compact' : ''}`}>
     <button className="prep-draft-main" onClick={onEdit}>
       <div className="prep-draft-head"><div><span>{stage}</span>{topic && <em>{topic.title}</em>}</div><b>{readiness.score}%</b></div>
-      <h3>{draft.title}</h3>
+      <h3 title={draft.title}>{draft.title}</h3>
       <div className="prep-progress"><span style={{ width: `${readiness.score}%` }} /></div>
       <div className="prep-draft-meta">
-        <span>就绪度 {readiness.score}%</span>
+        {!compact && <span>就绪度 {readiness.score}%</span>}
         <span>必需检查 {checkProgress}%</span>
         {draft.target_word_count
           ? <span>写作 {draft.current_word_count}/{draft.target_word_count}（{wordProgress}%）</span>
