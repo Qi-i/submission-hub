@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Github, Mail, Lock, User, LogIn, UserPlus, Eye, BookOpen, FileText, BarChart3, GraduationCap } from 'lucide-react'
+import { Github, Mail, Lock, User, LogIn, UserPlus, Eye, BookOpen, FileText, BarChart3, GraduationCap, Send } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { sendExistingUserEmailLink, signInWithEmailPassword, signUpWithEmailPassword } from '../lib/email-auth'
 
 function readOAuthError() {
   if (typeof window === 'undefined') return ''
@@ -30,13 +31,15 @@ function messageFrom(error: unknown, fallback: string) {
 }
 
 export default function Login() {
-  const { signInWithGithub, signInWithEmail, signUpWithEmail, enterDemo } = useAuth()
+  const { signInWithGithub, enterDemo } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
+  const [linkLoading, setLinkLoading] = useState(false)
   const [githubLoading, setGithubLoading] = useState(false)
 
   useEffect(() => {
@@ -46,9 +49,14 @@ export default function Login() {
     clearOAuthError()
   }, [])
 
-  const handleGithubLogin = async () => {
-    if (githubLoading || loading) return
+  const clearFeedback = () => {
     setError('')
+    setNotice('')
+  }
+
+  const handleGithubLogin = async () => {
+    if (githubLoading || loading || linkLoading) return
+    clearFeedback()
     setGithubLoading(true)
     try {
       const oauthError = await signInWithGithub()
@@ -64,15 +72,16 @@ export default function Login() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (loading || githubLoading) return
-    setError('')
+    if (loading || githubLoading || linkLoading) return
+    clearFeedback()
     setLoading(true)
 
     try {
-      const authError = mode === 'login'
-        ? await signInWithEmail(email.trim(), password)
-        : await signUpWithEmail(email.trim(), password, username)
-      if (authError) setError(authError)
+      const result = mode === 'login'
+        ? await signInWithEmailPassword(email, password)
+        : await signUpWithEmailPassword(email, password, username)
+      if (result.error) setError(result.error)
+      if (result.notice) setNotice(result.notice)
     } catch (caught) {
       setError(messageFrom(caught, mode === 'login' ? '登录失败，请稍后重试。' : '注册失败，请稍后重试。'))
     } finally {
@@ -80,10 +89,25 @@ export default function Login() {
     }
   }
 
+  const handleEmailLink = async () => {
+    if (loading || githubLoading || linkLoading) return
+    clearFeedback()
+    setLinkLoading(true)
+    try {
+      const result = await sendExistingUserEmailLink(email)
+      if (result.error) setError(result.error)
+      if (result.notice) setNotice(result.notice)
+    } catch (caught) {
+      setError(messageFrom(caught, '邮箱登录链接发送失败，请稍后重试。'))
+    } finally {
+      setLinkLoading(false)
+    }
+  }
+
   const switchMode = (next: 'login' | 'register') => {
-    if (loading || githubLoading) return
+    if (loading || githubLoading || linkLoading) return
     setMode(next)
-    setError('')
+    clearFeedback()
   }
 
   const floatingIcons = [
@@ -92,6 +116,8 @@ export default function Login() {
     { Icon: BarChart3, x: '12%', y: '75%', size: 26, delay: 3, color: 'var(--gold)' },
     { Icon: GraduationCap, x: '88%', y: '70%', size: 30, delay: 0.8, color: 'var(--success)' },
   ]
+
+  const busy = loading || githubLoading || linkLoading
 
   return (
     <div className="auth-page">
@@ -140,7 +166,7 @@ export default function Login() {
           className="btn btn-primary"
           style={{ width: '100%', padding: '13px', fontSize: '14px', marginBottom: '4px', borderRadius: 12 }}
           onClick={() => void handleGithubLogin()}
-          disabled={githubLoading || loading}
+          disabled={busy}
         >
           {githubLoading ? <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <Github size={18} />}
           {githubLoading ? '正在跳转 GitHub...' : '使用 GitHub 登录'}
@@ -170,6 +196,7 @@ export default function Login() {
         </div>
 
         {error && <div className="auth-error" role="alert" aria-live="polite">{error}</div>}
+        {notice && <div className="auth-notice" role="status" aria-live="polite">{notice}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {mode === 'register' && (
@@ -204,6 +231,7 @@ export default function Login() {
                 onChange={event => setEmail(event.target.value)}
                 style={{ paddingLeft: 36, borderRadius: 10 }}
                 autoComplete="email"
+                inputMode="email"
                 maxLength={254}
                 required
               />
@@ -232,7 +260,7 @@ export default function Login() {
             type="submit"
             className="btn btn-primary"
             style={{ width: '100%', padding: '12px', marginTop: '4px', borderRadius: 12 }}
-            disabled={loading || githubLoading}
+            disabled={busy}
           >
             {loading ? (
               <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
@@ -242,6 +270,19 @@ export default function Login() {
               <><UserPlus size={16} /> 注册</>
             )}
           </button>
+
+          {mode === 'login' && (
+            <button
+              type="button"
+              className="btn btn-ghost auth-email-link"
+              onClick={() => void handleEmailLink()}
+              disabled={busy || !email.trim()}
+              title="向已存在的账户发送一次性邮箱登录链接"
+            >
+              {linkLoading ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : <Send size={15} />}
+              {linkLoading ? '正在发送...' : '发送邮箱登录链接'}
+            </button>
+          )}
         </form>
 
         <div className="auth-divider">或</div>
@@ -251,7 +292,7 @@ export default function Login() {
           className="btn btn-ghost"
           style={{ width: '100%', padding: '12px', fontSize: '13px', borderRadius: 12 }}
           onClick={enterDemo}
-          disabled={loading || githubLoading}
+          disabled={busy}
         >
           <Eye size={16} />
           无需注册，立即体验演示 →

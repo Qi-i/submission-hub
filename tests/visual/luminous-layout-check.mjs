@@ -32,15 +32,16 @@ async function inspectPage(page, name, expectedUi = 'luminous') {
       failures.push(`${name}: UI mode switcher is missing`)
     } else {
       const rect = switcher.getBoundingClientRect()
+      const visibleWidth = viewportWidth - rect.left
       const currentLabel = switcher.querySelector('.ui-mode-switcher-label')?.textContent || ''
       const actionLabel = switcher.querySelector('button')?.getAttribute('aria-label') || ''
-      if (rect.left < -1 || rect.right > viewportWidth + 1) failures.push(`${name}: UI mode switcher escapes the viewport`)
-      if (viewportWidth <= 640 && rect.width > 70) failures.push(`${name}: mobile UI switcher is too wide`)
+      if (rect.left < -1 || visibleWidth < 28 || visibleWidth > 54) failures.push(`${name}: UI mode switcher does not expose a safe edge handle (${visibleWidth}px visible)`)
+      if (viewportWidth <= 640 && rect.width > 54) failures.push(`${name}: mobile UI switcher is too wide`)
       if (expectedUi === 'luminous' && (currentLabel !== 'Luminous' || !actionLabel.includes('Luminous X'))) {
-        failures.push(`${name}: luminous switch state or next action is unclear`)
+        failures.push(`${name}: Luminous switch state or next action is unclear`)
       }
-      if (expectedUi === 'classic' && (currentLabel !== '经典' || !actionLabel.includes('Luminous UI'))) {
-        failures.push(`${name}: classic switch state or luminous action is unclear`)
+      if (expectedUi === 'luminous-x' && (currentLabel !== 'Luminous X' || actionLabel.includes('经典') || !actionLabel.includes('Luminous'))) {
+        failures.push(`${name}: Luminous X switch state still exposes the retired Classic UI`)
       }
     }
 
@@ -107,9 +108,9 @@ try {
   await inspectPage(dashboardMobile, 'luminous dashboard mobile')
   await dashboardMobile.close()
 
-  const classicFallback = await openView({ view: 'dashboard', theme: 'light', ui: 'classic', selector: '.paper-card-v3' })
-  await inspectPage(classicFallback, 'classic fallback', 'classic')
-  await classicFallback.close()
+  const retiredClassic = await openView({ view: 'dashboard', theme: 'light', ui: 'classic', selector: '.paper-card-v3' })
+  await inspectPage(retiredClassic, 'retired Classic migration', 'luminous')
+  await retiredClassic.close()
 
   if (details['luminous dashboard light']?.background === details['luminous dashboard dark']?.background) {
     failures.push('luminous light and dark themes use the same page background')

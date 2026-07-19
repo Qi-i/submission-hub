@@ -114,17 +114,24 @@ html[data-ui='luminous-x'] .preparation-workspace[data-section='journals'] > .pr
   filter: brightness(1.06) !important;
 }
 
-/* The overview only exposes objective progress data; advice and blockers remain inside the draft editor. */
-html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-readiness-note {
+/* The overview exposes only objective progress data and follows the shared geometry contract. */
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-readiness-note,
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-foot {
   display: none !important;
 }
 
-html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact {
-  height: 98px !important;
-  min-height: 98px !important;
-  max-height: 98px !important;
-  padding: 7px 8px !important;
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact,
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-journal-list .prep-journal-overview-card {
+  width: 100% !important;
+  height: var(--coh-overview-row-height, 106px) !important;
+  min-height: var(--coh-overview-row-height, 106px) !important;
+  max-height: var(--coh-overview-row-height, 106px) !important;
+  margin: 0 !important;
   overflow: hidden !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact {
+  padding: 0 !important;
 }
 
 html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-main {
@@ -132,16 +139,10 @@ html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .pre
   height: 100% !important;
 }
 
-html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card h3 {
-  margin-top: 3px !important;
-}
-
-html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-progress {
-  margin: 3px 0 !important;
-}
-
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card h3,
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-progress,
 html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-meta {
-  margin-top: 1px !important;
+  margin: 0 !important;
 }
 
 @media (max-width: 980px) {

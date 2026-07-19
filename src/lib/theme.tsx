@@ -1,13 +1,14 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
-export type UiMode = 'classic' | 'luminous' | 'luminous-x'
+export type UiMode = 'luminous' | 'luminous-x'
 
 type ResolvedTheme = 'light' | 'dark'
+type LegacyUiMode = UiMode | 'classic'
 
 type StoredPreferences = {
   mode?: ThemeMode
-  uiMode?: UiMode
+  uiMode?: LegacyUiMode
 }
 
 interface ThemeState {
@@ -22,20 +23,17 @@ interface ThemeProviderProps {
   children: ReactNode
   accountKey?: string
   accountPreferences?: StoredPreferences
-  onAccountPreferencesChange?: (patch: StoredPreferences) => unknown
+  onAccountPreferencesChange?: (patch: { mode?: ThemeMode; uiMode?: UiMode }) => unknown
 }
 
-const DEFAULT_PREFERENCES: Required<StoredPreferences> = {
+const DEFAULT_PREFERENCES: { mode: ThemeMode; uiMode: UiMode } = {
   mode: 'light',
   uiMode: 'luminous-x',
 }
 
-const UI_SEQUENCE: UiMode[] = ['classic', 'luminous', 'luminous-x']
-
-const UI_META: Record<UiMode, { label: string; nextLabel: string; icon: string }> = {
-  classic: { label: '经典', nextLabel: '切换到 Luminous UI', icon: '✦' },
-  luminous: { label: 'Luminous', nextLabel: '切换到 Luminous X', icon: '◆' },
-  'luminous-x': { label: 'Luminous X', nextLabel: '返回经典 UI', icon: '↺' },
+const UI_META: Record<UiMode, { label: string; nextLabel: string; icon: string; next: UiMode }> = {
+  luminous: { label: 'Luminous', nextLabel: '切换到 Luminous X', icon: '✦', next: 'luminous-x' },
+  'luminous-x': { label: 'Luminous X', nextLabel: '切换到 Luminous', icon: '◆', next: 'luminous' },
 }
 
 const ThemeContext = createContext<ThemeState>({
@@ -50,8 +48,10 @@ function isThemeMode(value: unknown): value is ThemeMode {
   return value === 'light' || value === 'dark' || value === 'system'
 }
 
-function isUiMode(value: unknown): value is UiMode {
-  return value === 'classic' || value === 'luminous' || value === 'luminous-x'
+function normalizeUiMode(value: unknown, fallback: UiMode = DEFAULT_PREFERENCES.uiMode): UiMode {
+  if (value === 'luminous' || value === 'luminous-x') return value
+  if (value === 'classic') return 'luminous'
+  return fallback
 }
 
 function getSystemTheme(): ResolvedTheme {
@@ -62,16 +62,16 @@ function getSystemTheme(): ResolvedTheme {
 function getVisualUiOverride(): UiMode | undefined {
   if (typeof window === 'undefined' || !window.location.pathname.includes('/tests/visual/')) return undefined
   const requested = new URLSearchParams(window.location.search).get('ui')
-  return isUiMode(requested) ? requested : 'classic'
+  return normalizeUiMode(requested, 'luminous')
 }
 
-function readStoredPreferences(): Required<StoredPreferences> {
+function readStoredPreferences(): { mode: ThemeMode; uiMode: UiMode } {
   try {
     const raw = localStorage.getItem('sh-prefs')
     const parsed = raw ? JSON.parse(raw) as StoredPreferences : {}
     return {
       mode: isThemeMode(parsed.mode) ? parsed.mode : DEFAULT_PREFERENCES.mode,
-      uiMode: getVisualUiOverride() || (isUiMode(parsed.uiMode) ? parsed.uiMode : DEFAULT_PREFERENCES.uiMode),
+      uiMode: getVisualUiOverride() || normalizeUiMode(parsed.uiMode),
     }
   } catch {
     return {
@@ -81,7 +81,7 @@ function readStoredPreferences(): Required<StoredPreferences> {
   }
 }
 
-function mergeStoredPreferences(patch: StoredPreferences) {
+function mergeStoredPreferences(patch: { mode?: ThemeMode; uiMode?: UiMode }) {
   try {
     const current = readStoredPreferences()
     localStorage.setItem('sh-prefs', JSON.stringify({ ...current, ...patch }))
@@ -91,8 +91,6 @@ function mergeStoredPreferences(patch: StoredPreferences) {
 }
 
 function UiModeSwitcher({ uiMode, setUiMode }: Pick<ThemeState, 'uiMode' | 'setUiMode'>) {
-  const currentIndex = UI_SEQUENCE.indexOf(uiMode)
-  const nextMode = UI_SEQUENCE[(currentIndex + 1) % UI_SEQUENCE.length]
   const meta = UI_META[uiMode]
 
   return (
@@ -103,7 +101,7 @@ function UiModeSwitcher({ uiMode, setUiMode }: Pick<ThemeState, 'uiMode' | 'setU
         className="active"
         aria-label={meta.nextLabel}
         title={meta.nextLabel}
-        onClick={() => setUiMode(nextMode)}
+        onClick={() => setUiMode(meta.next)}
       >
         <span className="ui-mode-spark" aria-hidden="true">{meta.icon}</span>
       </button>
@@ -135,12 +133,13 @@ export function ThemeProvider({
   useEffect(() => {
     if (!accountKey || getVisualUiOverride()) return
     const nextMode = isThemeMode(accountPreferences?.mode) ? accountPreferences.mode : DEFAULT_PREFERENCES.mode
-    const nextUiMode = isUiMode(accountPreferences?.uiMode) ? accountPreferences.uiMode : DEFAULT_PREFERENCES.uiMode
+    const nextUiMode = normalizeUiMode(accountPreferences?.uiMode)
     setModeState(nextMode)
     setUiModeState(nextUiMode)
     mergeStoredPreferences({ mode: nextMode, uiMode: nextUiMode })
 
-    const needsSeed = !isThemeMode(accountPreferences?.mode) || !isUiMode(accountPreferences?.uiMode)
+    const needsSeed = !isThemeMode(accountPreferences?.mode)
+      || accountPreferences?.uiMode !== nextUiMode
     if (needsSeed && seededAccountRef.current !== accountKey) {
       seededAccountRef.current = accountKey
       void onAccountPreferencesChange?.({ mode: nextMode, uiMode: nextUiMode })
