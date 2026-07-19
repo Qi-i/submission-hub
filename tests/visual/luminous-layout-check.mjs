@@ -32,9 +32,10 @@ async function inspectPage(page, name, expectedUi = 'luminous') {
       failures.push(`${name}: UI mode switcher is missing`)
     } else {
       const rect = switcher.getBoundingClientRect()
+      const visibleWidth = viewportWidth - rect.left
       const currentLabel = switcher.querySelector('.ui-mode-switcher-label')?.textContent || ''
       const actionLabel = switcher.querySelector('button')?.getAttribute('aria-label') || ''
-      if (rect.left < -1 || rect.right > viewportWidth + 1) failures.push(`${name}: UI mode switcher escapes the viewport`)
+      if (rect.left < -1 || visibleWidth < 28 || visibleWidth > 54) failures.push(`${name}: UI mode switcher does not expose a safe edge handle (${visibleWidth}px visible)`)
       if (viewportWidth <= 640 && rect.width > 54) failures.push(`${name}: mobile UI switcher is too wide`)
       if (expectedUi === 'luminous' && (currentLabel !== 'Luminous' || !actionLabel.includes('Luminous X'))) {
         failures.push(`${name}: Luminous switch state or next action is unclear`)
