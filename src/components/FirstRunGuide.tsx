@@ -36,7 +36,7 @@ const STEPS = [
     description: '使用 GitHub 或邮箱登录同一账户时，界面偏好都会自动恢复。',
     points: [
       { icon: Cloud, title: '账户同步', text: '界面版本、明暗模式和指引完成状态会保存到账户。' },
-      { icon: Palette, title: '随时切换', text: '右下角可在经典、Luminous 和 Luminous X 之间切换。' },
+      { icon: Palette, title: '随时切换', text: '右侧边缘按钮可在 Luminous 与 Luminous X 之间切换，悬停或聚焦后展开。' },
       { icon: ShieldCheck, title: '备份不受影响', text: '导入、备份和离线数据仍按原方式工作。' },
     ],
   },
