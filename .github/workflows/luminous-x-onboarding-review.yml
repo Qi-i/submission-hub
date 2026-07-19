@@ -43,6 +43,8 @@ jobs:
           exit 1
       - name: Verify compact Luminous X layouts
         run: node tests/visual/luminous-x-compact-check.mjs
+      - name: Verify remembered navigation
+        run: node tests/visual/navigation-memory-check.mjs
       - name: Verify first-run guide and defaults
         if: always()
         run: node tests/visual/first-run-guide-check.mjs
