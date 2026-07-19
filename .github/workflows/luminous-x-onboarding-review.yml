@@ -17,72 +17,9 @@ on:
       - '.github/workflows/luminous-x-onboarding-review.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  patch-coherence:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - name: Patch final conflicting selectors
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('src/luminous-coherence.css')
-          text = path.read_text(encoding='utf-8')
-          marker = '/* Final Luminous X specificity bridge. */'
-          if marker not in text:
-            text += r'''
-
-          /* Final Luminous X specificity bridge. */
-          html[data-ui='luminous-x'] .ui-mode-switcher {
-            right: 0 !important;
-            bottom: 18px !important;
-            padding: 4px 5px 4px 8px !important;
-            border-right: 0 !important;
-            border-radius: 14px 0 0 14px !important;
-            transform: translateX(calc(100% - 40px)) !important;
-          }
-
-          html[data-ui='luminous-x'] .ui-mode-switcher:hover,
-          html[data-ui='luminous-x'] .ui-mode-switcher:focus-within {
-            transform: translateX(0) !important;
-          }
-
-          html[data-ui='luminous-x'] .ui-mode-switcher .ui-mode-switcher-label {
-            max-width: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            opacity: 0 !important;
-          }
-
-          html[data-ui='luminous-x'] .ui-mode-switcher:hover .ui-mode-switcher-label,
-          html[data-ui='luminous-x'] .ui-mode-switcher:focus-within .ui-mode-switcher-label {
-            max-width: 110px !important;
-            padding: 0 8px 0 2px !important;
-            opacity: 1 !important;
-          }
-
-          html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact,
-          html[data-ui='luminous-x'] .preparation-workspace .prep-overview-journal-list .prep-journal-overview-card {
-            border-radius: var(--coh-card-radius, 14px) !important;
-          }
-          '''
-            path.write_text(text, encoding='utf-8')
-          PY
-      - name: Commit patch when needed
-        run: |
-          if git diff --quiet; then exit 0; fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add src/luminous-coherence.css
-          git commit -m "Resolve final Luminous X coherence conflicts [coherence-final-done]"
-          git push origin HEAD:${{ github.head_ref }}
-
   verify:
     runs-on: ubuntu-latest
     steps:
