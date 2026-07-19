@@ -1,0 +1,453 @@
+/* Shared geometry contract for the two supported interfaces.
+   Luminous keeps translucent glow materials; Luminous X keeps solid high-contrast surfaces. */
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) {
+  --coh-panel-radius: 18px;
+  --coh-card-radius: 14px;
+  --coh-control-radius: 11px;
+  --coh-panel-height: 424px;
+  --coh-overview-row-height: 106px;
+  --coh-panel-gap: 12px;
+}
+
+html[data-ui='luminous'] {
+  --coh-panel-bg: color-mix(in srgb, var(--luminous-panel-strong) 90%, transparent);
+  --coh-card-bg: color-mix(in srgb, var(--bg-card) 92%, transparent);
+  --coh-card-border: color-mix(in srgb, var(--luminous-cyan) 18%, var(--border-default));
+  --coh-card-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, .3);
+  --coh-card-hover: var(--shadow), 0 0 22px rgba(60, 245, 255, .14), 0 0 32px rgba(139, 92, 246, .08);
+  --coh-action-bg: linear-gradient(135deg, rgba(60, 245, 255, .2), rgba(139, 92, 246, .2), rgba(255, 79, 159, .16));
+}
+
+html[data-ui='luminous-x'] {
+  --coh-panel-bg: var(--lx-surface, #fff);
+  --coh-card-bg: var(--lx-surface, #fff);
+  --coh-card-border: var(--lx-line, rgba(39, 62, 104, .15));
+  --coh-card-shadow: 0 8px 22px rgba(20, 37, 75, .07), inset 0 1px 0 rgba(255, 255, 255, .72);
+  --coh-card-hover: 0 13px 30px rgba(30, 52, 103, .12), 0 0 0 1px rgba(60, 245, 255, .16);
+  --coh-action-bg: linear-gradient(135deg, #1f7bf2, #7552e8);
+}
+
+/* Retired three-mode switch: only Luminous and Luminous X remain.
+   The control rests against the viewport edge and expands on deliberate hover/focus. */
+.ui-mode-switcher {
+  right: 0 !important;
+  bottom: 18px !important;
+  z-index: 8900 !important;
+  min-height: 40px;
+  padding: 4px 5px 4px 8px !important;
+  border-right: 0 !important;
+  border-radius: 14px 0 0 14px !important;
+  transform: translateX(calc(100% - 40px));
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease !important;
+  will-change: transform;
+}
+
+.ui-mode-switcher:hover,
+.ui-mode-switcher:focus-within {
+  transform: translateX(0);
+}
+
+.ui-mode-switcher-label {
+  max-width: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 180ms ease, padding 180ms ease, opacity 140ms ease;
+}
+
+.ui-mode-switcher:hover .ui-mode-switcher-label,
+.ui-mode-switcher:focus-within .ui-mode-switcher-label {
+  max-width: 110px;
+  padding: 0 8px 0 2px !important;
+  opacity: 1;
+}
+
+.ui-mode-switcher button {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center;
+}
+
+.ui-mode-switcher .ui-mode-spark {
+  margin: 0 !important;
+}
+
+/* Preparation overview: both columns and all visible records share one geometry system. */
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-grid {
+  align-items: stretch !important;
+  gap: var(--coh-panel-gap) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-drafts,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journals {
+  height: var(--coh-panel-height) !important;
+  min-height: var(--coh-panel-height) !important;
+  max-height: var(--coh-panel-height) !important;
+  display: grid !important;
+  grid-template-rows: 58px minmax(0, 1fr) !important;
+  align-content: stretch !important;
+  overflow: hidden !important;
+  border-radius: var(--coh-panel-radius) !important;
+  background: var(--coh-panel-bg) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-panel-head {
+  min-height: 58px !important;
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  border-bottom: 1px solid var(--coh-card-border) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-panel-head > div {
+  min-width: 0;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-panel-head h2 {
+  margin: 0 !important;
+  font-size: 15px !important;
+  line-height: 1.2 !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-panel-head p {
+  margin: 3px 0 0 !important;
+  overflow: hidden;
+  color: var(--text-muted) !important;
+  font-size: 10px !important;
+  line-height: 1.25 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-panel-head > button {
+  min-width: max-content;
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border: 1px solid var(--coh-card-border) !important;
+  border-radius: var(--coh-control-radius) !important;
+  background: var(--coh-action-bg) !important;
+  color: var(--text-primary) !important;
+  font-size: 10px !important;
+  font-weight: 760 !important;
+}
+
+html[data-ui='luminous-x'] .prep-panel-head > button {
+  color: #fff !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-draft-list,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-list {
+  min-height: 0 !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 10px !important;
+  display: grid !important;
+  grid-auto-flow: row !important;
+  grid-auto-rows: var(--coh-overview-row-height) !important;
+  align-content: start !important;
+  gap: 8px !important;
+  overflow: auto !important;
+  scrollbar-gutter: stable;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card {
+  position: relative !important;
+  width: 100% !important;
+  height: var(--coh-overview-row-height) !important;
+  min-height: var(--coh-overview-row-height) !important;
+  max-height: var(--coh-overview-row-height) !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid var(--coh-card-border) !important;
+  border-radius: var(--coh-card-radius) !important;
+  background: var(--coh-card-bg) !important;
+  box-shadow: var(--coh-card-shadow) !important;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 180ms ease !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact::before,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 1;
+  width: 3px;
+  border-radius: var(--coh-card-radius) 0 0 var(--coh-card-radius);
+  background: linear-gradient(180deg, #3cf5ff, #8b5cf6 58%, #ff4f9f);
+  opacity: .72;
+  pointer-events: none;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact:hover,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card:hover {
+  transform: translateY(-1px) scale(1.004) !important;
+  border-color: color-mix(in srgb, #3cf5ff 42%, var(--coh-card-border)) !important;
+  box-shadow: var(--coh-card-hover) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact:active,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card:active {
+  transform: translateY(1px) scale(.995) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-draft-main {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 9px 116px 8px 12px !important;
+  display: grid !important;
+  grid-template-rows: auto auto 3px auto !important;
+  align-content: start !important;
+  gap: 4px !important;
+  overflow: hidden !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-draft-head,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact h3,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-progress,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-draft-meta {
+  margin: 0 !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact h3 {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px !important;
+  line-height: 1.25 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-draft-meta {
+  min-width: 0;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  overflow: hidden !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-draft-meta > span {
+  min-width: max-content;
+  padding: 2px 6px !important;
+  border-radius: 7px !important;
+  font-size: 9px !important;
+  line-height: 1.2 !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-readiness-note,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-draft-foot {
+  display: none !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact .prep-promote {
+  position: absolute !important;
+  top: 50% !important;
+  right: 10px !important;
+  z-index: 3 !important;
+  width: 96px !important;
+  min-width: 96px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 9px !important;
+  transform: translateY(-50%);
+  border-radius: var(--coh-control-radius) !important;
+  font-size: 10px !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card {
+  padding: 9px 11px 8px 13px !important;
+  display: grid !important;
+  grid-template-rows: auto auto auto !important;
+  align-content: start !important;
+  gap: 5px !important;
+  text-align: left !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-head,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-rank-blocks,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-meta {
+  margin: 0 !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-title {
+  min-width: 0;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-title > span:last-child {
+  min-width: 0;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-title b {
+  display: block;
+  overflow: hidden;
+  font-size: 12.5px !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-title small {
+  display: block;
+  margin-top: 1px;
+  overflow: hidden;
+  font-size: 9px !important;
+  line-height: 1.15 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-journal-rank-blocks,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-overview-journal-meta {
+  min-width: 0;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  overflow: hidden !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-journal-rank-blocks > span,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-overview-journal-meta > span {
+  min-width: max-content;
+  padding: 2px 6px !important;
+  border-radius: 7px !important;
+  font-size: 8.5px !important;
+  line-height: 1.2 !important;
+}
+
+/* Full preparation sections use one action-bar and card-grid contract in each interface. */
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='drafts'] > .prep-topbar,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='journals'] > .prep-topbar {
+  min-height: 58px !important;
+  border-radius: var(--coh-card-radius) !important;
+  border: 1px solid var(--coh-card-border) !important;
+  background: var(--coh-panel-bg) !important;
+  box-shadow: var(--coh-card-shadow) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='drafts'] > .prep-topbar .prep-top-actions,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='journals'] > .prep-topbar .prep-top-actions {
+  min-height: 38px !important;
+  gap: 8px !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='drafts'] > .prep-topbar .prep-search,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='journals'] > .prep-topbar .prep-search {
+  height: 38px !important;
+  border-radius: var(--coh-control-radius) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='drafts'] > .prep-topbar .btn-context-new,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .preparation-workspace[data-section='journals'] > .prep-topbar .btn-journal-primary {
+  height: 38px !important;
+  min-height: 38px !important;
+  border-radius: var(--coh-control-radius) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-card-grid {
+  align-items: stretch !important;
+  grid-auto-rows: 1fr;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-card-grid > .prep-topic-card,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-card-grid > .prep-journal-card {
+  height: 100% !important;
+  border-radius: var(--coh-card-radius) !important;
+}
+
+/* Forms must always sit above floating/sticky page controls. */
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 30000 !important;
+  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom)) !important;
+  align-items: flex-start !important;
+  overflow: auto !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .modal-overlay > .modal {
+  width: min(920px, 100%) !important;
+  max-height: calc(100dvh - 36px) !important;
+  margin: auto !important;
+  overflow: hidden !important;
+  border-radius: var(--coh-panel-radius) !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .modal .modal-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 5 !important;
+  flex: 0 0 auto !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .modal .modal-body {
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']):has(.modal-overlay) .ui-mode-switcher {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 1100px) {
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) {
+    --coh-panel-height: 410px;
+    --coh-overview-row-height: 104px;
+  }
+}
+
+@media (max-width: 760px) {
+  .ui-mode-switcher {
+    width: 40px !important;
+    padding: 4px !important;
+    transform: none !important;
+  }
+
+  .ui-mode-switcher-label {
+    display: none !important;
+  }
+
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-drafts,
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journals {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-draft-list,
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-overview-journal-list {
+    max-height: 344px !important;
+  }
+
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .modal-overlay {
+    padding: 8px !important;
+  }
+
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .modal-overlay > .modal {
+    max-height: calc(100dvh - 16px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-mode-switcher,
+  .ui-mode-switcher-label,
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-draft-card.compact,
+  :is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card {
+    transition: none !important;
+  }
+}
