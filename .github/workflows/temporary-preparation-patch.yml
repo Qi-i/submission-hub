@@ -1,0 +1,409 @@
+name: Apply preparation action patch
+
+on:
+  push:
+    branches: [agent/fix-real-prep-create-actions]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[prep-patch-done]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-real-prep-create-actions
+          fetch-depth: 0
+      - name: Patch preparation component, styles and checks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          component = Path('src/components/PreparationWorkspace.tsx')
+          text = component.read_text(encoding='utf-8')
+
+          old_drafts = '''    {section === 'drafts' && <div className="prep-draft-list">
+              {orderedDrafts.map(draft => <DraftCard
+                key={draft.id}
+                draft={draft}
+                topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined}
+                journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]}
+                primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined}
+                onEdit={() => setEditor({ type: 'draft', value: draft })}
+                onPromote={onPromoteDraft ? () => promote(draft) : undefined}
+                promoting={promotingId === draft.id}
+              />)}
+              {!orderedDrafts.length && <Empty text={query ? '没有匹配的草稿' : '尚无草稿准备记录'} action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}
+            </div>}'''
+          new_drafts = '''    {section === 'drafts' && <>
+              <SectionCreateBar
+                kind="draft"
+                count={normalized.drafts.length}
+                search={search}
+                onSearch={setSearch}
+                onCreate={() => setEditor({ type: 'draft', value: 'new' })}
+              />
+              <div className="prep-draft-list">
+                {orderedDrafts.map(draft => <DraftCard
+                  key={draft.id}
+                  draft={draft}
+                  topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined}
+                  journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]}
+                  primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined}
+                  onEdit={() => setEditor({ type: 'draft', value: draft })}
+                  onPromote={onPromoteDraft ? () => promote(draft) : undefined}
+                  promoting={promotingId === draft.id}
+                />)}
+                {!orderedDrafts.length && <Empty text={query ? '没有匹配的草稿' : '尚无草稿准备记录'} action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}
+              </div>
+            </>}'''
+
+          old_journals = '''    {section === 'journals' && <div className="prep-card-grid journal-grid">
+              {orderedJournals.map(journal => <JournalCard key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}
+              {!orderedJournals.length && <Empty text={query ? '没有匹配的期刊' : '尚未收藏期刊'} action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}
+            </div>}'''
+          new_journals = '''    {section === 'journals' && <>
+              <SectionCreateBar
+                kind="journal"
+                count={normalized.journals.length}
+                search={search}
+                onSearch={setSearch}
+                onCreate={() => setEditor({ type: 'journal', value: 'new' })}
+              />
+              <div className="prep-card-grid journal-grid">
+                {orderedJournals.map(journal => <JournalCard key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}
+                {!orderedJournals.length && <Empty text={query ? '没有匹配的期刊' : '尚未收藏期刊'} action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}
+              </div>
+            </>}'''
+
+          old_helper_anchor = '''function Empty({ text, action, onClick }: { text: string; action: string; onClick: () => void }) {
+            return <div className="prep-empty">
+              <span>{text}</span>
+              <button className="btn btn-ghost btn-sm" onClick={onClick}><Plus size={13} /> {action}</button>
+            </div>
+          }
+
+          function TopicCard'''
+          new_helper_anchor = '''function Empty({ text, action, onClick }: { text: string; action: string; onClick: () => void }) {
+            return <div className="prep-empty">
+              <span>{text}</span>
+              <button className="btn btn-ghost btn-sm" onClick={onClick}><Plus size={13} /> {action}</button>
+            </div>
+          }
+
+          function SectionCreateBar({
+            kind, count, search, onSearch, onCreate,
+          }: {
+            kind: 'draft' | 'journal'
+            count: number
+            search: string
+            onSearch: (value: string) => void
+            onCreate: () => void
+          }) {
+            const isDraft = kind === 'draft'
+            const Icon = isDraft ? FilePenLine : Star
+            const title = isDraft ? '草稿准备' : '期刊库'
+            const action = isDraft ? '新建草稿' : '收藏期刊'
+            const unit = isDraft ? '篇草稿' : '本期刊'
+
+            return <div className="prep-section-create-bar" data-kind={kind}>
+              <div className="prep-section-create-title">
+                <span><Icon size={16} /></span>
+                <div><strong>{title}</strong><small>当前 {count} {unit}</small></div>
+              </div>
+              <div className="prep-section-create-actions">
+                <label className="prep-section-search">
+                  <Search size={14} />
+                  <input
+                    value={search}
+                    onChange={event => onSearch(event.target.value)}
+                    placeholder={isDraft ? '搜索草稿...' : '搜索期刊...'}
+                  />
+                </label>
+                <button type="button" className="prep-section-create-primary" onClick={onCreate}>
+                  <Plus size={15} /> {action}
+                </button>
+              </div>
+            </div>
+          }
+
+          function TopicCard'''
+
+          old_note = '''      <div className={`prep-readiness-note ${readiness.blockers.length ? 'blocked' : readiness.score >= 90 ? 'ready' : ''}`}>
+                <strong>{readiness.nextAction}</strong>{readiness.blockers[0] && <span>{readiness.blockers[0]}</span>}
+              </div>'''
+          new_note = '''      {!compact && <div className={`prep-readiness-note ${readiness.blockers.length ? 'blocked' : readiness.score >= 90 ? 'ready' : ''}`}>
+                <strong>{readiness.nextAction}</strong>{readiness.blockers[0] && <span>{readiness.blockers[0]}</span>}
+              </div>}'''
+
+          for old, new, label in [
+            (old_drafts, new_drafts, 'draft section'),
+            (old_journals, new_journals, 'journal section'),
+            (old_helper_anchor, new_helper_anchor, 'section create helper'),
+            (old_note, new_note, 'compact advice visibility'),
+          ]:
+            if old not in text:
+              raise SystemExit(f'missing expected {label} block')
+            text = text.replace(old, new, 1)
+          component.write_text(text, encoding='utf-8')
+
+          css = Path('src/luminous-x-rebuild-corrections.css')
+          css_text = css.read_text(encoding='utf-8')
+          marker = '/* Real section-local creation controls. */'
+          if marker not in css_text:
+            css_text += r'''
+
+          /* Real section-local creation controls. */
+          html[data-ui='luminous-x'] .preparation-workspace[data-section='drafts'] > .prep-topbar,
+          html[data-ui='luminous-x'] .preparation-workspace[data-section='journals'] > .prep-topbar {
+            display: none !important;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-bar {
+            position: sticky;
+            top: 86px;
+            z-index: 150;
+            width: 100%;
+            min-height: 56px;
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) minmax(320px, auto);
+            align-items: center;
+            gap: 14px;
+            margin: 0 0 12px;
+            padding: 8px 10px;
+            border: 1px solid var(--lx-line);
+            border-radius: 14px;
+            background: color-mix(in srgb, var(--lx-surface) 97%, transparent);
+            box-shadow: 0 10px 28px rgba(15, 23, 42, .10), var(--lx-focus);
+            backdrop-filter: blur(14px);
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-title,
+          html[data-ui='luminous-x'] .prep-section-create-actions,
+          html[data-ui='luminous-x'] .prep-section-search {
+            display: flex;
+            align-items: center;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-title {
+            min-width: 0;
+            gap: 9px;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-title > span {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border: 1px solid color-mix(in srgb, var(--lx-cyan) 38%, var(--lx-line));
+            border-radius: 10px;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, rgba(60, 245, 255, .14), rgba(139, 92, 246, .12));
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-title strong,
+          html[data-ui='luminous-x'] .prep-section-create-title small {
+            display: block;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-title strong {
+            font-size: 13px;
+            font-weight: 820;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-title small {
+            margin-top: 2px;
+            color: var(--text-muted);
+            font-size: 9px;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-actions {
+            justify-content: flex-end;
+            gap: 8px;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-search {
+            width: min(320px, 32vw);
+            min-width: 210px;
+            height: 36px;
+            gap: 7px;
+            padding: 0 10px;
+            border: 1px solid var(--lx-line);
+            border-radius: 10px;
+            background: var(--lx-surface-soft);
+            color: var(--text-muted);
+          }
+
+          html[data-ui='luminous-x'] .prep-section-search input {
+            min-width: 0;
+            flex: 1 1 auto;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 10.5px;
+          }
+
+          html[data-ui='luminous-x'] .prep-section-create-primary {
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 15px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1f7bf2, #7954e9);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(70, 84, 220, .24);
+            font: inherit;
+            font-size: 10.5px;
+            font-weight: 800;
+            cursor: pointer;
+          }
+
+          html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact {
+            height: 104px !important;
+            min-height: 104px !important;
+            max-height: 104px !important;
+          }
+
+          html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-readiness-note {
+            display: none !important;
+          }
+
+          @media (max-width: 980px) {
+            html[data-ui='luminous-x'] .prep-section-create-bar {
+              top: 76px;
+              grid-template-columns: minmax(0, 1fr);
+              gap: 8px;
+            }
+            html[data-ui='luminous-x'] .prep-section-create-actions,
+            html[data-ui='luminous-x'] .prep-section-search {
+              width: 100%;
+            }
+            html[data-ui='luminous-x'] .prep-section-create-primary {
+              flex: 0 0 auto;
+            }
+          }
+
+          @media (max-width: 560px) {
+            html[data-ui='luminous-x'] .prep-section-create-actions {
+              align-items: stretch;
+              flex-direction: column;
+            }
+            html[data-ui='luminous-x'] .prep-section-create-primary {
+              width: 100%;
+            }
+          }
+          '''
+          css.write_text(css_text, encoding='utf-8')
+
+          check = Path('tests/visual/luminous-x-compact-check.mjs')
+          check_text = check.read_text(encoding='utf-8')
+          check_text = check_text.replace(
+            "      fullyVisibleDrafts,\n",
+            "      fullyVisibleDrafts,\n      compactAdviceCount: draftPanel?.querySelectorAll('.prep-draft-card.compact .prep-readiness-note').length || 0,\n",
+            1,
+          )
+          check_text = check_text.replace(
+            "    if (prepLayout.draftCards.some(card => card.height > 130)) failures.push('preparation: overview draft card is still too tall')\n",
+            "    if (prepLayout.draftCards.some(card => card.height > 108)) failures.push('preparation: overview draft card is still too tall')\n    if (prepLayout.compactAdviceCount > 0) failures.push('preparation: advice or blocker text is still exposed in compact draft cards')\n",
+            1,
+          )
+
+          old_actions = '''  const prepProxy = prep.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls")
+            await prepProxy.getByRole('button', { name: /草稿准备/ }).click()
+            await prep.waitForTimeout(150)
+            const draftActions = await prep.evaluate(() => {
+              const workspace = document.querySelector(".preparation-workspace[data-section='drafts']")
+              const topbar = workspace?.querySelector('.prep-topbar')
+              const action = workspace?.querySelector('.btn-context-new')
+              const journalAction = workspace?.querySelector('.btn-journal-primary')
+              return workspace && topbar && action ? {
+                position: getComputedStyle(topbar).position,
+                actionDisplay: getComputedStyle(action).display,
+                actionText: action.textContent?.trim() || '',
+                journalActionDisplay: journalAction ? getComputedStyle(journalAction).display : 'missing',
+              } : null
+            })
+            if (!draftActions) failures.push('preparation: draft creation controls are missing')
+            else {
+              if (draftActions.position !== 'sticky') failures.push('preparation: draft creation strip is not sticky')
+              if (draftActions.actionDisplay === 'none' || !draftActions.actionText.includes('新建草稿')) failures.push('preparation: new draft action is not visible')
+              if (draftActions.journalActionDisplay !== 'none') failures.push('preparation: unrelated journal action remains in draft creation strip')
+            }
+
+            await prepProxy.getByRole('button', { name: /期刊库/ }).click()
+            await prep.waitForTimeout(150)
+            const journalActions = await prep.evaluate(() => {
+              const workspace = document.querySelector(".preparation-workspace[data-section='journals']")
+              const topbar = workspace?.querySelector('.prep-topbar')
+              const action = workspace?.querySelector('.btn-journal-primary')
+              return workspace && topbar && action ? {
+                position: getComputedStyle(topbar).position,
+                actionDisplay: getComputedStyle(action).display,
+                actionText: action.textContent?.trim() || '',
+              } : null
+            })
+            if (!journalActions) failures.push('preparation: journal creation controls are missing')
+            else {
+              if (journalActions.position !== 'sticky') failures.push('preparation: journal creation strip is not sticky')
+              if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('收藏期刊')) failures.push('preparation: collect journal action is not visible')
+            }'''
+          new_actions = '''  const prepProxy = prep.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls")
+            await prepProxy.getByRole('button', { name: /草稿准备/ }).click()
+            await prep.waitForTimeout(150)
+            const draftActions = await prep.evaluate(() => {
+              const workspace = document.querySelector(".preparation-workspace[data-section='drafts']")
+              const bar = workspace?.querySelector(".prep-section-create-bar[data-kind='draft']")
+              const action = bar?.querySelector('.prep-section-create-primary')
+              return workspace && bar && action ? {
+                position: getComputedStyle(bar).position,
+                actionDisplay: getComputedStyle(action).display,
+                actionText: action.textContent?.trim() || '',
+                oldTopbarDisplay: getComputedStyle(workspace.querySelector(':scope > .prep-topbar')).display,
+              } : null
+            })
+            if (!draftActions) failures.push('preparation: real draft creation bar is missing')
+            else {
+              if (draftActions.position !== 'sticky') failures.push('preparation: draft creation bar is not sticky')
+              if (draftActions.actionDisplay === 'none' || !draftActions.actionText.includes('新建草稿')) failures.push('preparation: new draft action is not visible')
+              if (draftActions.oldTopbarDisplay !== 'none') failures.push('preparation: obsolete draft topbar remains visible')
+            }
+
+            await prepProxy.getByRole('button', { name: /期刊库/ }).click()
+            await prep.waitForTimeout(150)
+            const journalActions = await prep.evaluate(() => {
+              const workspace = document.querySelector(".preparation-workspace[data-section='journals']")
+              const bar = workspace?.querySelector(".prep-section-create-bar[data-kind='journal']")
+              const action = bar?.querySelector('.prep-section-create-primary')
+              return workspace && bar && action ? {
+                position: getComputedStyle(bar).position,
+                actionDisplay: getComputedStyle(action).display,
+                actionText: action.textContent?.trim() || '',
+                oldTopbarDisplay: getComputedStyle(workspace.querySelector(':scope > .prep-topbar')).display,
+              } : null
+            })
+            if (!journalActions) failures.push('preparation: real journal creation bar is missing')
+            else {
+              if (journalActions.position !== 'sticky') failures.push('preparation: journal creation bar is not sticky')
+              if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('收藏期刊')) failures.push('preparation: collect journal action is not visible')
+              if (journalActions.oldTopbarDisplay !== 'none') failures.push('preparation: obsolete journal topbar remains visible')
+            }'''
+          if old_actions not in check_text:
+            raise SystemExit('missing focused action check block')
+          check_text = check_text.replace(old_actions, new_actions, 1)
+          check.write_text(check_text, encoding='utf-8')
+          PY
+      - name: Commit patched files
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/PreparationWorkspace.tsx src/luminous-x-rebuild-corrections.css tests/visual/luminous-x-compact-check.mjs
+          git commit -m "Add real preparation creation bars and hide compact advice [prep-patch-done]"
+          git push origin HEAD:agent/fix-real-prep-create-actions
