@@ -1,4 +1,4 @@
-name: Verify Luminous X onboarding
+name: Verify Luminous interfaces and onboarding
 
 on:
   pull_request:
@@ -29,11 +29,14 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npm run typecheck && npx vite build --config vite.config.visual.ts
-      - run: |
+      - name: Typecheck and build visual harness
+        run: npm run typecheck && npx vite build --config vite.config.visual.ts
+      - name: Install browser runtime
+        run: |
           npm install --no-save --no-package-lock playwright@1.52.0
           npx playwright install --with-deps chromium > /tmp/playwright-install.log 2>&1
-      - run: |
+      - name: Start visual preview
+        run: |
           npx vite preview --config vite.config.visual.ts --host 127.0.0.1 --port 4174 > /tmp/submission-hub-focused.log 2>&1 &
           for i in {1..40}; do
             curl -fsS http://127.0.0.1:4174/tests/visual/index.html >/dev/null && exit 0
@@ -41,22 +44,30 @@ jobs:
           done
           cat /tmp/submission-hub-focused.log
           exit 1
-      - name: Verify compact Luminous X layouts
+      - name: Review 1 - compact Luminous X layouts
         run: node tests/visual/luminous-x-compact-check.mjs
-      - name: Verify remembered navigation
+      - name: Review 2 - cross-interface coherence and modal layering
+        run: node tests/visual/luminous-coherence-check.mjs
+      - name: Review 3 - two-mode migration and email authentication
+        run: node tests/visual/email-auth-check.mjs
+      - name: Review 4 - remembered navigation
         run: node tests/visual/navigation-memory-check.mjs
-      - name: Verify first-run guide and defaults
+      - name: Review 5 - first-run guide and defaults
         if: always()
         run: node tests/visual/first-run-guide-check.mjs
-      - name: Capture first-run guide
+      - name: Capture focused comparison pages
         if: always()
         run: |
           mkdir -p focused-review
+          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector=".preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light&ui=luminous" focused-review/luminous-preparation-light.png
+          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector=".preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=dark&ui=luminous" focused-review/luminous-preparation-dark.png
+          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector=".preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light&ui=luminous-x" focused-review/luminous-x-preparation-light.png
+          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector=".preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=dark&ui=luminous-x" focused-review/luminous-x-preparation-dark.png
           npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1280,900" --wait-for-selector=".first-run-guide" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous-x&guide=1" focused-review/luminous-x-first-run-guide.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: luminous-x-onboarding-review
+          name: luminous-two-interface-review
           path: |
             focused-review/*.png
             /tmp/submission-hub-focused.log
