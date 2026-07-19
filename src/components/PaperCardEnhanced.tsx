@@ -1,7 +1,8 @@
 import { useState, type KeyboardEvent } from 'react'
+import { isSupabaseStoragePath } from '../lib/file-storage-path'
 import { mergePaperWithJournalProfile } from '../lib/journal-paper-sync'
 import type { JournalProfile } from '../lib/preparation'
-import type { Paper } from '../lib/types'
+import type { Paper, PaperFile } from '../lib/types'
 import { daysBetweenDates, daysUntilDate, getStatus, getWorkflowSignal } from '../lib/types'
 import { inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
 
@@ -13,6 +14,7 @@ interface Props {
   journalProfile?: JournalProfile
   index?: number
   onClick?: () => void
+  onOpenStoredFile?: (path: string) => void | Promise<void>
 }
 
 type RankBadge = { label: string; cls: string }
@@ -141,7 +143,7 @@ function JournalQuickView({ paper, profile, badges, onClose }: { paper: Paper; p
   </div>
 }
 
-export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, journalProfile, index = 0, onClick }: Props) {
+export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, journalProfile, index = 0, onClick, onOpenStoredFile }: Props) {
   const [journalOpen, setJournalOpen] = useState(false)
   const linkedPaper = mergePaperWithJournalProfile(paper, journalProfile)
   const effectiveStatus = inferMainSubmissionStatus(linkedPaper.system_status, linkedPaper.status)
@@ -182,6 +184,18 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
       event.preventDefault()
       onClick()
     }
+  }
+
+  const renderFile = (file: PaperFile, fileIndex: number) => {
+    const title = `${file.t ? `${file.t}｜` : ''}${file.n || file.p || '附件'}`
+    const content = <>📎{file.t && <span className="file-type-pill">{file.t}</span>}</>
+    if (isUrl(file.p)) {
+      return <a key={fileIndex} className="file-dot" href={file.p} target="_blank" rel="noopener noreferrer" title={title} onClick={event => event.stopPropagation()}>{content}</a>
+    }
+    if (isSupabaseStoragePath(file.p) && onOpenStoredFile) {
+      return <button key={fileIndex} type="button" className="file-dot file-dot-button" title={title} aria-label={`打开附件 ${file.n || file.t || ''}`} onClick={event => { event.stopPropagation(); void onOpenStoredFile(file.p!) }}>{content}</button>
+    }
+    return <span key={fileIndex} className="file-dot file-dot-disabled" title={`${title}：未设置可用的在线链接`}>{content}</span>
   }
 
   return (
@@ -227,7 +241,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         <div className="paper-footer-left">
           {deadline && <span className={`deadline-badge ${deadline.cls}`}>{deadline.text}</span>}
           {signal && signalColors && signal.level !== 'success' && <span className="paper-next-action-chip" title={signal.detail} style={{ color: signalColors.color, background: signalColors.background }}>下一步 · {signal.text}</span>}
-          {(linkedPaper.files || []).filter(file => file.p || file.n).map((file, fileIndex) => isUrl(file.p) ? <a key={fileIndex} className="file-dot" href={file.p} target="_blank" rel="noopener noreferrer" title={`${file.t ? `${file.t}｜` : ''}${file.n || file.p}`} onClick={event => event.stopPropagation()}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</a> : <span key={fileIndex} className="file-dot file-dot-disabled" title={`${file.t ? `${file.t}｜` : ''}${file.n || '本地文件记录'}：未设置在线链接`}>📎{file.t && <span className="file-type-pill">{file.t}</span>}</span>)}
+          {(linkedPaper.files || []).filter(file => file.p || file.n).map(renderFile)}
         </div>
         <span className="paper-date-info">{dateInfo}</span>
       </div>
