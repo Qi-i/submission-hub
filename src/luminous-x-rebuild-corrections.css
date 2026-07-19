@@ -504,3 +504,233 @@ html[data-ui='luminous-x'] .preparation-workspace .prep-search {
     flex-wrap: wrap !important;
   }
 }
+
+/* Feedback correction: force a genuinely dense overview that survives long real-world titles. */
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-drafts {
+  padding: 11px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-drafts .prep-panel-head {
+  min-height: 42px !important;
+  margin-bottom: 5px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-drafts .prep-panel-head h2 {
+  font-size: 15px !important;
+  line-height: 1.15 !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-drafts .prep-panel-head p {
+  margin-top: 2px !important;
+  font-size: 9.5px !important;
+  line-height: 1.2 !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list {
+  gap: 6px !important;
+  padding-right: 3px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact {
+  box-sizing: border-box !important;
+  height: 126px !important;
+  min-height: 126px !important;
+  max-height: 126px !important;
+  padding: 7px 8px !important;
+  gap: 7px !important;
+  overflow: hidden !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-main {
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-head {
+  min-height: 17px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-card h3 {
+  margin: 3px 0 0 !important;
+  font-size: 12px !important;
+  line-height: 1.18 !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-progress {
+  height: 3px !important;
+  margin: 3px 0 !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-meta {
+  min-height: 18px !important;
+  gap: 3px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-meta > span {
+  padding: 2px 4px !important;
+  font-size: 8.5px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-readiness-note {
+  min-height: 21px !important;
+  margin-top: 3px !important;
+  padding: 3px 5px !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-draft-foot {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .prep-promote {
+  min-height: 26px !important;
+  height: 26px !important;
+  padding: 0 7px !important;
+  font-size: 9px !important;
+}
+
+/* Draft and journal pages retain an unmistakable, always-visible creation strip. */
+html[data-ui='luminous-x'] .preparation-workspace[data-section='drafts'] .prep-topbar,
+html[data-ui='luminous-x'] .preparation-workspace[data-section='journals'] .prep-topbar {
+  position: sticky !important;
+  z-index: 140 !important;
+  top: 86px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 48px !important;
+  margin: 0 0 10px !important;
+  padding: 6px 7px !important;
+  justify-content: stretch !important;
+  border: 1px solid var(--lx-line) !important;
+  border-radius: 13px !important;
+  background: color-mix(in srgb, var(--lx-surface) 96%, transparent) !important;
+  box-shadow: 0 9px 24px rgba(15, 23, 42, .09) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace[data-section='drafts'] .prep-top-actions,
+html[data-ui='luminous-x'] .preparation-workspace[data-section='journals'] .prep-top-actions {
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  align-items: center !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace[data-section='drafts'] .prep-search,
+html[data-ui='luminous-x'] .preparation-workspace[data-section='journals'] .prep-search {
+  margin-right: auto !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace[data-section='drafts'] .btn-journal-primary {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace[data-section='drafts'] .btn-context-new,
+html[data-ui='luminous-x'] .preparation-workspace[data-section='journals'] .btn-journal-primary {
+  min-height: 36px !important;
+  height: 36px !important;
+  margin-left: auto !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, .20) !important;
+  font-size: 11px !important;
+  font-weight: 780 !important;
+}
+
+/* Submission cards use low-saturation status surfaces rather than one undifferentiated white field. */
+html[data-ui='luminous-x'] .paper-card-v3 {
+  --paper-card-angle: 145deg;
+  --paper-card-start: var(--lx-surface);
+  --paper-card-end: var(--lx-surface);
+  --paper-card-border: var(--lx-line);
+  background-color: var(--paper-card-end) !important;
+  background-image:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--paper-status-color) 9%, transparent), transparent 34%),
+    linear-gradient(var(--paper-card-angle), var(--paper-card-start), var(--paper-card-end)) !important;
+  border-color: var(--paper-card-border) !important;
+}
+
+html[data-ui='luminous-x'] .paper-grid > .paper-card-v3:nth-child(4n+2) { --paper-card-angle: 155deg; }
+html[data-ui='luminous-x'] .paper-grid > .paper-card-v3:nth-child(4n+3) { --paper-card-angle: 135deg; }
+html[data-ui='luminous-x'] .paper-grid > .paper-card-v3:nth-child(4n+4) { --paper-card-angle: 165deg; }
+
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) {
+  --paper-card-start: #f3f2ff;
+  --paper-card-end: #ffffff;
+  --paper-card-border: #d9d6ff;
+}
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) {
+  --paper-card-start: #eefaff;
+  --paper-card-end: #ffffff;
+  --paper-card-border: #cdebf7;
+}
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) {
+  --paper-card-start: #fff8e9;
+  --paper-card-end: #ffffff;
+  --paper-card-border: #f1dfb7;
+}
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='revision']) {
+  --paper-card-start: #faf1ff;
+  --paper-card-end: #ffffff;
+  --paper-card-border: #ead2f7;
+}
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) {
+  --paper-card-start: #edf9f2;
+  --paper-card-end: #ffffff;
+  --paper-card-border: #caead8;
+}
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) {
+  --paper-card-start: #fff0f1;
+  --paper-card-end: #ffffff;
+  --paper-card-border: #f0cfd3;
+}
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) {
+  --paper-card-start: #f1f4f8;
+  --paper-card-end: #ffffff;
+  --paper-card-border: #d6dde7;
+}
+
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) {
+  --paper-card-start: #1b1a37;
+  --paper-card-end: #11182d;
+  --paper-card-border: #34315a;
+}
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) {
+  --paper-card-start: #10283a;
+  --paper-card-end: #11182d;
+  --paper-card-border: #28506a;
+}
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) {
+  --paper-card-start: #2d2414;
+  --paper-card-end: #11182d;
+  --paper-card-border: #5d4a25;
+}
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='revision']) {
+  --paper-card-start: #291936;
+  --paper-card-end: #11182d;
+  --paper-card-border: #513163;
+}
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) {
+  --paper-card-start: #132b22;
+  --paper-card-end: #11182d;
+  --paper-card-border: #28533f;
+}
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) {
+  --paper-card-start: #30191f;
+  --paper-card-end: #11182d;
+  --paper-card-border: #61303a;
+}
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) {
+  --paper-card-start: #1a2230;
+  --paper-card-end: #11182d;
+  --paper-card-border: #354153;
+}
+
+@media (max-width: 980px) {
+  html[data-ui='luminous-x'] .preparation-workspace[data-section='drafts'] .prep-topbar,
+  html[data-ui='luminous-x'] .preparation-workspace[data-section='journals'] .prep-topbar {
+    top: 78px !important;
+  }
+}
