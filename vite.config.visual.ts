@@ -9,7 +9,10 @@ export default defineConfig({
     outDir: 'dist-visual',
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, 'tests/visual/index.html'),
+      input: {
+        review: resolve(__dirname, 'tests/visual/index.html'),
+        navigation: resolve(__dirname, 'tests/visual/navigation-memory.html'),
+      },
     },
   },
   preview: {
