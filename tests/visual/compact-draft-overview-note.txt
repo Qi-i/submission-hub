@@ -1,0 +1,5 @@
+Compact draft overview acceptance criteria:
+- panel title is 草稿推进
+- draft and saved-journal panels are equal height on desktop
+- at least two complete draft cards are visible when data contains two or more records
+- compact draft cards remain below the visual height threshold
