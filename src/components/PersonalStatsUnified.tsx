@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
 import StatsTrendChart from './StatsTrendChart'
+import { useTheme } from '../lib/theme'
 
 interface Props {
   papers: Paper[]
@@ -118,6 +120,8 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
   const [scale, setScale] = useState<Scale>('month')
   const [range, setRange] = useState<Range>('all')
   const [modules, setModules] = useState<Record<StatsModule, boolean>>(() => readModulePrefs())
+  const { uiMode } = useTheme()
+  const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)
   const [visible, setVisible] = useState<Record<TrendKey, boolean>>({
     cumSubmitted: true,
     cumAccepted: true,
@@ -130,6 +134,10 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
   useEffect(() => {
     try { localStorage.setItem(moduleStorageKey, JSON.stringify(modules)) } catch { /* optional preference */ }
   }, [modules])
+
+  useEffect(() => {
+    setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)
+  }, [uiMode])
 
   const summary = useMemo(() => {
     const submittedTotal = papers.filter(paper => paper.status !== 'preparing' || !!paper.submitted_date).length
@@ -253,13 +261,23 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
 
   return (
     <div className="stats-panel stats-panel-unified">
-      <div className="stats-module-controls">
-        <button className={modules.overview ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, overview: !previous.overview }))}>核心概览</button>
-        <button className={modules.process ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, process: !previous.process }))}>过程指标</button>
-        <button className={modules.trend ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, trend: !previous.trend }))}>趋势图</button>
-        <button className={modules.charts ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, charts: !previous.charts }))}>分布概览</button>
-        <button onClick={() => setModules(defaultModules)}>恢复默认</button>
-      </div>
+      {(uiMode === 'luminous' && luminousHeaderSlot ? createPortal(
+        <div className="stats-module-controls stats-module-controls-portal">
+          <button className={modules.overview ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, overview: !previous.overview }))}>核心概览</button>
+          <button className={modules.process ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, process: !previous.process }))}>过程指标</button>
+          <button className={modules.trend ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, trend: !previous.trend }))}>趋势图</button>
+          <button className={modules.charts ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, charts: !previous.charts }))}>分布概览</button>
+          <button onClick={() => setModules(defaultModules)}>恢复默认</button>
+        </div>,
+        luminousHeaderSlot,
+      ) :
+        <div className="stats-module-controls">
+          <button className={modules.overview ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, overview: !previous.overview }))}>核心概览</button>
+          <button className={modules.process ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, process: !previous.process }))}>过程指标</button>
+          <button className={modules.trend ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, trend: !previous.trend }))}>趋势图</button>
+          <button className={modules.charts ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, charts: !previous.charts }))}>分布概览</button>
+          <button onClick={() => setModules(defaultModules)}>恢复默认</button>
+        </div>)}
 
       {modules.overview && <div className="stats-summary-unified">
         {cards.map((card, index) => <div key={card.label} className="summary-card stats-summary-card glass-panel" data-tone={card.tone} data-secondary={card.secondary ? 'true' : 'false'}><span className="summary-icon">{card.icon}</span><div><b>{card.value}</b><span>{card.label}</span></div></div>)}
