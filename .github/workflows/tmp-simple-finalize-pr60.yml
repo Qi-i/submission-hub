@@ -1,0 +1,32 @@
+name: One-shot deterministic PR 60 finalizer
+
+on:
+  push:
+    branches: [agent/refine-ui-alignment-surfaces]
+    paths:
+      - '.github/workflows/tmp-simple-finalize-pr60.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/refine-ui-alignment-surfaces
+          fetch-depth: 0
+      - run: python scripts/finalize_pr60.py
+      - name: Commit final source state
+        run: |
+          git checkout origin/main -- .github/workflows/luminous-x-onboarding-review.yml
+          rm -f .github/workflows/tmp-finish-ui-refinement.yml
+          rm -f .github/workflows/tmp-finalize-pr60.yml
+          rm -f .github/workflows/tmp-simple-finalize-pr60.yml
+          rm -f scripts/finalize_pr60.py
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Finalize responsive UI alignment and geometry"
+          git push origin HEAD:agent/refine-ui-alignment-surfaces
