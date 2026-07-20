@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/visual/**'
+      - 'scripts/refine_ui_alignment.py'
       - 'vite.config.visual.ts'
       - '.github/workflows/luminous-x-onboarding-review.yml'
   push:
@@ -17,9 +18,28 @@ on:
       - '.github/workflows/luminous-x-onboarding-review.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  patch-alignment:
+    if: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.head.label, 'ui-alignment-patch-done') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Apply screenshot-driven UI refactor
+        run: python scripts/refine_ui_alignment.py
+      - name: Commit refactor when needed
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/Dashboard.tsx src/components/LuminousXStatusBar.tsx src/components/PreparationWorkspace.tsx src/components/PersonalStatsUnified.tsx src/luminous-ui.css src/luminous-x-rebuild-corrections.css tests/visual/luminous-coherence-check.mjs
+          git commit -m "Refine cross-theme alignment and surfaces [ui-alignment-patch-done]"
+          git push origin HEAD:${{ github.head_ref }}
+
   verify:
     runs-on: ubuntu-latest
     steps:
