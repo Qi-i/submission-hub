@@ -119,7 +119,8 @@ export const SUBMISSION_SYSTEM_OPTIONS = [
 
 export const FILE_TYPE_OPTIONS = [
   '初稿', '投稿稿', 'Cover Letter', 'Response to Reviewers', '修回稿',
-  '审稿意见', '录用通知', 'Proof', '版权协议', 'APC / 发票', '投稿截图', '其它',
+  '审稿意见', '录用通知', '检索证明', '见刊文章', 'Proof', '版权协议',
+  'APC / 发票', '投稿截图', '其它',
 ]
 
 export const NEXT_ACTION_OPTIONS = [
