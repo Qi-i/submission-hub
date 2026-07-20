@@ -1,0 +1,56 @@
+name: One-shot UI duplicate cleanup
+
+on:
+  push:
+    branches: [agent/refine-ui-alignment-surfaces]
+    paths:
+      - '.github/workflows/tmp-clean-ui-duplicates.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/refine-ui-alignment-surfaces
+          fetch-depth: 0
+      - name: Remove duplicate generated declarations
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_all(path: Path, replacements: list[tuple[str, str]]) -> None:
+              text = path.read_text(encoding='utf-8')
+              original = text
+              for old, new in replacements:
+                  while old in text:
+                      text = text.replace(old, new)
+              if text != original:
+                  path.write_text(text, encoding='utf-8')
+
+          prep = Path('src/components/PreparationWorkspace.tsx')
+          replace_all(prep, [
+              ("import { useTheme } from '../lib/theme'\nimport { useTheme } from '../lib/theme'\n", "import { useTheme } from '../lib/theme'\n"),
+              ("  const { uiMode } = useTheme()\n  const [luminousXActionSlot, setLuminousXActionSlot] = useState<HTMLElement | null>(null)\n\n  useEffect(() => {\n    setLuminousXActionSlot(uiMode === 'luminous-x' ? document.getElementById('lx-preparation-actions-slot') : null)\n  }, [uiMode])\n  const { uiMode } = useTheme()\n  const [luminousXActionSlot, setLuminousXActionSlot] = useState<HTMLElement | null>(null)\n\n  useEffect(() => {\n    setLuminousXActionSlot(uiMode === 'luminous-x' ? document.getElementById('lx-preparation-actions-slot') : null)\n  }, [uiMode])\n", "  const { uiMode } = useTheme()\n  const [luminousXActionSlot, setLuminousXActionSlot] = useState<HTMLElement | null>(null)\n\n  useEffect(() => {\n    setLuminousXActionSlot(uiMode === 'luminous-x' ? document.getElementById('lx-preparation-actions-slot') : null)\n  }, [uiMode])\n"),
+          ])
+
+          stats = Path('src/components/PersonalStatsUnified.tsx')
+          replace_all(stats, [
+              ("import { createPortal } from 'react-dom'\nimport { createPortal } from 'react-dom'\n", "import { createPortal } from 'react-dom'\n"),
+              ("import { useTheme } from '../lib/theme'\nimport { useTheme } from '../lib/theme'\n", "import { useTheme } from '../lib/theme'\n"),
+              ("  const { uiMode } = useTheme()\n  const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)\n  const { uiMode } = useTheme()\n  const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)\n", "  const { uiMode } = useTheme()\n  const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)\n"),
+              ("  useEffect(() => {\n    setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)\n  }, [uiMode])\n\n  useEffect(() => {\n    setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)\n  }, [uiMode])\n", "  useEffect(() => {\n    setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)\n  }, [uiMode])\n"),
+          ])
+
+          Path('.github/workflows/tmp-clean-ui-duplicates.yml').unlink()
+          PY
+      - name: Commit cleaned sources
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Clean duplicate UI declarations"
+          git push origin HEAD:agent/refine-ui-alignment-surfaces
