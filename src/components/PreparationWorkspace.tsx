@@ -16,7 +16,6 @@ import { DraftForm, TopicForm } from './PreparationForms'
 import JournalFormEnhanced from './JournalFormEnhanced'
 import JournalComparison from './JournalComparison'
 import { useTheme } from '../lib/theme'
-import { useTheme } from '../lib/theme'
 
 type SectionKey = 'overview' | 'topics' | 'drafts' | 'journals' | 'compare'
 type Editor =
