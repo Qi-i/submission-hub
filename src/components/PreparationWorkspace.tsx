@@ -16,6 +16,7 @@ import { DraftForm, TopicForm } from './PreparationForms'
 import JournalFormEnhanced from './JournalFormEnhanced'
 import JournalComparison from './JournalComparison'
 import { useTheme } from '../lib/theme'
+import { useTheme } from '../lib/theme'
 
 type SectionKey = 'overview' | 'topics' | 'drafts' | 'journals' | 'compare'
 type Editor =
@@ -52,6 +53,12 @@ export default function PreparationWorkspace({
   const [editor, setEditor] = useState<Editor>(null)
   const [promotingId, setPromotingId] = useState<string | null>(null)
   const [creatingTopicId, setCreatingTopicId] = useState<string | null>(null)
+  const { uiMode } = useTheme()
+  const [luminousXActionSlot, setLuminousXActionSlot] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    setLuminousXActionSlot(uiMode === 'luminous-x' ? document.getElementById('lx-preparation-actions-slot') : null)
+  }, [uiMode])
   const { uiMode } = useTheme()
   const [luminousXActionSlot, setLuminousXActionSlot] = useState<HTMLElement | null>(null)
 
