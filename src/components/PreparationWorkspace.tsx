@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ArrowRight, BookOpen, CheckCircle2, CircleAlert, Clock3, ExternalLink,
   FilePenLine, LayoutDashboard, Lightbulb, Plus, Scale, Search, Star, Target,
@@ -14,6 +15,7 @@ import { daysUntilDate } from '../lib/types'
 import { DraftForm, TopicForm } from './PreparationForms'
 import JournalFormEnhanced from './JournalFormEnhanced'
 import JournalComparison from './JournalComparison'
+import { useTheme } from '../lib/theme'
 
 type SectionKey = 'overview' | 'topics' | 'drafts' | 'journals' | 'compare'
 type Editor =
@@ -50,6 +52,21 @@ export default function PreparationWorkspace({
   const [editor, setEditor] = useState<Editor>(null)
   const [promotingId, setPromotingId] = useState<string | null>(null)
   const [creatingTopicId, setCreatingTopicId] = useState<string | null>(null)
+  const { uiMode } = useTheme()
+  const [luminousXActionSlot, setLuminousXActionSlot] = useState<HTMLElement | null>(null)
+  const [canPortalActions, setCanPortalActions] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1421px)').matches)
+
+  useEffect(() => {
+    setLuminousXActionSlot(uiMode === 'luminous-x' ? document.getElementById('lx-preparation-actions-slot') : null)
+  }, [uiMode])
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1421px)')
+    const sync = () => setCanPortalActions(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
 
   const normalized = useMemo<PreparationSnapshot>(() => ({
     journals: (snapshot.journals || []).map(journal => ({
@@ -229,18 +246,33 @@ export default function PreparationWorkspace({
         <h1>投稿准备</h1>
         <p>把选题、草稿与目标期刊组织成一条清晰的投稿前流程。</p>
       </div>
-      <div className="prep-top-actions">
-        <div className="prep-search">
-          <Search size={15} />
-          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." />
-        </div>
-        <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}>
-          <Star size={14} /> 收藏期刊
-        </button>
-        {!['journals', 'compare'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}>
-          <Plus size={14} /> {section === 'topics' ? '新增选题' : '新建草稿'}
-        </button>}
-      </div>
+      {(uiMode === 'luminous-x' && canPortalActions && luminousXActionSlot ? createPortal(
+        <div className="prep-top-actions prep-top-actions-portal">
+          <div className="prep-search">
+            <Search size={15} />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." />
+          </div>
+          <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}>
+            <Star size={14} /> 收藏期刊
+          </button>
+          {!['journals', 'compare'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}>
+            <Plus size={14} /> {section === 'topics' ? '新增选题' : '新建草稿'}
+          </button>}
+        </div>,
+        luminousXActionSlot,
+      ) :
+        <div className="prep-top-actions">
+          <div className="prep-search">
+            <Search size={15} />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." />
+          </div>
+          <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}>
+            <Star size={14} /> 收藏期刊
+          </button>
+          {!['journals', 'compare'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}>
+            <Plus size={14} /> {section === 'topics' ? '新增选题' : '新建草稿'}
+          </button>}
+        </div>)}
     </div>
 
     <div className="prep-nav">

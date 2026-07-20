@@ -243,6 +243,7 @@ export default function OfflineDashboard() {
             <div className="header-subtitle">离线版 · 数据仅存储在本地浏览器</div>
           </div>
         </div>
+        <div id="luminous-header-center-slot" className="luminous-header-center-slot" aria-label="当前页面操作" />
         <div className="header-actions">
           <div className="header-utility-stack">
             {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}

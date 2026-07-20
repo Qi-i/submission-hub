@@ -83,7 +83,7 @@
 }
 
 html[data-ui="luminous"][data-theme="light"] {
-  --bg-base: #edf3ff;
+  --bg-base: #f7f8fb;
   --bg-surface: rgba(255, 255, 255, 0.76);
   --bg-card: rgba(255, 255, 255, 0.82);
   --bg-elevated: rgba(242, 247, 255, 0.92);
@@ -116,7 +116,7 @@ html[data-ui="luminous"][data-theme="light"] {
   --gradient-accent: linear-gradient(135deg, #3cf5ff 0%, #8b5cf6 52%, #ff4f9f 100%);
   --gradient-cool: linear-gradient(135deg, #3cf5ff, #8b5cf6);
   --gradient-warm: linear-gradient(135deg, #ff4f9f, #8b5cf6);
-  --gradient-page: radial-gradient(circle at 8% 8%, rgba(60, 245, 255, 0.2), transparent 28%), radial-gradient(circle at 90% 4%, rgba(255, 79, 159, 0.17), transparent 30%), radial-gradient(circle at 52% 100%, rgba(139, 92, 246, 0.16), transparent 34%), linear-gradient(145deg, #f8fbff 0%, #edf3ff 48%, #f7f1ff 100%);
+  --gradient-page: linear-gradient(180deg, #fbfcfe 0%, #f6f7fa 100%);
   --luminous-panel: rgba(255, 255, 255, 0.72);
   --luminous-panel-strong: rgba(255, 255, 255, 0.9);
   --luminous-line: rgba(68, 86, 130, 0.14);
@@ -529,5 +529,102 @@ html[data-ui="luminous"] [role="button"]:focus-visible {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+
+/* Neutral canvas keeps colored modules legible instead of tinting the whole page blue. */
+html[data-ui='luminous'][data-theme='light'] body {
+  background: #f7f8fb !important;
+}
+
+html[data-ui='luminous'][data-theme='light'] body::before {
+  opacity: .12 !important;
+}
+
+html[data-ui='luminous'] .app-header .luminous-header-center-slot {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
+}
+
+html[data-ui='luminous'] .luminous-header-center-slot .stats-module-controls-portal {
+  max-width: 100%;
+  margin: 0 !important;
+  justify-self: auto !important;
+}
+
+html[data-ui='luminous'] .stats-panel.stats-panel-unified {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-ui='luminous'] .lx-workflow-view,
+html[data-ui='luminous'] .paper-grid {
+  align-items: stretch !important;
+}
+
+html[data-ui='luminous'] .paper-grid > .paper-card-v3 {
+  height: 100% !important;
+  align-self: stretch !important;
+}
+
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) {
+  background: linear-gradient(rgba(239, 248, 255, .96), rgba(239, 248, 255, .96)) padding-box, linear-gradient(135deg, rgba(56, 189, 248, .36), rgba(139, 92, 246, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) {
+  background: linear-gradient(rgba(238, 246, 255, .97), rgba(238, 246, 255, .97)) padding-box, linear-gradient(135deg, rgba(59, 130, 246, .38), rgba(60, 245, 255, .24)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) {
+  background: linear-gradient(rgba(255, 249, 235, .97), rgba(255, 249, 235, .97)) padding-box, linear-gradient(135deg, rgba(245, 158, 11, .42), rgba(139, 92, 246, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='revision']) {
+  background: linear-gradient(rgba(248, 244, 255, .97), rgba(248, 244, 255, .97)) padding-box, linear-gradient(135deg, rgba(139, 92, 246, .42), rgba(255, 79, 159, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) {
+  background: linear-gradient(rgba(239, 251, 244, .97), rgba(239, 251, 244, .97)) padding-box, linear-gradient(135deg, rgba(34, 197, 94, .40), rgba(60, 245, 255, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) {
+  background: linear-gradient(rgba(255, 241, 243, .97), rgba(255, 241, 243, .97)) padding-box, linear-gradient(135deg, rgba(239, 68, 68, .38), rgba(255, 79, 159, .24)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) {
+  background: linear-gradient(rgba(244, 246, 250, .98), rgba(244, 246, 250, .98)) padding-box, linear-gradient(135deg, rgba(100, 116, 139, .34), rgba(139, 92, 246, .18)) border-box !important;
+}
+
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) { background: linear-gradient(155deg, #1b1a37, #11182d) padding-box, linear-gradient(135deg, #34315a, rgba(139, 92, 246, .42)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) { background: linear-gradient(155deg, #10283a, #11182d) padding-box, linear-gradient(135deg, #28506a, rgba(60, 245, 255, .34)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) { background: linear-gradient(155deg, #2d2414, #11182d) padding-box, linear-gradient(135deg, #5d4a25, rgba(245, 158, 11, .38)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='revision']) { background: linear-gradient(155deg, #291936, #11182d) padding-box, linear-gradient(135deg, #513163, rgba(255, 79, 159, .36)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) { background: linear-gradient(155deg, #132b22, #11182d) padding-box, linear-gradient(135deg, #28533f, rgba(34, 197, 94, .36)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) { background: linear-gradient(155deg, #30191f, #11182d) padding-box, linear-gradient(135deg, #61303a, rgba(239, 68, 68, .38)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) { background: linear-gradient(155deg, #1a2230, #11182d) padding-box, linear-gradient(135deg, #354153, rgba(100, 116, 139, .34)) border-box !important; }
+
+html[data-ui='luminous'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact h3 {
+  min-height: 31px !important;
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+}
+
+@media (max-width: 980px) {
+  html[data-ui='luminous'] .app-header .luminous-header-center-slot {
+    display: none !important;
+  }
+  html[data-ui='luminous'] .stats-panel > .stats-module-controls {
+    display: flex !important;
   }
 }

@@ -130,6 +130,7 @@ export default function LuminousXStatusBar({
       </div>
 
       <div className="lx-status-controls-host" aria-label={`${page.label}页面操作`}>
+        {page.key === 'preparation' && <div id="lx-preparation-actions-slot" className="lx-preparation-actions-slot" />}
         {onLayoutModeChange && (
           <div className="lx-view-switch" role="group" aria-label="投稿记录视图">
             {VIEW_OPTIONS.map(option => {
