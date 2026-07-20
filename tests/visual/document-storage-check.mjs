@@ -7,6 +7,9 @@ const paperForm = readFileSync('src/components/PaperForm.tsx', 'utf8')
 const archive = readFileSync('src/components/PaperFormArchive.tsx', 'utf8')
 const onlineCard = readFileSync('src/components/OnlinePaperCard.tsx', 'utf8')
 const preview = readFileSync('src/components/FilePreviewModal.tsx', 'utf8')
+const previewPortal = readFileSync('src/components/FilePreviewPortal.tsx', 'utf8')
+const types = readFileSync('src/lib/types.ts', 'utf8')
+const layerCss = readFileSync('src/ui-layer-contract.css', 'utf8')
 const edge = readFileSync('supabase/functions/r2-upload/index.ts', 'utf8')
 const migration = readFileSync('supabase/009_paper_file_storage_hardening.sql', 'utf8')
 
@@ -52,11 +55,15 @@ for (const required of [
 if (edge.includes('R2_PUBLIC_URL')) failures.push('R2 edge function still requires a public bucket URL')
 
 for (const required of [
-  'FilePreviewModal',
+  'FilePreviewPortal',
   'setPreviewFile',
   'onOpenStoredFile={handleOpenStoredFile}',
 ]) {
   if (!onlineCard.includes(required)) failures.push(`paper card preview wiring is missing ${required}`)
+}
+
+for (const required of ['createPortal', 'document.body', 'FilePreviewModal']) {
+  if (!previewPortal.includes(required)) failures.push(`preview portal is missing ${required}`)
 }
 
 for (const required of [
@@ -74,12 +81,43 @@ for (const required of [
   if (!preview.includes(required)) failures.push(`online preview is missing ${required}`)
 }
 
-if (!paperForm.includes('readCurrentFileRows')) failures.push('paper form does not rebuild attachment rows before save')
-if (!paperForm.includes('isManagedStoredFile(rawPath)')) failures.push('managed storage references are not preserved during save')
-if (!paperForm.includes('cleanupStoredFiles(obsolete')) failures.push('removed/replaced attachments are not cleaned after save')
-if (!paperForm.includes('Clean unsaved paper attachments')) failures.push('unsaved uploads are not cleaned when the form closes')
-if (!paperForm.includes(".select('id').eq('id', id).maybeSingle()")) failures.push('paper deletion is not verified before attachment cleanup')
-if (!archive.includes("p: /^https?:\\/\\//i.test(file.p.trim()) ? file.p.trim() : ''")) failures.push('expected legacy sanitizer changed; review the wrapper compatibility layer')
+for (const required of [
+  'const files = data.files || []',
+  'onPreviewFile={setPreviewFile}',
+  'onDownloadFile={handleDownloadFile}',
+  'cleanupStoredFiles(obsolete',
+  'Clean unsaved paper attachments',
+  ".select('id').eq('id', id).maybeSingle()",
+]) {
+  if (!paperForm.includes(required)) failures.push(`paper form lifecycle is missing ${required}`)
+}
+if (paperForm.includes('readCurrentFileRows')) failures.push('paper form still scrapes attachment rows from the DOM')
+
+for (const required of [
+  'isSupabaseStoragePath(path) || isWebUrl(path)',
+  'onPreviewFile?:',
+  'onDownloadFile?:',
+  'compact-file-actions',
+  '移除；保存后同步删除云端文件',
+  'compact-paper-workflow-grid',
+]) {
+  if (!archive.includes(required)) failures.push(`paper editor attachment/APC UI is missing ${required}`)
+}
+
+for (const required of ['检索证明', '见刊文章']) {
+  if (!types.includes(required)) failures.push(`file archive type is missing ${required}`)
+}
+
+for (const required of [
+  'z-index: 60000',
+  'height: calc(100dvh - 24px)',
+  'html:has(.file-preview-overlay) .app-header',
+  'html:has(.file-preview-overlay) .ui-mode-switcher',
+  '.compact-file-row.is-managed',
+  '.compact-paper-workflow-grid',
+]) {
+  if (!layerCss.includes(required)) failures.push(`interaction layer contract is missing ${required}`)
+}
 
 for (const required of ['file_size_limit', '20971520', 'TO authenticated', 'Delete own paper files']) {
   if (!migration.includes(required)) failures.push(`legacy Supabase storage migration is missing ${required}`)
