@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { createPortal } from 'react-dom'
-import { createPortal } from 'react-dom'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
 import StatsTrendChart from './StatsTrendChart'
-import { useTheme } from '../lib/theme'
 import { useTheme } from '../lib/theme'
 import { useTheme } from '../lib/theme'
 
@@ -126,10 +124,6 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
   const [modules, setModules] = useState<Record<StatsModule, boolean>>(() => readModulePrefs())
   const { uiMode } = useTheme()
   const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)
-  const { uiMode } = useTheme()
-  const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)
-  const { uiMode } = useTheme()
-  const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)
   const [visible, setVisible] = useState<Record<TrendKey, boolean>>({
     cumSubmitted: true,
     cumAccepted: true,
@@ -147,13 +141,7 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
     setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)
   }, [uiMode])
 
-  useEffect(() => {
-    setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)
-  }, [uiMode])
 
-  useEffect(() => {
-    setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)
-  }, [uiMode])
 
   const summary = useMemo(() => {
     const submittedTotal = papers.filter(paper => paper.status !== 'preparing' || !!paper.submitted_date).length

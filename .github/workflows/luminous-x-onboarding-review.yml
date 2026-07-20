@@ -6,10 +6,8 @@ on:
     paths:
       - 'src/**'
       - 'tests/visual/**'
-      - 'scripts/**'
-      - 'tmp-ui-pr-trigger'
       - 'vite.config.visual.ts'
-      - '.github/workflows/**'
+      - '.github/workflows/luminous-x-onboarding-review.yml'
   push:
     branches: [main]
     paths:
@@ -19,27 +17,9 @@ on:
       - '.github/workflows/luminous-x-onboarding-review.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  cleanup-alignment:
-    if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - name: Remove duplicate patch output and temporary files
-        run: python scripts/cleanup_ui_alignment_patch.py
-      - name: Commit clean production changes
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "Clean and finalize UI alignment refactor" || exit 0
-          git push origin HEAD:${{ github.head_ref }}
-
   verify:
     runs-on: ubuntu-latest
     steps:

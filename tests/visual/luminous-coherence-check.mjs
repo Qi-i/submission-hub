@@ -47,10 +47,6 @@ async function inspectPreparation(ui, theme) {
         cardMaterial: getComputedStyle(document.documentElement).getPropertyValue('--coh-card-bg').trim(),
       draftTitle: (() => { const element = document.querySelector('.prep-overview-draft-list .prep-draft-card.compact h3'); const style = element ? getComputedStyle(element) : null; return element && style ? { whiteSpace: style.whiteSpace, height: element.getBoundingClientRect().height, scrollHeight: element.scrollHeight } : null })(),
       prepPortal: !!document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal'),
-      draftTitle: (() => { const element = document.querySelector('.prep-overview-draft-list .prep-draft-card.compact h3'); const style = element ? getComputedStyle(element) : null; return element && style ? { whiteSpace: style.whiteSpace, height: element.getBoundingClientRect().height, scrollHeight: element.scrollHeight } : null })(),
-      prepPortal: !!document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal'),
-      draftTitle: (() => { const element = document.querySelector('.prep-overview-draft-list .prep-draft-card.compact h3'); const style = element ? getComputedStyle(element) : null; return element && style ? { whiteSpace: style.whiteSpace, height: element.getBoundingClientRect().height, scrollHeight: element.scrollHeight } : null })(),
-      prepPortal: !!document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal'),
       }
     })
 
@@ -80,11 +76,7 @@ async function inspectPreparation(ui, theme) {
     if (ui === 'luminous-x' && !geometry.prepPortal) failures.push(`${name}: preparation actions were not moved into the Luminous X header`)
     if (!geometry.draftTitle || geometry.draftTitle.whiteSpace === 'nowrap' || geometry.draftTitle.height < 26) failures.push(`${name}: compact draft title is still restricted to one line`)
 
-    if (ui === 'luminous-x' && !geometry.prepPortal) failures.push(`${name}: preparation actions were not moved into the Luminous X header`)
-    if (!geometry.draftTitle || geometry.draftTitle.whiteSpace === 'nowrap' || geometry.draftTitle.height < 26) failures.push(`${name}: compact draft title is still restricted to one line`)
 
-    if (ui === 'luminous-x' && !geometry.prepPortal) failures.push(`${name}: preparation actions were not moved into the Luminous X header`)
-    if (!geometry.draftTitle || geometry.draftTitle.whiteSpace === 'nowrap' || geometry.draftTitle.height < 26) failures.push(`${name}: compact draft title is still restricted to one line`)
 
     if (!geometry.switchRect) failures.push(`${name}: UI switcher is missing`)
     else if (geometry.switchVisibleWidth > 48) failures.push(`${name}: idle UI switcher is not tucked against the edge (${geometry.switchVisibleWidth}px visible)`)
