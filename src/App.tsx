@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard'
 import ApcAutoConverter from './components/ApcAutoConverter'
 import { OnlineFirstRunGuideGate } from './components/FirstRunGuide'
 import NavigationMemory from './components/NavigationMemory'
+import AccountLinkResult from './components/AccountLinkResult'
 
 function AccountThemeProvider({ children }: { children: ReactNode }) {
   const { user, isDemo, experiencePreferences, updateExperiencePreferences } = useAuth()
@@ -38,6 +39,7 @@ function AppContent() {
   return <>
     <NavigationMemory scope={`online:${user.id}`} disabled={isDemo} />
     <Dashboard />
+    <AccountLinkResult />
     <OnlineFirstRunGuideGate />
   </>
 }
