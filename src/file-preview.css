@@ -1,0 +1,210 @@
+.file-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  display: grid;
+  place-items: center;
+  padding: 3vh 3vw;
+  background: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(12px);
+}
+
+.file-preview-modal {
+  width: min(1180px, 94vw);
+  height: min(900px, 92vh);
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border, #d7dee8) 86%, transparent);
+  border-radius: 22px;
+  background: var(--surface, #fff);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+}
+
+.file-preview-header,
+.file-preview-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  border-color: var(--border, #e2e8f0);
+  background: color-mix(in srgb, var(--surface, #fff) 94%, var(--accent, #6d5dfc) 6%);
+}
+
+.file-preview-header { border-bottom: 1px solid var(--border, #e2e8f0); }
+.file-preview-footer {
+  border-top: 1px solid var(--border, #e2e8f0);
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
+}
+
+.file-preview-title-block,
+.file-preview-actions,
+.file-preview-private {
+  display: flex;
+  align-items: center;
+}
+
+.file-preview-title-block { min-width: 0; gap: 10px; }
+.file-preview-title-block h3 {
+  margin: 0;
+  max-width: min(48vw, 620px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+.file-preview-title-block p { margin: 3px 0 0; color: var(--text-muted, #64748b); font-size: 12px; }
+.file-preview-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--accent, #5b5ce2);
+  background: var(--accent-bg, rgba(91, 92, 226, 0.1));
+}
+.file-preview-actions { gap: 7px; }
+.file-preview-private {
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #137a4b;
+  background: rgba(22, 163, 74, 0.1);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.file-preview-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: #eef2f7;
+}
+.file-preview-frame { width: 100%; height: 100%; min-height: 520px; border: 0; background: #fff; }
+.file-preview-loading,
+.file-preview-error,
+.file-preview-empty,
+.file-preview-unsupported {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+}
+.file-preview-loading { color: var(--text-muted, #64748b); }
+.file-preview-loading.compact { min-height: 70px; }
+.file-preview-error { color: #b42318; background: #fff4f2; }
+.file-preview-unsupported { flex-direction: column; color: var(--text-muted, #64748b); }
+.file-preview-unsupported h4 { margin: 8px 0 0; color: var(--text, #172033); font-size: 17px; }
+.file-preview-unsupported p { max-width: 560px; margin: 0; line-height: 1.7; }
+
+.file-preview-image-shell {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.file-preview-image-shell img {
+  max-width: 100%;
+  max-height: calc(92vh - 150px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.15);
+}
+
+.file-preview-document {
+  width: min(900px, calc(100% - 36px));
+  min-height: calc(100% - 36px);
+  margin: 18px auto;
+  padding: 54px 62px;
+  color: #172033;
+  background: #fff;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.12);
+  font: 15px/1.75 "Times New Roman", "Noto Serif SC", serif;
+  overflow-wrap: anywhere;
+}
+.file-preview-document h1,
+.file-preview-document h2,
+.file-preview-document h3 { line-height: 1.35; }
+.file-preview-document img { max-width: 100%; height: auto; }
+.file-preview-document table { width: 100%; border-collapse: collapse; }
+.file-preview-document td,
+.file-preview-document th { padding: 6px 8px; border: 1px solid #cbd5e1; }
+.file-preview-document a { color: #3458c9; }
+.file-preview-subtitle { color: #64748b; text-align: center; }
+
+.file-preview-text {
+  min-height: 100%;
+  margin: 0;
+  padding: 24px 28px;
+  overflow: auto;
+  color: #172033;
+  background: #fff;
+  font: 13px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.file-preview-sheet-shell { min-height: 100%; background: #fff; }
+.file-preview-sheet-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid #dbe2ea;
+  background: #f8fafc;
+}
+.file-preview-sheet-tabs button {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+}
+.file-preview-sheet-tabs button.active {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #172033;
+  font-weight: 700;
+}
+.file-preview-sheet { padding: 12px; overflow: auto; }
+.file-preview-sheet table { border-collapse: collapse; min-width: 100%; font-size: 12px; }
+.file-preview-sheet td,
+.file-preview-sheet th {
+  min-width: 86px;
+  padding: 6px 8px;
+  border: 1px solid #d7dee8;
+  color: #172033;
+  background: #fff;
+  white-space: nowrap;
+}
+.file-preview-sheet tr:first-child td,
+.file-preview-sheet th { position: sticky; top: 0; background: #f1f5f9; font-weight: 700; }
+
+.file-preview-pptx-shell { min-height: 100%; padding: 20px; overflow: auto; }
+.file-preview-pptx { display: grid; gap: 18px; justify-content: center; }
+.file-preview-pptx > * { max-width: 100%; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16); }
+
+@media (max-width: 820px) {
+  .file-preview-overlay { padding: 0; }
+  .file-preview-modal { width: 100vw; height: 100dvh; min-height: 0; border-radius: 0; }
+  .file-preview-header { align-items: flex-start; }
+  .file-preview-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .file-preview-private { display: none; }
+  .file-preview-title-block h3 { max-width: 42vw; }
+  .file-preview-document { width: calc(100% - 20px); margin: 10px auto; padding: 28px 22px; }
+  .file-preview-footer { display: none; }
+}
