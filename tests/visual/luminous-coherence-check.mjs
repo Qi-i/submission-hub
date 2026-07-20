@@ -49,6 +49,8 @@ async function inspectPreparation(ui, theme) {
       prepPortal: !!document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal'),
       draftTitle: (() => { const element = document.querySelector('.prep-overview-draft-list .prep-draft-card.compact h3'); const style = element ? getComputedStyle(element) : null; return element && style ? { whiteSpace: style.whiteSpace, height: element.getBoundingClientRect().height, scrollHeight: element.scrollHeight } : null })(),
       prepPortal: !!document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal'),
+      draftTitle: (() => { const element = document.querySelector('.prep-overview-draft-list .prep-draft-card.compact h3'); const style = element ? getComputedStyle(element) : null; return element && style ? { whiteSpace: style.whiteSpace, height: element.getBoundingClientRect().height, scrollHeight: element.scrollHeight } : null })(),
+      prepPortal: !!document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal'),
       }
     })
 
@@ -74,6 +76,9 @@ async function inspectPreparation(ui, theme) {
       if (geometry.draftStyle.background !== geometry.journalStyle.background) failures.push(`${name}: draft and journal cards use different surface materials`)
       if (geometry.draftStyle.boxShadow === 'none' || geometry.journalStyle.boxShadow === 'none') failures.push(`${name}: overview cards lack the shared elevation treatment`)
     }
+
+    if (ui === 'luminous-x' && !geometry.prepPortal) failures.push(`${name}: preparation actions were not moved into the Luminous X header`)
+    if (!geometry.draftTitle || geometry.draftTitle.whiteSpace === 'nowrap' || geometry.draftTitle.height < 26) failures.push(`${name}: compact draft title is still restricted to one line`)
 
     if (ui === 'luminous-x' && !geometry.prepPortal) failures.push(`${name}: preparation actions were not moved into the Luminous X header`)
     if (!geometry.draftTitle || geometry.draftTitle.whiteSpace === 'nowrap' || geometry.draftTitle.height < 26) failures.push(`${name}: compact draft title is still restricted to one line`)

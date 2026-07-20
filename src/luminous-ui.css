@@ -702,3 +702,88 @@ html[data-ui='luminous'] .preparation-workspace .prep-overview-draft-list .prep-
     display: flex !important;
   }
 }
+
+
+/* Neutral canvas keeps colored modules legible instead of tinting the whole page blue. */
+html[data-ui='luminous'][data-theme='light'] body {
+  background: #f7f8fb !important;
+}
+
+html[data-ui='luminous'][data-theme='light'] body::before {
+  opacity: .12 !important;
+}
+
+html[data-ui='luminous'] .app-header .luminous-header-center-slot {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
+}
+
+html[data-ui='luminous'] .luminous-header-center-slot .stats-module-controls-portal {
+  max-width: 100%;
+  margin: 0 !important;
+  justify-self: auto !important;
+}
+
+html[data-ui='luminous'] .stats-panel.stats-panel-unified {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-ui='luminous'] .paper-grid {
+  align-items: stretch !important;
+}
+
+html[data-ui='luminous'] .paper-grid > .paper-card-v3 {
+  height: 100% !important;
+  align-self: stretch !important;
+}
+
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) {
+  background: linear-gradient(rgba(239, 248, 255, .96), rgba(239, 248, 255, .96)) padding-box, linear-gradient(135deg, rgba(56, 189, 248, .36), rgba(139, 92, 246, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) {
+  background: linear-gradient(rgba(238, 246, 255, .97), rgba(238, 246, 255, .97)) padding-box, linear-gradient(135deg, rgba(59, 130, 246, .38), rgba(60, 245, 255, .24)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) {
+  background: linear-gradient(rgba(255, 249, 235, .97), rgba(255, 249, 235, .97)) padding-box, linear-gradient(135deg, rgba(245, 158, 11, .42), rgba(139, 92, 246, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='revision']) {
+  background: linear-gradient(rgba(248, 244, 255, .97), rgba(248, 244, 255, .97)) padding-box, linear-gradient(135deg, rgba(139, 92, 246, .42), rgba(255, 79, 159, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) {
+  background: linear-gradient(rgba(239, 251, 244, .97), rgba(239, 251, 244, .97)) padding-box, linear-gradient(135deg, rgba(34, 197, 94, .40), rgba(60, 245, 255, .22)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) {
+  background: linear-gradient(rgba(255, 241, 243, .97), rgba(255, 241, 243, .97)) padding-box, linear-gradient(135deg, rgba(239, 68, 68, .38), rgba(255, 79, 159, .24)) border-box !important;
+}
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) {
+  background: linear-gradient(rgba(244, 246, 250, .98), rgba(244, 246, 250, .98)) padding-box, linear-gradient(135deg, rgba(100, 116, 139, .34), rgba(139, 92, 246, .18)) border-box !important;
+}
+
+html[data-ui='luminous'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact h3 {
+  min-height: 31px !important;
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+}
+
+@media (max-width: 980px) {
+  html[data-ui='luminous'] .app-header .luminous-header-center-slot {
+    display: none !important;
+  }
+  html[data-ui='luminous'] .stats-panel > .stats-module-controls {
+    display: flex !important;
+  }
+}
