@@ -1,0 +1,74 @@
+/* Stable desktop header contract for the Luminous interface.
+   The primary navigation keeps identical geometry on preparation, management,
+   statistics and administration pages, regardless of contextual header tools. */
+
+html[data-ui='luminous'] .header-tabs button {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  writing-mode: horizontal-tb !important;
+  line-height: 1.2 !important;
+}
+
+html[data-ui='luminous'] .app-header .luminous-header-center-slot {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+html[data-ui='luminous'] .app-header .luminous-header-center-slot::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-ui='luminous'] .luminous-header-center-slot .stats-module-controls-portal {
+  flex: 0 0 auto;
+  min-width: max-content;
+  max-width: none;
+  flex-wrap: nowrap !important;
+  margin: 0 !important;
+  justify-self: auto !important;
+}
+
+@media (min-width: 1181px) {
+  html[data-ui='luminous'] .app-header.app-header-refined {
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    column-gap: 12px !important;
+  }
+
+  html[data-ui='luminous'] .app-header .header-left-cluster {
+    flex: none !important;
+    min-width: max-content !important;
+    gap: 18px !important;
+  }
+
+  html[data-ui='luminous'] .app-header .header-brand {
+    flex: 0 0 auto !important;
+    min-width: 230px !important;
+  }
+
+  html[data-ui='luminous'] .app-header .header-tabs {
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+  }
+
+  html[data-ui='luminous'] .app-header .header-tabs button {
+    min-width: 78px !important;
+    min-height: 38px !important;
+  }
+
+  html[data-ui='luminous'] .app-header .header-actions {
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+  }
+}
