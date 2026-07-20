@@ -1,0 +1,16 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://qi-i.github.io",
+          "http://localhost:5173"
+        ],
+        "methods": ["GET", "PUT", "HEAD"],
+        "headers": ["content-type"]
+      },
+      "exposeHeaders": ["ETag", "Content-Length", "Content-Type"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}
