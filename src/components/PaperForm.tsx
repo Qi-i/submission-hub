@@ -2,27 +2,15 @@ import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
 import type { JournalProfile } from '../lib/preparation'
 import { supabase } from '../lib/supabase'
-import type { Paper, PaperFile } from '../lib/types'
-import { deleteStoredFiles, isManagedStoredFile, uploadFile } from '../lib/storage'
+import type { PaperFile } from '../lib/types'
+import { deleteStoredFiles, downloadStoredFile, isManagedStoredFile, uploadFile } from '../lib/storage'
+import FilePreviewPortal from './FilePreviewPortal'
 import PaperFormIntelligent from './PaperFormIntelligent'
 
-type Props = Omit<ComponentProps<typeof PaperFormIntelligent>, 'onUploadFile' | 'onLookupJournalRanks' | 'journalProfiles'>
+type Props = Omit<ComponentProps<typeof PaperFormIntelligent>, 'onUploadFile' | 'onPreviewFile' | 'onDownloadFile' | 'onLookupJournalRanks' | 'journalProfiles'>
 
 function managedPaths(files?: PaperFile[] | null) {
   return (files || []).map(file => file.p).filter((path): path is string => isManagedStoredFile(path))
-}
-
-function readCurrentFileRows(): PaperFile[] {
-  const rows = Array.from(document.querySelectorAll<HTMLElement>('.compact-form-modal .archive-file-row'))
-  return rows.map(row => {
-    const inputs = Array.from(row.querySelectorAll<HTMLInputElement>('input'))
-    const name = inputs[0]?.value.trim() || ''
-    const rawPath = inputs[1]?.value.trim() || ''
-    const type = row.querySelector<HTMLSelectElement>('select')?.value.trim() || '其它'
-    if (rawPath === '上传中...') throw new Error('附件仍在上传，请等待完成后再保存。')
-    const path = isManagedStoredFile(rawPath) || /^https?:\/\//i.test(rawPath) ? rawPath : ''
-    return { n: name, p: path, t: type }
-  }).filter(file => file.n || file.p)
 }
 
 async function cleanupStoredFiles(paths: string[], context: string) {
@@ -35,6 +23,7 @@ async function cleanupStoredFiles(paths: string[], context: string) {
 
 export default function PaperForm(props: Props) {
   const [journalProfiles, setJournalProfiles] = useState<JournalProfile[]>([])
+  const [previewFile, setPreviewFile] = useState<PaperFile | null>(null)
   const initialManagedPaths = useRef(new Set(managedPaths(props.paper === 'new' ? null : props.paper.files)))
   const newlyUploadedPaths = useRef(new Set<string>())
   const abandoned = useRef(false)
@@ -70,8 +59,8 @@ export default function PaperForm(props: Props) {
   }
 
   const handleSave: Props['onSave'] = async data => {
-    const files = readCurrentFileRows()
-    await props.onSave({ ...data, files: files.length ? files : null })
+    const files = data.files || []
+    await props.onSave(data)
 
     const currentManaged = new Set(managedPaths(files))
     const obsolete = Array.from(new Set([
@@ -85,6 +74,7 @@ export default function PaperForm(props: Props) {
 
   const handleClose = () => {
     abandoned.current = true
+    setPreviewFile(null)
     void cleanupStoredFiles(Array.from(newlyUploadedPaths.current), 'Clean unsaved paper attachments')
     props.onClose()
   }
@@ -104,13 +94,27 @@ export default function PaperForm(props: Props) {
     }
   }
 
-  return <PaperFormIntelligent
-    {...props}
-    onSave={handleSave}
-    onDelete={handleDelete}
-    onClose={handleClose}
-    journalProfiles={journalProfiles}
-    onUploadFile={handleUploadFile}
-    onLookupJournalRanks={lookupJournalRanks}
-  />
+  const handleDownloadFile = async (file: PaperFile) => {
+    try {
+      await downloadStoredFile(file.p, file.n || 'attachment')
+    } catch (error) {
+      console.error('Download stored attachment failed:', error)
+      throw error
+    }
+  }
+
+  return <>
+    <PaperFormIntelligent
+      {...props}
+      onSave={handleSave}
+      onDelete={handleDelete}
+      onClose={handleClose}
+      journalProfiles={journalProfiles}
+      onUploadFile={handleUploadFile}
+      onPreviewFile={setPreviewFile}
+      onDownloadFile={handleDownloadFile}
+      onLookupJournalRanks={lookupJournalRanks}
+    />
+    <FilePreviewPortal file={previewFile} onClose={() => setPreviewFile(null)} />
+  </>
 }

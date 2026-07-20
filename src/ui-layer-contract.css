@@ -1,0 +1,309 @@
+/* Highest-priority interaction contract shared by Luminous and Luminous X. */
+
+/* File preview is a dedicated viewport-level workspace, not a card-sized modal. */
+.file-preview-overlay {
+  z-index: 60000 !important;
+  padding: 12px !important;
+  background: rgba(15, 23, 42, .68) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.file-preview-modal {
+  width: min(1680px, calc(100vw - 24px)) !important;
+  height: calc(100dvh - 24px) !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  border-radius: 18px !important;
+}
+
+.file-preview-body,
+.file-preview-frame {
+  min-height: 0 !important;
+}
+
+.file-preview-frame {
+  height: 100% !important;
+}
+
+html:has(.file-preview-overlay),
+body:has(.file-preview-overlay) {
+  overflow: hidden !important;
+}
+
+html:has(.file-preview-overlay) .app-header,
+html:has(.file-preview-overlay) .ui-mode-switcher {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* The paper editor should use the available desktop width instead of forcing APC and file rows into 920 px. */
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .modal-overlay > .compact-form-modal {
+  width: min(1180px, calc(100vw - 36px)) !important;
+}
+
+/* Card attachment affordances are icon-only; file type remains available in the tooltip. */
+.paper-grid .file-dot {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 25px !important;
+  min-height: 25px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+.paper-grid .file-dot .file-type-pill {
+  display: none !important;
+}
+
+.paper-grid button.file-dot {
+  appearance: none;
+  color: var(--accent) !important;
+  cursor: pointer;
+}
+
+.paper-grid .file-dot-disabled {
+  opacity: .45;
+}
+
+/* APC and workflow fields share a stable 12-column layout. */
+.compact-paper-workflow-grid {
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+  align-items: start !important;
+}
+
+.compact-paper-workflow-grid > .compact-field:nth-child(1) { grid-column: span 3 !important; }
+.compact-paper-workflow-grid > .compact-field:nth-child(2) { grid-column: span 2 !important; }
+.compact-paper-workflow-grid > .compact-field:nth-child(3) { grid-column: span 2 !important; }
+.compact-paper-workflow-grid > .compact-field:nth-child(4) { grid-column: span 5 !important; }
+
+.compact-paper-workflow-grid .compact-fee {
+  display: grid !important;
+  grid-template-columns: minmax(110px, 1fr) 76px !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+}
+
+.compact-paper-workflow-grid .compact-fee > .input {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.compact-paper-workflow-grid .compact-apc-currency {
+  text-align: center;
+  padding-inline: 6px !important;
+  font-weight: 850 !important;
+}
+
+.compact-paper-workflow-grid .paper-auto-field-hint {
+  display: none !important;
+}
+
+.compact-paper-workflow-grid .paper-cny-live {
+  min-height: 16px;
+  margin-top: 4px !important;
+  overflow-wrap: anywhere;
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+/* Attachment rows expose actions, not internal r2-storage:// references. */
+.compact-files {
+  gap: 8px !important;
+}
+
+.compact-file-empty {
+  padding: 12px 14px;
+  border: 1px dashed var(--border-default);
+  border-radius: 12px;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-elevated) 72%, transparent);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.compact-file-row {
+  width: 100%;
+  min-width: 0;
+  padding: 7px;
+  align-items: center !important;
+  gap: 8px !important;
+  border: 1px solid var(--border-subtle);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+}
+
+.compact-file-row.is-managed {
+  grid-template-columns: 124px minmax(0, 1fr) auto !important;
+}
+
+.compact-file-row.is-offline {
+  grid-template-columns: 124px minmax(170px, .8fr) minmax(190px, 1fr) auto !important;
+}
+
+.compact-file-row .compact-file-type,
+.compact-file-row .compact-file-name,
+.compact-file-row .compact-file-url {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.compact-file-content {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.compact-file-status-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+}
+
+.compact-file-status-icon.ready {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 24%, var(--border-subtle));
+  background: var(--success-bg);
+}
+
+.compact-file-text {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.compact-file-name {
+  height: 32px !important;
+  font-size: 12px !important;
+  font-weight: 760 !important;
+}
+
+.compact-file-meta {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-file-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.compact-file-actions .file-action-btn {
+  width: 31px;
+  min-width: 31px;
+  height: 31px;
+  min-height: 31px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: transform 140ms ease, color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.compact-file-actions .file-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.compact-file-actions .file-action-btn.danger:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--border-subtle));
+  background: var(--danger-bg);
+}
+
+.compact-file-actions .file-action-btn:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+
+@media (max-width: 980px) {
+  .compact-paper-workflow-grid > .compact-field:nth-child(1),
+  .compact-paper-workflow-grid > .compact-field:nth-child(2) { grid-column: span 4 !important; }
+  .compact-paper-workflow-grid > .compact-field:nth-child(3) { grid-column: span 4 !important; }
+  .compact-paper-workflow-grid > .compact-field:nth-child(4) { grid-column: 1 / -1 !important; }
+
+  .compact-file-row.is-managed,
+  .compact-file-row.is-offline {
+    grid-template-columns: 118px minmax(0, 1fr) !important;
+  }
+
+  .compact-file-row.is-offline .compact-file-url {
+    grid-column: 2;
+  }
+
+  .compact-file-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .file-preview-overlay {
+    padding: 0 !important;
+  }
+
+  .file-preview-modal {
+    width: 100vw !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+
+  .compact-paper-workflow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .compact-paper-workflow-grid > .compact-field:nth-child(1),
+  .compact-paper-workflow-grid > .compact-field:nth-child(2),
+  .compact-paper-workflow-grid > .compact-field:nth-child(3) {
+    grid-column: span 1 !important;
+  }
+
+  .compact-paper-workflow-grid > .compact-field:nth-child(4) {
+    grid-column: 1 / -1 !important;
+  }
+
+  .compact-file-row.is-managed,
+  .compact-file-row.is-offline {
+    grid-template-columns: 1fr !important;
+  }
+
+  .compact-file-row.is-offline .compact-file-url,
+  .compact-file-actions {
+    grid-column: 1;
+  }
+
+  .compact-file-actions {
+    justify-content: flex-end;
+  }
+}

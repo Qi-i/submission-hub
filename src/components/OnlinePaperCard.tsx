@@ -3,7 +3,7 @@ import { findJournalProfile } from '../lib/journal-paper-sync'
 import type { JournalProfile } from '../lib/preparation'
 import type { PaperFile } from '../lib/types'
 import { supabase } from '../lib/supabase'
-import FilePreviewModal from './FilePreviewModal'
+import FilePreviewPortal from './FilePreviewPortal'
 import PaperCardEnhanced from './PaperCardEnhanced'
 
 type Props = ComponentProps<typeof PaperCardEnhanced>
@@ -61,6 +61,6 @@ export default function OnlinePaperCard({ journalProfile: providedProfile, ...pr
 
   return <>
     <PaperCardEnhanced {...props} journalProfile={providedProfile || loadedProfile} onOpenStoredFile={handleOpenStoredFile} />
-    <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+    <FilePreviewPortal file={previewFile} onClose={() => setPreviewFile(null)} />
   </>
 }
