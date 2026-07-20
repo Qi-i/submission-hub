@@ -1,8 +1,9 @@
 import { useEffect, useState, type ComponentProps } from 'react'
 import { findJournalProfile } from '../lib/journal-paper-sync'
 import type { JournalProfile } from '../lib/preparation'
-import { openStoredFile } from '../lib/storage'
+import type { PaperFile } from '../lib/types'
 import { supabase } from '../lib/supabase'
+import FilePreviewModal from './FilePreviewModal'
 import PaperCardEnhanced from './PaperCardEnhanced'
 
 type Props = ComponentProps<typeof PaperCardEnhanced>
@@ -33,6 +34,7 @@ export function invalidateOnlineJournalProfileCache() {
 
 export default function OnlinePaperCard({ journalProfile: providedProfile, ...props }: Props) {
   const [loadedProfile, setLoadedProfile] = useState<JournalProfile | undefined>(providedProfile)
+  const [previewFile, setPreviewFile] = useState<PaperFile | null>(null)
 
   useEffect(() => {
     let active = true
@@ -52,14 +54,13 @@ export default function OnlinePaperCard({ journalProfile: providedProfile, ...pr
     return () => { active = false }
   }, [providedProfile, props.paper.journal])
 
-  const handleOpenStoredFile = async (path: string) => {
-    try {
-      await openStoredFile(path)
-    } catch (error) {
-      console.error('Open stored attachment failed:', error)
-      alert(error instanceof Error ? `附件打开失败：${error.message}` : '附件打开失败。')
-    }
+  const handleOpenStoredFile = (path: string) => {
+    const matched = props.paper.files?.find(file => file.p === path)
+    setPreviewFile(matched || { n: '附件', p: path, t: '其它' })
   }
 
-  return <PaperCardEnhanced {...props} journalProfile={providedProfile || loadedProfile} onOpenStoredFile={handleOpenStoredFile} />
+  return <>
+    <PaperCardEnhanced {...props} journalProfile={providedProfile || loadedProfile} onOpenStoredFile={handleOpenStoredFile} />
+    <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+  </>
 }
