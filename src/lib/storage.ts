@@ -31,48 +31,11 @@ function safeFilename(filename: string) {
   return cleaned.slice(-180) || 'file'
 }
 
-async function functionErrorDetail(error: unknown, data: unknown) {
-  if (data && typeof data === 'object' && 'error' in data && typeof (data as { error?: unknown }).error === 'string') {
-    return (data as { error: string }).error
-  }
-
-  if (error && typeof error === 'object' && 'context' in error) {
-    const response = (error as { context?: Response }).context
-    if (response && typeof response.clone === 'function') {
-      try {
-        const payload = await response.clone().json() as { error?: unknown }
-        if (typeof payload?.error === 'string') return payload.error
-      } catch {
-        // Fall back to the SDK error below.
-      }
-    }
-  }
-
-  return errorMessage(error, 'R2 签名服务不可用')
-}
-
-async function uploadToR2(file: File, token: string) {
-  const { data, error } = await supabase.functions.invoke('r2-upload', {
-    headers: { Authorization: `Bearer ${token}` },
-    body: {
-      filename: file.name,
-      content_type: file.type || 'application/octet-stream',
-      size: file.size,
-    },
-  })
-
-  if (error || !data?.uploadUrl || !data?.fileUrl) {
-    throw new Error(await functionErrorDetail(error, data))
-  }
-
-  const response = await fetch(data.uploadUrl, {
-    method: 'PUT',
-    body: file,
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-  })
-
-  if (!response.ok) throw new Error(`R2 上传返回 ${response.status}`)
-  return { fileUrl: String(data.fileUrl), fileName: file.name }
+async function requireCurrentUser() {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  const session = sessionData.session
+  if (sessionError || !session?.user?.id) throw new Error('登录状态已失效，请重新登录后操作附件。')
+  return session.user
 }
 
 async function uploadToSupabaseStorage(file: File, userId: string) {
@@ -93,28 +56,23 @@ export async function uploadFile(file: File): Promise<{ fileUrl: string; fileNam
   const validationError = validateFile(file)
   if (validationError) throw new Error(validationError)
 
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-  const session = sessionData.session
-  if (sessionError || !session?.access_token || !session.user?.id) {
-    throw new Error('登录状态已失效，请重新登录后上传。')
-  }
-
+  const user = await requireCurrentUser()
   try {
-    return await uploadToR2(file, session.access_token)
-  } catch (r2Error) {
-    console.warn('R2 upload unavailable, falling back to Supabase Storage:', r2Error)
-    try {
-      return await uploadToSupabaseStorage(file, session.user.id)
-    } catch (storageError) {
-      console.error('Supabase Storage fallback failed:', storageError)
-      throw new Error(`主存储不可用（${errorMessage(r2Error)}）；备用存储失败（${errorMessage(storageError)}）。`)
-    }
+    return await uploadToSupabaseStorage(file, user.id)
+  } catch (error) {
+    console.error('Private document upload failed:', error)
+    throw new Error(`私有文档存储失败：${errorMessage(error)}。`)
   }
+}
+
+export function isManagedStoredFile(value?: string | null): boolean {
+  return parseSupabaseStoragePath(value) !== null
 }
 
 export async function openStoredFile(value: string): Promise<void> {
   const location = parseSupabaseStoragePath(value)
-  if (!location) throw new Error('附件地址无效。')
+  if (!location || location.bucket !== STORAGE_BUCKET) throw new Error('附件地址无效。')
+  await requireCurrentUser()
 
   const pendingWindow = window.open('about:blank', '_blank')
   if (pendingWindow) pendingWindow.opener = null
@@ -133,6 +91,24 @@ export async function openStoredFile(value: string): Promise<void> {
   }
 }
 
-export function isR2File(path: string): boolean {
-  return /^https?:\/\//i.test(path)
+export async function deleteStoredFile(value: string): Promise<boolean> {
+  const location = parseSupabaseStoragePath(value)
+  if (!location || location.bucket !== STORAGE_BUCKET) return false
+  await requireCurrentUser()
+
+  const { error } = await supabase.storage.from(location.bucket).remove([location.path])
+  if (error) throw error
+  return true
+}
+
+export async function deleteStoredFiles(values: Array<string | null | undefined>): Promise<void> {
+  const unique = Array.from(new Set(values.filter((value): value is string => isManagedStoredFile(value))))
+  if (!unique.length) return
+
+  const results = await Promise.allSettled(unique.map(value => deleteStoredFile(value)))
+  const failures = results.filter(result => result.status === 'rejected') as PromiseRejectedResult[]
+  if (failures.length) {
+    const detail = failures.map(result => errorMessage(result.reason)).join('；')
+    throw new Error(`${failures.length} 个附件未能从云端清理：${detail}`)
+  }
 }
