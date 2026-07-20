@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { FileText, Loader, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react'
+import { Download, Eye, FileText, Loader, RefreshCw, Save, Sparkles, Trash2, Upload, X } from 'lucide-react'
+import { isSupabaseStoragePath } from '../lib/file-storage-path'
 import type { JournalRankLookupResult } from '../lib/journal-rank'
 import { rankFieldSuggestions } from '../lib/journal-rank'
 import type { Paper, PaperFile } from '../lib/types'
@@ -28,12 +29,15 @@ interface Props {
   onDelete: (id: string) => void | Promise<void>
   onClose: () => void
   onUploadFile?: (file: File) => Promise<UploadResult>
+  onPreviewFile?: (file: PaperFile) => void
+  onDownloadFile?: (file: PaperFile) => void | Promise<void>
   onLookupJournalRanks?: (publicationName: string) => Promise<JournalRankLookupResult>
 }
 
 const blankZhQuartile = ['', '', '', '']
 const value = (input: unknown) => input === null || input === undefined ? '' : String(input)
 const norm = (input?: string | null) => (input || '').trim().toLocaleLowerCase()
+const isWebUrl = (input?: string | null) => !!input && /^https?:\/\//i.test(input.trim())
 
 function uniqueNames(input: string) {
   const seen = new Set<string>()
@@ -112,11 +116,11 @@ function Section({ title, subtitle, tone, children }: { title: string; subtitle?
   return <section className="compact-section" data-tone={tone || 'blue'}><div className="compact-section-head"><h4>{title}</h4>{subtitle && <span>{subtitle}</span>}</div>{children}</section>
 }
 
-function Field({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
-  return <label className={`compact-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</label>
+function Field({ label, children, wide, className = '' }: { label: string; children: ReactNode; wide?: boolean; className?: string }) {
+  return <label className={`compact-field ${wide ? 'wide' : ''} ${className}`.trim()}><span>{label}</span>{children}</label>
 }
 
-export default function PaperFormArchive({ paper, allPapers, currentUsername, onSave, onDelete, onClose, onUploadFile, onLookupJournalRanks }: Props) {
+export default function PaperFormArchive({ paper, allPapers, currentUsername, onSave, onDelete, onClose, onUploadFile, onPreviewFile, onDownloadFile, onLookupJournalRanks }: Props) {
   const isNew = paper === 'new'
   const currentId = isNew ? '' : paper.id
   const [form, setForm] = useState<FormState>(() => initial(paper, currentUsername))
@@ -213,8 +217,34 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     input.click()
   }
 
+  const previewFile = (file: PaperFile) => {
+    if (!file.p || file.p === '上传中...') return
+    if (isSupabaseStoragePath(file.p) && onPreviewFile) {
+      onPreviewFile(file)
+      return
+    }
+    if (isWebUrl(file.p)) window.open(file.p, '_blank', 'noopener,noreferrer')
+  }
+
+  const downloadFile = async (file: PaperFile) => {
+    if (!file.p || file.p === '上传中...') return
+    try {
+      if (isSupabaseStoragePath(file.p) && onDownloadFile) {
+        await onDownloadFile(file)
+        return
+      }
+      if (isWebUrl(file.p)) window.open(file.p, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      alert(error instanceof Error ? `下载失败：${error.message}` : '下载失败，请稍后重试。')
+    }
+  }
+
   const save = async () => {
     if (saving) return
+    if (uploading !== null) {
+      alert('附件仍在上传，请等待完成后再保存。')
+      return
+    }
     if (form.prev_id && createsVersionCycle(currentId, form.prev_id, allPapers)) {
       alert('无法保存：所选前置版本会形成循环版本链。')
       return
@@ -225,7 +255,14 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     const apcValue = form.apc_amount === '' ? null : Number(form.apc_amount)
     const revisionValue = form.revision_round === '' ? 0 : Number(form.revision_round)
     const revisionRound = Number.isFinite(revisionValue) ? Math.max(0, Math.trunc(revisionValue)) : 0
-    const normalizedFiles = form.files.map(file => ({ n: file.n.trim(), p: /^https?:\/\//i.test(file.p.trim()) ? file.p.trim() : '', t: file.t?.trim() || '其它' })).filter(file => file.n || file.p)
+    const normalizedFiles = form.files.map(file => {
+      const path = file.p.trim()
+      return {
+        n: file.n.trim(),
+        p: isSupabaseStoragePath(path) || isWebUrl(path) ? path : '',
+        t: file.t?.trim() || '其它',
+      }
+    }).filter(file => file.n || file.p)
     const correspondingAuthor = authors.find(name => norm(name) === norm(form.corresponding_author)) || null
 
     setSaving(true)
@@ -256,10 +293,10 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     }
   }
 
-  const close = () => { if (!saving) onClose() }
+  const close = () => { if (!saving && uploading === null) onClose() }
 
   return <div className="modal-overlay" onClick={close}><div className="modal compact-form-modal" onClick={event => event.stopPropagation()}>
-    <div className="compact-form-header"><div><h3>{isNew ? '新建投稿记录' : '编辑投稿记录'}</h3><p>{form.journal || '未填写期刊'} · {STATUSES.find(status => status.key === form.status)?.label || form.status}</p></div><button className="btn btn-ghost btn-icon" onClick={close} disabled={saving}><X size={18} /></button></div>
+    <div className="compact-form-header"><div><h3>{isNew ? '新建投稿记录' : '编辑投稿记录'}</h3><p>{form.journal || '未填写期刊'} · {STATUSES.find(status => status.key === form.status)?.label || form.status}</p></div><button className="btn btn-ghost btn-icon" onClick={close} disabled={saving || uploading !== null}><X size={18} /></button></div>
     <div className="compact-form-body">
       <Section title="基本信息" subtitle="题名、期刊、主状态" tone="blue">
         <div className="compact-grid two"><Field label="文章语言"><select className="select" value={form.lang} onChange={event => set('lang', event.target.value)}><option value="zh">中文</option><option value="en">英文</option></select></Field><Field label="当前主状态"><select className="select" value={form.status} onChange={event => set('status', event.target.value)}>{STATUSES.map(status => <option key={status.key} value={status.key}>{status.emoji} {status.label}</option>)}</select></Field></div>
@@ -279,8 +316,13 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
         <div className="compact-grid two"><Field label="稿件编号"><input className="input" value={form.manuscript_no} onChange={event => set('manuscript_no', event.target.value)} /></Field><Field label="投稿系统"><input className="input" list="submission-system-options" value={form.submission_system} onChange={event => set('submission_system', event.target.value)} /></Field></div>
         <datalist id="submission-system-options">{SUBMISSION_SYSTEM_OPTIONS.map(option => <option key={option} value={option} />)}</datalist>
         <div className="compact-grid two"><Field label="投稿后台 URL"><input className="input" value={form.tracking_url} onChange={event => set('tracking_url', event.target.value)} placeholder="https://..." /></Field><Field label="期刊官网 / 作者指南"><input className="input" value={form.journal_url} onChange={event => set('journal_url', event.target.value)} placeholder="https://..." /></Field></div>
-        <div className="compact-grid four"><Field label="下一步行动"><select className="select" value={form.next_action} onChange={event => set('next_action', event.target.value)}><option value="">自动判断</option>{NEXT_ACTION_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select></Field><Field label="提醒级别"><select className="select" value={form.reminder_level} onChange={event => set('reminder_level', event.target.value)}>{REMINDER_LEVELS.map(level => <option key={level.key} value={level.key}>{level.label}</option>)}</select></Field><Field label="返修轮次"><input type="number" min="0" step="1" className="input" value={form.revision_round} onChange={event => set('revision_round', event.target.value)} /></Field><Field label="APC / 币种"><div className="compact-fee"><input type="number" min="0" className="input" value={form.apc_amount} onChange={event => set('apc_amount', event.target.value)} /><input className="input" value={form.apc_currency} onChange={event => set('apc_currency', event.target.value.toUpperCase())} maxLength={8} /></div></Field></div>
-        <Field label="APC / 开源 / 期刊备注" wide><input className="input" value={form.journal_apc_note} onChange={event => set('journal_apc_note', event.target.value)} placeholder="如：APC 约 2000 USD；可选 OA；平均审稿 2–3 个月" /></Field>
+        <div className="compact-paper-workflow-grid">
+          <Field label="下一步行动"><select className="select" value={form.next_action} onChange={event => set('next_action', event.target.value)}><option value="">自动判断</option>{NEXT_ACTION_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select></Field>
+          <Field label="提醒级别"><select className="select" value={form.reminder_level} onChange={event => set('reminder_level', event.target.value)}>{REMINDER_LEVELS.map(level => <option key={level.key} value={level.key}>{level.label}</option>)}</select></Field>
+          <Field label="返修轮次"><input type="number" min="0" step="1" className="input" value={form.revision_round} onChange={event => set('revision_round', event.target.value)} placeholder="0" /></Field>
+          <Field label="APC / 币种" className="compact-apc-field"><div className="compact-fee"><input type="number" min="0" step="0.01" inputMode="decimal" className="input compact-apc-amount" value={form.apc_amount} onChange={event => set('apc_amount', event.target.value)} placeholder="0 或 2000" /><input className="input compact-apc-currency" value={form.apc_currency} onChange={event => set('apc_currency', event.target.value.toUpperCase())} maxLength={8} placeholder="USD" /></div></Field>
+        </div>
+        <Field label="APC / 开源 / 期刊备注" wide><input className="input" value={form.journal_apc_note} onChange={event => set('journal_apc_note', event.target.value)} placeholder="如：混合 OA；可选 0 APC；开放获取约 2000 USD；平均审稿 2–3 个月" /></Field>
       </Section>
 
       <Section title="作者与分区" subtitle="署名、通讯、期刊等级" tone="purple">
@@ -293,8 +335,34 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
 
       <Section title="成果归档" subtitle="DOI、卷期页码、引用格式" tone="green"><div className="compact-grid two"><Field label="见刊 / 在线发表 URL"><input className="input" value={form.published_url} onChange={event => set('published_url', event.target.value)} placeholder="https://..." /></Field><Field label="DOI"><input className="input" value={form.doi} onChange={event => set('doi', event.target.value)} placeholder="10.xxxx/xxxxx" /></Field></div><Field label="卷期页码 / 在线发表信息" wide><input className="input" value={form.publication_info} onChange={event => set('publication_info', event.target.value)} placeholder="如：50(8), 123–145；Article 70113；Online first" /></Field><Field label="标准引用格式" wide><textarea className="textarea" value={form.citation} onChange={event => set('citation', event.target.value)} placeholder="可粘贴 GB/T、APA 或期刊要求的引用格式" /></Field></Section>
 
-      <Section title="文件与备注" subtitle={onUploadFile ? '附件分类、催稿、补充说明' : '离线版仅记录文件名称和可选外部链接'} tone="slate"><div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" onClick={addFile}>+ 添加文件</button></div>{form.files.length > 0 && <div className="compact-files">{form.files.map((file, index) => <div key={index} className="compact-file-row archive-file-row"><select className="select" value={file.t || '其它'} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>{onUploadFile ? <button type="button" className="file-icon" onClick={() => upload(index)} disabled={uploading !== null}>{uploading === index ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</button> : <span className="file-icon" title="离线版不上传文件"><FileText size={15} /></span>}<input className="input" value={file.n} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><input className="input" value={file.p} onChange={event => updateFile(index, 'p', event.target.value)} placeholder="可选在线文件 URL" /><button type="button" className="file-action-btn" onClick={() => removeFile(index)}><Trash2 size={13} /></button></div>)}</div>}<div className="compact-grid two textarea-grid"><Field label="沟通记录"><textarea className="textarea" value={form.followup_log} onChange={event => set('followup_log', event.target.value)} /></Field><Field label="备注 / 意见"><textarea className="textarea" value={form.notes} onChange={event => set('notes', event.target.value)} /></Field></div></Section>
+      <Section title="文件与备注" subtitle={onUploadFile ? '私有云附件可预览、下载、替换；移除后保存即同步删除' : '离线版仅记录文件名称和可选外部链接'} tone="slate">
+        <div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" onClick={addFile}>+ 添加文件</button></div>
+        {form.files.length === 0 && <div className="compact-file-empty">暂无附件，可添加投稿稿、检索证明、见刊文章等文件。</div>}
+        {form.files.length > 0 && <div className="compact-files">{form.files.map((file, index) => {
+          const managed = isSupabaseStoragePath(file.p)
+          const external = isWebUrl(file.p)
+          const busy = uploading === index
+          const readable = managed ? !!onPreviewFile : external
+          const downloadable = managed ? !!onDownloadFile : external
+          const storageText = busy ? '正在上传到私有云…' : managed ? '私有云文件 · 临时授权访问' : external ? '外部链接' : onUploadFile ? '尚未上传' : '未设置链接'
+          return <div key={index} className={`compact-file-row archive-file-row ${onUploadFile ? 'is-managed' : 'is-offline'}`}>
+            <select className="select compact-file-type" value={file.t || '其它'} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>
+            <div className="compact-file-content">
+              <span className={`compact-file-status-icon ${managed ? 'ready' : ''}`}>{busy ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</span>
+              <div className="compact-file-text"><input className="input compact-file-name" value={file.n} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><span className="compact-file-meta">{storageText}</span></div>
+            </div>
+            {onUploadFile ? <input type="hidden" value={file.p} readOnly /> : <input className="input compact-file-url" value={file.p} onChange={event => updateFile(index, 'p', event.target.value)} placeholder="可选在线文件 URL" />}
+            <div className="compact-file-actions">
+              <button type="button" className="file-action-btn" title="在线预览" aria-label={`预览 ${file.n || '附件'}`} disabled={!readable || busy} onClick={() => previewFile(file)}><Eye size={14} /></button>
+              <button type="button" className="file-action-btn" title="下载原文件" aria-label={`下载 ${file.n || '附件'}`} disabled={!downloadable || busy} onClick={() => void downloadFile(file)}><Download size={14} /></button>
+              {onUploadFile && <button type="button" className="file-action-btn" title={file.p ? '替换文件' : '上传文件'} aria-label={file.p ? `替换 ${file.n || '附件'}` : '上传附件'} disabled={uploading !== null} onClick={() => void upload(index)}><Upload size={14} /></button>}
+              <button type="button" className="file-action-btn danger" title="移除；保存后同步删除云端文件" aria-label={`移除 ${file.n || '附件'}`} disabled={uploading !== null} onClick={() => removeFile(index)}><Trash2 size={14} /></button>
+            </div>
+          </div>
+        })}</div>}
+        <div className="compact-grid two textarea-grid"><Field label="沟通记录"><textarea className="textarea" value={form.followup_log} onChange={event => set('followup_log', event.target.value)} /></Field><Field label="备注 / 意见"><textarea className="textarea" value={form.notes} onChange={event => set('notes', event.target.value)} /></Field></div>
+      </Section>
     </div>
-    <div className="compact-form-footer">{!isNew ? <button type="button" className="btn btn-danger btn-sm" disabled={saving} onClick={() => onDelete((paper as Paper).id)}><Trash2 size={14} /> 删除记录</button> : <div />}<div className="compact-footer-actions"><button type="button" className="btn btn-ghost" onClick={close} disabled={saving}>取消</button><button type="button" className="btn btn-primary" onClick={save} disabled={saving}><Save size={14} /> {saving ? '保存中...' : '保存'}</button></div></div>
+    <div className="compact-form-footer">{!isNew ? <button type="button" className="btn btn-danger btn-sm" disabled={saving || uploading !== null} onClick={() => onDelete((paper as Paper).id)}><Trash2 size={14} /> 删除记录</button> : <div />}<div className="compact-footer-actions"><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading !== null}>取消</button><button type="button" className="btn btn-primary" onClick={save} disabled={saving || uploading !== null}><Save size={14} /> {saving ? '保存中...' : uploading !== null ? '附件上传中' : '保存'}</button></div></div>
   </div></div>
 }
