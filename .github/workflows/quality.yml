@@ -9,7 +9,7 @@ on:
       - 'src/**'
       - 'scripts/**'
       - 'tests/visual/**'
-      - 'supabase/functions/**'
+      - 'supabase/**'
       - 'index.html'
       - 'offline.html'
       - 'package.json'
@@ -38,6 +38,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify privacy-safe samples
         run: npm run check:privacy
+      - name: Verify document storage lifecycle
+        run: node tests/visual/document-storage-check.mjs
       - name: Build online app
         run: npm run build
         env:
