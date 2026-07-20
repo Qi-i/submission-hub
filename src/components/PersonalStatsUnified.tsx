@@ -122,6 +122,7 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
   const [modules, setModules] = useState<Record<StatsModule, boolean>>(() => readModulePrefs())
   const { uiMode } = useTheme()
   const [luminousHeaderSlot, setLuminousHeaderSlot] = useState<HTMLElement | null>(null)
+  const [canPortalControls, setCanPortalControls] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 981px)').matches)
   const [visible, setVisible] = useState<Record<TrendKey, boolean>>({
     cumSubmitted: true,
     cumAccepted: true,
@@ -138,6 +139,14 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
   useEffect(() => {
     setLuminousHeaderSlot(uiMode === 'luminous' ? document.getElementById('luminous-header-center-slot') : null)
   }, [uiMode])
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 981px)')
+    const sync = () => setCanPortalControls(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
 
 
 
@@ -263,7 +272,7 @@ export default function PersonalStatsUnified({ papers, currentUsername, authorNa
 
   return (
     <div className="stats-panel stats-panel-unified">
-      {(uiMode === 'luminous' && luminousHeaderSlot ? createPortal(
+      {(uiMode === 'luminous' && canPortalControls && luminousHeaderSlot ? createPortal(
         <div className="stats-module-controls stats-module-controls-portal">
           <button className={modules.overview ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, overview: !previous.overview }))}>核心概览</button>
           <button className={modules.process ? 'active' : ''} onClick={() => setModules(previous => ({ ...previous, process: !previous.process }))}>过程指标</button>

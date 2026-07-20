@@ -793,7 +793,10 @@ html[data-ui='luminous-x'] .preparation-workspace[data-section='overview'] > .pr
 }
 
 html[data-ui='luminous-x'] .stats-panel.stats-panel-unified {
-  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -821,7 +824,7 @@ html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .pre
   text-overflow: clip !important;
 }
 
-@media (max-width: 1220px) {
+@media (max-width: 1420px) {
   html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'] .lx-status-controls-host {
     grid-template-columns: 1fr !important;
   }

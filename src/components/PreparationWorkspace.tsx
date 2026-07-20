@@ -54,10 +54,19 @@ export default function PreparationWorkspace({
   const [creatingTopicId, setCreatingTopicId] = useState<string | null>(null)
   const { uiMode } = useTheme()
   const [luminousXActionSlot, setLuminousXActionSlot] = useState<HTMLElement | null>(null)
+  const [canPortalActions, setCanPortalActions] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1421px)').matches)
 
   useEffect(() => {
     setLuminousXActionSlot(uiMode === 'luminous-x' ? document.getElementById('lx-preparation-actions-slot') : null)
   }, [uiMode])
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1421px)')
+    const sync = () => setCanPortalActions(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
 
   const normalized = useMemo<PreparationSnapshot>(() => ({
     journals: (snapshot.journals || []).map(journal => ({
@@ -237,7 +246,7 @@ export default function PreparationWorkspace({
         <h1>投稿准备</h1>
         <p>把选题、草稿与目标期刊组织成一条清晰的投稿前流程。</p>
       </div>
-      {(uiMode === 'luminous-x' && luminousXActionSlot ? createPortal(
+      {(uiMode === 'luminous-x' && canPortalActions && luminousXActionSlot ? createPortal(
         <div className="prep-top-actions prep-top-actions-portal">
           <div className="prep-search">
             <Search size={15} />

@@ -558,7 +558,10 @@ html[data-ui='luminous'] .luminous-header-center-slot .stats-module-controls-por
 }
 
 html[data-ui='luminous'] .stats-panel.stats-panel-unified {
-  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -598,6 +601,14 @@ html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-ar
 html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) {
   background: linear-gradient(rgba(244, 246, 250, .98), rgba(244, 246, 250, .98)) padding-box, linear-gradient(135deg, rgba(100, 116, 139, .34), rgba(139, 92, 246, .18)) border-box !important;
 }
+
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) { background: linear-gradient(155deg, #1b1a37, #11182d) padding-box, linear-gradient(135deg, #34315a, rgba(139, 92, 246, .42)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) { background: linear-gradient(155deg, #10283a, #11182d) padding-box, linear-gradient(135deg, #28506a, rgba(60, 245, 255, .34)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) { background: linear-gradient(155deg, #2d2414, #11182d) padding-box, linear-gradient(135deg, #5d4a25, rgba(245, 158, 11, .38)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='revision']) { background: linear-gradient(155deg, #291936, #11182d) padding-box, linear-gradient(135deg, #513163, rgba(255, 79, 159, .36)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) { background: linear-gradient(155deg, #132b22, #11182d) padding-box, linear-gradient(135deg, #28533f, rgba(34, 197, 94, .36)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) { background: linear-gradient(155deg, #30191f, #11182d) padding-box, linear-gradient(135deg, #61303a, rgba(239, 68, 68, .38)) border-box !important; }
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) { background: linear-gradient(155deg, #1a2230, #11182d) padding-box, linear-gradient(135deg, #354153, rgba(100, 116, 139, .34)) border-box !important; }
 
 html[data-ui='luminous'] .preparation-workspace .prep-overview-draft-list .prep-draft-card.compact h3 {
   min-height: 31px !important;
