@@ -1,0 +1,16 @@
+@media (max-width: 1420px) {
+  html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar {
+    position: sticky !important;
+    top: 86px !important;
+    z-index: 520 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 980px) {
+  html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar {
+    top: 76px !important;
+  }
+}

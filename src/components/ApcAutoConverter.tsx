@@ -143,6 +143,33 @@ function enhancePaperForm() {
   })
 }
 
+function fileKind(text: string) {
+  const normalized = text.toLowerCase()
+  if (/\.pdf\b/.test(normalized)) return /检索证明|录用通知|proof/.test(normalized) ? 'proof' : 'pdf'
+  if (/\.(docx?|odt|rtf)\b/.test(normalized)) return /response|回复|审稿意见/.test(normalized) ? 'response' : 'document'
+  if (/\.(xlsx?|csv|ods)\b/.test(normalized)) return 'sheet'
+  if (/\.(pptx?|odp)\b/.test(normalized)) return 'slides'
+  if (/\.(png|jpe?g|webp|gif|bmp|tiff?|svg)\b/.test(normalized)) return 'image'
+  if (/\.(zip|rar|7z|tar|gz)\b/.test(normalized)) return 'archive'
+  if (/\.(json|xml|html?|md|txt|log)\b/.test(normalized)) return 'code'
+  if (/检索证明|录用通知|见刊文章|proof/.test(normalized)) return 'proof'
+  if (/response|回复|审稿意见/.test(normalized)) return 'response'
+  if (/apc|发票|版权协议/.test(normalized)) return 'receipt'
+  return 'generic'
+}
+
+function enhanceAttachmentIcons() {
+  document.querySelectorAll<HTMLElement>('.compact-file-row').forEach(row => {
+    const type = row.querySelector<HTMLSelectElement>('.compact-file-type')?.value || ''
+    const name = row.querySelector<HTMLInputElement>('.compact-file-name')?.value || ''
+    row.dataset.fileKind = fileKind(`${type} ${name}`)
+  })
+
+  document.querySelectorAll<HTMLElement>('.paper-grid .file-dot').forEach(file => {
+    file.dataset.fileKind = fileKind(file.getAttribute('title') || file.textContent || '')
+  })
+}
+
 function enhanceTimelinePresets() {
   document.querySelectorAll<HTMLDataListElement>('#timeline-event-options').forEach(datalist => {
     const existing = new Set(Array.from(datalist.options).map(option => option.value))
@@ -160,6 +187,7 @@ function enhanceAll() {
   enhanceOverviewCards()
   enhanceJournalForm()
   enhancePaperForm()
+  enhanceAttachmentIcons()
   enhanceTimelinePresets()
 }
 
@@ -172,10 +200,14 @@ export default function ApcAutoConverter() {
     }
     enhanceAll()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['value', 'title'] })
+    document.addEventListener('input', schedule, true)
+    document.addEventListener('change', schedule, true)
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
+      document.removeEventListener('input', schedule, true)
+      document.removeEventListener('change', schedule, true)
     }
   }, [])
 

@@ -1,0 +1,289 @@
+/* Final information-density contract shared by Luminous and Luminous X. */
+
+/* Attachment rows: compact, single-line, and sized to content instead of allocating a large block to short labels. */
+.compact-files {
+  gap: 5px !important;
+}
+
+.compact-file-row,
+.compact-file-row.is-managed {
+  min-height: 38px !important;
+  padding: 4px 5px !important;
+  grid-template-columns: 102px minmax(0, 1fr) auto !important;
+  gap: 6px !important;
+  border-radius: 10px !important;
+}
+
+.compact-file-row.is-offline {
+  grid-template-columns: 102px minmax(180px, .8fr) minmax(180px, 1fr) auto !important;
+}
+
+.compact-file-row .compact-file-type {
+  width: 102px !important;
+  min-width: 102px !important;
+  max-width: 102px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 24px 0 9px !important;
+  overflow: hidden !important;
+  font-size: 11px !important;
+  line-height: 30px !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.compact-file-content {
+  grid-template-columns: 28px minmax(0, 1fr) !important;
+  gap: 6px !important;
+}
+
+.compact-file-status-icon {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  border-radius: 8px !important;
+  font-size: 0 !important;
+}
+
+.compact-file-status-icon > svg {
+  display: none !important;
+}
+
+.compact-file-status-icon::before {
+  content: 'FILE';
+  font-size: 7px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+
+.compact-file-row[data-file-kind='pdf'] .compact-file-status-icon::before { content: 'PDF'; }
+.compact-file-row[data-file-kind='document'] .compact-file-status-icon::before { content: 'W'; font-size: 12px; }
+.compact-file-row[data-file-kind='sheet'] .compact-file-status-icon::before { content: 'X'; font-size: 12px; }
+.compact-file-row[data-file-kind='slides'] .compact-file-status-icon::before { content: 'P'; font-size: 12px; }
+.compact-file-row[data-file-kind='image'] .compact-file-status-icon::before { content: '▣'; font-size: 13px; }
+.compact-file-row[data-file-kind='archive'] .compact-file-status-icon::before { content: 'ZIP'; }
+.compact-file-row[data-file-kind='code'] .compact-file-status-icon::before { content: '</>'; font-size: 8px; }
+.compact-file-row[data-file-kind='proof'] .compact-file-status-icon::before { content: '✓'; font-size: 14px; }
+.compact-file-row[data-file-kind='response'] .compact-file-status-icon::before { content: '↩'; font-size: 14px; }
+.compact-file-row[data-file-kind='receipt'] .compact-file-status-icon::before { content: '¥'; font-size: 13px; }
+
+.compact-file-row[data-file-kind='pdf'] .compact-file-status-icon { color: #dc2626 !important; background: rgba(239, 68, 68, .08) !important; }
+.compact-file-row[data-file-kind='document'] .compact-file-status-icon { color: #2563eb !important; background: rgba(37, 99, 235, .08) !important; }
+.compact-file-row[data-file-kind='sheet'] .compact-file-status-icon { color: #15803d !important; background: rgba(22, 163, 74, .09) !important; }
+.compact-file-row[data-file-kind='slides'] .compact-file-status-icon { color: #c2410c !important; background: rgba(234, 88, 12, .09) !important; }
+.compact-file-row[data-file-kind='image'] .compact-file-status-icon { color: #7c3aed !important; background: rgba(124, 58, 237, .09) !important; }
+.compact-file-row[data-file-kind='proof'] .compact-file-status-icon { color: #047857 !important; background: rgba(5, 150, 105, .09) !important; }
+.compact-file-row[data-file-kind='response'] .compact-file-status-icon { color: #0369a1 !important; background: rgba(2, 132, 199, .09) !important; }
+.compact-file-row[data-file-kind='receipt'] .compact-file-status-icon { color: #a16207 !important; background: rgba(202, 138, 4, .10) !important; }
+
+.compact-file-text {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) max-content !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+.compact-file-name {
+  min-width: 0 !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 9px !important;
+  font-size: 11px !important;
+}
+
+.compact-file-meta {
+  max-width: 180px !important;
+  padding: 3px 7px !important;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  font-size: 9px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.compact-file-actions {
+  gap: 4px !important;
+}
+
+.compact-file-actions .file-action-btn {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  border-radius: 8px !important;
+}
+
+/* Card attachment buttons use the same semantic file classification. */
+.paper-grid .file-dot {
+  width: 27px !important;
+  min-width: 27px !important;
+  height: 25px !important;
+  min-height: 25px !important;
+  font-size: 0 !important;
+}
+
+.paper-grid .file-dot::before {
+  content: 'F';
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.paper-grid .file-dot[data-file-kind='pdf']::before { content: 'PDF'; font-size: 7px; }
+.paper-grid .file-dot[data-file-kind='document']::before { content: 'W'; }
+.paper-grid .file-dot[data-file-kind='sheet']::before { content: 'X'; }
+.paper-grid .file-dot[data-file-kind='slides']::before { content: 'P'; }
+.paper-grid .file-dot[data-file-kind='image']::before { content: '▣'; font-size: 12px; }
+.paper-grid .file-dot[data-file-kind='archive']::before { content: 'ZIP'; font-size: 7px; }
+.paper-grid .file-dot[data-file-kind='code']::before { content: '</>'; font-size: 7px; }
+.paper-grid .file-dot[data-file-kind='proof']::before { content: '✓'; font-size: 13px; }
+.paper-grid .file-dot[data-file-kind='response']::before { content: '↩'; font-size: 13px; }
+.paper-grid .file-dot[data-file-kind='receipt']::before { content: '¥'; font-size: 12px; }
+
+.paper-grid .file-dot[data-file-kind='pdf'] { color: #dc2626 !important; }
+.paper-grid .file-dot[data-file-kind='document'] { color: #2563eb !important; }
+.paper-grid .file-dot[data-file-kind='sheet'] { color: #15803d !important; }
+.paper-grid .file-dot[data-file-kind='slides'] { color: #c2410c !important; }
+.paper-grid .file-dot[data-file-kind='image'] { color: #7c3aed !important; }
+.paper-grid .file-dot[data-file-kind='proof'] { color: #047857 !important; }
+.paper-grid .file-dot[data-file-kind='response'] { color: #0369a1 !important; }
+.paper-grid .file-dot[data-file-kind='receipt'] { color: #a16207 !important; }
+
+/* Luminous X preparation header: remove the empty white strip and retain only compact controls when they cannot be portaled. */
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  display: block !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar::before {
+  content: none !important;
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar .prep-heading {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar .prep-top-actions {
+  width: 100% !important;
+  min-height: 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar .prep-search {
+  width: min(330px, 42vw) !important;
+  min-width: 180px !important;
+  height: 34px !important;
+  margin-right: auto !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar .prep-top-actions .btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px !important;
+  transform: none !important;
+}
+
+@media (min-width: 1421px) {
+  html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar {
+    display: none !important;
+    margin: 0 !important;
+  }
+}
+
+/* Luminous X secondary navigation: compact active state without large hover/selection displacement. */
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls {
+  min-height: 32px !important;
+  padding: 2px !important;
+  gap: 2px !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 0 8px !important;
+  border-radius: 7px !important;
+  font-size: 9.5px !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button:hover,
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button.active {
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .lx-page-proxy-controls button.active {
+  border-color: rgba(60, 245, 255, .36) !important;
+  box-shadow: 0 0 0 1px rgba(60, 245, 255, .10) !important;
+}
+
+@media (max-width: 760px) {
+  .compact-file-row,
+  .compact-file-row.is-managed,
+  .compact-file-row.is-offline {
+    grid-template-columns: 92px minmax(0, 1fr) !important;
+  }
+
+  .compact-file-row .compact-file-type {
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+  }
+
+  .compact-file-text {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 2px !important;
+  }
+
+  .compact-file-meta {
+    display: none !important;
+  }
+
+  .compact-file-actions,
+  .compact-file-row.is-offline .compact-file-url {
+    grid-column: 2 !important;
+  }
+
+  html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar .prep-top-actions {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+  }
+
+  html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar .prep-search {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 0 100% !important;
+  }
+}
