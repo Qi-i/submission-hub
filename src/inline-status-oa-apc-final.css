@@ -1,22 +1,37 @@
 /* Final semantic-density pass shared by Luminous and Luminous X. */
 
-/* Manuscript status, publication entry, and revision state are one fact row. */
-.paper-card-v3 .paper-status-area {
+/* Manuscript status keeps two semantic levels: main status, then system status + publication. */
+.paper-grid .paper-card-v3 .paper-status-area {
   width: auto !important;
   max-width: 100% !important;
   min-width: 0 !important;
   display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: wrap !important;
-  align-items: center !important;
-  align-content: center !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  align-content: flex-start !important;
   gap: 5px !important;
+  overflow: visible !important;
 }
 
-.paper-card-v3 .paper-status-area > .badge,
-.paper-card-v3 .paper-status-area > .paper-substatus,
-.paper-card-v3 .paper-status-area > .paper-publication-compact,
-.paper-card-v3 .paper-status-area > .paper-revision-inline {
+.paper-grid .paper-card-v3 .paper-status-detail-row {
+  width: max-content !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  overflow: visible !important;
+}
+
+.paper-grid .paper-card-v3 .paper-status-detail-row > .paper-substatus,
+.paper-grid .paper-card-v3 .paper-status-detail-row > .paper-publication-compact {
   width: auto !important;
   min-width: 0 !important;
   min-height: 24px !important;
@@ -27,33 +42,45 @@
   align-items: center !important;
   justify-content: center !important;
   border-radius: 999px !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
   line-height: 1 !important;
   white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
-.paper-card-v3 .paper-status-area > .paper-substatus {
+.paper-grid .paper-card-v3 .paper-status-detail-row > .paper-substatus {
   gap: 5px !important;
 }
 
-.paper-card-v3 .paper-status-area > .paper-publication-compact {
+.paper-grid .paper-card-v3 .paper-status-detail-row > .paper-publication-compact {
   border: 1px solid rgba(8, 145, 178, .24) !important;
   background: rgba(6, 182, 212, .08) !important;
   color: #0e7490 !important;
-  font-size: 9.5px !important;
-  font-weight: 800 !important;
   text-decoration: none !important;
   box-shadow: none !important;
 }
 
-.paper-card-v3 .paper-status-area > .paper-publication-compact:hover {
+.paper-grid .paper-card-v3 .paper-status-detail-row > .paper-publication-compact:hover {
   border-color: rgba(8, 145, 178, .42) !important;
   background: rgba(6, 182, 212, .14) !important;
 }
 
-html[data-theme='dark'] .paper-card-v3 .paper-status-area > .paper-publication-compact {
+html[data-theme='dark'] .paper-grid .paper-card-v3 .paper-status-detail-row > .paper-publication-compact {
   border-color: rgba(103, 232, 249, .27) !important;
   background: rgba(34, 211, 238, .10) !important;
   color: #8befff !important;
+}
+
+.paper-grid .paper-card-v3 .paper-revision-inline {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 /* Short metadata never owns a full line when it can share a row. */
@@ -237,7 +264,8 @@ html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar:has(.prep-top-a
 }
 
 @media (max-width: 760px) {
-  .paper-card-v3 .paper-status-area {
+  .paper-grid .paper-card-v3 .paper-status-area,
+  .paper-grid .paper-card-v3 .paper-status-detail-row {
     gap: 4px !important;
   }
 
