@@ -47,6 +47,7 @@ try {
     const cardChecks = []
     for (const [index, card] of cards.entries()) {
       const status = card.querySelector('.paper-status-area > .badge')
+      const detailRow = card.querySelector('.paper-status-detail-row')
       const pill = card.querySelector('.journal-pill')
       const slot = card.querySelector('.paper-journal-slot')
       const substatus = card.querySelector('.paper-substatus')
@@ -54,7 +55,7 @@ try {
       const revision = card.querySelector('.paper-revision-inline')
       const cardRect = card.getBoundingClientRect()
       const cardStyle = getComputedStyle(card)
-      const check = { index, journal: null, substatus: null, publication: null, revisionVisible: false }
+      const check = { index, journal: null, detailRow: null, substatus: null, publication: null, revisionVisible: false }
 
       if (pill) {
         const text = pill.querySelector('.journal-pill-text')
@@ -79,6 +80,15 @@ try {
         }
       }
 
+      if (detailRow && status) {
+        const statusRect = status.getBoundingClientRect()
+        const detailRect = detailRow.getBoundingClientRect()
+        const style = getComputedStyle(detailRow)
+        if (style.display === 'none' || detailRect.height < 20) failures.push(`card ${index + 1}: status detail row is not readable`)
+        if (detailRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: status detail row overlaps the main status`)
+        check.detailRow = { top: detailRect.top, statusBottom: statusRect.bottom, left: detailRect.left, height: detailRect.height }
+      }
+
       if (substatus && status) {
         const statusRect = status.getBoundingClientRect()
         const subRect = substatus.getBoundingClientRect()
@@ -86,19 +96,24 @@ try {
         const style = getComputedStyle(substatus)
         if (style.display === 'none' || Number(style.opacity || 1) < 0.65 || subRect.height < 16) failures.push(`card ${index + 1}: substatus is not readable`)
         if (Number.parseFloat(style.fontSize) >= Number.parseFloat(statusStyle.fontSize)) failures.push(`card ${index + 1}: substatus is not visually secondary`)
-        if (Math.abs(subRect.top - statusRect.top) > 4) failures.push(`card ${index + 1}: substatus is not aligned in the status fact row`)
-        if (subRect.left < statusRect.right - 1) failures.push(`card ${index + 1}: substatus overlaps the main status`)
-        check.substatus = { top: subRect.top, statusTop: statusRect.top, left: subRect.left, statusRight: statusRect.right, height: subRect.height, fontSize: style.fontSize }
+        if (subRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: substatus overlaps the main status`)
+        if (detailRow && substatus.parentElement !== detailRow) failures.push(`card ${index + 1}: substatus is outside the shared detail row`)
+        check.substatus = { top: subRect.top, statusBottom: statusRect.bottom, left: subRect.left, right: subRect.right, height: subRect.height, fontSize: style.fontSize }
       }
 
       if (publication && status) {
         const statusRect = status.getBoundingClientRect()
         const publicationRect = publication.getBoundingClientRect()
         const style = getComputedStyle(publication)
-        if (Math.abs(publicationRect.top - statusRect.top) > 4) failures.push(`card ${index + 1}: publication entry is not aligned with the main status`)
-        if (publicationRect.left < statusRect.right - 1) failures.push(`card ${index + 1}: publication entry overlaps the main status`)
         if (publicationRect.height < 20 || style.display === 'none') failures.push(`card ${index + 1}: publication entry is not readable`)
-        check.publication = { top: publicationRect.top, statusTop: statusRect.top, left: publicationRect.left, statusRight: statusRect.right, height: publicationRect.height }
+        if (publicationRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: publication entry overlaps the main status`)
+        if (detailRow && publication.parentElement !== detailRow) failures.push(`card ${index + 1}: publication entry is outside the shared detail row`)
+        if (substatus) {
+          const subRect = substatus.getBoundingClientRect()
+          if (Math.abs(publicationRect.top - subRect.top) > 4) failures.push(`card ${index + 1}: publication entry is not aligned with the system status`)
+          if (publicationRect.left < subRect.right - 1) failures.push(`card ${index + 1}: publication entry overlaps the system status`)
+        }
+        check.publication = { top: publicationRect.top, statusBottom: statusRect.bottom, left: publicationRect.left, height: publicationRect.height }
       }
 
       if (revision) {
