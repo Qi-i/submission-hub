@@ -1,0 +1,222 @@
+/* Final compact-output contract shared by Luminous and Luminous X. */
+
+/* Collapse duplicated rank label/value pairs such as “EI EI”. */
+.prep-journal-rank-blocks > span[data-collapsed='true'] {
+  gap: 0 !important;
+}
+
+.prep-journal-rank-blocks > span[data-collapsed='true'] b {
+  margin: 0 !important;
+}
+
+/* Unknown journal metrics do not reserve four large equal boxes. */
+.prep-journal-numbers.prep-journal-metrics-compact {
+  min-height: 28px !important;
+  margin-top: 9px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+.prep-journal-numbers.prep-journal-metrics-compact > div {
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 28px !important;
+  padding: 4px 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 8px !important;
+  background: var(--bg-elevated) !important;
+  text-align: left !important;
+}
+
+.prep-journal-numbers.prep-journal-metrics-compact > div[hidden] {
+  display: none !important;
+}
+
+.prep-journal-numbers.prep-journal-metrics-compact > div > b {
+  order: 2;
+  max-width: none !important;
+  overflow: visible !important;
+  color: var(--text-primary) !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.prep-journal-numbers.prep-journal-metrics-compact > div > small:not(.journal-card-cny) {
+  order: 1;
+  color: var(--text-muted) !important;
+  font-size: 8.5px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.prep-journal-numbers.prep-journal-metrics-compact .journal-card-cny {
+  order: 3;
+  margin: 0 0 0 1px !important;
+  padding-left: 5px;
+  border-left: 1px solid var(--border-subtle);
+  font-size: 8px !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
+
+.prep-journal-metrics-missing {
+  min-height: 27px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-elevated) 66%, transparent);
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+/* Published URL and DOI represent one result entry. It sits in the status row and never creates a separate line. */
+.paper-status-area .paper-publication-compact {
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 24px !important;
+  height: 24px !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(14, 116, 144, .20) !important;
+  border-radius: 8px !important;
+  background: rgba(14, 165, 233, .07) !important;
+  color: #08708a !important;
+  box-shadow: none !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+html[data-theme='dark'] .paper-status-area .paper-publication-compact {
+  border-color: rgba(103, 232, 249, .25) !important;
+  background: rgba(34, 211, 238, .09) !important;
+  color: #8befff !important;
+}
+
+/* File affordances use readable abbreviations rather than generic check marks. */
+.compact-file-status-icon::before,
+.paper-grid .file-dot::before {
+  content: attr(data-file-mark) !important;
+  display: block !important;
+  font-family: inherit !important;
+  font-weight: 900 !important;
+  letter-spacing: -.06em !important;
+  white-space: nowrap !important;
+}
+
+.compact-file-status-icon {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+}
+
+.compact-file-status-icon::before {
+  font-size: 8px !important;
+  line-height: 1 !important;
+}
+
+.paper-grid .file-dot {
+  width: 35px !important;
+  min-width: 35px !important;
+  height: 25px !important;
+  min-height: 25px !important;
+}
+
+.paper-grid .file-dot::before {
+  font-size: 8px !important;
+  line-height: 1 !important;
+}
+
+:is(.compact-file-row, .paper-grid .file-dot)[data-file-kind='retrieval'] .compact-file-status-icon,
+.paper-grid .file-dot[data-file-kind='retrieval'] {
+  color: #047857 !important;
+  border-color: rgba(5, 150, 105, .25) !important;
+  background: rgba(5, 150, 105, .09) !important;
+}
+
+.compact-file-row[data-file-kind='published'] .compact-file-status-icon,
+.paper-grid .file-dot[data-file-kind='published'] {
+  color: #0e7490 !important;
+  border-color: rgba(14, 116, 144, .24) !important;
+  background: rgba(6, 182, 212, .09) !important;
+}
+
+.compact-file-row[data-file-kind='acceptance'] .compact-file-status-icon,
+.paper-grid .file-dot[data-file-kind='acceptance'] {
+  color: #15803d !important;
+  border-color: rgba(22, 163, 74, .24) !important;
+  background: rgba(22, 163, 74, .09) !important;
+}
+
+.compact-file-row[data-file-kind='proof'] .compact-file-status-icon,
+.paper-grid .file-dot[data-file-kind='proof'] {
+  color: #7c3aed !important;
+  border-color: rgba(124, 58, 237, .23) !important;
+  background: rgba(124, 58, 237, .08) !important;
+}
+
+.compact-file-row[data-file-kind='response'] .compact-file-status-icon,
+.paper-grid .file-dot[data-file-kind='response'] {
+  color: #0369a1 !important;
+  border-color: rgba(2, 132, 199, .23) !important;
+  background: rgba(2, 132, 199, .08) !important;
+}
+
+.compact-file-row[data-file-kind='receipt'] .compact-file-status-icon,
+.paper-grid .file-dot[data-file-kind='receipt'] {
+  color: #a16207 !important;
+  border-color: rgba(202, 138, 4, .24) !important;
+  background: rgba(202, 138, 4, .09) !important;
+}
+
+/* A portaled action bar leaves no in-page toolbar; hide the empty wrapper structurally in every X subsection. */
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar:not(:has(.prep-top-actions)) {
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: none !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace > .prep-topbar:not(:has(.prep-top-actions)) + .prep-nav {
+  margin-top: 0 !important;
+}
+
+@media (max-width: 760px) {
+  .prep-journal-numbers.prep-journal-metrics-compact {
+    gap: 4px !important;
+  }
+
+  .prep-journal-numbers.prep-journal-metrics-compact > div {
+    padding-inline: 7px !important;
+  }
+
+  .paper-grid .file-dot {
+    width: 34px !important;
+    min-width: 34px !important;
+  }
+}

@@ -29,14 +29,97 @@ function renderConversion(output: HTMLElement, amount: number, currency: string,
   })
 }
 
+function normalizedToken(value?: string | null) {
+  return (value || '').replace(/[\s·/｜|：:，,（）()_-]+/g, '').trim().toLocaleUpperCase()
+}
+
+function compactJournalRanks(card: HTMLElement) {
+  const seen = new Set<string>()
+  const rankSpans = Array.from(card.querySelectorAll<HTMLElement>('.prep-journal-rank-blocks > span'))
+
+  rankSpans.forEach(span => {
+    const label = span.querySelector<HTMLElement>('b')
+    const value = span.querySelector<HTMLElement>('em')
+    const labelText = label?.textContent?.trim() || ''
+    const valueText = value?.textContent?.trim() || ''
+    const labelToken = normalizedToken(labelText)
+    const valueToken = normalizedToken(valueText)
+    const isAffirmation = ['是', 'YES', 'TRUE', '收录'].includes(valueToken)
+
+    if (value && (labelToken === valueToken || isAffirmation)) {
+      value.remove()
+      span.dataset.collapsed = 'true'
+    }
+
+    const token = normalizedToken(span.textContent)
+    if (token && seen.has(token)) {
+      span.remove()
+      return
+    }
+    if (token) seen.add(token)
+  })
+
+  const represented = new Set(
+    Array.from(card.querySelectorAll<HTMLElement>('.prep-journal-rank-blocks > span'))
+      .flatMap(span => [
+        normalizedToken(span.textContent),
+        normalizedToken(span.querySelector('b')?.textContent),
+        normalizedToken(span.querySelector('em')?.textContent),
+      ])
+      .filter(Boolean),
+  )
+
+  card.querySelectorAll<HTMLElement>('.prep-journal-facts [data-tone="index"]').forEach(item => {
+    const token = normalizedToken(item.textContent)
+    if (token && represented.has(token)) item.remove()
+  })
+}
+
+function compactJournalMetrics(card: HTMLElement) {
+  const host = card.querySelector<HTMLElement>('.prep-journal-numbers')
+  if (!host) return
+  host.classList.add('prep-journal-metrics-compact')
+
+  const cells = Array.from(host.querySelectorAll<HTMLElement>(':scope > div'))
+  let knownCount = 0
+  cells.forEach(cell => {
+    const value = cell.querySelector<HTMLElement>('b')?.textContent?.trim() || ''
+    const label = cell.querySelector<HTMLElement>('small:not(.journal-card-cny)')?.textContent?.trim() || ''
+    const unknown = !value || value === '—' || value === '--'
+    cell.hidden = unknown
+    cell.classList.toggle('is-known', !unknown)
+    if (unknown) return
+    knownCount += 1
+    const metric = /首轮/.test(label) ? 'first'
+      : /总审稿/.test(label) ? 'review'
+        : /接收率/.test(label) ? 'acceptance'
+          : 'apc'
+    cell.dataset.metric = metric
+  })
+
+  let missing = host.querySelector<HTMLElement>('.prep-journal-metrics-missing')
+  if (knownCount === 0) {
+    if (!missing) {
+      missing = document.createElement('span')
+      missing.className = 'prep-journal-metrics-missing'
+      missing.textContent = '审稿周期、接收率与 APC 暂未记录'
+      host.appendChild(missing)
+    }
+  } else {
+    missing?.remove()
+  }
+}
+
 function enhanceJournalCards() {
   document.querySelectorAll<HTMLElement>('.prep-journal-card').forEach(card => {
-    const cells = card.querySelectorAll<HTMLElement>('.prep-journal-numbers > div')
-    const feeCell = cells[cells.length - 1]
+    compactJournalRanks(card)
+    compactJournalMetrics(card)
+
+    const feeCell = card.querySelector<HTMLElement>('.prep-journal-numbers > [data-metric="apc"]')
     const amountNode = feeCell?.querySelector<HTMLElement>('b')
-    const currencyNode = feeCell?.querySelector<HTMLElement>('small:not(.journal-card-cny)')
-    const amount = numericText(amountNode?.textContent)
-    const currency = (currencyNode?.textContent || '').trim().toUpperCase()
+    const raw = amountNode?.textContent?.trim() || ''
+    const amount = numericText(raw.match(/[\d,.]+/)?.[0])
+    const currency = (feeCell?.querySelector<HTMLElement>('small:not(.journal-card-cny)')?.textContent || '').trim().toUpperCase()
     if (!feeCell || amount === null || !currency || currency === 'APC') return
 
     let output = feeCell.querySelector<HTMLElement>('.journal-card-cny')
@@ -132,41 +215,68 @@ function enhancePaperForm() {
     if (inputs?.length === 2 && host && !host.querySelector('.paper-cny-live')) {
       installInputPreview(inputs[0], inputs[1], host, 'paper-cny-live')
     }
-
-    const revisionField = Array.from(modal.querySelectorAll<HTMLElement>('.compact-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim() === '返修轮次')
-    if (revisionField && !revisionField.querySelector('.paper-auto-field-hint')) {
-      const hint = document.createElement('small')
-      hint.className = 'paper-auto-field-hint'
-      hint.textContent = '保存时根据时间线自动重算；没有可识别记录时保留手填值'
-      revisionField.appendChild(hint)
-    }
   })
 }
 
-function fileKind(text: string) {
+type FileDescriptor = { kind: string; mark: string }
+
+function fileDescriptor(text: string): FileDescriptor {
   const normalized = text.toLowerCase()
-  if (/\.pdf\b/.test(normalized)) return /检索证明|录用通知|proof/.test(normalized) ? 'proof' : 'pdf'
-  if (/\.(docx?|odt|rtf)\b/.test(normalized)) return /response|回复|审稿意见/.test(normalized) ? 'response' : 'document'
-  if (/\.(xlsx?|csv|ods)\b/.test(normalized)) return 'sheet'
-  if (/\.(pptx?|odp)\b/.test(normalized)) return 'slides'
-  if (/\.(png|jpe?g|webp|gif|bmp|tiff?|svg)\b/.test(normalized)) return 'image'
-  if (/\.(zip|rar|7z|tar|gz)\b/.test(normalized)) return 'archive'
-  if (/\.(json|xml|html?|md|txt|log)\b/.test(normalized)) return 'code'
-  if (/检索证明|录用通知|见刊文章|proof/.test(normalized)) return 'proof'
-  if (/response|回复|审稿意见/.test(normalized)) return 'response'
-  if (/apc|发票|版权协议/.test(normalized)) return 'receipt'
-  return 'generic'
+  if (/检索证明/.test(normalized)) return { kind: 'retrieval', mark: '检索' }
+  if (/见刊文章|published article|final article/.test(normalized)) return { kind: 'published', mark: '见刊' }
+  if (/录用通知|acceptance letter/.test(normalized)) return { kind: 'acceptance', mark: '录用' }
+  if (/proof|校样/.test(normalized)) return { kind: 'proof', mark: '校样' }
+  if (/response to reviewers|response|回复|审稿意见/.test(normalized)) return { kind: 'response', mark: '回复' }
+  if (/cover letter/.test(normalized)) return { kind: 'document', mark: 'CL' }
+  if (/初稿/.test(normalized)) return { kind: 'document', mark: '初稿' }
+  if (/投稿稿/.test(normalized)) return { kind: 'document', mark: '投稿' }
+  if (/修回稿/.test(normalized)) return { kind: 'document', mark: '修回' }
+  if (/版权协议/.test(normalized)) return { kind: 'receipt', mark: '版权' }
+  if (/apc|发票/.test(normalized)) return { kind: 'receipt', mark: '发票' }
+  if (/投稿截图/.test(normalized)) return { kind: 'image', mark: '截图' }
+  if (/\.pdf\b/.test(normalized)) return { kind: 'pdf', mark: 'PDF' }
+  if (/\.(docx?|odt|rtf)\b/.test(normalized)) return { kind: 'document', mark: 'Word' }
+  if (/\.(xlsx?|csv|ods)\b/.test(normalized)) return { kind: 'sheet', mark: '表格' }
+  if (/\.(pptx?|odp)\b/.test(normalized)) return { kind: 'slides', mark: 'PPT' }
+  if (/\.(png|jpe?g|webp|gif|bmp|tiff?|svg)\b/.test(normalized)) return { kind: 'image', mark: '图片' }
+  if (/\.(zip|rar|7z|tar|gz)\b/.test(normalized)) return { kind: 'archive', mark: '压缩' }
+  if (/\.(json|xml|html?|md|txt|log)\b/.test(normalized)) return { kind: 'code', mark: '文本' }
+  return { kind: 'generic', mark: '附件' }
 }
 
 function enhanceAttachmentIcons() {
   document.querySelectorAll<HTMLElement>('.compact-file-row').forEach(row => {
     const type = row.querySelector<HTMLSelectElement>('.compact-file-type')?.value || ''
     const name = row.querySelector<HTMLInputElement>('.compact-file-name')?.value || ''
-    row.dataset.fileKind = fileKind(`${type} ${name}`)
+    const descriptor = fileDescriptor(`${type} ${name}`)
+    row.dataset.fileKind = descriptor.kind
+    row.dataset.fileMark = descriptor.mark
   })
 
   document.querySelectorAll<HTMLElement>('.paper-grid .file-dot').forEach(file => {
-    file.dataset.fileKind = fileKind(file.getAttribute('title') || file.textContent || '')
+    const descriptor = fileDescriptor(file.getAttribute('title') || file.textContent || '')
+    file.dataset.fileKind = descriptor.kind
+    file.dataset.fileMark = descriptor.mark
+  })
+}
+
+function enhancePublicationEntry() {
+  document.querySelectorAll<HTMLElement>('.paper-card-v3').forEach(card => {
+    const statusArea = card.querySelector<HTMLElement>('.paper-status-area')
+    const published = card.querySelector<HTMLAnchorElement>('.paper-publication-link')
+    const doi = card.querySelector<HTMLAnchorElement>('.archive-chip.doi')
+    const primary = published || doi
+
+    if (statusArea && primary && !statusArea.contains(primary)) {
+      primary.classList.add('paper-publication-compact')
+      primary.textContent = published ? '见刊 ↗' : 'DOI ↗'
+      statusArea.appendChild(primary)
+    }
+    if (published && doi && published !== doi) doi.remove()
+
+    card.querySelectorAll<HTMLElement>('.paper-meta-row.paper-meta-compact, .archive-chip-row').forEach(row => {
+      if (row.children.length === 0) row.remove()
+    })
   })
 }
 
@@ -188,6 +298,7 @@ function enhanceAll() {
   enhanceJournalForm()
   enhancePaperForm()
   enhanceAttachmentIcons()
+  enhancePublicationEntry()
   enhanceTimelinePresets()
 }
 
@@ -200,7 +311,7 @@ export default function ApcAutoConverter() {
     }
     enhanceAll()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['value', 'title'] })
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['value', 'title', 'class'] })
     document.addEventListener('input', schedule, true)
     document.addEventListener('change', schedule, true)
     return () => {
