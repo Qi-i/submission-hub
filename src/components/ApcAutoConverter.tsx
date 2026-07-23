@@ -33,6 +33,26 @@ function normalizedToken(value?: string | null) {
   return (value || '').replace(/[\s·/｜|：:，,（）()_-]+/g, '').trim().toLocaleUpperCase()
 }
 
+function compactOaText(value: string) {
+  const text = value.trim()
+  if (text === '全开放获取') return 'OA'
+  if (text === '混合开放获取') return '混合 OA'
+  if (text === '钻石开放获取（无 APC）') return '钻石 OA'
+  if (text === '订阅制') return '订阅'
+  if (text === '未确认') return 'OA 未确认'
+  return text
+}
+
+function normalizeOaLabels() {
+  document.querySelectorAll<HTMLElement>('[data-tone="oa"], .journal-quick-facts b').forEach(element => {
+    const current = element.textContent?.trim() || ''
+    const next = compactOaText(current)
+    if (next === current) return
+    if (!element.title) element.title = current
+    element.textContent = next
+  })
+}
+
 function compactJournalRanks(card: HTMLElement) {
   const seen = new Set<string>()
   const rankSpans = Array.from(card.querySelectorAll<HTMLElement>('.prep-journal-rank-blocks > span'))
@@ -77,37 +97,38 @@ function compactJournalRanks(card: HTMLElement) {
 
 function compactJournalMetrics(card: HTMLElement) {
   const host = card.querySelector<HTMLElement>('.prep-journal-numbers')
+  const facts = card.querySelector<HTMLElement>('.prep-journal-facts')
   if (!host) return
   host.classList.add('prep-journal-metrics-compact')
 
   const cells = Array.from(host.querySelectorAll<HTMLElement>(':scope > div'))
-  let knownCount = 0
+  let reviewMetricCount = 0
   cells.forEach(cell => {
     const value = cell.querySelector<HTMLElement>('b')?.textContent?.trim() || ''
     const label = cell.querySelector<HTMLElement>('small:not(.journal-card-cny)')?.textContent?.trim() || ''
-    const unknown = !value || value === '—' || value === '--'
-    cell.hidden = unknown
-    cell.classList.toggle('is-known', !unknown)
-    if (unknown) return
-    knownCount += 1
     const metric = /首轮/.test(label) ? 'first'
       : /总审稿/.test(label) ? 'review'
         : /接收率/.test(label) ? 'acceptance'
           : 'apc'
+    const unknown = !value || value === '—' || value === '--'
     cell.dataset.metric = metric
+    cell.hidden = unknown
+    cell.classList.toggle('is-known', !unknown)
+
+    if (metric === 'apc') {
+      if (!unknown && facts) {
+        cell.hidden = false
+        cell.classList.add('prep-journal-apc-fact')
+        facts.appendChild(cell)
+      }
+      return
+    }
+
+    if (!unknown) reviewMetricCount += 1
   })
 
-  let missing = host.querySelector<HTMLElement>('.prep-journal-metrics-missing')
-  if (knownCount === 0) {
-    if (!missing) {
-      missing = document.createElement('span')
-      missing.className = 'prep-journal-metrics-missing'
-      missing.textContent = '审稿周期、接收率与 APC 暂未记录'
-      host.appendChild(missing)
-    }
-  } else {
-    missing?.remove()
-  }
+  host.querySelector<HTMLElement>('.prep-journal-metrics-missing')?.remove()
+  host.hidden = reviewMetricCount === 0
 }
 
 function enhanceJournalCards() {
@@ -115,7 +136,7 @@ function enhanceJournalCards() {
     compactJournalRanks(card)
     compactJournalMetrics(card)
 
-    const feeCell = card.querySelector<HTMLElement>('.prep-journal-numbers > [data-metric="apc"]')
+    const feeCell = card.querySelector<HTMLElement>('[data-metric="apc"]')
     const amountNode = feeCell?.querySelector<HTMLElement>('b')
     const raw = amountNode?.textContent?.trim() || ''
     const amount = numericText(raw.match(/[\d,.]+/)?.[0])
@@ -263,20 +284,40 @@ function enhanceAttachmentIcons() {
 function enhancePublicationEntry() {
   document.querySelectorAll<HTMLElement>('.paper-card-v3').forEach(card => {
     const statusArea = card.querySelector<HTMLElement>('.paper-status-area')
+    const statusBadge = statusArea?.querySelector<HTMLElement>(':scope > .badge')
     const published = card.querySelector<HTMLAnchorElement>('.paper-publication-link')
     const doi = card.querySelector<HTMLAnchorElement>('.archive-chip.doi')
     const primary = published || doi
 
-    if (statusArea && primary && !statusArea.contains(primary)) {
+    if (statusArea && primary) {
       primary.classList.add('paper-publication-compact')
       primary.textContent = published ? '见刊 ↗' : 'DOI ↗'
-      statusArea.appendChild(primary)
+      if (statusBadge && statusBadge.nextElementSibling !== primary) statusBadge.insertAdjacentElement('afterend', primary)
+      else if (!statusArea.contains(primary)) statusArea.appendChild(primary)
     }
     if (published && doi && published !== doi) doi.remove()
 
     card.querySelectorAll<HTMLElement>('.paper-meta-row.paper-meta-compact, .archive-chip-row').forEach(row => {
       if (row.children.length === 0) row.remove()
     })
+  })
+}
+
+function compactQuickFacts() {
+  document.querySelectorAll<HTMLElement>('.journal-quick-facts').forEach(host => {
+    Array.from(host.children).forEach(child => {
+      const item = child as HTMLElement
+      const value = item.querySelector('b')?.textContent?.trim() || ''
+      item.hidden = !value || value === '—' || value === '--'
+    })
+    host.hidden = !Array.from(host.children).some(child => !(child as HTMLElement).hidden)
+  })
+}
+
+function cleanupEmptyRows() {
+  document.querySelectorAll<HTMLElement>('.paper-meta-row, .archive-chip-row, .prep-journal-numbers').forEach(row => {
+    const visibleChildren = Array.from(row.children).some(child => !(child as HTMLElement).hidden)
+    row.toggleAttribute('data-empty', !visibleChildren)
   })
 }
 
@@ -293,12 +334,15 @@ function enhanceTimelinePresets() {
 }
 
 function enhanceAll() {
+  normalizeOaLabels()
   enhanceJournalCards()
   enhanceOverviewCards()
   enhanceJournalForm()
   enhancePaperForm()
   enhanceAttachmentIcons()
   enhancePublicationEntry()
+  compactQuickFacts()
+  cleanupEmptyRows()
   enhanceTimelinePresets()
 }
 
