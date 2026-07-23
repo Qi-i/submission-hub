@@ -33,6 +33,32 @@ function normalizedToken(value?: string | null) {
   return (value || '').replace(/[\s·/｜|：:，,（）()_-]+/g, '').trim().toLocaleUpperCase()
 }
 
+function compactOaText(value: string) {
+  const text = value.trim()
+  if (text === '全开放获取') return 'OA'
+  if (text === '混合开放获取') return '混合 OA'
+  if (text === '钻石开放获取（无 APC）') return '钻石 OA'
+  if (text === '订阅制') return '订阅'
+  if (text === '未确认') return 'OA 未确认'
+  return text
+}
+
+function normalizeOaLabels() {
+  document.querySelectorAll<HTMLElement>('[data-tone="oa"], .journal-quick-facts b').forEach(element => {
+    const current = element.textContent?.trim() || ''
+    const next = compactOaText(current)
+    if (next === current) return
+    if (!element.title) element.title = current
+    element.textContent = next
+  })
+
+  document.querySelectorAll<HTMLOptionElement>('option').forEach(option => {
+    const current = option.textContent?.trim() || ''
+    if (!['全开放获取', '混合开放获取', '钻石开放获取（无 APC）', '订阅制'].includes(current)) return
+    option.textContent = compactOaText(current)
+  })
+}
+
 function compactJournalRanks(card: HTMLElement) {
   const seen = new Set<string>()
   const rankSpans = Array.from(card.querySelectorAll<HTMLElement>('.prep-journal-rank-blocks > span'))
@@ -77,37 +103,38 @@ function compactJournalRanks(card: HTMLElement) {
 
 function compactJournalMetrics(card: HTMLElement) {
   const host = card.querySelector<HTMLElement>('.prep-journal-numbers')
+  const facts = card.querySelector<HTMLElement>('.prep-journal-facts')
   if (!host) return
   host.classList.add('prep-journal-metrics-compact')
 
   const cells = Array.from(host.querySelectorAll<HTMLElement>(':scope > div'))
-  let knownCount = 0
+  let reviewMetricCount = 0
   cells.forEach(cell => {
     const value = cell.querySelector<HTMLElement>('b')?.textContent?.trim() || ''
     const label = cell.querySelector<HTMLElement>('small:not(.journal-card-cny)')?.textContent?.trim() || ''
-    const unknown = !value || value === '—' || value === '--'
-    cell.hidden = unknown
-    cell.classList.toggle('is-known', !unknown)
-    if (unknown) return
-    knownCount += 1
     const metric = /首轮/.test(label) ? 'first'
       : /总审稿/.test(label) ? 'review'
         : /接收率/.test(label) ? 'acceptance'
           : 'apc'
+    const unknown = !value || value === '—' || value === '--'
     cell.dataset.metric = metric
+    cell.hidden = unknown
+    cell.classList.toggle('is-known', !unknown)
+
+    if (metric === 'apc') {
+      if (!unknown && facts) {
+        cell.hidden = false
+        cell.classList.add('prep-journal-apc-fact')
+        if (cell.parentElement !== facts) facts.appendChild(cell)
+      }
+      return
+    }
+
+    if (!unknown) reviewMetricCount += 1
   })
 
-  let missing = host.querySelector<HTMLElement>('.prep-journal-metrics-missing')
-  if (knownCount === 0) {
-    if (!missing) {
-      missing = document.createElement('span')
-      missing.className = 'prep-journal-metrics-missing'
-      missing.textContent = '审稿周期、接收率与 APC 暂未记录'
-      host.appendChild(missing)
-    }
-  } else {
-    missing?.remove()
-  }
+  host.querySelector<HTMLElement>('.prep-journal-metrics-missing')?.remove()
+  host.hidden = reviewMetricCount === 0
 }
 
 function enhanceJournalCards() {
@@ -115,7 +142,7 @@ function enhanceJournalCards() {
     compactJournalRanks(card)
     compactJournalMetrics(card)
 
-    const feeCell = card.querySelector<HTMLElement>('.prep-journal-numbers > [data-metric="apc"]')
+    const feeCell = card.querySelector<HTMLElement>('[data-metric="apc"]')
     const amountNode = feeCell?.querySelector<HTMLElement>('b')
     const raw = amountNode?.textContent?.trim() || ''
     const amount = numericText(raw.match(/[\d,.]+/)?.[0])
@@ -249,34 +276,74 @@ function enhanceAttachmentIcons() {
     const type = row.querySelector<HTMLSelectElement>('.compact-file-type')?.value || ''
     const name = row.querySelector<HTMLInputElement>('.compact-file-name')?.value || ''
     const descriptor = fileDescriptor(`${type} ${name}`)
-    row.dataset.fileKind = descriptor.kind
-    row.dataset.fileMark = descriptor.mark
+    if (row.dataset.fileKind !== descriptor.kind) row.dataset.fileKind = descriptor.kind
+    if (row.dataset.fileMark !== descriptor.mark) row.dataset.fileMark = descriptor.mark
   })
 
   document.querySelectorAll<HTMLElement>('.paper-grid .file-dot').forEach(file => {
     const descriptor = fileDescriptor(file.getAttribute('title') || file.textContent || '')
-    file.dataset.fileKind = descriptor.kind
-    file.dataset.fileMark = descriptor.mark
+    if (file.dataset.fileKind !== descriptor.kind) file.dataset.fileKind = descriptor.kind
+    if (file.dataset.fileMark !== descriptor.mark) file.dataset.fileMark = descriptor.mark
   })
 }
 
 function enhancePublicationEntry() {
   document.querySelectorAll<HTMLElement>('.paper-card-v3').forEach(card => {
     const statusArea = card.querySelector<HTMLElement>('.paper-status-area')
+    const statusBadge = statusArea?.querySelector<HTMLElement>(':scope > .badge')
+    const substatus = statusArea?.querySelector<HTMLElement>('.paper-substatus')
     const published = card.querySelector<HTMLAnchorElement>('.paper-publication-link')
     const doi = card.querySelector<HTMLAnchorElement>('.archive-chip.doi')
     const primary = published || doi
+    if (!statusArea || !statusBadge) return
 
-    if (statusArea && primary && !statusArea.contains(primary)) {
-      primary.classList.add('paper-publication-compact')
-      primary.textContent = published ? '见刊 ↗' : 'DOI ↗'
-      statusArea.appendChild(primary)
+    let detailRow = statusArea.querySelector<HTMLElement>(':scope > .paper-status-detail-row')
+    if (!detailRow && (substatus || primary)) {
+      detailRow = document.createElement('div')
+      detailRow.className = 'paper-status-detail-row'
+      statusBadge.insertAdjacentElement('afterend', detailRow)
     }
-    if (published && doi && published !== doi) doi.remove()
+
+    if (substatus && detailRow && substatus.parentElement !== detailRow) detailRow.appendChild(substatus)
+
+    if (primary && detailRow) {
+      const removableClasses = ['badge', 'badge-sm', 'badge-outline', 'archive-chip', 'doi']
+      removableClasses.forEach(className => {
+        if (primary.classList.contains(className)) primary.classList.remove(className)
+      })
+      if (!primary.classList.contains('paper-publication-compact')) primary.classList.add('paper-publication-compact')
+      const expectedText = published ? '见刊 ↗' : 'DOI ↗'
+      if (primary.textContent !== expectedText) primary.textContent = expectedText
+      if (primary.parentElement !== detailRow) detailRow.appendChild(primary)
+    }
+
+    if (published && doi && published !== doi && doi.isConnected) doi.remove()
+    if (detailRow && detailRow.children.length === 0 && detailRow.isConnected) detailRow.remove()
 
     card.querySelectorAll<HTMLElement>('.paper-meta-row.paper-meta-compact, .archive-chip-row').forEach(row => {
-      if (row.children.length === 0) row.remove()
+      if (row.children.length === 0 && row.isConnected) row.remove()
     })
+  })
+}
+
+function compactQuickFacts() {
+  document.querySelectorAll<HTMLElement>('.journal-quick-facts').forEach(host => {
+    Array.from(host.children).forEach(child => {
+      const item = child as HTMLElement
+      const value = item.querySelector('b')?.textContent?.trim() || ''
+      const shouldHide = !value || value === '—' || value === '--'
+      if (item.hidden !== shouldHide) item.hidden = shouldHide
+    })
+    const shouldHideHost = !Array.from(host.children).some(child => !(child as HTMLElement).hidden)
+    if (host.hidden !== shouldHideHost) host.hidden = shouldHideHost
+  })
+}
+
+function cleanupEmptyRows() {
+  document.querySelectorAll<HTMLElement>('.paper-meta-row, .archive-chip-row, .prep-journal-numbers').forEach(row => {
+    const visibleChildren = Array.from(row.children).some(child => !(child as HTMLElement).hidden)
+    const shouldMarkEmpty = !visibleChildren
+    if (row.hasAttribute('data-empty') !== shouldMarkEmpty) row.toggleAttribute('data-empty', shouldMarkEmpty)
   })
 }
 
@@ -293,12 +360,15 @@ function enhanceTimelinePresets() {
 }
 
 function enhanceAll() {
+  normalizeOaLabels()
   enhanceJournalCards()
   enhanceOverviewCards()
   enhanceJournalForm()
   enhancePaperForm()
   enhanceAttachmentIcons()
   enhancePublicationEntry()
+  compactQuickFacts()
+  cleanupEmptyRows()
   enhanceTimelinePresets()
 }
 
