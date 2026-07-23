@@ -125,7 +125,7 @@ function compactJournalMetrics(card: HTMLElement) {
       if (!unknown && facts) {
         cell.hidden = false
         cell.classList.add('prep-journal-apc-fact')
-        facts.appendChild(cell)
+        if (cell.parentElement !== facts) facts.appendChild(cell)
       }
       return
     }
@@ -276,14 +276,14 @@ function enhanceAttachmentIcons() {
     const type = row.querySelector<HTMLSelectElement>('.compact-file-type')?.value || ''
     const name = row.querySelector<HTMLInputElement>('.compact-file-name')?.value || ''
     const descriptor = fileDescriptor(`${type} ${name}`)
-    row.dataset.fileKind = descriptor.kind
-    row.dataset.fileMark = descriptor.mark
+    if (row.dataset.fileKind !== descriptor.kind) row.dataset.fileKind = descriptor.kind
+    if (row.dataset.fileMark !== descriptor.mark) row.dataset.fileMark = descriptor.mark
   })
 
   document.querySelectorAll<HTMLElement>('.paper-grid .file-dot').forEach(file => {
     const descriptor = fileDescriptor(file.getAttribute('title') || file.textContent || '')
-    file.dataset.fileKind = descriptor.kind
-    file.dataset.fileMark = descriptor.mark
+    if (file.dataset.fileKind !== descriptor.kind) file.dataset.fileKind = descriptor.kind
+    if (file.dataset.fileMark !== descriptor.mark) file.dataset.fileMark = descriptor.mark
   })
 }
 
@@ -307,17 +307,21 @@ function enhancePublicationEntry() {
     if (substatus && detailRow && substatus.parentElement !== detailRow) detailRow.appendChild(substatus)
 
     if (primary && detailRow) {
-      primary.classList.remove('badge', 'badge-sm', 'badge-outline', 'archive-chip', 'doi')
-      primary.classList.add('paper-publication-compact')
-      primary.textContent = published ? '见刊 ↗' : 'DOI ↗'
+      const removableClasses = ['badge', 'badge-sm', 'badge-outline', 'archive-chip', 'doi']
+      removableClasses.forEach(className => {
+        if (primary.classList.contains(className)) primary.classList.remove(className)
+      })
+      if (!primary.classList.contains('paper-publication-compact')) primary.classList.add('paper-publication-compact')
+      const expectedText = published ? '见刊 ↗' : 'DOI ↗'
+      if (primary.textContent !== expectedText) primary.textContent = expectedText
       if (primary.parentElement !== detailRow) detailRow.appendChild(primary)
     }
 
-    if (published && doi && published !== doi) doi.remove()
-    if (detailRow && detailRow.children.length === 0) detailRow.remove()
+    if (published && doi && published !== doi && doi.isConnected) doi.remove()
+    if (detailRow && detailRow.children.length === 0 && detailRow.isConnected) detailRow.remove()
 
     card.querySelectorAll<HTMLElement>('.paper-meta-row.paper-meta-compact, .archive-chip-row').forEach(row => {
-      if (row.children.length === 0) row.remove()
+      if (row.children.length === 0 && row.isConnected) row.remove()
     })
   })
 }
@@ -327,16 +331,19 @@ function compactQuickFacts() {
     Array.from(host.children).forEach(child => {
       const item = child as HTMLElement
       const value = item.querySelector('b')?.textContent?.trim() || ''
-      item.hidden = !value || value === '—' || value === '--'
+      const shouldHide = !value || value === '—' || value === '--'
+      if (item.hidden !== shouldHide) item.hidden = shouldHide
     })
-    host.hidden = !Array.from(host.children).some(child => !(child as HTMLElement).hidden)
+    const shouldHideHost = !Array.from(host.children).some(child => !(child as HTMLElement).hidden)
+    if (host.hidden !== shouldHideHost) host.hidden = shouldHideHost
   })
 }
 
 function cleanupEmptyRows() {
   document.querySelectorAll<HTMLElement>('.paper-meta-row, .archive-chip-row, .prep-journal-numbers').forEach(row => {
     const visibleChildren = Array.from(row.children).some(child => !(child as HTMLElement).hidden)
-    row.toggleAttribute('data-empty', !visibleChildren)
+    const shouldMarkEmpty = !visibleChildren
+    if (row.hasAttribute('data-empty') !== shouldMarkEmpty) row.toggleAttribute('data-empty', shouldMarkEmpty)
   })
 }
 
