@@ -50,10 +50,11 @@ try {
       const pill = card.querySelector('.journal-pill')
       const slot = card.querySelector('.paper-journal-slot')
       const substatus = card.querySelector('.paper-substatus')
+      const publication = card.querySelector('.paper-publication-compact')
       const revision = card.querySelector('.paper-revision-inline')
       const cardRect = card.getBoundingClientRect()
       const cardStyle = getComputedStyle(card)
-      const check = { index, journal: null, substatus: null, revisionVisible: false }
+      const check = { index, journal: null, substatus: null, publication: null, revisionVisible: false }
 
       if (pill) {
         const text = pill.querySelector('.journal-pill-text')
@@ -85,8 +86,19 @@ try {
         const style = getComputedStyle(substatus)
         if (style.display === 'none' || Number(style.opacity || 1) < 0.65 || subRect.height < 16) failures.push(`card ${index + 1}: substatus is not readable`)
         if (Number.parseFloat(style.fontSize) >= Number.parseFloat(statusStyle.fontSize)) failures.push(`card ${index + 1}: substatus is not visually secondary`)
-        if (subRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: substatus overlaps main status instead of sitting below it`)
-        check.substatus = { top: subRect.top, statusBottom: statusRect.bottom, height: subRect.height, fontSize: style.fontSize }
+        if (Math.abs(subRect.top - statusRect.top) > 4) failures.push(`card ${index + 1}: substatus is not aligned in the status fact row`)
+        if (subRect.left < statusRect.right - 1) failures.push(`card ${index + 1}: substatus overlaps the main status`)
+        check.substatus = { top: subRect.top, statusTop: statusRect.top, left: subRect.left, statusRight: statusRect.right, height: subRect.height, fontSize: style.fontSize }
+      }
+
+      if (publication && status) {
+        const statusRect = status.getBoundingClientRect()
+        const publicationRect = publication.getBoundingClientRect()
+        const style = getComputedStyle(publication)
+        if (Math.abs(publicationRect.top - statusRect.top) > 4) failures.push(`card ${index + 1}: publication entry is not aligned with the main status`)
+        if (publicationRect.left < statusRect.right - 1) failures.push(`card ${index + 1}: publication entry overlaps the main status`)
+        if (publicationRect.height < 20 || style.display === 'none') failures.push(`card ${index + 1}: publication entry is not readable`)
+        check.publication = { top: publicationRect.top, statusTop: statusRect.top, left: publicationRect.left, statusRight: statusRect.right, height: publicationRect.height }
       }
 
       if (revision) {
@@ -201,6 +213,17 @@ try {
       const gridRect = grid.getBoundingClientRect()
       if (navRect.bottom > gridRect.top + tol) failures.push('workbench overlaps journal library after tab switch')
       if (Math.abs(panelRect.left - gridRect.left) > tol || Math.abs(panelRect.right - gridRect.right) > tol) failures.push('journal library edges differ from preparation page')
+
+      document.querySelectorAll('.prep-journal-card').forEach((card, index) => {
+        const facts = card.querySelector('.prep-journal-facts')
+        const apc = card.querySelector('[data-metric="apc"]')
+        const metrics = card.querySelector('.prep-journal-numbers')
+        if (apc && facts && apc.parentElement !== facts) failures.push(`journal ${index + 1}: APC is not inline with OA facts`)
+        if (metrics && metrics.hasAttribute('hidden') && getComputedStyle(metrics).display !== 'none') failures.push(`journal ${index + 1}: empty review metric row is still visible`)
+        card.querySelectorAll('[data-tone="oa"]').forEach(item => {
+          if ((item.textContent || '').includes('开放获取')) failures.push(`journal ${index + 1}: long open-access label remains visible`)
+        })
+      })
       return { failures }
     }, tolerance)
     failures.push(...journalTabGeometry.failures)
