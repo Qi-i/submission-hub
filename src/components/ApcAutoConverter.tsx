@@ -51,6 +51,12 @@ function normalizeOaLabels() {
     if (!element.title) element.title = current
     element.textContent = next
   })
+
+  document.querySelectorAll<HTMLOptionElement>('option').forEach(option => {
+    const current = option.textContent?.trim() || ''
+    if (!['全开放获取', '混合开放获取', '钻石开放获取（无 APC）', '订阅制'].includes(current)) return
+    option.textContent = compactOaText(current)
+  })
 }
 
 function compactJournalRanks(card: HTMLElement) {
@@ -285,17 +291,30 @@ function enhancePublicationEntry() {
   document.querySelectorAll<HTMLElement>('.paper-card-v3').forEach(card => {
     const statusArea = card.querySelector<HTMLElement>('.paper-status-area')
     const statusBadge = statusArea?.querySelector<HTMLElement>(':scope > .badge')
+    const substatus = statusArea?.querySelector<HTMLElement>('.paper-substatus')
     const published = card.querySelector<HTMLAnchorElement>('.paper-publication-link')
     const doi = card.querySelector<HTMLAnchorElement>('.archive-chip.doi')
     const primary = published || doi
+    if (!statusArea || !statusBadge) return
 
-    if (statusArea && primary) {
+    let detailRow = statusArea.querySelector<HTMLElement>(':scope > .paper-status-detail-row')
+    if (!detailRow && (substatus || primary)) {
+      detailRow = document.createElement('div')
+      detailRow.className = 'paper-status-detail-row'
+      statusBadge.insertAdjacentElement('afterend', detailRow)
+    }
+
+    if (substatus && detailRow && substatus.parentElement !== detailRow) detailRow.appendChild(substatus)
+
+    if (primary && detailRow) {
+      primary.classList.remove('badge', 'badge-sm', 'badge-outline', 'archive-chip', 'doi')
       primary.classList.add('paper-publication-compact')
       primary.textContent = published ? '见刊 ↗' : 'DOI ↗'
-      if (statusBadge && statusBadge.nextElementSibling !== primary) statusBadge.insertAdjacentElement('afterend', primary)
-      else if (!statusArea.contains(primary)) statusArea.appendChild(primary)
+      if (primary.parentElement !== detailRow) detailRow.appendChild(primary)
     }
+
     if (published && doi && published !== doi) doi.remove()
+    if (detailRow && detailRow.children.length === 0) detailRow.remove()
 
     card.querySelectorAll<HTMLElement>('.paper-meta-row.paper-meta-compact, .archive-chip-row').forEach(row => {
       if (row.children.length === 0) row.remove()
