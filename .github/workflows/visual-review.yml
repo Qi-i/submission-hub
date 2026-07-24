@@ -70,6 +70,10 @@ jobs:
         run: |
           set -euxo pipefail
           node tests/visual/layout-check.mjs | tee /tmp/layout-check.log
+      - name: Verify compact journal library geometry
+        run: |
+          set -euxo pipefail
+          node tests/visual/journal-library-density-check.mjs | tee /tmp/journal-library-density-check.log
       - name: Capture editor modal diagnostics
         if: always()
         run: |
@@ -125,6 +129,7 @@ jobs:
             visual-review/*.png
             /tmp/submission-hub-visual.log
             /tmp/layout-check.log
+            /tmp/journal-library-density-check.log
             /tmp/luminous-layout-check.log
             /tmp/luminous-x-layout-check.log
             /tmp/luminous-x-offline-nav-check.log
