@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import './app-styles'
 import './journal-library-runtime-fixes'
+import './app-styles'
 import App from './App'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
