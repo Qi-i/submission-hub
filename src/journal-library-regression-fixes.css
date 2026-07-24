@@ -1,0 +1,130 @@
+/* Authoritative regression fixes for journal cards and metric lookup controls. */
+
+/* Hidden means hidden even when earlier density layers use display: flex !important. */
+.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-numbers[hidden],
+.preparation-workspace[data-section='journals'] .prep-journal-numbers > div[hidden],
+.preparation-workspace .prep-overview-journal-meta > span[hidden],
+.preparation-workspace[data-section='journals'] .prep-journal-links[hidden],
+.preparation-workspace[data-section='journals'] .prep-journal-links > a[hidden] {
+  display: none !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-numbers[data-empty] {
+  width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main:has(> .prep-journal-numbers[hidden]) {
+  grid-template-areas:
+    'title flags'
+    'publisher publisher'
+    'ranks ranks'
+    'facts facts' !important;
+}
+
+/* Long journal names shrink before wrapping; all remain limited to two readable lines. */
+.preparation-workspace[data-section='journals'] .prep-journal-card-main > h3.title-long {
+  font-size: 12.6px !important;
+  letter-spacing: -.012em !important;
+  line-height: 1.24 !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main > h3.title-xlong {
+  font-size: 11.7px !important;
+  letter-spacing: -.018em !important;
+  line-height: 1.22 !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main > h3.title-xxlong {
+  font-size: 10.9px !important;
+  letter-spacing: -.022em !important;
+  line-height: 1.2 !important;
+}
+
+/* A single long rank item must wrap inside the card instead of being clipped by overflow:hidden. */
+.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks > span[data-long='true'] {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 23px !important;
+  padding: 5px 7px !important;
+  align-items: flex-start !important;
+  flex-wrap: wrap !important;
+  white-space: normal !important;
+  line-height: 1.22 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks > span[data-long='true'] b,
+.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks > span[data-long='true'] em {
+  max-width: 100% !important;
+  white-space: normal !important;
+  line-height: 1.22 !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* The review lookup is a first-class form action, not an instructional placeholder. */
+.journal-form-section.public-metrics .journal-form-section-head {
+  flex-wrap: wrap !important;
+  row-gap: 6px !important;
+}
+
+.journal-form-section.public-metrics .journal-review-lookup-button {
+  flex: 0 0 auto !important;
+  min-height: 30px !important;
+  margin-left: 4px !important;
+  border-color: rgba(14, 116, 144, .22) !important;
+  background: rgba(6, 182, 212, .07) !important;
+  color: #0e7490 !important;
+  font-weight: 760 !important;
+}
+
+.journal-form-section.public-metrics .journal-review-lookup-button:hover {
+  background: rgba(6, 182, 212, .13) !important;
+}
+
+.journal-review-lookup-message {
+  width: 100% !important;
+  min-height: 28px !important;
+  margin-top: 8px !important;
+  padding: 7px 9px !important;
+  display: block !important;
+  border: 1px solid rgba(14, 116, 144, .16) !important;
+  border-radius: 8px !important;
+  background: rgba(6, 182, 212, .055) !important;
+  color: var(--text-secondary) !important;
+  font-size: 9px !important;
+  line-height: 1.45 !important;
+}
+
+.journal-review-lookup-message:empty {
+  display: none !important;
+}
+
+.journal-review-lookup-message.danger {
+  border-color: rgba(220, 38, 38, .2) !important;
+  background: rgba(239, 68, 68, .06) !important;
+  color: #b91c1c !important;
+}
+
+html[data-theme='dark'] .journal-form-section.public-metrics .journal-review-lookup-button {
+  border-color: rgba(103, 232, 249, .24) !important;
+  background: rgba(34, 211, 238, .08) !important;
+  color: #8befff !important;
+}
+
+html[data-theme='dark'] .journal-review-lookup-message {
+  border-color: rgba(103, 232, 249, .16) !important;
+  background: rgba(34, 211, 238, .055) !important;
+}
+
+@media (max-width: 720px) {
+  .journal-form-section.public-metrics .journal-review-lookup-button {
+    margin-left: 0 !important;
+  }
+}
