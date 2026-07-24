@@ -14,11 +14,11 @@ function errorMessage(error) {
 
 async function openJournalLibrary(page, ui, theme) {
   await page.goto(`${baseUrl}?view=preparation&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
-  const journalButton = page.locator("html[data-visual-ready='true'] .prep-nav button[data-tone='journal']").first()
-  await journalButton.waitFor({ state: 'visible', timeout: 45000 })
-  await journalButton.click()
-  const grid = page.locator('.preparation-workspace[data-section="journals"] .journal-grid').first()
-  await grid.waitFor({ state: 'visible', timeout: 45000 })
+  const journalButton = page.locator("html[data-visual-ready='true'] .preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first()
+  await journalButton.waitFor({ state: 'visible', timeout: 15000 })
+  await journalButton.click({ force: true })
+  const grid = page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first()
+  await grid.waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(180)
 }
 
@@ -28,8 +28,12 @@ async function inspectDesktop(ui, theme) {
     await openJournalLibrary(page, ui, theme)
 
     const result = await page.evaluate(() => {
-      const grid = document.querySelector('.preparation-workspace[data-section="journals"] .journal-grid')
-      const cards = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"] .prep-journal-card'))
+      const workspace = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"]')).find(element => {
+        const style = getComputedStyle(element)
+        return style.display !== 'none' && style.visibility !== 'hidden' && element.getBoundingClientRect().width > 0
+      })
+      const grid = workspace?.querySelector('.journal-grid')
+      const cards = grid ? Array.from(grid.querySelectorAll('.prep-journal-card')) : []
       if (!grid || cards.length === 0) return { failures: ['journal library fixture is incomplete'], details: {} }
 
       const localFailures = []
@@ -109,8 +113,12 @@ async function inspectMobile(ui) {
     await openJournalLibrary(page, ui, 'light')
 
     const result = await page.evaluate(() => {
-      const grid = document.querySelector('.preparation-workspace[data-section="journals"] .journal-grid')
-      const cards = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"] .prep-journal-card'))
+      const workspace = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"]')).find(element => {
+        const style = getComputedStyle(element)
+        return style.display !== 'none' && style.visibility !== 'hidden' && element.getBoundingClientRect().width > 0
+      })
+      const grid = workspace?.querySelector('.journal-grid')
+      const cards = grid ? Array.from(grid.querySelectorAll('.prep-journal-card')) : []
       if (!grid || cards.length === 0) return ['mobile journal library fixture is incomplete']
       const localFailures = []
       const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean)
