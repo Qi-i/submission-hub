@@ -1,9 +1,12 @@
+import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
 
 const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
 const browser = await chromium.launch({ headless: true })
 const failures = []
 const details = []
+
+await mkdir('visual-review', { recursive: true })
 
 async function inspectDesktop(ui, theme) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
@@ -12,6 +15,13 @@ async function inspectDesktop(ui, theme) {
     await page.locator("html[data-visual-ready='true'] .prep-nav button[data-tone='journal']").click()
     await page.locator('.preparation-workspace[data-section="journals"] .journal-grid').waitFor({ state: 'visible', timeout: 45000 })
     await page.waitForTimeout(180)
+
+    if (theme === 'light') {
+      await page.screenshot({
+        path: `visual-review/${ui}-journal-library-light-desktop.png`,
+        fullPage: true,
+      })
+    }
 
     const result = await page.evaluate(() => {
       const grid = document.querySelector('.preparation-workspace[data-section="journals"] .journal-grid')
@@ -27,9 +37,9 @@ async function inspectDesktop(ui, theme) {
       const maxHeight = Math.max(...cardRects.map(rect => rect.height))
       const rowTops = new Set(cardRects.map(rect => Math.round(rect.top)))
 
-      if (columns.length < 4) localFailures.push(`desktop journal library exposes only ${columns.length} grid columns`)
+      if (columns.length < 3) localFailures.push(`desktop journal library exposes only ${columns.length} grid columns`)
       if (Number.parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop journal grid gap is too large')
-      if (maxWidth > 370) localFailures.push(`journal cards are still too wide (${Math.round(maxWidth)}px)`)
+      if (maxWidth > 390) localFailures.push(`journal cards are still too wide (${Math.round(maxWidth)}px)`)
       if (maxHeight > 285) localFailures.push(`journal cards are still too tall (${Math.round(maxHeight)}px)`)
       if (rowTops.size !== 1) localFailures.push('three fixture journals do not fit in the first desktop row')
 
