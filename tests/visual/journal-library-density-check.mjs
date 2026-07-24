@@ -199,9 +199,15 @@ async function inspectReviewLookup(ui) {
 
     await button.click()
     await page.waitForFunction(() => {
-      const byLabel = label => Array.from(document.querySelectorAll('.journal-form-modal:visible .prep-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim().includes(label))?.querySelector('input')?.value || ''
+      const modalElement = Array.from(document.querySelectorAll('.journal-form-modal')).find(element => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+      })
+      if (!modalElement) return false
+      const byLabel = label => Array.from(modalElement.querySelectorAll('.prep-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim().includes(label))?.querySelector('input')?.value || ''
       return byLabel('首轮决定') === '12' && byLabel('总审稿周期') === '35' && byLabel('接收率') === '22' && byLabel('审稿周期来源').startsWith('http')
-    }, { timeout: 15000 })
+    }, undefined, { timeout: 15000 })
 
     const buttonCount = await modal.getByRole('button', { name: '获取审稿周期' }).count()
     if (buttonCount !== 1) failures.push(`${ui}/form: review lookup button is duplicated`)
