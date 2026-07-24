@@ -18,6 +18,14 @@
   overflow: hidden !important;
 }
 
+.preparation-workspace[data-section='journals'] .prep-journal-card-main:has(> .prep-journal-numbers[hidden]) {
+  grid-template-areas:
+    'title flags'
+    'publisher publisher'
+    'ranks ranks'
+    'facts facts' !important;
+}
+
 /* Long journal names shrink before wrapping; all remain limited to two readable lines. */
 .preparation-workspace[data-section='journals'] .prep-journal-card-main > h3.title-long {
   font-size: 12.6px !important;
