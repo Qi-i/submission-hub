@@ -8,20 +8,24 @@ const details = []
 
 await mkdir('visual-review', { recursive: true })
 
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+async function openJournalLibrary(page, ui, theme) {
+  await page.goto(`${baseUrl}?view=preparation&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+  const journalButton = page.locator("html[data-visual-ready='true'] .prep-nav button[data-tone='journal']").first()
+  await journalButton.waitFor({ state: 'visible', timeout: 45000 })
+  await journalButton.click()
+  const grid = page.locator('.preparation-workspace[data-section="journals"] .journal-grid').first()
+  await grid.waitFor({ state: 'visible', timeout: 45000 })
+  await page.waitForTimeout(180)
+}
+
 async function inspectDesktop(ui, theme) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   try {
-    await page.goto(`${baseUrl}?view=preparation&theme=${theme}&ui=${ui}`)
-    await page.locator("html[data-visual-ready='true'] .prep-nav button[data-tone='journal']").click()
-    await page.locator('.preparation-workspace[data-section="journals"] .journal-grid').waitFor({ state: 'visible', timeout: 45000 })
-    await page.waitForTimeout(180)
-
-    if (theme === 'light') {
-      await page.screenshot({
-        path: `visual-review/${ui}-journal-library-light-desktop.png`,
-        fullPage: true,
-      })
-    }
+    await openJournalLibrary(page, ui, theme)
 
     const result = await page.evaluate(() => {
       const grid = document.querySelector('.preparation-workspace[data-section="journals"] .journal-grid')
@@ -85,6 +89,15 @@ async function inspectDesktop(ui, theme) {
 
     failures.push(...result.failures.map(message => `${ui}/${theme}: ${message}`))
     details.push({ ui, theme, ...result.details })
+
+    if (theme === 'light') {
+      await page.screenshot({
+        path: `visual-review/${ui}-journal-library-light-desktop.png`,
+        fullPage: true,
+      })
+    }
+  } catch (error) {
+    failures.push(`${ui}/${theme}: runtime check failed: ${errorMessage(error)}`)
   } finally {
     await page.close()
   }
@@ -93,10 +106,7 @@ async function inspectDesktop(ui, theme) {
 async function inspectMobile(ui) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
   try {
-    await page.goto(`${baseUrl}?view=preparation&theme=light&ui=${ui}`)
-    await page.locator("html[data-visual-ready='true'] .prep-nav button[data-tone='journal']").click()
-    await page.locator('.preparation-workspace[data-section="journals"] .journal-grid').waitFor({ state: 'visible', timeout: 45000 })
-    await page.waitForTimeout(160)
+    await openJournalLibrary(page, ui, 'light')
 
     const result = await page.evaluate(() => {
       const grid = document.querySelector('.preparation-workspace[data-section="journals"] .journal-grid')
@@ -112,6 +122,8 @@ async function inspectMobile(ui) {
     })
 
     failures.push(...result.map(message => `${ui}/mobile: ${message}`))
+  } catch (error) {
+    failures.push(`${ui}/mobile: runtime check failed: ${errorMessage(error)}`)
   } finally {
     await page.close()
   }
