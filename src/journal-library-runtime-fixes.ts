@@ -18,8 +18,7 @@ function normalizeHref(value: string) {
   try {
     const url = new URL(value, window.location.href)
     url.hash = ''
-    const removable = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']
-    removable.forEach(key => url.searchParams.delete(key))
+    ;['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].forEach(key => url.searchParams.delete(key))
     return `${url.origin}${url.pathname.replace(/\/$/, '')}${url.search}`.toLocaleLowerCase()
   } catch {
     return value.trim().toLocaleLowerCase()
@@ -47,8 +46,7 @@ function fixOverviewUnknownMetrics() {
   document.querySelectorAll<HTMLElement>('.prep-journal-overview-card').forEach(card => {
     card.querySelectorAll<HTMLElement>('.prep-overview-journal-meta > span').forEach(item => {
       if (item.dataset.tone !== 'speed') return
-      const text = normalizeText(item.textContent)
-      item.hidden = /(?:—|--|–)\s*天/.test(text)
+      item.hidden = /(?:—|--|–)\s*天/.test(normalizeText(item.textContent))
     })
   })
 }
@@ -57,7 +55,7 @@ function fixJournalTitle(card: HTMLElement) {
   const title = card.querySelector<HTMLElement>('.prep-journal-card-main > h3')
   if (!title) return
   const text = normalizeText(title.textContent)
-  title.title = text
+  if (title.title !== text) title.title = text
   title.classList.toggle('title-long', text.length > 40 && text.length <= 56)
   title.classList.toggle('title-xlong', text.length > 56 && text.length <= 72)
   title.classList.toggle('title-xxlong', text.length > 72)
@@ -76,37 +74,42 @@ function fixRankChips(card: HTMLElement) {
       return
     }
     if (token) seen.add(token)
-    chip.title = text
+    if (chip.title !== text) chip.title = text
     chip.dataset.long = String(chip.scrollWidth > available || text.length > 34)
   })
+}
+
+function replaceLinkText(link: HTMLAnchorElement, value: string) {
+  const textNode = Array.from(link.childNodes).find(node => node.nodeType === Node.TEXT_NODE)
+  if (textNode && textNode.textContent !== value) textNode.textContent = value
 }
 
 function fixJournalLinks(card: HTMLElement) {
   const host = card.querySelector<HTMLElement>('.prep-journal-links')
   if (!host) return
-  const seen = new Set<string>()
+  const seenHrefs = new Set<string>()
+  const seenCrossrefLabels = new Set<string>()
 
   Array.from(host.querySelectorAll<HTMLAnchorElement>('a')).forEach(link => {
+    const originalText = normalizeText(link.textContent).replace(/[↗\s]+$/g, '')
+    if (/api\.crossref\.org\/journals\//i.test(link.href)) {
+      replaceLinkText(link, 'Crossref ISSN ')
+      link.title = 'Crossref ISSN 期刊记录'
+    } else if (/crossref/i.test(originalText) && /\/works(?:\?|\/|$)/i.test(link.href)) {
+      replaceLinkText(link, 'Crossref DOI ')
+      link.title = 'Crossref DOI 记录'
+    }
+
     const hrefKey = normalizeHref(link.href)
-    const textKey = normalizeText(link.textContent).replace(/[↗\s]+$/g, '').toLocaleUpperCase()
-    const key = hrefKey || textKey
-    if (key && seen.has(key)) {
+    const labelKey = normalizeText(link.textContent).replace(/[↗\s]+$/g, '').toLocaleUpperCase()
+    const duplicateHref = hrefKey && seenHrefs.has(hrefKey)
+    const duplicateCrossrefLabel = labelKey.startsWith('CROSSREF ') && seenCrossrefLabels.has(labelKey)
+    if (duplicateHref || duplicateCrossrefLabel) {
       link.remove()
       return
     }
-    if (key) seen.add(key)
-
-    if (/api\.crossref\.org\/journals\//i.test(link.href)) {
-      link.childNodes.forEach(node => {
-        if (node.nodeType === Node.TEXT_NODE) node.textContent = 'Crossref ISSN '
-      })
-      link.title = 'Crossref ISSN 期刊记录'
-    } else if (/crossref/i.test(textKey) && /\/works(?:\?|\/|$)/i.test(link.href)) {
-      link.childNodes.forEach(node => {
-        if (node.nodeType === Node.TEXT_NODE) node.textContent = 'Crossref DOI '
-      })
-      link.title = 'Crossref DOI 记录'
-    }
+    if (hrefKey) seenHrefs.add(hrefKey)
+    if (labelKey.startsWith('CROSSREF ')) seenCrossrefLabels.add(labelKey)
   })
 
   host.hidden = host.children.length === 0
@@ -210,20 +213,16 @@ function ensureReviewLookupButton(modal: HTMLElement) {
   })
 }
 
-function fixJournalForms() {
-  document.querySelectorAll<HTMLElement>('.journal-form-modal').forEach(ensureReviewLookupButton)
-}
-
 function enhanceAll() {
   fixJournalCards()
-  fixJournalForms()
+  document.querySelectorAll<HTMLElement>('.journal-form-modal').forEach(ensureReviewLookupButton)
 }
 
 function start() {
   const schedule = scheduleFactory(enhanceAll)
   enhanceAll()
   const observer = new MutationObserver(schedule)
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+  observer.observe(document.body, { childList: true, subtree: true })
   window.addEventListener('resize', schedule, { passive: true })
 }
 
