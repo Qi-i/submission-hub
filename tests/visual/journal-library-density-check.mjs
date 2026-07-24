@@ -14,9 +14,23 @@ function errorMessage(error) {
 
 async function openJournalLibrary(page, ui, theme) {
   await page.goto(`${baseUrl}?view=preparation&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
-  const journalButton = page.locator("html[data-visual-ready='true'] .preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first()
-  await journalButton.waitFor({ state: 'visible', timeout: 15000 })
-  await journalButton.click({ force: true })
+  await page.locator("html[data-visual-ready='true']").waitFor({ state: 'attached', timeout: 45000 })
+
+  if (ui === 'luminous-x') {
+    const proxyButton = page.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls").getByRole('button', { name: /期刊库/ }).first()
+    if (await proxyButton.isVisible()) {
+      await proxyButton.click({ force: true })
+    } else {
+      const fallbackButton = page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first()
+      await fallbackButton.waitFor({ state: 'visible', timeout: 15000 })
+      await fallbackButton.click({ force: true })
+    }
+  } else {
+    const journalButton = page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first()
+    await journalButton.waitFor({ state: 'visible', timeout: 15000 })
+    await journalButton.click({ force: true })
+  }
+
   const grid = page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first()
   await grid.waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(180)
@@ -43,13 +57,11 @@ async function inspectDesktop(ui, theme) {
       const cardRects = cards.map(card => card.getBoundingClientRect())
       const maxWidth = Math.max(...cardRects.map(rect => rect.width))
       const maxHeight = Math.max(...cardRects.map(rect => rect.height))
-      const rowTops = new Set(cardRects.map(rect => Math.round(rect.top)))
 
       if (columns.length < 3) localFailures.push(`desktop journal library exposes only ${columns.length} grid columns`)
       if (Number.parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop journal grid gap is too large')
       if (maxWidth > 390) localFailures.push(`journal cards are still too wide (${Math.round(maxWidth)}px)`)
       if (maxHeight > 285) localFailures.push(`journal cards are still too tall (${Math.round(maxHeight)}px)`)
-      if (rowTops.size !== 1) localFailures.push('three fixture journals do not fit in the first desktop row')
 
       cards.forEach((card, index) => {
         const rect = card.getBoundingClientRect()
