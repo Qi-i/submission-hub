@@ -1,0 +1,31 @@
+name: Apply journal rank test fixes
+
+on:
+  push:
+    branches:
+      - agent/customize-journal-rank-display
+    paths:
+      - scripts/apply-journal-rank-test-fixes.mjs
+      - .github/workflows/apply-journal-rank-test-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/customize-journal-rank-display
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/apply-journal-rank-test-fixes.mjs
+      - run: |
+          git config user.name "submission-hub-bot"
+          git config user.email "submission-hub-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "Update journal rank display regression labels"
+          git push origin HEAD:agent/customize-journal-rank-display
