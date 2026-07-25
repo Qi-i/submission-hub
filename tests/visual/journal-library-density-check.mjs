@@ -214,8 +214,8 @@ async function inspectReviewLookup(ui) {
     const apcLabel = await modal.locator('.prep-field > span').evaluateAll(nodes => nodes.map(node => node.textContent?.trim()).find(text => text === 'APC') || '')
     if (apcLabel !== 'APC') failures.push(`${ui}/form: APC field label was not normalized`)
 
-    const websiteField = modal.locator('.prep-field').filter({ has: modal.locator(':scope > span', { hasText: '期刊官网' }) }).locator('input').first()
-    const sourceField = modal.locator('.prep-field').filter({ has: modal.locator(':scope > span', { hasText: '审稿周期来源' }) }).locator('input').first()
+    const websiteField = modal.locator('.prep-field', { hasText: '期刊官网' }).locator('input').first()
+    const sourceField = modal.locator('.prep-field', { hasText: '审稿周期来源' }).locator('input').first()
     await websiteField.fill(journalUrl)
     await sourceField.fill('')
 
