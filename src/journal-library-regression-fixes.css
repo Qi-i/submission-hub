@@ -68,6 +68,44 @@
   overflow-wrap: anywhere !important;
 }
 
+/* Journal cards are equal-height catalogue units; the link strip is a fixed bottom rail. */
+.preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+  align-items: stretch !important;
+  grid-auto-rows: 1fr !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card {
+  height: 100% !important;
+  min-height: 0 !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main {
+  flex: 1 1 auto !important;
+  align-content: start !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-links {
+  flex: 0 0 40px !important;
+  width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin-top: auto !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  align-content: center !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-links::-webkit-scrollbar {
+  display: none;
+}
+
 /* The review lookup is a first-class form action, not an instructional placeholder. */
 .journal-form-section.public-metrics .journal-form-section-head {
   flex-wrap: wrap !important;
@@ -112,6 +150,45 @@
   color: #b91c1c !important;
 }
 
+/* The journal editor must own the viewport while open; the sticky app header cannot sit above it. */
+.modal-overlay:has(> .journal-form-modal) {
+  z-index: 50000 !important;
+  inset: 0 !important;
+  padding: 16px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  isolation: isolate;
+}
+
+.journal-form-modal {
+  width: min(1120px, calc(100vw - 32px)) !important;
+  max-height: calc(100dvh - 32px) !important;
+  min-height: 0 !important;
+}
+
+.journal-form-modal .prep-modal-head,
+.journal-form-modal .prep-modal-footer {
+  flex: 0 0 auto !important;
+}
+
+.journal-form-modal .prep-modal-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+html:has(.journal-form-modal),
+body:has(.journal-form-modal) {
+  overflow: hidden !important;
+}
+
+html:has(.journal-form-modal) .app-header,
+html:has(.journal-form-modal) .ui-mode-switcher {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 html[data-theme='dark'] .journal-form-section.public-metrics .journal-review-lookup-button {
   border-color: rgba(103, 232, 249, .24) !important;
   background: rgba(34, 211, 238, .08) !important;
@@ -126,5 +203,16 @@ html[data-theme='dark'] .journal-review-lookup-message {
 @media (max-width: 720px) {
   .journal-form-section.public-metrics .journal-review-lookup-button {
     margin-left: 0 !important;
+  }
+
+  .modal-overlay:has(> .journal-form-modal) {
+    padding: 0 !important;
+  }
+
+  .journal-form-modal {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
   }
 }
