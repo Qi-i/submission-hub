@@ -49,45 +49,63 @@ Luminous 与 Luminous X 使用同一套数据、功能和业务逻辑。界面�
 | **Luminous** | 顶部导航、横向页面结构、信息密度紧凑 | 传统网页操作习惯，快速切换四个主页面 |
 | **Luminous X** | 固定左侧栏、顶部状态控制区、工作流视图更突出 | 长时间管理多篇稿件，强调状态扫描与集中操作 |
 
-### Luminous 主要页面
+所有桌面截图统一使用 **1440 × 900** 画布并按单张通栏展示；移动端截图使用 **390 × 700** 画布并单独展示。
 
-<table>
-<tr>
-<td width="50%"><strong>投稿管理</strong><br><img src="docs/screenshots/luminous-dashboard.png" alt="Luminous 投稿管理"></td>
-<td width="50%"><strong>投稿准备</strong><br><img src="docs/screenshots/luminous-preparation.png" alt="Luminous 投稿准备"></td>
-</tr>
-<tr>
-<td width="50%"><strong>期刊库</strong><br><img src="docs/screenshots/luminous-journals.png" alt="Luminous 期刊库"></td>
-<td width="50%"><strong>个人统计</strong><br><img src="docs/screenshots/luminous-statistics.png" alt="Luminous 个人统计"></td>
-</tr>
-</table>
+### Luminous
 
-### Luminous X 主要页面
+#### 投稿管理
 
-<table>
-<tr>
-<td width="50%"><strong>投稿管理</strong><br><img src="docs/screenshots/luminous-x-dashboard.png" alt="Luminous X 投稿管理"></td>
-<td width="50%"><strong>投稿准备</strong><br><img src="docs/screenshots/luminous-x-preparation.png" alt="Luminous X 投稿准备"></td>
-</tr>
-<tr>
-<td width="50%"><strong>期刊库</strong><br><img src="docs/screenshots/luminous-x-journals.png" alt="Luminous X 期刊库"></td>
-<td width="50%"><strong>个人统计</strong><br><img src="docs/screenshots/luminous-x-statistics.png" alt="Luminous X 个人统计"></td>
-</tr>
-</table>
+![Luminous 投稿管理](docs/screenshots/luminous-dashboard.png)
 
-### 暗色、移动端与编辑界面
+#### 投稿准备
 
-<table>
-<tr>
-<td width="33%"><strong>暗色模式</strong><br><img src="docs/screenshots/luminous-x-dark.png" alt="Luminous X 暗色模式"></td>
-<td width="33%"><strong>移动端</strong><br><img src="docs/screenshots/luminous-x-mobile.png" alt="Luminous X 移动端"></td>
-<td width="33%"><strong>投稿记录编辑</strong><br><img src="docs/screenshots/luminous-x-editor.png" alt="投稿记录编辑"></td>
-</tr>
-</table>
+![Luminous 投稿准备](docs/screenshots/luminous-preparation.png)
 
-### 期刊资料与公开审稿指标
+#### 期刊库
+
+![Luminous 期刊库](docs/screenshots/luminous-journals.png)
+
+#### 个人统计
+
+![Luminous 个人统计](docs/screenshots/luminous-statistics.png)
+
+### Luminous X
+
+#### 投稿管理
+
+![Luminous X 投稿管理](docs/screenshots/luminous-x-dashboard.png)
+
+#### 投稿准备
+
+![Luminous X 投稿准备](docs/screenshots/luminous-x-preparation.png)
+
+#### 期刊库
+
+![Luminous X 期刊库](docs/screenshots/luminous-x-journals.png)
+
+#### 个人统计
+
+![Luminous X 个人统计](docs/screenshots/luminous-x-statistics.png)
+
+### 其他界面
+
+#### 暗色模式
+
+![Luminous X 暗色模式](docs/screenshots/luminous-x-dark.png)
+
+#### 投稿记录编辑
+
+![投稿记录编辑](docs/screenshots/luminous-x-editor.png)
+
+#### 期刊资料与公开审稿指标
 
 ![期刊资料与公开审稿指标](docs/screenshots/luminous-x-review-lookup.png)
+
+#### 移动端
+
+<p align="center">
+  <img src="docs/screenshots/luminous-x-mobile.png" alt="Luminous X 移动端" width="300" />
+</p>
 
 > 所有文档截图由自动视觉测试使用虚构数据生成，不包含真实用户、论文题名、稿件编号、邮箱或附件内容。
 

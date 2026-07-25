@@ -2,6 +2,14 @@ name: Update Documentation Screenshots
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'docs/releases/**'
+      - 'src/**'
+      - 'tests/visual/**'
+      - 'vite.config.visual.ts'
+      - '.github/workflows/update-doc-screenshots.yml'
   push:
     branches: [main]
     paths:
@@ -16,7 +24,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: update-doc-screenshots
+  group: update-doc-screenshots-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -62,32 +70,8 @@ jobs:
             docs/screenshots/journal-review-lookup.png \
             docs/screenshots/preparation-page.png \
             docs/screenshots/statistics-page.png
-      - name: Capture Luminous main pages
-        run: |
-          set -euxo pipefail
-          mkdir -p docs/screenshots visual-review
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous" docs/screenshots/luminous-dashboard.png
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light&ui=luminous" docs/screenshots/luminous-preparation.png
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous'][data-visual-ready='true'] .stats-panel" "http://127.0.0.1:4174/tests/visual/index.html?view=stats&theme=light&ui=luminous" docs/screenshots/luminous-statistics.png
-      - name: Capture Luminous X main pages
-        run: |
-          set -euxo pipefail
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous-x" docs/screenshots/luminous-x-dashboard.png
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .preparation-workspace" "http://127.0.0.1:4174/tests/visual/index.html?view=preparation&theme=light&ui=luminous-x" docs/screenshots/luminous-x-preparation.png
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .stats-panel" "http://127.0.0.1:4174/tests/visual/index.html?view=stats&theme=light&ui=luminous-x" docs/screenshots/luminous-x-statistics.png
-      - name: Capture journal libraries and review editor
-        run: |
-          set -euxo pipefail
-          node tests/visual/journal-library-density-check.mjs
-          cp visual-review/luminous-journal-library-light-desktop.png docs/screenshots/luminous-journals.png
-          cp visual-review/luminous-x-journal-library-light-desktop.png docs/screenshots/luminous-x-journals.png
-          cp visual-review/luminous-x-journal-review-lookup.png docs/screenshots/luminous-x-review-lookup.png
-      - name: Capture responsive and editing views
-        run: |
-          set -euxo pipefail
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="1440,1200" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=dark&ui=luminous-x" docs/screenshots/luminous-x-dark.png
-          npx playwright screenshot --timeout=45000 --browser chromium --full-page --viewport-size="390,844" --wait-for-selector="html[data-ui='luminous-x'][data-visual-ready='true'] .paper-card-v3" "http://127.0.0.1:4174/tests/visual/index.html?view=dashboard&theme=light&ui=luminous-x" docs/screenshots/luminous-x-mobile.png
-          npx playwright screenshot --timeout=45000 --browser chromium --viewport-size="1440,1000" --wait-for-selector="html[data-ui='luminous-x'][data-modal-scroll-ready='true'] .compact-form-footer" "http://127.0.0.1:4174/tests/visual/index.html?view=editor&theme=light&ui=luminous-x" docs/screenshots/luminous-x-editor.png
+      - name: Capture fixed-ratio documentation screenshots
+        run: node tests/visual/capture-documentation-screenshots.mjs
       - name: Verify generated screenshots
         run: |
           set -euxo pipefail
@@ -98,6 +82,7 @@ jobs:
             test -s "docs/screenshots/${file}.png"
           done
       - name: Commit documentation assets and version metadata
+        if: github.event_name == 'push'
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
@@ -106,5 +91,5 @@ jobs:
             echo "Documentation screenshots and package version are current."
             exit 0
           fi
-          git commit -m "Refresh dual-interface documentation screenshots"
+          git commit -m "Normalize documentation screenshot proportions"
           git push
