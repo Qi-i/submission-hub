@@ -25,7 +25,28 @@ jobs:
         with:
           ref: main
           fetch-depth: 20
-      - name: Cancel stale Pages deployments
+      - name: Cancel blocked Pages deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BLOCKED_DEPLOYMENT_SHA: fa4c0f0d088cdfa8b4edcaea7111163c663530e6
+        run: |
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/deployments/${BLOCKED_DEPLOYMENT_SHA}"
+          response_file="$(mktemp)"
+          cancel_code="$(curl --silent --show-error --location \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            "${api}/cancel")"
+          echo "Cancel blocked Pages deployment: HTTP ${cancel_code}"
+          case "$cancel_code" in
+            204|404) ;;
+            *) cat "$response_file"; exit 1 ;;
+          esac
+          sleep 3
+      - name: Cancel other stale Pages deployments
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
