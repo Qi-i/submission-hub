@@ -25,27 +25,64 @@ jobs:
         with:
           ref: main
           fetch-depth: 20
-      - name: Cancel blocked Pages deployment
+      - name: Cancel blocked Pages deployment and wait for release
         env:
           GH_TOKEN: ${{ github.token }}
           BLOCKED_DEPLOYMENT_SHA: fa4c0f0d088cdfa8b4edcaea7111163c663530e6
         run: |
+          set -euo pipefail
           api="https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/deployments/${BLOCKED_DEPLOYMENT_SHA}"
+          headers=(
+            --header "Accept: application/vnd.github+json"
+            --header "Authorization: Bearer ${GH_TOKEN}"
+            --header "X-GitHub-Api-Version: 2026-03-10"
+          )
           response_file="$(mktemp)"
           cancel_code="$(curl --silent --show-error --location \
             --request POST \
-            --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "${headers[@]}" \
             --output "$response_file" \
             --write-out '%{http_code}' \
             "${api}/cancel")"
           echo "Cancel blocked Pages deployment: HTTP ${cancel_code}"
-          case "$cancel_code" in
-            204|404) ;;
-            *) cat "$response_file"; exit 1 ;;
-          esac
-          sleep 3
+          if [ "$cancel_code" != "204" ]; then
+            cat "$response_file"
+            exit 1
+          fi
+
+          for attempt in $(seq 1 60); do
+            status_file="$(mktemp)"
+            status_code="$(curl --silent --show-error --location \
+              "${headers[@]}" \
+              --output "$status_file" \
+              --write-out '%{http_code}' \
+              "$api")"
+
+            if [ "$status_code" = "404" ]; then
+              echo "Blocked Pages deployment no longer exists."
+              exit 0
+            fi
+            if [ "$status_code" != "200" ]; then
+              echo "Status check failed: HTTP ${status_code}"
+              cat "$status_file"
+              exit 1
+            fi
+
+            status="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(String(data.status || 'unknown'))" "$status_file")"
+            echo "Blocked Pages deployment status (${attempt}/60): ${status}"
+            case "$status" in
+              deployment_queued|queued|pending|in_progress|updating_pages)
+                sleep 10
+                ;;
+              *)
+                echo "Blocked Pages deployment reached terminal state: ${status}"
+                exit 0
+                ;;
+            esac
+          done
+
+          echo "Blocked Pages deployment did not reach a terminal state after cancellation."
+          exit 1
       - name: Cancel other stale Pages deployments
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,7 +94,7 @@ jobs:
             fi
             status="$(gh api "/repos/${GITHUB_REPOSITORY}/pages/deployments/${sha}" --jq '.status' 2>/dev/null || true)"
             case "$status" in
-              queued|pending|in_progress|updating_pages)
+              deployment_queued|queued|pending|in_progress|updating_pages)
                 echo "Canceling stale Pages deployment ${sha} (${status})"
                 gh api --method POST "/repos/${GITHUB_REPOSITORY}/pages/deployments/${sha}/cancel" >/dev/null
                 ;;
