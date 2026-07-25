@@ -174,7 +174,7 @@ function ensureReviewLookupButton(modal: HTMLElement) {
     const guide = inputByLabel(modal, '作者指南')
     const submission = inputByLabel(modal, '投稿系统')
     const reviewSource = inputByLabel(modal, '审稿周期来源')
-    const journalName = inputByLabel(modal, '期刊名称')
+    const journalName = inputByLabel(modal, /期刊名/)
 
     button.dataset.loading = 'true'
     button.disabled = true

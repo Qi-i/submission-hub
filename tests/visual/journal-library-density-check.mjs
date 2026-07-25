@@ -214,7 +214,7 @@ async function inspectReviewLookup(ui) {
     const fieldLabels = await modal.locator('.prep-field > span').allTextContents()
     const apcLabel = fieldLabels.map(text => text.trim()).find(text => text === 'APC') || ''
     if (apcLabel !== 'APC') failures.push(`${ui}/form: APC field label was not normalized`)
-    for (const label of ['中文译名', '官方缩写', '中文简介翻译', '选刊标签', '选刊备注']) {
+    for (const label of ['中文译名', '缩写', '中文简介翻译', '选刊标签', '选刊备注']) {
       if (!fieldLabels.some(text => text.trim() === label)) failures.push(`${ui}/form: missing journal selection field ${label}`)
     }
 

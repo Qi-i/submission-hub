@@ -1,5 +1,5 @@
 import type { JournalProfile } from './preparation'
-import { rankItemsFromValues, type JournalRankItem } from './journal-rank'
+import { isRankItemVisible, rankItemsFromValues, type JournalRankItem } from './journal-rank'
 
 export type RankedJournalProfile = JournalProfile & {
   rank_data?: Record<string, string> | null
@@ -65,7 +65,9 @@ export function primaryJournalRankItems(journal: RankedJournalProfile, limit = 6
   }
 
   allItems.forEach(item => uniquePush(result, item))
-  return result.slice(0, limit)
+  return result
+    .filter(item => item.key.startsWith('profile:') || item.key.startsWith('index:') || isRankItemVisible(values, item.key))
+    .slice(0, limit)
 }
 
 // Compatibility alias used by the preparation workspace.

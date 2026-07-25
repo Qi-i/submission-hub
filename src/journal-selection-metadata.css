@@ -46,3 +46,113 @@ html[data-theme='dark'] .preparation-workspace[data-section='journals'] .prep-jo
     min-height: 76px !important;
   }
 }
+
+
+/* Stronger bilingual identity and per-journal EasyScholar display controls. */
+.prep-journal-local-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  line-height: 1.25;
+}
+
+.prep-journal-local-identity strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prep-journal-local-identity em {
+  flex: 0 0 auto;
+  max-width: 48%;
+  overflow: hidden;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border-subtle));
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-bg) 74%, transparent);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 820;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prep-overview-journal-copy {
+  min-width: 0;
+  display: grid !important;
+}
+
+.prep-journal-card-main > .prep-journal-local-identity {
+  margin: -1px 0 3px;
+}
+
+.prep-journal-card-main > .prep-journal-publisher {
+  margin-top: 0 !important;
+}
+
+.journal-rank-display-control {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elevated) 74%, transparent);
+}
+
+.journal-rank-display-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.journal-rank-display-head > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.journal-rank-display-head b { font-size: 11px; }
+.journal-rank-display-head small { color: var(--text-muted); font-size: 10px; }
+
+.journal-rank-display-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.journal-rank-display-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.journal-rank-display-options label.selected {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-subtle));
+  color: var(--text-primary);
+  background: var(--accent-bg);
+}
+
+.journal-rank-display-options input { margin: 0; }
+.journal-rank-display-options span { display: inline-flex; gap: 3px; }
+.journal-rank-display-options b { font-weight: 800; }
+
+@media (max-width: 720px) {
+  .journal-rank-display-head { align-items: flex-start; }
+  .prep-journal-local-identity strong { font-size: 11px; }
+}

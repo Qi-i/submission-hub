@@ -8,7 +8,7 @@ import {
   writeJournalPublicMetrics,
   type SelfCitationBasis,
 } from '../lib/journal-metrics'
-import { rankFieldSuggestions, rankItemsFromValues, type JournalRankLookupResult } from '../lib/journal-rank'
+import { defaultRankDisplayKeys, rankFieldSuggestions, rankItemsFromValues, readRankDisplayKeys, writeRankDisplayKeys, type JournalRankLookupResult } from '../lib/journal-rank'
 import type { ExternalLink as JournalLink, JournalProfile } from '../lib/preparation'
 import { INDEXING_OPTIONS, OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
 
@@ -63,6 +63,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
   const [metricMessage, setMetricMessage] = useState('')
   const [metricMessageError, setMetricMessageError] = useState(false)
   const [rankData, setRankData] = useState<Record<string, string>>(source?.rank_data || {})
+  const [rankDisplayKeys, setRankDisplayKeys] = useState<string[] | null>(() => readRankDisplayKeys(source?.rank_data || {}))
   const [rankUpdatedAt, setRankUpdatedAt] = useState(source?.rank_updated_at || '')
   const [name, setName] = useState(source?.name || '')
   const [nameZh, setNameZh] = useState(source?.name_zh || '')
@@ -105,7 +106,15 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
 
   const hint = useMemo(() => journalLookupHint(lookupInput), [lookupInput])
   const rankItems = useMemo(() => rankItemsFromValues(rankData), [rankData])
+  const effectiveRankDisplayKeys = useMemo(() => rankDisplayKeys ?? defaultRankDisplayKeys(rankItems), [rankDisplayKeys, rankItems])
   const busy = saving || lookingUp || rankLookingUp || metricLookingUp
+
+  const toggleRankDisplay = (key: string, checked: boolean) => {
+    setRankDisplayKeys(previous => {
+      const current = previous ?? defaultRankDisplayKeys(rankItems)
+      return checked ? Array.from(new Set([...current, key])) : current.filter(item => item !== key)
+    })
+  }
 
   const lookup = async () => {
     if (!lookupInput.trim() || lookingUp) return
@@ -200,7 +209,8 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
 
     setSaving(true)
     try {
-      const publicMetricsRankData = writeJournalPublicMetrics(rankData, {
+      const rankDataWithDisplay = writeRankDisplayKeys(rankData, rankDisplayKeys)
+      const publicMetricsRankData = writeJournalPublicMetrics(rankDataWithDisplay, {
         annualPublicationCount: integerOrNull(annualCount),
         annualPublicationYear: integerOrNull(annualYear),
         annualPublicationSource: annualSource.trim() || null,
@@ -261,8 +271,8 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
           {lookupSource && safeUrl(lookupSource) && <a className="journal-lookup-source" href={lookupSource} target="_blank" rel="noopener noreferrer">查看数据来源 <ExternalLink size={11} /></a>}
         </section>
 
-        <section className="journal-form-section identity journal-identity-localized"><div className="journal-form-section-head"><b>基础身份</b><span>英文名与官方缩写可由 DOI 识别；中文信息需人工核对</span></div>
-          <div className="prep-form-grid two"><Field label="英文期刊名" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus={!source} maxLength={200} /></Field><Field label="中文译名"><input className="input" value={nameZh} onChange={event => setNameZh(event.target.value)} maxLength={200} placeholder="用于中文检索与快速辨认" /></Field><Field label="官方缩写"><input className="input" value={officialAbbreviation} onChange={event => setOfficialAbbreviation(event.target.value)} maxLength={80} placeholder="以期刊官网或数据库为准" /></Field></div>
+        <section className="journal-form-section identity journal-identity-localized"><div className="journal-form-section-head"><b>基础身份</b><span>英文名与缩写可由 DOI 识别；中文信息需人工核对</span></div>
+          <div className="prep-form-grid two"><Field label="英文期刊名" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus={!source} maxLength={200} /></Field><Field label="中文译名"><input className="input" value={nameZh} onChange={event => setNameZh(event.target.value)} maxLength={200} placeholder="用于中文检索与快速辨认" /></Field><Field label="缩写"><input className="input" value={officialAbbreviation} onChange={event => setOfficialAbbreviation(event.target.value)} maxLength={80} placeholder="以期刊官网或数据库为准" /></Field></div>
           <div className="prep-form-grid three"><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="收藏优先级"><select className="select" value={priority} onChange={event => setPriority(event.target.value)}>{PRIORITY_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field><Field label="选刊标签"><input className="input" value={selectionTags} onChange={event => setSelectionTags(event.target.value)} placeholder="主投, 备选, 审稿快, 岩土工程" /></Field></div>
           <div className="prep-form-grid four"><Field label="ISSN"><input className="input" value={issn} onChange={event => setIssn(event.target.value)} /></Field><Field label="EISSN"><input className="input" value={eissn} onChange={event => setEissn(event.target.value)} /></Field><Field label="JCR 分区"><input className="input" value={jcr} onChange={event => setJcr(event.target.value)} placeholder="Q1" /></Field><Field label="中科院分区"><input className="input" value={cas} onChange={event => setCas(event.target.value)} placeholder="一区" /></Field></div>
         </section>
@@ -271,7 +281,13 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
 
         <section className="journal-rank-panel">
           <div className="journal-rank-head"><div><BadgeCheck size={17} /><span><strong>期刊等级记录</strong><small>{onLookupRanks ? '查询后自动回填可识别的 JCR、中科院分区和影响因子；点击“保存期刊”后生效' : '请按已核实数据填写'}</small></span></div>{onLookupRanks && <button type="button" className="btn btn-rank btn-sm" onClick={() => void lookupRanks()} disabled={rankLookingUp || !name.trim()}>{rankLookingUp ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />} {rankItems.length ? '刷新等级' : '查询等级'}</button>}</div>
-          {rankItems.length > 0 ? <div className="journal-rank-chips">{rankItems.slice(0, 18).map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div> : <div className="journal-rank-empty">暂无等级快照，可点击查询或在下方填写 JCR 分区、中科院分区和影响因子。</div>}
+          {rankItems.length > 0 ? <>
+            <div className="journal-rank-chips">{rankItems.slice(0, 18).map(item => <span key={item.key} data-group={item.group}><b>{item.label}</b>{item.value}</span>)}</div>
+            <div className="journal-rank-display-control">
+              <div className="journal-rank-display-head"><span><b>卡片外显</b><small>默认隐藏“中科院基础版”和“中科院升级版小类”</small></span><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRankDisplayKeys(null)}>恢复默认</button></div>
+              <div className="journal-rank-display-options">{rankItems.map(item => <label key={item.key} className={effectiveRankDisplayKeys.includes(item.key) ? 'selected' : ''}><input type="checkbox" checked={effectiveRankDisplayKeys.includes(item.key)} onChange={event => toggleRankDisplay(item.key, event.target.checked)} /><span><b>{item.label}</b>{item.value}</span></label>)}</div>
+            </div>
+          </> : <div className="journal-rank-empty">暂无等级快照，可点击查询或在下方填写 JCR 分区、中科院分区和影响因子。</div>}
           {rankMessage && <small className={`journal-rank-time ${rankMessageError ? 'danger' : ''}`} role="status" aria-live="polite">{rankMessage}</small>}
           {rankUpdatedAt && <small className="journal-rank-time">更新时间：{new Date(rankUpdatedAt).toLocaleString()}</small>}
         </section>
