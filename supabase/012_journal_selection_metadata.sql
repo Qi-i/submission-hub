@@ -1,4 +1,5 @@
 -- Submission Hub — Migration 012: journal selection metadata
+-- All fields remain protected by the existing owner-scoped journal_profiles RLS policies.
 
 ALTER TABLE public.journal_profiles
   ADD COLUMN IF NOT EXISTS name_zh TEXT,
