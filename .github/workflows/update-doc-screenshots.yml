@@ -2,6 +2,14 @@ name: Update Documentation Screenshots
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'docs/releases/**'
+      - 'src/**'
+      - 'tests/visual/**'
+      - 'vite.config.visual.ts'
+      - '.github/workflows/update-doc-screenshots.yml'
   push:
     branches: [main]
     paths:
@@ -16,7 +24,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: update-doc-screenshots
+  group: update-doc-screenshots-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -74,6 +82,7 @@ jobs:
             test -s "docs/screenshots/${file}.png"
           done
       - name: Commit documentation assets and version metadata
+        if: github.event_name == 'push'
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
