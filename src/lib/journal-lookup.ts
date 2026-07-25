@@ -1,5 +1,6 @@
 export interface JournalLookupResult {
   name?: string
+  officialAbbreviation?: string
   publisher?: string
   issn?: string
   eissn?: string
@@ -74,12 +75,13 @@ async function lookupByDoi(doi: string): Promise<JournalLookupResult> {
 
   return {
     name: journal?.name || (typeof container === 'string' ? container : typeof shortContainer === 'string' ? shortContainer : undefined),
+    officialAbbreviation: typeof shortContainer === 'string' && shortContainer.trim() ? shortContainer.trim() : undefined,
     publisher: journal?.publisher || (typeof message.publisher === 'string' ? message.publisher : undefined),
     issn: journal?.issn || ids.issn,
     eissn: journal?.eissn || ids.eissn,
     sourceUrl: `https://doi.org/${doi}`,
     sourceLabel: 'Crossref DOI',
-    note: '已从 DOI 识别所属期刊及基础出版信息。请核对期刊官网，并手动确认分区、APC 和审稿周期。',
+    note: '已从 DOI 识别所属期刊、官方缩写及基础出版信息。中文译名和简介翻译请人工核对后保存。',
   }
 }
 

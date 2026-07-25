@@ -65,6 +65,8 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
   const [rankData, setRankData] = useState<Record<string, string>>(source?.rank_data || {})
   const [rankUpdatedAt, setRankUpdatedAt] = useState(source?.rank_updated_at || '')
   const [name, setName] = useState(source?.name || '')
+  const [nameZh, setNameZh] = useState(source?.name_zh || '')
+  const [officialAbbreviation, setOfficialAbbreviation] = useState(source?.official_abbreviation || '')
   const [publisher, setPublisher] = useState(source?.publisher || '')
   const [website, setWebsite] = useState(source?.website_url || '')
   const [guide, setGuide] = useState(source?.author_guide_url || '')
@@ -73,7 +75,9 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
   const [issn, setIssn] = useState(source?.issn || '')
   const [eissn, setEissn] = useState(source?.eissn || '')
   const [scope, setScope] = useState(source?.scope || '')
+  const [scopeZh, setScopeZh] = useState(source?.scope_zh || '')
   const [tags, setTags] = useState(fromList(source?.subject_tags))
+  const [selectionTags, setSelectionTags] = useState(fromList(source?.selection_tags))
   const [indexing, setIndexing] = useState<string[]>(source?.indexing || [])
   const [jcr, setJcr] = useState(source?.jcr_quartile || '')
   const [cas, setCas] = useState(source?.cas_quartile || '')
@@ -96,6 +100,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
   const [risk, setRisk] = useState<string>(source?.risk_level || 'normal')
   const [favorite, setFavorite] = useState(source?.is_favorite ?? true)
   const [priority, setPriority] = useState<string>(source?.priority || 'medium')
+  const [selectionNotes, setSelectionNotes] = useState(source?.selection_notes || '')
   const [notes, setNotes] = useState(source?.notes || '')
 
   const hint = useMemo(() => journalLookupHint(lookupInput), [lookupInput])
@@ -110,6 +115,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
     try {
       const result = await lookupJournalMetadata(lookupInput)
       if (result.name) setName(result.name)
+      if (result.officialAbbreviation) setOfficialAbbreviation(result.officialAbbreviation)
       if (result.publisher) setPublisher(result.publisher)
       if (result.issn) setIssn(result.issn)
       if (result.eissn) setEissn(result.eissn)
@@ -205,17 +211,20 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
         metricsUpdatedAt: metricsUpdatedAt || new Date().toISOString(),
       })
       const payload = {
-        ...(source || {}), name: name.trim(), publisher: publisher.trim() || null,
+        ...(source || {}), name: name.trim(), name_zh: nameZh.trim() || null,
+        official_abbreviation: officialAbbreviation.trim() || null, publisher: publisher.trim() || null,
         website_url: website.trim() || null, author_guide_url: guide.trim() || null,
         submission_url: submission.trim() || null, third_party_links: parseLinks(thirdParty),
         issn: issn.trim() || null, eissn: eissn.trim() || null, scope: scope.trim() || null,
-        subject_tags: toList(tags), indexing, jcr_quartile: jcr.trim() || null, cas_quartile: cas.trim() || null,
+        scope_zh: scopeZh.trim() || null, subject_tags: toList(tags), selection_tags: toList(selectionTags),
+        indexing, jcr_quartile: jcr.trim() || null, cas_quartile: cas.trim() || null,
         impact_factor: numberOrNull(impactFactor), oa_type: oaType as JournalProfile['oa_type'],
         apc_amount: numberOrNull(apc), apc_currency: currency.trim().toUpperCase() || 'USD',
         fee_notes: feeNotes.trim() || null, first_decision_days: integerOrNull(firstDecision),
         total_review_days: integerOrNull(totalReview), acceptance_rate: percentageOrNull(acceptanceRate),
         risk_level: risk as JournalProfile['risk_level'], is_favorite: favorite,
-        priority: priority as JournalProfile['priority'], notes: notes.trim() || null,
+        priority: priority as JournalProfile['priority'], selection_notes: selectionNotes.trim() || null,
+        notes: notes.trim() || null,
         rank_data: publicMetricsRankData, rank_updated_at: rankUpdatedAt || null,
       }
       await onSave(payload as any)
@@ -252,8 +261,9 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
           {lookupSource && safeUrl(lookupSource) && <a className="journal-lookup-source" href={lookupSource} target="_blank" rel="noopener noreferrer">查看数据来源 <ExternalLink size={11} /></a>}
         </section>
 
-        <section className="journal-form-section identity"><div className="journal-form-section-head"><b>基础身份</b><span>DOI / ISSN 可自动填充</span></div>
-          <div className="prep-form-grid two"><Field label="期刊名称" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus={!source} maxLength={200} /></Field><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="收藏优先级"><select className="select" value={priority} onChange={event => setPriority(event.target.value)}>{PRIORITY_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field></div>
+        <section className="journal-form-section identity journal-identity-localized"><div className="journal-form-section-head"><b>基础身份</b><span>英文名与官方缩写可由 DOI 识别；中文信息需人工核对</span></div>
+          <div className="prep-form-grid two"><Field label="英文期刊名" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus={!source} maxLength={200} /></Field><Field label="中文译名"><input className="input" value={nameZh} onChange={event => setNameZh(event.target.value)} maxLength={200} placeholder="用于中文检索与快速辨认" /></Field><Field label="官方缩写"><input className="input" value={officialAbbreviation} onChange={event => setOfficialAbbreviation(event.target.value)} maxLength={80} placeholder="以期刊官网或数据库为准" /></Field></div>
+          <div className="prep-form-grid three"><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="收藏优先级"><select className="select" value={priority} onChange={event => setPriority(event.target.value)}>{PRIORITY_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field><Field label="选刊标签"><input className="input" value={selectionTags} onChange={event => setSelectionTags(event.target.value)} placeholder="主投, 备选, 审稿快, 岩土工程" /></Field></div>
           <div className="prep-form-grid four"><Field label="ISSN"><input className="input" value={issn} onChange={event => setIssn(event.target.value)} /></Field><Field label="EISSN"><input className="input" value={eissn} onChange={event => setEissn(event.target.value)} /></Field><Field label="JCR 分区"><input className="input" value={jcr} onChange={event => setJcr(event.target.value)} placeholder="Q1" /></Field><Field label="中科院分区"><input className="input" value={cas} onChange={event => setCas(event.target.value)} placeholder="一区" /></Field></div>
         </section>
 
@@ -281,9 +291,11 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
           <div className="journal-metric-caveat">公开年发文量按 Crossref 中该 ISSN、指定年份的 journal-article DOI 记录数统计；自引率不从无授权来源伪造，正式值需从 JCR/Scopus 核对，开放数据计算值必须标记为“估算”。{metricsUpdatedAt && ` 最近更新：${new Date(metricsUpdatedAt).toLocaleString()}`}</div>
         </section>
 
-        <section className="journal-form-section notes"><div className="journal-form-section-head"><b>适配与备注</b><span>记录为什么投、为什么不投</span></div>
-          <div className="prep-form-grid two"><Field label="研究领域标签"><input className="input" value={tags} onChange={event => setTags(event.target.value)} placeholder="地质灾害, 滑坡, 遥感" /></Field><Field label="风险状态"><select className="select" value={risk} onChange={event => setRisk(event.target.value)}><option value="normal">正常</option><option value="watch">关注</option><option value="warning">预警 / 谨慎</option></select></Field></div>
-          <Field label="期刊范围与适配说明" wide><textarea className="textarea" value={scope} onChange={event => setScope(event.target.value)} /></Field>
+        <section className="journal-form-section notes selection-profile"><div className="journal-form-section-head"><b>选刊信息与简介</b><span>保留原文、中文翻译与个人判断，便于检索和横向比较</span></div>
+          <div className="prep-form-grid two"><Field label="研究领域标签"><input className="input" value={tags} onChange={event => setTags(event.target.value)} placeholder="地质灾害, 滑坡, 岩土工程, 遥感" /></Field><Field label="风险状态"><select className="select" value={risk} onChange={event => setRisk(event.target.value)}><option value="normal">正常</option><option value="watch">关注</option><option value="warning">预警 / 谨慎</option></select></Field></div>
+          <Field label="英文期刊简介 / Aims & Scope" wide><textarea className="textarea journal-scope-source" value={scope} onChange={event => setScope(event.target.value)} placeholder="粘贴官网 Aims & Scope 或自行概括" /></Field>
+          <Field label="中文简介翻译" wide><textarea className="textarea journal-scope-translation" value={scopeZh} onChange={event => setScopeZh(event.target.value)} placeholder="概括收稿范围、偏好方法、常见研究对象及不适合方向" /></Field>
+          <Field label="选刊备注" wide><textarea className="textarea journal-selection-notes" value={selectionNotes} onChange={event => setSelectionNotes(event.target.value)} placeholder="例如：主投；偏工程地质；接收机器学习但需机理讨论；不适合纯遥感分类" /></Field>
           <Field label="第三方介绍与数据来源" wide><textarea className="textarea" value={thirdParty} onChange={event => setThirdParty(event.target.value)} placeholder={'每行：LetPub|https://...\nCrossref|https://...'} /></Field>
           <div className="prep-form-grid two"><Field label="费用与开放获取备注"><textarea className="textarea" value={feeNotes} onChange={event => setFeeNotes(event.target.value)} /></Field><Field label="其它备注"><textarea className="textarea" value={notes} onChange={event => setNotes(event.target.value)} /></Field></div>
           <label className="prep-switch"><input type="checkbox" checked={favorite} onChange={event => setFavorite(event.target.checked)} /><span>加入收藏期刊</span></label>

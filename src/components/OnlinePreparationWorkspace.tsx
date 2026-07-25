@@ -56,6 +56,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
           ...journal,
           third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
           subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
+          selection_tags: Array.isArray(journal.selection_tags) ? journal.selection_tags : [],
           indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
         })),
         topics: ((topicResult.data || []) as ResearchTopic[]).map(topic => ({

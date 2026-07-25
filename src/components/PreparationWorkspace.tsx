@@ -73,6 +73,7 @@ export default function PreparationWorkspace({
       ...journal,
       third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
       subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
+      selection_tags: Array.isArray(journal.selection_tags) ? journal.selection_tags : [],
       indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
     })),
     topics: (snapshot.topics || []).map(topic => ({
@@ -98,7 +99,7 @@ export default function PreparationWorkspace({
 
   const query = search.trim().toLocaleLowerCase()
   const journals = useMemo(
-    () => normalized.journals.filter(item => !query || `${item.name} ${item.publisher || ''} ${item.scope || ''} ${item.subject_tags.join(' ')}`.toLocaleLowerCase().includes(query)),
+    () => normalized.journals.filter(item => !query || `${item.name} ${item.name_zh || ''} ${item.official_abbreviation || ''} ${item.publisher || ''} ${item.scope || ''} ${item.scope_zh || ''} ${item.subject_tags.join(' ')} ${item.selection_tags.join(' ')} ${item.selection_notes || ''} ${item.notes || ''}`.toLocaleLowerCase().includes(query)),
     [normalized.journals, query],
   )
   const topics = useMemo(
@@ -556,7 +557,7 @@ function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: ()
     <div className="prep-overview-journal-head">
       <div className="prep-overview-journal-title">
         <span className="prep-journal-star">{journal.is_favorite ? '★' : '☆'}</span>
-        <span><b>{journal.name}</b><small>{journal.publisher || journal.scope || '未填写出版社或范围'}</small></span>
+        <span><b>{journal.name}</b><small>{[journal.name_zh, journal.official_abbreviation, journal.publisher || journal.scope_zh || journal.scope].filter(Boolean).join(' · ') || '未填写中文名、缩写或出版社'}</small></span>
       </div>
       <span className={`prep-risk ${journal.risk_level}`}>{journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'}</span>
     </div>
@@ -572,16 +573,18 @@ function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: ()
 
 function JournalCard({ journal, onClick }: { journal: JournalProfile; onClick: () => void }) {
   const oa = OA_OPTIONS.find(item => item.key === journal.oa_type)?.label || '未确认'
+  const identityLine = [journal.name_zh, journal.official_abbreviation, journal.publisher].filter(Boolean).join(' · ') || journal.scope_zh || journal.scope || '尚未填写中文名、缩写或出版社'
   return <article className="prep-journal-card">
-    <button className="prep-journal-card-main" onClick={onClick}>
+    <button className="prep-journal-card-main" onClick={onClick} title={journal.selection_notes || journal.scope_zh || undefined}>
       <div className="prep-card-top">
         <span className={`prep-priority ${journal.priority}`}>{journal.is_favorite ? <Star size={13} fill="currentColor" /> : '未收藏'}</span>
         <span className={`prep-risk ${journal.risk_level}`}>{journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'}</span>
       </div>
       <h3>{journal.name}</h3>
-      <p>{journal.publisher || journal.scope || '尚未填写出版社与期刊范围'}</p>
+      <p title={identityLine}>{identityLine}</p>
       <RankBlocks journal={journal} limit={7} className="full" />
       <div className="prep-journal-facts">
+        {journal.selection_tags.slice(0, 2).map(item => <span key={`selection-${item}`} data-tone="selection">{item}</span>)}
         <span data-tone="oa">{oa}</span>
         {journal.indexing.slice(0, 4).map(item => <span key={item} data-tone="index">{item}</span>)}
       </div>
