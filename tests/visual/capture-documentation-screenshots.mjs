@@ -11,7 +11,10 @@ const browser = await chromium.launch({ headless: true })
 
 async function openVisualPage(page, { ui, view, theme = 'light', selector }) {
   await page.goto(`${baseUrl}?view=${view}&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
-  await page.locator(`html[data-ui='${ui}'][data-visual-ready='true']`).waitFor({ state: 'attached', timeout: 45000 })
+  const readySelector = view === 'editor'
+    ? `html[data-ui='${ui}'][data-modal-scroll-ready='true']`
+    : `html[data-ui='${ui}'][data-visual-ready='true']`
+  await page.locator(readySelector).waitFor({ state: 'attached', timeout: 45000 })
   await page.locator(selector).first().waitFor({ state: 'visible', timeout: 15000 })
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.waitForTimeout(250)
@@ -113,7 +116,7 @@ try {
 
   await capturePage({ ui: 'luminous-x', view: 'dashboard', theme: 'dark', selector: '.paper-card-v3', path: 'luminous-x-dark.png' })
   await capturePage({ ui: 'luminous-x', view: 'dashboard', selector: '.paper-card-v3', path: 'luminous-x-mobile.png', viewport: mobileViewport })
-  await capturePage({ ui: 'luminous-x', view: 'editor', selector: "html[data-modal-scroll-ready='true'] .compact-form-footer", path: 'luminous-x-editor.png' })
+  await capturePage({ ui: 'luminous-x', view: 'editor', selector: '.compact-form-footer', path: 'luminous-x-editor.png' })
   await captureReviewLookup()
 } finally {
   await browser.close()
