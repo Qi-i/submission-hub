@@ -40,6 +40,33 @@ function publicHttpUrl(value?: string | null) {
   }
 }
 
+function publisherMetricCandidates(value?: string | null) {
+  const sourceUrl = publicHttpUrl(value)
+  if (!sourceUrl) return []
+
+  const candidates: string[] = []
+  try {
+    const url = new URL(sourceUrl)
+    const host = url.hostname.toLocaleLowerCase()
+    const scienceDirectMatch = url.pathname.match(/^\/journal\/([^/]+)/i)
+
+    if ((host === 'sciencedirect.com' || host.endsWith('.sciencedirect.com')) && scienceDirectMatch) {
+      const slug = scienceDirectMatch[1]
+      candidates.push(`${url.protocol}//${url.host}/journal/${slug}/about/insights`)
+    }
+
+    const elsevierMatch = url.pathname.match(/^\/journals\/([^/]+)(?:\/|$)/i)
+    if ((host === 'elsevier.com' || host.endsWith('.elsevier.com')) && elsevierMatch) {
+      candidates.push(`https://www.sciencedirect.com/journal/${elsevierMatch[1]}/about/insights`)
+    }
+  } catch {
+    // The URL has already passed validation; publisher expansion is optional.
+  }
+
+  candidates.push(sourceUrl)
+  return candidates
+}
+
 function durationToDays(value: number, unit: string) {
   const normalized = unit.toLocaleLowerCase()
   if (/week/.test(normalized)) return Math.round(value * 7)
@@ -49,11 +76,13 @@ function durationToDays(value: number, unit: string) {
 
 function extractDuration(text: string, labels: string[]) {
   for (const label of labels) {
-    const forward = new RegExp(`${label}[^\\d]{0,90}(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)`, 'i')
+    const forward = new RegExp(`${label}[^\\d]{0,120}(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)`, 'i')
     const forwardMatch = text.match(forward)
     if (forwardMatch) return durationToDays(Number(forwardMatch[1]), forwardMatch[2])
 
-    const reverse = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)[^\\n.]{0,90}${label}`, 'i')
+    // Publisher insight pages commonly render “2 days” before the label on the next line.
+    // Excluding intervening digits ensures the nearest metric is selected from a timeline list.
+    const reverse = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)[^\\d]{0,120}${label}`, 'i')
     const reverseMatch = text.match(reverse)
     if (reverseMatch) return durationToDays(Number(reverseMatch[1]), reverseMatch[2])
   }
@@ -62,10 +91,10 @@ function extractDuration(text: string, labels: string[]) {
 
 function extractAcceptanceRate(text: string) {
   const patterns = [
-    /acceptance\s+rate[^\d]{0,60}(\d+(?:\.\d+)?)\s*%/i,
-    /(\d+(?:\.\d+)?)\s*%[^\n.]{0,60}acceptance\s+rate/i,
-    /录用率[^\d]{0,40}(\d+(?:\.\d+)?)\s*%/i,
-    /接收率[^\d]{0,40}(\d+(?:\.\d+)?)\s*%/i,
+    /acceptance\s+rate[^\d]{0,80}(\d+(?:\.\d+)?)\s*%/i,
+    /(\d+(?:\.\d+)?)\s*%[^\d%]{0,80}acceptance\s+rate/i,
+    /录用率[^\d]{0,50}(\d+(?:\.\d+)?)\s*%/i,
+    /接收率[^\d]{0,50}(\d+(?:\.\d+)?)\s*%/i,
   ]
   for (const pattern of patterns) {
     const match = text.match(pattern)
@@ -77,7 +106,8 @@ function extractAcceptanceRate(text: string) {
 }
 
 function parseReviewMetrics(text: string) {
-  const normalized = text.replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ')
+  // Collapse Markdown/HTML-reader line breaks so adjacent value-label pairs remain parseable.
+  const normalized = text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim()
   const firstDecisionDays = extractDuration(normalized, [
     'submission\\s+to\\s+first\\s+(?:editorial\\s+)?decision',
     'time\\s+to\\s+first\\s+(?:editorial\\s+)?decision',
@@ -87,9 +117,11 @@ function parseReviewMetrics(text: string) {
     '首次决定',
   ])
   const totalReviewDays = extractDuration(normalized, [
-    'submission\\s+to\\s+(?:final\\s+)?decision',
+    // “总审稿周期” is defined as submission-to-acceptance when the publisher exposes it.
     'submission\\s+to\\s+acceptance',
     'time\\s+to\\s+acceptance',
+    'submission\\s+to\\s+decision\\s+after\\s+review',
+    'submission\\s+to\\s+(?:final\\s+)?decision',
     'total\\s+review\\s+time',
     'peer\\s+review\\s+time',
     'review\\s+time',
@@ -106,7 +138,7 @@ function parseReviewMetrics(text: string) {
 async function readPublicPage(sourceUrl: string) {
   const readerUrl = `https://r.jina.ai/${sourceUrl}`
   const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), 18000)
+  const timeout = window.setTimeout(() => controller.abort(), 20000)
   try {
     const response = await fetch(readerUrl, {
       headers: { Accept: 'text/plain' },
@@ -123,20 +155,22 @@ async function readPublicPage(sourceUrl: string) {
 
 export async function lookupJournalReviewMetrics(input: JournalReviewLookupInput): Promise<JournalReviewLookupResult> {
   const candidates = Array.from(new Set([
-    publicHttpUrl(input.reviewSourceUrl),
-    publicHttpUrl(input.websiteUrl),
-    publicHttpUrl(input.authorGuideUrl),
-    publicHttpUrl(input.submissionUrl),
-  ].filter(Boolean))) as string[]
+    ...publisherMetricCandidates(input.reviewSourceUrl),
+    ...publisherMetricCandidates(input.websiteUrl),
+    ...publisherMetricCandidates(input.authorGuideUrl),
+    ...publisherMetricCandidates(input.submissionUrl),
+  ]))
 
   if (!candidates.length) {
     throw new Error('请先填写期刊官网、作者指南或审稿周期来源，再自动获取审稿周期。')
   }
 
   let lastError: unknown = null
-  for (const sourceUrl of candidates.slice(0, 4)) {
+  let readablePageCount = 0
+  for (const sourceUrl of candidates.slice(0, 10)) {
     try {
       const text = await readPublicPage(sourceUrl)
+      readablePageCount += 1
       const metrics = parseReviewMetrics(text)
       if (metrics.firstDecisionDays === null && metrics.totalReviewDays === null && metrics.acceptanceRate === null) continue
       return {
@@ -149,8 +183,8 @@ export async function lookupJournalReviewMetrics(input: JournalReviewLookupInput
     }
   }
 
-  if (lastError instanceof DOMException && lastError.name === 'AbortError') {
-    throw new Error('公开页面读取超时。可填写更直接的期刊指标页面后重试。')
+  if (lastError instanceof DOMException && lastError.name === 'AbortError' && readablePageCount === 0) {
+    throw new Error('公开页面读取超时。可填写更直接的期刊 Insights 或指标页面后重试。')
   }
-  throw new Error('已读取公开页面，但未识别到“首轮决定、审稿周期或接收率”字段。该期刊可能未公开这些数据。')
+  throw new Error('已尝试期刊主页及可识别的出版社 Insights 页面，但未解析到首轮决定、投稿至接收周期或接收率。请检查来源链接是否为公开指标页。')
 }
