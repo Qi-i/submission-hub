@@ -2,8 +2,11 @@
   "release": "v1.5.0",
   "published_via": "github-release-workflow",
   "date": "2026-07-25",
+  "documentation": "dual-interface-readme-and-screenshots",
   "features": [
     "luminous-and-luminous-x-unified-interfaces",
+    "direct-online-and-offline-usage-guide",
+    "dual-interface-primary-page-screenshots",
     "private-r2-and-supabase-document-previews",
     "compact-journal-library-and-review-metric-lookup",
     "translated-journal-selection-metadata",
