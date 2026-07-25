@@ -4,17 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, for example v1.5.0
+        description: Release tag
         required: true
         default: v1.5.0
       title:
         description: Release title
         required: true
         default: Submission Hub v1.5.0
-  push:
-    branches: [main]
-    paths:
-      - '.github/release-v1.5.0'
 
 permissions:
   contents: write
@@ -28,30 +24,29 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - name: Verify privacy-safe samples
-        run: npm run check:privacy
-      - run: npm run verify
-      - run: mkdir -p release && cp dist-offline/offline.html release/submission-hub-offline.html
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run complete release verification
+        run: npm run verify
+      - name: Prepare offline asset
+        run: mkdir -p release && cp dist-offline/offline.html release/submission-hub-offline.html
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.event.inputs.tag || 'v1.5.0' }}
-          RELEASE_TITLE: ${{ github.event.inputs.title || 'Submission Hub v1.5.0' }}
+          TAG_NAME: ${{ github.event.inputs.tag }}
+          RELEASE_TITLE: ${{ github.event.inputs.title }}
           RELEASE_NOTES: |
             Submission Hub v1.5.0
 
             主要更新：
-            - 界面统一为 Luminous 与 Luminous X，重构导航、主题切换、响应式布局和高密度科研工作区
-            - 投稿准备支持工作区记忆、紧凑草稿推进、收藏期刊、创建入口和跨页面一致布局
-            - 投稿卡片优化状态层级、期刊名称、出版入口、附件标识及 OA/APC 信息密度
-            - 期刊库改为紧凑多列卡片，修复长期刊名、未知指标占位、链接重复、弹窗层级和底部链接栏
-            - 新增公开审稿指标获取，支持 Elsevier Insights 页面推导及首轮决定、总审稿周期、接收率解析
-            - 新增中文期刊名、缩写、期刊简介翻译、选刊标签与备注，并支持自定义 EasyScholar 标签外显
-            - 完善混合 OA 双路径、APC 原币与人民币参考价、年发文量、自引率和来源口径管理
-            - 完善邮箱/GitHub 登录关联、个人资料、头像、回跳反馈和多设备偏好同步
-            - 附件升级为私有 R2/Supabase 存储，支持 PDF、图片及 Office 文件预览、替换、删除和生命周期清理
-            - 在线版、离线单 HTML、隐私检查、离线隔离及桌面/暗色/移动端视觉回归持续覆盖
+            - Luminous 与 Luminous X 两套界面完整保留，导航、主题、桌面和移动端布局统一
+            - 投稿准备、投稿管理、期刊库、个人统计和附件归档形成完整论文工作流
+            - 期刊库新增中文名、缩写、中文简介、选刊标签、备注和自定义卡片外显
+            - 公开审稿指标读取覆盖首轮决定、投稿至接收周期和接收率
+            - 私有附件覆盖上传、预览、替换、删除和生命周期清理
+            - 在线版、离线版、隐私检查和视觉回归全部纳入发布验证
+
+            使用说明与完整变更记录见仓库 README 和 docs/releases/v1.5.0.md。
 
             附件：submission-hub-offline.html
         run: |
