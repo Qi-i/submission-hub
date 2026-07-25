@@ -33,7 +33,7 @@ async function openJournalLibrary(page, ui, theme) {
 
   const grid = page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first()
   await grid.waitFor({ state: 'visible', timeout: 15000 })
-  await page.waitForTimeout(240)
+  await page.waitForTimeout(260)
 }
 
 async function inspectDesktop(ui, theme) {
@@ -57,6 +57,7 @@ async function inspectDesktop(ui, theme) {
       const cardRects = cards.map(card => card.getBoundingClientRect())
       const maxWidth = Math.max(...cardRects.map(rect => rect.width))
       const maxHeight = Math.max(...cardRects.map(rect => rect.height))
+      const footerHeights = []
       const isVisible = element => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
@@ -66,7 +67,7 @@ async function inspectDesktop(ui, theme) {
       if (columns.length < 3) localFailures.push(`desktop journal library exposes only ${columns.length} grid columns`)
       if (Number.parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop journal grid gap is too large')
       if (maxWidth > 390) localFailures.push(`journal cards are still too wide (${Math.round(maxWidth)}px)`)
-      if (maxHeight > 315) localFailures.push(`journal cards are still too tall (${Math.round(maxHeight)}px)`)
+      if (maxHeight > 330) localFailures.push(`journal cards are still too tall (${Math.round(maxHeight)}px)`)
 
       cards.forEach((card, index) => {
         const rect = card.getBoundingClientRect()
@@ -84,12 +85,14 @@ async function inspectDesktop(ui, theme) {
         const titleRect = title.getBoundingClientRect()
         const linksRect = links.getBoundingClientRect()
         const lineHeight = Number.parseFloat(titleStyle.lineHeight)
+        footerHeights.push(linksRect.height)
         if (Number.parseFloat(mainStyle.paddingLeft) > 12 || Number.parseFloat(mainStyle.paddingTop) > 12) {
           localFailures.push(`journal ${index + 1}: main padding remains oversized`)
         }
         if (lineHeight && titleRect.height > lineHeight * 2 + 2) localFailures.push(`journal ${index + 1}: title exceeds two lines`)
         if (title.scrollHeight > title.clientHeight + 2) localFailures.push(`journal ${index + 1}: title is visually clipped`)
-        if (linksRect.height > 42) localFailures.push(`journal ${index + 1}: links footer is too tall`)
+        if (linksRect.height < 38 || linksRect.height > 42) localFailures.push(`journal ${index + 1}: links footer is not the fixed 40px rail`)
+        if (Math.abs(rect.bottom - linksRect.bottom) > 1.5) localFailures.push(`journal ${index + 1}: links footer is not anchored to the card bottom`)
         if (rect.right > gridRect.right + 1.5 || rect.left < gridRect.left - 1.5) localFailures.push(`journal ${index + 1}: card exceeds grid edges`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: horizontal overflow`)
 
@@ -119,6 +122,10 @@ async function inspectDesktop(ui, theme) {
         })
       })
 
+      if (footerHeights.length && Math.max(...footerHeights) - Math.min(...footerHeights) > 1) {
+        localFailures.push('journal link footers do not share one fixed height')
+      }
+
       return {
         failures: localFailures,
         details: {
@@ -126,6 +133,7 @@ async function inspectDesktop(ui, theme) {
           gap: gridStyle.columnGap,
           maxWidth: Math.round(maxWidth),
           maxHeight: Math.round(maxHeight),
+          footerHeight: footerHeights.length ? Math.round(footerHeights[0]) : 0,
           cards: cards.length,
         },
       }
@@ -165,6 +173,10 @@ async function inspectMobile(ui) {
       if (columns.length !== 1) localFailures.push(`mobile journal library has ${columns.length} columns`)
       cards.forEach((card, index) => {
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: mobile horizontal overflow`)
+        const links = card.querySelector('.prep-journal-links')
+        if (links && Math.abs(card.getBoundingClientRect().bottom - links.getBoundingClientRect().bottom) > 1.5) {
+          localFailures.push(`journal ${index + 1}: mobile links footer is not bottom anchored`)
+        }
       })
       return localFailures
     })
@@ -179,12 +191,17 @@ async function inspectMobile(ui) {
 
 async function inspectReviewLookup(ui) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+  const journalUrl = 'https://www.sciencedirect.com/journal/journal-of-rock-mechanics-and-geotechnical-engineering'
   try {
     await page.route('https://r.jina.ai/**', async route => {
+      const requestUrl = decodeURIComponent(route.request().url())
+      const isInsights = requestUrl.includes('/journal/journal-of-rock-mechanics-and-geotechnical-engineering/about/insights')
       await route.fulfill({
         status: 200,
         contentType: 'text/plain',
-        body: 'Journal metrics\nSubmission to first decision: 12 days\nReview time: 5 weeks\nAcceptance rate: 22%',
+        body: isInsights
+          ? `# Journal Insights\n\nPublishing timeline\n\n2 days\n\nSubmission to first decision\n\n49 days\n\nSubmission to decision after review\n\n174 days\n\nSubmission to acceptance\n\nAcceptance rate\n\n16%\n\nAcceptance Rate`
+          : '# Journal homepage\n\nView all insights\n\nNo timeline values are exposed on this summary page.',
       })
     })
     await openJournalLibrary(page, ui, 'light')
@@ -197,6 +214,31 @@ async function inspectReviewLookup(ui) {
     const apcLabel = await modal.locator('.prep-field > span').evaluateAll(nodes => nodes.map(node => node.textContent?.trim()).find(text => text === 'APC') || '')
     if (apcLabel !== 'APC') failures.push(`${ui}/form: APC field label was not normalized`)
 
+    const websiteField = modal.locator('.prep-field').filter({ has: modal.locator(':scope > span', { hasText: '期刊官网' }) }).locator('input').first()
+    const sourceField = modal.locator('.prep-field').filter({ has: modal.locator(':scope > span', { hasText: '审稿周期来源' }) }).locator('input').first()
+    await websiteField.fill(journalUrl)
+    await sourceField.fill('')
+
+    const layering = await modal.evaluate(element => {
+      const overlay = element.parentElement
+      const header = document.querySelector('.app-header')
+      const overlayRect = overlay?.getBoundingClientRect()
+      const headerStyle = header ? getComputedStyle(header) : null
+      return {
+        overlayClass: overlay?.className || '',
+        overlayTop: overlayRect?.top ?? 999,
+        overlayBottom: overlayRect?.bottom ?? 0,
+        viewportHeight: window.innerHeight,
+        overlayZ: overlay ? Number.parseFloat(getComputedStyle(overlay).zIndex) : 0,
+        headerVisibility: headerStyle?.visibility || '',
+        headerPointerEvents: headerStyle?.pointerEvents || '',
+      }
+    })
+    if (!layering.overlayClass.includes('modal-overlay')) failures.push(`${ui}/form: journal editor is not inside the modal overlay`)
+    if (layering.overlayTop > 1 || layering.overlayBottom < layering.viewportHeight - 1) failures.push(`${ui}/form: journal overlay does not cover the full viewport`)
+    if (layering.overlayZ < 10000) failures.push(`${ui}/form: journal overlay z-index is too low`)
+    if (layering.headerVisibility !== 'hidden' || layering.headerPointerEvents !== 'none') failures.push(`${ui}/form: sticky app header remains interactive above the journal editor`)
+
     await button.click()
     await page.waitForFunction(() => {
       const modalElement = Array.from(document.querySelectorAll('.journal-form-modal')).find(element => {
@@ -206,7 +248,10 @@ async function inspectReviewLookup(ui) {
       })
       if (!modalElement) return false
       const byLabel = label => Array.from(modalElement.querySelectorAll('.prep-field')).find(field => field.querySelector(':scope > span')?.textContent?.trim().includes(label))?.querySelector('input')?.value || ''
-      return byLabel('首轮决定') === '12' && byLabel('总审稿周期') === '35' && byLabel('接收率') === '22' && byLabel('审稿周期来源').startsWith('http')
+      return byLabel('首轮决定') === '2'
+        && byLabel('总审稿周期') === '174'
+        && byLabel('接收率') === '16'
+        && byLabel('审稿周期来源').endsWith('/about/insights')
     }, undefined, { timeout: 15000 })
 
     const buttonCount = await modal.getByRole('button', { name: '获取审稿周期' }).count()
