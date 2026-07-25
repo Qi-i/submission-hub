@@ -38,6 +38,10 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify privacy-safe samples
         run: npm run check:privacy
+      - name: Verify journal selection metadata
+        run: npm run check:journal-selection
+      - name: Verify journal rank display policy
+        run: npm run check:journal-rank-display
       - name: Verify document storage lifecycle
         run: node tests/visual/document-storage-check.mjs
       - name: Build online app
