@@ -8,6 +8,8 @@ const checks = [
   ['src/components/PreparationWorkspace.tsx', ['prep-journal-local-identity', 'prep-journal-publisher']],
   ['src/components/JournalComparison.tsx', ["label: '缩写'"]],
   ['tests/visual/journal-library-density-check.mjs', ["['中文译名', '缩写', '中文简介翻译', '选刊标签', '选刊备注']"]],
+  ['src/journal-identity-order.ts', ['shouldShowAbbreviation', 'isRecognizedAcronym', '短刊名可留空', 'data-chinese-only']],
+  ['src/journal-identity-order.css', ["'identity identity'", 'grid-area: identity', 'white-space: normal', 'border-left: 3px solid var(--accent)']],
 ]
 const failures = []
 for (const [path, tokens] of checks) {

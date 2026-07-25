@@ -1,0 +1,84 @@
+/* Journal identity hierarchy: English name -> emphasized Chinese name -> concise abbreviation. */
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main {
+  grid-template-areas:
+    'title flags'
+    'identity identity'
+    'publisher publisher'
+    'ranks ranks'
+    'facts facts'
+    'metrics metrics' !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-local-identity {
+  grid-area: identity !important;
+  order: 0 !important;
+  margin: -1px 0 1px !important;
+}
+
+.prep-journal-local-identity {
+  min-width: 0;
+  display: grid !important;
+  justify-items: start;
+  align-items: start !important;
+  gap: 4px !important;
+  line-height: 1.35 !important;
+}
+
+.prep-journal-local-identity strong {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: visible !important;
+  padding: 4px 8px 4px 9px;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px 8px 8px 4px;
+  color: color-mix(in srgb, var(--accent) 82%, var(--text-primary)) !important;
+  background: color-mix(in srgb, var(--accent-bg) 82%, transparent);
+  font-size: 11.5px !important;
+  font-weight: 850 !important;
+  line-height: 1.35 !important;
+  overflow-wrap: anywhere;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+.prep-journal-local-identity em {
+  width: max-content;
+  max-width: 100% !important;
+  overflow: hidden;
+  padding: 2px 7px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border-subtle));
+  border-radius: 999px;
+  color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent-bg) 72%, transparent) !important;
+  font-size: 9.5px !important;
+  font-style: normal;
+  font-weight: 820 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prep-journal-local-identity em[hidden],
+.prep-journal-local-identity strong[hidden] {
+  display: none !important;
+}
+
+.prep-journal-local-identity[data-chinese-only] {
+  gap: 0 !important;
+}
+
+.prep-overview-journal-copy > .prep-journal-local-identity {
+  margin: 3px 0 2px !important;
+}
+
+html[data-theme='dark'] .prep-journal-local-identity strong {
+  color: color-mix(in srgb, var(--accent) 72%, white) !important;
+  background: color-mix(in srgb, var(--accent-bg) 88%, transparent);
+}
+
+@media (max-width: 720px) {
+  .prep-journal-local-identity strong {
+    font-size: 11px !important;
+  }
+}
