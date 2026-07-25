@@ -34,8 +34,11 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_ADMIN_ID: ${{ vars.VITE_ADMIN_ID }}
-      - name: Verify current dashboard is bundled
-        run: grep -R "2026-07-12-journal-sync" dist/assets >/dev/null
+      - name: Verify release metadata
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          actual="$(node -p "JSON.parse(require('fs').readFileSync('dist/release-info.json', 'utf8')).release")"
+          test "$actual" = "$expected"
       - id: version
         name: Write deployment version
         run: |
