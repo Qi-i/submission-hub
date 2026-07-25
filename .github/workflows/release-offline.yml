@@ -4,17 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, for example v1.4.0
+        description: Release tag, for example v1.5.0
         required: true
-        default: v1.4.0
+        default: v1.5.0
       title:
         description: Release title
         required: true
-        default: Submission Hub v1.4.0
+        default: Submission Hub v1.5.0
   push:
     branches: [main]
     paths:
-      - '.github/release-v1.4.0'
+      - '.github/release-v1.5.0'
 
 permissions:
   contents: write
@@ -31,30 +31,27 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Verify privacy-safe samples
         run: npm run check:privacy
-      - run: npm run build:offline
-      - run: npm run check:offline
+      - run: npm run verify
       - run: mkdir -p release && cp dist-offline/offline.html release/submission-hub-offline.html
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.event.inputs.tag || 'v1.4.0' }}
-          RELEASE_TITLE: ${{ github.event.inputs.title || 'Submission Hub v1.4.0' }}
+          TAG_NAME: ${{ github.event.inputs.tag || 'v1.5.0' }}
+          RELEASE_TITLE: ${{ github.event.inputs.title || 'Submission Hub v1.5.0' }}
           RELEASE_NOTES: |
-            Submission Hub v1.4.0
+            Submission Hub v1.5.0
 
             主要更新：
-            - 统一投稿管理、个人统计和投稿准备的页面宽度、边距与紧凑布局
-            - 在线版与离线版共用同一套样式加载顺序，避免旧样式覆盖最终修复
-            - 投稿状态与期刊胶囊等高，期刊名称按内容宽度收缩并保持右对齐
-            - 审稿子状态改为带状态色圆点的次级状态，不再挤占期刊名称位置
-            - 同一行投稿卡片等高，并增加低对比度序号水印
-            - 修复投稿记录编辑弹窗滚动与底部操作区可见性
-            - 修复 GitHub Pages 子路径 OAuth 回跳，并增加 GitHub 绑定与账户密码设置
-            - 恢复期刊等级查询，完善缓存、无结果、登录失效、限流和服务未配置提示
-            - 草稿转投稿增加重复校验与失败回滚，避免孤立投稿记录
-            - 完善投稿准备、期刊收藏与比较、草稿就绪度和正式投出联动
-            - 示例数据和文档截图全部使用虚构内容，并增加自动隐私检查
-            - 离线版继续保持单文件、本地存储、无 Supabase、R2 或 EasyScholar 密钥依赖
+            - 界面统一为 Luminous 与 Luminous X，重构导航、主题切换、响应式布局和高密度科研工作区
+            - 投稿准备支持工作区记忆、紧凑草稿推进、收藏期刊、创建入口和跨页面一致布局
+            - 投稿卡片优化状态层级、期刊名称、出版入口、附件标识及 OA/APC 信息密度
+            - 期刊库改为紧凑多列卡片，修复长期刊名、未知指标占位、链接重复、弹窗层级和底部链接栏
+            - 新增公开审稿指标获取，支持 Elsevier Insights 页面推导及首轮决定、总审稿周期、接收率解析
+            - 新增中文期刊名、缩写、期刊简介翻译、选刊标签与备注，并支持自定义 EasyScholar 标签外显
+            - 完善混合 OA 双路径、APC 原币与人民币参考价、年发文量、自引率和来源口径管理
+            - 完善邮箱/GitHub 登录关联、个人资料、头像、回跳反馈和多设备偏好同步
+            - 附件升级为私有 R2/Supabase 存储，支持 PDF、图片及 Office 文件预览、替换、删除和生命周期清理
+            - 在线版、离线单 HTML、隐私检查、离线隔离及桌面/暗色/移动端视觉回归持续覆盖
 
             附件：submission-hub-offline.html
         run: |
