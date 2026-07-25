@@ -26,7 +26,7 @@ const sourceLink = (url: string | null, label: string) => url
 
 const rows: Row[] = [
   { label: '中文译名', value: journal => journal.name_zh || '未记录' },
-  { label: '官方缩写', value: journal => journal.official_abbreviation || '未记录' },
+  { label: '缩写', value: journal => journal.official_abbreviation || '未记录' },
   { label: '主要分区 / 核心收录', value: journal => journalPrimarySummary(journal as RankedJournalProfile, 5) },
   { label: 'JCR 分区', value: journal => journal.jcr_quartile || '未定' },
   { label: '中科院分区', value: journal => journal.cas_quartile || '未定' },

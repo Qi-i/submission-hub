@@ -49,6 +49,32 @@ const PRIORITY_KEYS = [
   'sciwarn', 'eii', 'cscd', 'pku', 'zhongguokejihexin', 'cssci', 'ahci', 'esi',
 ]
 
+export const RANK_DISPLAY_KEYS_METRIC = 'metric_display_rank_keys'
+export const DEFAULT_HIDDEN_RANK_KEYS = new Set(['sciBase', 'sciUpSmall'])
+
+export function defaultRankDisplayKeys(items: JournalRankItem[]) {
+  return items.filter(item => !DEFAULT_HIDDEN_RANK_KEYS.has(item.key)).map(item => item.key)
+}
+
+export function readRankDisplayKeys(values: Record<string, string> | null | undefined): string[] | null {
+  if (!values || !(RANK_DISPLAY_KEYS_METRIC in values)) return null
+  const raw = String(values[RANK_DISPLAY_KEYS_METRIC] || '').trim()
+  if (!raw) return []
+  return Array.from(new Set(raw.split(',').map(item => item.trim()).filter(Boolean)))
+}
+
+export function writeRankDisplayKeys(values: Record<string, string>, keys: string[] | null) {
+  const next = { ...values }
+  if (keys === null) delete next[RANK_DISPLAY_KEYS_METRIC]
+  else next[RANK_DISPLAY_KEYS_METRIC] = Array.from(new Set(keys)).join(',')
+  return next
+}
+
+export function isRankItemVisible(values: Record<string, string> | null | undefined, key: string) {
+  const configured = readRankDisplayKeys(values)
+  return configured === null ? !DEFAULT_HIDDEN_RANK_KEYS.has(key) : configured.includes(key)
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }

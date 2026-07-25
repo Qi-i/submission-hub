@@ -557,7 +557,7 @@ function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: ()
     <div className="prep-overview-journal-head">
       <div className="prep-overview-journal-title">
         <span className="prep-journal-star">{journal.is_favorite ? '★' : '☆'}</span>
-        <span><b>{journal.name}</b><small>{[journal.name_zh, journal.official_abbreviation, journal.publisher || journal.scope_zh || journal.scope].filter(Boolean).join(' · ') || '未填写中文名、缩写或出版社'}</small></span>
+        <span className="prep-overview-journal-copy"><b>{journal.name}</b>{(journal.name_zh || (journal.official_abbreviation && journal.official_abbreviation.toLocaleLowerCase() !== journal.name.toLocaleLowerCase())) && <span className="prep-journal-local-identity">{journal.name_zh && <strong>{journal.name_zh}</strong>}{journal.official_abbreviation && journal.official_abbreviation.toLocaleLowerCase() !== journal.name.toLocaleLowerCase() && <em>{journal.official_abbreviation}</em>}</span>}<small>{journal.publisher || journal.scope_zh || journal.scope || '未填写出版社或期刊范围'}</small></span>
       </div>
       <span className={`prep-risk ${journal.risk_level}`}>{journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'}</span>
     </div>
@@ -573,7 +573,8 @@ function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: ()
 
 function JournalCard({ journal, onClick }: { journal: JournalProfile; onClick: () => void }) {
   const oa = OA_OPTIONS.find(item => item.key === journal.oa_type)?.label || '未确认'
-  const identityLine = [journal.name_zh, journal.official_abbreviation, journal.publisher].filter(Boolean).join(' · ') || journal.scope_zh || journal.scope || '尚未填写中文名、缩写或出版社'
+  const showAbbreviation = !!journal.official_abbreviation && journal.official_abbreviation.toLocaleLowerCase() !== journal.name.toLocaleLowerCase()
+  const publisherLine = journal.publisher || journal.scope_zh || journal.scope || '尚未填写出版社或期刊范围'
   return <article className="prep-journal-card">
     <button className="prep-journal-card-main" onClick={onClick} title={journal.selection_notes || journal.scope_zh || undefined}>
       <div className="prep-card-top">
@@ -581,7 +582,8 @@ function JournalCard({ journal, onClick }: { journal: JournalProfile; onClick: (
         <span className={`prep-risk ${journal.risk_level}`}>{journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'}</span>
       </div>
       <h3>{journal.name}</h3>
-      <p title={identityLine}>{identityLine}</p>
+      {(journal.name_zh || showAbbreviation) && <div className="prep-journal-local-identity">{journal.name_zh && <strong>{journal.name_zh}</strong>}{showAbbreviation && <em>{journal.official_abbreviation}</em>}</div>}
+      <p className="prep-journal-publisher" title={publisherLine}>{publisherLine}</p>
       <RankBlocks journal={journal} limit={7} className="full" />
       <div className="prep-journal-facts">
         {journal.selection_tags.slice(0, 2).map(item => <span key={`selection-${item}`} data-tone="selection">{item}</span>)}
