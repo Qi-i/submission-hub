@@ -49,6 +49,7 @@ export function mergePreparationSnapshots(
     name: source.name || '未命名期刊',
     third_party_links: Array.isArray(source.third_party_links) ? source.third_party_links : [],
     subject_tags: Array.isArray(source.subject_tags) ? source.subject_tags : [],
+    selection_tags: Array.isArray(source.selection_tags) ? source.selection_tags : [],
     indexing: Array.isArray(source.indexing) ? source.indexing : [],
     created_at: source.created_at || now,
     updated_at: now,

@@ -25,6 +25,8 @@ const sourceLink = (url: string | null, label: string) => url
   : '未记录'
 
 const rows: Row[] = [
+  { label: '中文译名', value: journal => journal.name_zh || '未记录' },
+  { label: '官方缩写', value: journal => journal.official_abbreviation || '未记录' },
   { label: '主要分区 / 核心收录', value: journal => journalPrimarySummary(journal as RankedJournalProfile, 5) },
   { label: 'JCR 分区', value: journal => journal.jcr_quartile || '未定' },
   { label: '中科院分区', value: journal => journal.cas_quartile || '未定' },
@@ -67,7 +69,10 @@ const rows: Row[] = [
   { label: '数据库收录', value: journal => journal.indexing.length ? journal.indexing.join('、') : '未记录' },
   { label: '风险状态', value: journal => journal.risk_level === 'warning' ? '预警 / 谨慎' : journal.risk_level === 'watch' ? '关注' : '正常' },
   { label: '学科标签', value: journal => journal.subject_tags.length ? journal.subject_tags.join('、') : '未记录' },
-  { label: '期刊范围', value: journal => journal.scope || '未记录' },
+  { label: '选刊标签', value: journal => journal.selection_tags.length ? journal.selection_tags.join('、') : '未记录' },
+  { label: '英文期刊简介', value: journal => journal.scope || '未记录' },
+  { label: '中文简介翻译', value: journal => journal.scope_zh || '未记录' },
+  { label: '选刊备注', value: journal => journal.selection_notes || '未记录' },
 ]
 
 function bestIds(selected: JournalProfile[], row: Row) {
@@ -102,12 +107,12 @@ export default function JournalComparison({ journals, initialIds, onEdit }: Prop
     </div>
 
     <div className="journal-compare-picker">
-      {journals.map(journal => <label key={journal.id} className={selectedIds.includes(journal.id) ? 'selected' : ''}><input type="checkbox" checked={selectedIds.includes(journal.id)} onChange={() => toggle(journal.id)} /><span>{journal.name}</span><em>{journalPrimarySummary(journal as RankedJournalProfile, 3)}</em></label>)}
+      {journals.map(journal => <label key={journal.id} className={selectedIds.includes(journal.id) ? 'selected' : ''}><input type="checkbox" checked={selectedIds.includes(journal.id)} onChange={() => toggle(journal.id)} /><span>{journal.name}</span><em>{[journal.official_abbreviation, journal.name_zh, journalPrimarySummary(journal as RankedJournalProfile, 3)].filter(Boolean).join(' · ')}</em></label>)}
       {!journals.length && <div className="prep-empty"><span>期刊库为空，请先收藏目标期刊。</span></div>}
     </div>
 
     {selected.length > 0 && <div className="journal-compare-table-wrap"><table className="journal-compare-table">
-      <thead><tr><th>比较项目</th>{selected.map(journal => <th key={journal.id}><div><button onClick={() => onEdit(journal)}>{journal.name}</button><button className="compare-remove" onClick={() => toggle(journal.id)} title="移出比较"><X size={12} /></button></div><small>{journal.publisher || '未记录出版社'}</small><div className="compare-links">{journal.website_url && <a href={journal.website_url} target="_blank" rel="noopener noreferrer">官网 <ExternalLink size={10} /></a>}{journal.submission_url && <a href={journal.submission_url} target="_blank" rel="noopener noreferrer">投稿 <ExternalLink size={10} /></a>}</div></th>)}</tr></thead>
+      <thead><tr><th>比较项目</th>{selected.map(journal => <th key={journal.id}><div><button onClick={() => onEdit(journal)}>{journal.name}</button><button className="compare-remove" onClick={() => toggle(journal.id)} title="移出比较"><X size={12} /></button></div><small>{[journal.name_zh, journal.official_abbreviation, journal.publisher].filter(Boolean).join(' · ') || '未记录中文名、缩写或出版社'}</small><div className="compare-links">{journal.website_url && <a href={journal.website_url} target="_blank" rel="noopener noreferrer">官网 <ExternalLink size={10} /></a>}{journal.submission_url && <a href={journal.submission_url} target="_blank" rel="noopener noreferrer">投稿 <ExternalLink size={10} /></a>}</div></th>)}</tr></thead>
       <tbody>{rows.map(row => {
         const best = bestIds(selected, row)
         return <tr key={row.label}><th>{row.label}</th>{selected.map(journal => <td key={journal.id} className={best.has(journal.id) ? 'best' : ''}>{row.value(journal)}{best.has(journal.id) && <span className="compare-best">较优</span>}</td>)}</tr>

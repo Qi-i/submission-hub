@@ -1,0 +1,48 @@
+/* Journal selection metadata shared by Luminous and Luminous X. */
+
+.preparation-workspace[data-section='journals'] .prep-journal-facts > span[data-tone='selection'] {
+  border-color: rgba(124, 58, 237, .16) !important;
+  background: rgba(124, 58, 237, .075) !important;
+  color: #6d28d9 !important;
+  font-weight: 760 !important;
+}
+
+html[data-theme='dark'] .preparation-workspace[data-section='journals'] .prep-journal-facts > span[data-tone='selection'] {
+  border-color: rgba(196, 181, 253, .2) !important;
+  background: rgba(139, 92, 246, .12) !important;
+  color: #c4b5fd !important;
+}
+
+.journal-form-modal .journal-identity-localized .prep-form-grid,
+.journal-form-modal .selection-profile .prep-form-grid {
+  align-items: start;
+}
+
+.journal-form-modal .selection-profile .journal-scope-source,
+.journal-form-modal .selection-profile .journal-scope-translation {
+  min-height: 88px !important;
+}
+
+.journal-form-modal .selection-profile .journal-selection-notes {
+  min-height: 72px !important;
+}
+
+.journal-compare-table td {
+  max-width: 300px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.journal-compare-picker label em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .journal-form-modal .selection-profile .journal-scope-source,
+  .journal-form-modal .selection-profile .journal-scope-translation,
+  .journal-form-modal .selection-profile .journal-selection-notes {
+    min-height: 76px !important;
+  }
+}

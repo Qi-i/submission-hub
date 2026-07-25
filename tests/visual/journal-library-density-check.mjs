@@ -211,8 +211,12 @@ async function inspectReviewLookup(ui) {
     const button = modal.getByRole('button', { name: '获取审稿周期' })
     await button.waitFor({ state: 'visible', timeout: 15000 })
 
-    const apcLabel = await modal.locator('.prep-field > span').evaluateAll(nodes => nodes.map(node => node.textContent?.trim()).find(text => text === 'APC') || '')
+    const fieldLabels = await modal.locator('.prep-field > span').allTextContents()
+    const apcLabel = fieldLabels.map(text => text.trim()).find(text => text === 'APC') || ''
     if (apcLabel !== 'APC') failures.push(`${ui}/form: APC field label was not normalized`)
+    for (const label of ['中文译名', '官方缩写', '中文简介翻译', '选刊标签', '选刊备注']) {
+      if (!fieldLabels.some(text => text.trim() === label)) failures.push(`${ui}/form: missing journal selection field ${label}`)
+    }
 
     const websiteField = modal.locator('.prep-field', { hasText: '期刊官网' }).locator('input').first()
     const sourceField = modal.locator('.prep-field', { hasText: '审稿周期来源' }).locator('input').first()

@@ -13,6 +13,8 @@ export interface JournalProfile {
   id: string
   user_id: string
   name: string
+  name_zh: string | null
+  official_abbreviation: string | null
   publisher: string | null
   website_url: string | null
   author_guide_url: string | null
@@ -21,7 +23,9 @@ export interface JournalProfile {
   issn: string | null
   eissn: string | null
   scope: string | null
+  scope_zh: string | null
   subject_tags: string[]
+  selection_tags: string[]
   indexing: string[]
   jcr_quartile: string | null
   cas_quartile: string | null
@@ -36,6 +40,7 @@ export interface JournalProfile {
   risk_level: JournalRisk
   is_favorite: boolean
   priority: PriorityLevel
+  selection_notes: string | null
   notes: string | null
   created_at: string
   updated_at: string
