@@ -1,9 +1,13 @@
 {
-  "release": "2026-07-12-journal-sync",
-  "published_via": "verified-pr-deployment",
+  "release": "v1.5.0",
+  "published_via": "github-release-workflow",
+  "date": "2026-07-25",
   "features": [
-    "hide-apc-from-submission-cards",
-    "link-journal-library-to-submissions",
-    "convert-foreign-apc-to-cny-in-journal-views"
+    "luminous-and-luminous-x-unified-interfaces",
+    "private-r2-and-supabase-document-previews",
+    "compact-journal-library-and-review-metric-lookup",
+    "translated-journal-selection-metadata",
+    "customizable-easyscholar-card-labels",
+    "email-github-identity-and-profile-management"
   ]
 }
