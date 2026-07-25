@@ -1,4 +1,4 @@
--- Submission Hub — Migration 011: journal selection metadata
+-- Submission Hub — Migration 012: journal selection metadata
 
 ALTER TABLE public.journal_profiles
   ADD COLUMN IF NOT EXISTS name_zh TEXT,

@@ -136,7 +136,7 @@ Submission Hub 是一个面向科研论文全流程的轻量管理工具，覆�
 
 部署前需要：
 
-1. 在 Supabase SQL Editor 中按编号依次执行 `supabase/001` 至 `supabase/011` 迁移文件。
+1. 在 Supabase SQL Editor 中按编号依次执行 `supabase/001` 至 `supabase/012` 迁移文件。
 2. 部署 `admin-stats`、`reset-password`、`r2-upload` 和 `journal-rank` Edge Functions；不使用相应功能时可不部署 R2 上传函数。
 3. 配置 GitHub Pages 环境变量 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY` 和 `VITE_ADMIN_ID`。
 4. 在 Supabase Auth 的 Redirect URLs 中加入完整地址 `https://qi-i.github.io/submission-hub/`；GitHub OAuth App 的 callback URL 使用 Supabase 提供的 `/auth/v1/callback` 地址。
@@ -144,7 +144,7 @@ Submission Hub 是一个面向科研论文全流程的轻量管理工具，覆�
 
 APC 人民币换算使用 Frankfurter 公共日汇率接口，不需要密钥。请求只包含币种代码，不发送论文题名、作者、稿件编号、账户或 Supabase 数据；换算结果仅作参考，不会覆盖原始 APC。
 
-`008_preparation_workspace.sql` 创建期刊库、研究选题和草稿准备三张表；`009_preparation_performance.sql` 补充草稿转投稿关联索引；`010_journal_rank_cache.sql` 增加期刊等级快照、缓存和服务端限流；`011_external_api_hardening.sql` 为缓存与限流表增加显式拒绝策略并清理无用索引。
+`008_preparation_workspace.sql` 创建期刊库、研究选题和草稿准备三张表；`009_preparation_performance.sql` 补充草稿转投稿关联索引；`010_journal_rank_cache.sql` 增加期刊等级快照、缓存和服务端限流；`011_external_api_hardening.sql` 为缓存与限流表增加显式拒绝策略并清理无用索引；`012_journal_selection_metadata.sql` 增加中文译名、官方缩写、中文简介、选刊标签和选刊备注字段。
 
 <a id="offline"></a>
 

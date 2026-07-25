@@ -6,7 +6,7 @@ const checks = [
   ['src/components/JournalFormEnhanced.tsx', ['中文译名', '官方缩写', '中文简介翻译', '选刊标签', '选刊备注']],
   ['src/components/PreparationWorkspace.tsx', ['item.name_zh', 'item.official_abbreviation', 'item.scope_zh', 'item.selection_tags', 'item.selection_notes']],
   ['src/components/JournalComparison.tsx', ["label: '中文译名'", "label: '官方缩写'", "label: '中文简介翻译'", "label: '选刊标签'", "label: '选刊备注'"]],
-  ['supabase/011_journal_selection_metadata.sql', ['ADD COLUMN IF NOT EXISTS name_zh', 'ADD COLUMN IF NOT EXISTS official_abbreviation', 'ADD COLUMN IF NOT EXISTS scope_zh', 'ADD COLUMN IF NOT EXISTS selection_tags', 'ADD COLUMN IF NOT EXISTS selection_notes']],
+  ['supabase/012_journal_selection_metadata.sql', ['ADD COLUMN IF NOT EXISTS name_zh', 'ADD COLUMN IF NOT EXISTS official_abbreviation', 'ADD COLUMN IF NOT EXISTS scope_zh', 'ADD COLUMN IF NOT EXISTS selection_tags', 'ADD COLUMN IF NOT EXISTS selection_notes']],
 ]
 
 const failures = []
