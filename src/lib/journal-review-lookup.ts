@@ -26,6 +26,32 @@ const PRIVATE_HOST_PATTERNS = [
   /\.local$/i,
 ]
 
+const FIRST_DECISION_LABELS = [
+  'submission\\s+to\\s+first\\s+(?:editorial\\s+)?decision',
+  'time\\s+to\\s+first\\s+(?:editorial\\s+)?decision',
+  'first\\s+(?:editorial\\s+)?decision',
+  'first\\s+decision\\s+after\\s+review',
+  '首轮决定',
+  '首次决定',
+]
+
+const TOTAL_REVIEW_LABELS = [
+  'submission\\s+to\\s+acceptance',
+  'time\\s+to\\s+acceptance',
+  'submission\\s+to\\s+decision\\s+after\\s+review',
+  'submission\\s+to\\s+(?:final\\s+)?decision',
+  'total\\s+review\\s+time',
+  'peer\\s+review\\s+time',
+  'review\\s+time',
+  '总审稿周期',
+  '审稿周期',
+]
+
+const DURATION_PATTERN = /(\d+(?:\.\d+)?)\s*(days?|weeks?|months?)/i
+const PERCENT_PATTERN = /(\d+(?:\.\d+)?)\s*%/
+
+type MetricOrientation = 'before' | 'after'
+
 function publicHttpUrl(value?: string | null) {
   if (!value?.trim()) return null
   try {
@@ -74,30 +100,109 @@ function durationToDays(value: number, unit: string) {
   return Math.round(value)
 }
 
-function extractDuration(text: string, labels: string[]) {
+function compactLines(text: string) {
+  return text
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+}
+
+function matchesAnyLabel(value: string, labels: string[]) {
+  return labels.some(label => new RegExp(label, 'i').test(value))
+}
+
+function detectDurationOrientation(lines: string[], labels: string[]): MetricOrientation {
+  let before = 0
+  let after = 0
+  lines.forEach((line, index) => {
+    if (!matchesAnyLabel(line, labels)) return
+    if (index > 0 && DURATION_PATTERN.test(lines[index - 1])) before += 1
+    if (index < lines.length - 1 && DURATION_PATTERN.test(lines[index + 1])) after += 1
+  })
+  return before > after ? 'before' : 'after'
+}
+
+function parseDuration(value: string) {
+  const match = value.match(DURATION_PATTERN)
+  if (!match) return null
+  const amount = Number(match[1])
+  if (!Number.isFinite(amount) || amount < 0) return null
+  return durationToDays(amount, match[2])
+}
+
+function extractDuration(lines: string[], flatText: string, labels: string[], orientation: MetricOrientation) {
   for (const label of labels) {
-    const forward = new RegExp(`${label}[^\\d]{0,120}(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)`, 'i')
-    const forwardMatch = text.match(forward)
+    const labelPattern = new RegExp(label, 'i')
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index]
+      const labelMatch = line.match(labelPattern)
+      if (!labelMatch || labelMatch.index == null) continue
+
+      const beforeSameLine = line.slice(0, labelMatch.index)
+      const afterSameLine = line.slice(labelMatch.index + labelMatch[0].length)
+      const directAfter = parseDuration(afterSameLine)
+      const directBefore = parseDuration(beforeSameLine)
+      if (directAfter !== null) return directAfter
+      if (directBefore !== null) return directBefore
+
+      const previous = index > 0 ? parseDuration(lines[index - 1]) : null
+      const next = index < lines.length - 1 ? parseDuration(lines[index + 1]) : null
+      if (orientation === 'before') {
+        if (previous !== null) return previous
+        if (next !== null) return next
+      } else {
+        if (next !== null) return next
+        if (previous !== null) return previous
+      }
+    }
+
+    // Fallback for reader output that flattens a metric into prose rather than separate lines.
+    const forward = new RegExp(`${label}[^\\d]{0,80}(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)`, 'i')
+    const forwardMatch = flatText.match(forward)
     if (forwardMatch) return durationToDays(Number(forwardMatch[1]), forwardMatch[2])
 
-    // Publisher insight pages commonly render “2 days” before the label on the next line.
-    // Excluding intervening digits ensures the nearest metric is selected from a timeline list.
-    const reverse = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)[^\\d]{0,120}${label}`, 'i')
-    const reverseMatch = text.match(reverse)
+    const reverse = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(days?|weeks?|months?)[^\\d]{0,80}${label}`, 'i')
+    const reverseMatch = flatText.match(reverse)
     if (reverseMatch) return durationToDays(Number(reverseMatch[1]), reverseMatch[2])
   }
   return null
 }
 
-function extractAcceptanceRate(text: string) {
+function validPercentage(value: string) {
+  const match = value.match(PERCENT_PATTERN)
+  if (!match) return null
+  const percentage = Number(match[1])
+  return Number.isFinite(percentage) && percentage >= 0 && percentage <= 100 ? percentage : null
+}
+
+function extractAcceptanceRate(lines: string[], flatText: string) {
+  const labelPattern = /(?:acceptance\s+rate|录用率|接收率)/i
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+    const labelMatch = line.match(labelPattern)
+    if (!labelMatch || labelMatch.index == null) continue
+
+    const afterSameLine = validPercentage(line.slice(labelMatch.index + labelMatch[0].length))
+    const beforeSameLine = validPercentage(line.slice(0, labelMatch.index))
+    if (afterSameLine !== null) return afterSameLine
+    if (beforeSameLine !== null) return beforeSameLine
+
+    const next = index < lines.length - 1 ? validPercentage(lines[index + 1]) : null
+    const previous = index > 0 ? validPercentage(lines[index - 1]) : null
+    if (next !== null) return next
+    if (previous !== null) return previous
+  }
+
   const patterns = [
-    /acceptance\s+rate[^\d]{0,80}(\d+(?:\.\d+)?)\s*%/i,
-    /(\d+(?:\.\d+)?)\s*%[^\d%]{0,80}acceptance\s+rate/i,
-    /录用率[^\d]{0,50}(\d+(?:\.\d+)?)\s*%/i,
-    /接收率[^\d]{0,50}(\d+(?:\.\d+)?)\s*%/i,
+    /acceptance\s+rate[^\d]{0,60}(\d+(?:\.\d+)?)\s*%/i,
+    /(\d+(?:\.\d+)?)\s*%[^\d%]{0,60}acceptance\s+rate/i,
+    /录用率[^\d]{0,40}(\d+(?:\.\d+)?)\s*%/i,
+    /接收率[^\d]{0,40}(\d+(?:\.\d+)?)\s*%/i,
   ]
   for (const pattern of patterns) {
-    const match = text.match(pattern)
+    const match = flatText.match(pattern)
     if (!match) continue
     const value = Number(match[1])
     if (Number.isFinite(value) && value >= 0 && value <= 100) return value
@@ -106,32 +211,13 @@ function extractAcceptanceRate(text: string) {
 }
 
 function parseReviewMetrics(text: string) {
-  // Collapse Markdown/HTML-reader line breaks so adjacent value-label pairs remain parseable.
-  const normalized = text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim()
-  const firstDecisionDays = extractDuration(normalized, [
-    'submission\\s+to\\s+first\\s+(?:editorial\\s+)?decision',
-    'time\\s+to\\s+first\\s+(?:editorial\\s+)?decision',
-    'first\\s+(?:editorial\\s+)?decision',
-    'first\\s+decision\\s+after\\s+review',
-    '首轮决定',
-    '首次决定',
-  ])
-  const totalReviewDays = extractDuration(normalized, [
-    // “总审稿周期” is defined as submission-to-acceptance when the publisher exposes it.
-    'submission\\s+to\\s+acceptance',
-    'time\\s+to\\s+acceptance',
-    'submission\\s+to\\s+decision\\s+after\\s+review',
-    'submission\\s+to\\s+(?:final\\s+)?decision',
-    'total\\s+review\\s+time',
-    'peer\\s+review\\s+time',
-    'review\\s+time',
-    '总审稿周期',
-    '审稿周期',
-  ])
+  const lines = compactLines(text)
+  const flatText = lines.join(' ')
+  const orientation = detectDurationOrientation(lines, [...FIRST_DECISION_LABELS, ...TOTAL_REVIEW_LABELS])
   return {
-    firstDecisionDays,
-    totalReviewDays,
-    acceptanceRate: extractAcceptanceRate(normalized),
+    firstDecisionDays: extractDuration(lines, flatText, FIRST_DECISION_LABELS, orientation),
+    totalReviewDays: extractDuration(lines, flatText, TOTAL_REVIEW_LABELS, orientation),
+    acceptanceRate: extractAcceptanceRate(lines, flatText),
   }
 }
 
