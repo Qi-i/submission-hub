@@ -9,6 +9,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  statuses: write
 
 concurrency:
   group: pages
@@ -121,16 +122,30 @@ jobs:
     needs: [build, deploy]
     runs-on: ubuntu-latest
     steps:
-      - name: Write deployment summary
+      - name: Publish deployment status and summary
         env:
+          GH_TOKEN: ${{ github.token }}
           BUILD_RESULT: ${{ needs.build.result }}
           DEPLOY_RESULT: ${{ needs.deploy.result }}
           DEPLOYED_SHA: ${{ needs.build.outputs.deployed_sha }}
         run: |
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           if [ "$BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
             result="SUCCESS"
+            state="success"
+            description="Pages deployed and live SHA verified"
           else
             result="FAILURE"
+            state="failure"
+            description="Pages build, deployment, or live SHA check failed"
+          fi
+
+          if [ -n "$DEPLOYED_SHA" ]; then
+            gh api --method POST "/repos/${GITHUB_REPOSITORY}/statuses/${DEPLOYED_SHA}" \
+              -f state="$state" \
+              -f target_url="$run_url" \
+              -f description="$description" \
+              -f context="pages/live-sha" >/dev/null
           fi
 
           {
@@ -139,5 +154,6 @@ jobs:
             echo "- SHA: \`${DEPLOYED_SHA:-unknown}\`"
             echo "- Build: \`${BUILD_RESULT}\`"
             echo "- Deploy and live SHA check: \`${DEPLOY_RESULT}\`"
-            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- Commit status: \`pages/live-sha\`"
+            echo "- Run: ${run_url}"
           } >> "$GITHUB_STEP_SUMMARY"
