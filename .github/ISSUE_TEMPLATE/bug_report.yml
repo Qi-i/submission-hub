@@ -1,0 +1,77 @@
+name: Bug 反馈
+description: 报告可复现的页面异常、功能错误或数据问题
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请勿提交账号密码、访问令牌、真实论文附件或其他敏感信息。
+
+  - type: dropdown
+    id: edition
+    attributes:
+      label: 使用版本
+      options:
+        - 在线版
+        - 离线版
+        - 两者均存在
+    validations:
+      required: true
+
+  - type: dropdown
+    id: interface
+    attributes:
+      label: 界面主题
+      options:
+        - Luminous
+        - Luminous X
+        - 两者均存在
+        - 无法确认
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题描述
+      description: 简要说明实际发生了什么，以及期望的正确结果。
+      placeholder: 页面/功能：\n实际结果：\n期望结果：
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 请按操作顺序列出步骤。
+      placeholder: |
+        1. 打开……
+        2. 点击……
+        3. 输入……
+        4. 出现……
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器与系统
+      placeholder: 例如 Chrome 128 / Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图或补充信息
+      description: 可粘贴截图、控制台错误或其他有助于定位的信息。请先遮挡个人与论文敏感数据。
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我已移除账号、令牌、真实论文内容及其他敏感信息。
+          required: true
