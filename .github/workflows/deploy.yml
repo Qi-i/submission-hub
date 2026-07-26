@@ -9,7 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  issues: write
 
 concurrency:
   group: pages
@@ -122,9 +121,8 @@ jobs:
     needs: [build, deploy]
     runs-on: ubuntu-latest
     steps:
-      - name: Record deployment result
+      - name: Write deployment summary
         env:
-          GH_TOKEN: ${{ github.token }}
           BUILD_RESULT: ${{ needs.build.result }}
           DEPLOY_RESULT: ${{ needs.deploy.result }}
           DEPLOYED_SHA: ${{ needs.build.outputs.deployed_sha }}
@@ -135,26 +133,11 @@ jobs:
             result="FAILURE"
           fi
 
-          body="$(cat <<EOF
-          Pages deployment **${result}**
-
-          - SHA: \`${DEPLOYED_SHA:-unknown}\`
-          - Build: \`${BUILD_RESULT}\`
-          - Deploy and live SHA check: \`${DEPLOY_RESULT}\`
-          - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          EOF
-          )"
-
-          issue_body="$(cat <<EOF
-          此议题由 GitHub Pages 发布工作流自动记录部署结果、线上 build SHA 和工作流链接。请勿在此处填写密钥或个人数据。
-
-          ## 最新部署状态
-
-          ${body}
-
-          历史部署结果保留在评论中。
-          EOF
-          )"
-
-          gh issue comment 39 --repo "$GITHUB_REPOSITORY" --body "$body"
-          gh issue edit 39 --repo "$GITHUB_REPOSITORY" --body "$issue_body"
+          {
+            echo "## GitHub Pages deployment ${result}"
+            echo
+            echo "- SHA: \`${DEPLOYED_SHA:-unknown}\`"
+            echo "- Build: \`${BUILD_RESULT}\`"
+            echo "- Deploy and live SHA check: \`${DEPLOY_RESULT}\`"
+            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "$GITHUB_STEP_SUMMARY"
