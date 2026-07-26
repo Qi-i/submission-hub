@@ -7,6 +7,7 @@ import OfflineDashboard from './components/OfflineDashboard'
 import ApcAutoConverter from './components/ApcAutoConverter'
 import OfflineFirstRunGuide from './components/OfflineFirstRunGuide'
 import NavigationMemory from './components/NavigationMemory'
+import ProjectFeedback from './components/ProjectFeedback'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <NavigationMemory scope="offline" />
       <OfflineDashboard />
       <OfflineFirstRunGuide />
+      <ProjectFeedback />
     </ThemeProvider>
   </React.StrictMode>,
 )
