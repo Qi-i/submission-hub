@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Bug, ExternalLink, Github, Lightbulb, MessageSquareText, X } from 'lucide-react'
 import '../project-feedback.css'
 
@@ -8,7 +9,19 @@ const FEATURE_REQUEST_URL = `${REPOSITORY_URL}/issues/new?template=feature_reque
 
 export default function ProjectFeedback() {
   const [open, setOpen] = useState(false)
+  const [target, setTarget] = useState<HTMLElement | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const resolveTarget = () => {
+      setTarget(document.querySelector<HTMLElement>('.header-utility-grid'))
+    }
+
+    resolveTarget()
+    const observer = new MutationObserver(resolveTarget)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -30,10 +43,25 @@ export default function ProjectFeedback() {
 
   const closeMenu = () => setOpen(false)
 
-  return (
+  if (!target) return null
+
+  return createPortal(
     <div className="project-feedback" ref={rootRef}>
+      <button
+        className={`project-feedback-trigger btn btn-ghost btn-sm btn-icon ${open ? 'active' : ''}`}
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="项目与反馈"
+        title="项目与反馈"
+        data-tooltip="项目与反馈"
+        onClick={() => setOpen(value => !value)}
+      >
+        <MessageSquareText size={15} />
+      </button>
+
       {open && (
-        <section className="project-feedback-menu" aria-label="GitHub 项目与反馈">
+        <section className="project-feedback-menu" role="menu" aria-label="GitHub 项目与反馈">
           <header className="project-feedback-header">
             <div>
               <strong>项目与反馈</strong>
@@ -44,36 +72,26 @@ export default function ProjectFeedback() {
             </button>
           </header>
 
-          <a className="project-feedback-item" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener" onClick={closeMenu}>
+          <a className="project-feedback-item" role="menuitem" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener" onClick={closeMenu}>
             <span className="project-feedback-icon"><Github size={18} /></span>
             <span><strong>GitHub 项目</strong><small>查看源码、更新说明与参与方式</small></span>
             <ExternalLink size={15} />
           </a>
 
-          <a className="project-feedback-item" href={BUG_REPORT_URL} target="_blank" rel="noreferrer noopener" onClick={closeMenu}>
+          <a className="project-feedback-item" role="menuitem" href={BUG_REPORT_URL} target="_blank" rel="noreferrer noopener" onClick={closeMenu}>
             <span className="project-feedback-icon"><Bug size={18} /></span>
             <span><strong>反馈 Bug</strong><small>提交可复现的问题和页面异常</small></span>
             <ExternalLink size={15} />
           </a>
 
-          <a className="project-feedback-item" href={FEATURE_REQUEST_URL} target="_blank" rel="noreferrer noopener" onClick={closeMenu}>
+          <a className="project-feedback-item" role="menuitem" href={FEATURE_REQUEST_URL} target="_blank" rel="noreferrer noopener" onClick={closeMenu}>
             <span className="project-feedback-icon"><Lightbulb size={18} /></span>
             <span><strong>功能建议</strong><small>提出新功能或交互改进建议</small></span>
             <ExternalLink size={15} />
           </a>
         </section>
       )}
-
-      <button
-        className={`project-feedback-trigger ${open ? 'active' : ''}`}
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen(value => !value)}
-      >
-        <MessageSquareText size={18} />
-        <span>项目与反馈</span>
-      </button>
-    </div>
+    </div>,
+    target,
   )
 }
