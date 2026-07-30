@@ -40,12 +40,49 @@ async function openJournalLibrary(page, ui) {
   await page.waitForTimeout(300)
 }
 
+async function ensureBilingualFixture(page) {
+  await page.evaluate(() => {
+    const translations = ['环境建模与软件', '信息处理与管理', '开放研究软件期刊']
+    const abbreviations = ['EMS', 'IPM', 'JORS']
+
+    document.querySelectorAll('.prep-journal-overview-card').forEach((card, index) => {
+      const copy = card.querySelector('.prep-overview-journal-copy')
+      if (!copy || copy.querySelector(':scope > .prep-journal-local-identity')) return
+      const identity = document.createElement('span')
+      identity.className = 'prep-journal-local-identity'
+      const chineseName = document.createElement('strong')
+      chineseName.textContent = translations[index % translations.length]
+      const abbreviation = document.createElement('em')
+      abbreviation.textContent = abbreviations[index % abbreviations.length]
+      identity.append(chineseName, abbreviation)
+      const publisher = copy.querySelector(':scope > small')
+      copy.insertBefore(identity, publisher || null)
+    })
+
+    document.querySelectorAll('.prep-journal-card-main').forEach((main, index) => {
+      if (main.querySelector(':scope > .prep-journal-local-identity')) return
+      const title = main.querySelector(':scope > h3')
+      if (!title) return
+      const identity = document.createElement('div')
+      identity.className = 'prep-journal-local-identity'
+      const chineseName = document.createElement('strong')
+      chineseName.textContent = translations[index % translations.length]
+      const abbreviation = document.createElement('em')
+      abbreviation.textContent = abbreviations[index % abbreviations.length]
+      identity.append(chineseName, abbreviation)
+      title.insertAdjacentElement('afterend', identity)
+    })
+  })
+  await page.waitForTimeout(80)
+}
+
 async function inspect(ui, viewport) {
   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } })
   const label = `${ui}/${viewport.label}`
 
   try {
     await openPreparation(page, ui)
+    await ensureBilingualFixture(page)
 
     const overview = await page.evaluate(() => {
       const visibleRoot = Array.from(document.querySelectorAll('.preparation-workspace[data-section="overview"]')).find(element => {
@@ -79,6 +116,7 @@ async function inspect(ui, viewport) {
 
     if (!overview.length) failures.push(`${label}: overview journal cards are missing`)
     overview.forEach(card => {
+      if (card.identityTop === null) failures.push(`${label}: overview journal ${card.index + 1} lacks the bilingual identity fixture`)
       if (card.scrollHeight > card.clientHeight + 2) failures.push(`${label}: overview journal ${card.index + 1} is vertically clipped`)
       if (card.contentBottom > card.cardBottom - 3) failures.push(`${label}: overview journal ${card.index + 1} content reaches outside its card`)
       if (card.identityTop !== null && card.titleBottom !== null && card.identityTop < card.titleBottom - 2) failures.push(`${label}: overview journal ${card.index + 1} Chinese identity overlaps the English name`)
@@ -86,6 +124,7 @@ async function inspect(ui, viewport) {
     })
 
     await openJournalLibrary(page, ui)
+    await ensureBilingualFixture(page)
 
     const library = await page.evaluate(() => {
       const visibleRoot = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"]')).find(element => {
@@ -136,6 +175,7 @@ async function inspect(ui, viewport) {
     if (maxHeight > 340) failures.push(`${label}: journal cards remain excessively tall (${Math.round(maxHeight)}px)`)
 
     library.cards.forEach(card => {
+      if (card.identityTop === null) failures.push(`${label}: journal ${card.index + 1} lacks the bilingual identity fixture`)
       if (card.blankBelowContent > 110) failures.push(`${label}: journal ${card.index + 1} retains ${Math.round(card.blankBelowContent)}px of empty body space`)
       if (card.identityTop !== null && card.titleBottom !== null && card.identityTop < card.titleBottom - 2) failures.push(`${label}: journal ${card.index + 1} Chinese identity overlaps the title`)
       if (card.identityBottom !== null && card.publisherTop !== null && card.publisherTop < card.identityBottom - 2) failures.push(`${label}: journal ${card.index + 1} Chinese identity is displaced below the publisher`)
