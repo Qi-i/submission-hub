@@ -48,7 +48,12 @@ async function inspect(ui, viewport) {
     await openPreparation(page, ui)
 
     const overview = await page.evaluate(() => {
-      const cards = Array.from(document.querySelectorAll('.preparation-workspace[data-section="overview"]:visible .prep-journal-overview-card'))
+      const visibleRoot = Array.from(document.querySelectorAll('.preparation-workspace[data-section="overview"]')).find(element => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+      })
+      const cards = visibleRoot ? Array.from(visibleRoot.querySelectorAll('.prep-journal-overview-card')) : []
       return cards.map((card, index) => {
         const rect = card.getBoundingClientRect()
         const title = card.querySelector('.prep-overview-journal-title b')?.getBoundingClientRect()
@@ -72,6 +77,7 @@ async function inspect(ui, viewport) {
       })
     })
 
+    if (!overview.length) failures.push(`${label}: overview journal cards are missing`)
     overview.forEach(card => {
       if (card.scrollHeight > card.clientHeight + 2) failures.push(`${label}: overview journal ${card.index + 1} is vertically clipped`)
       if (card.contentBottom > card.cardBottom - 3) failures.push(`${label}: overview journal ${card.index + 1} content reaches outside its card`)
@@ -82,7 +88,12 @@ async function inspect(ui, viewport) {
     await openJournalLibrary(page, ui)
 
     const library = await page.evaluate(() => {
-      const grid = document.querySelector('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible')
+      const visibleRoot = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"]')).find(element => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+      })
+      const grid = visibleRoot?.querySelector('.journal-grid') || null
       const cards = grid ? Array.from(grid.querySelectorAll('.prep-journal-card')) : []
       const gridRect = grid?.getBoundingClientRect()
       return {
@@ -104,7 +115,6 @@ async function inspect(ui, viewport) {
           return {
             index,
             height: rect.height,
-            mainBottom: mainRect?.bottom ?? 0,
             blankBelowContent: mainRect ? mainRect.bottom - contentBottom : 0,
             titleBottom: title?.bottom ?? null,
             identityTop: identity?.top ?? null,
