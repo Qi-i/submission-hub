@@ -74,6 +74,10 @@ jobs:
         run: |
           set -euxo pipefail
           node tests/visual/journal-library-density-check.mjs | tee /tmp/journal-library-density-check.log
+      - name: Verify journal layout across viewport ratios
+        run: |
+          set -euxo pipefail
+          node tests/visual/journal-layout-ratio-check.mjs | tee /tmp/journal-layout-ratio-check.log
       - name: Capture editor modal diagnostics
         if: always()
         run: |
@@ -130,6 +134,7 @@ jobs:
             /tmp/submission-hub-visual.log
             /tmp/layout-check.log
             /tmp/journal-library-density-check.log
+            /tmp/journal-layout-ratio-check.log
             /tmp/luminous-layout-check.log
             /tmp/luminous-x-layout-check.log
             /tmp/luminous-x-offline-nav-check.log
