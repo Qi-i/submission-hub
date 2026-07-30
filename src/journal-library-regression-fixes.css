@@ -18,7 +18,16 @@
   overflow: hidden !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main:has(> .prep-journal-numbers[hidden]) {
+.preparation-workspace[data-section='journals'] .prep-journal-card-main:has(> .prep-journal-local-identity):has(> .prep-journal-numbers[hidden]) {
+  grid-template-areas:
+    'title flags'
+    'identity identity'
+    'publisher publisher'
+    'ranks ranks'
+    'facts facts' !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main:not(:has(> .prep-journal-local-identity)):has(> .prep-journal-numbers[hidden]) {
   grid-template-areas:
     'title flags'
     'publisher publisher'
@@ -68,10 +77,11 @@
   overflow-wrap: anywhere !important;
 }
 
-/* Journal cards are equal-height catalogue units; the link strip is a fixed bottom rail. */
+/* Journal cards are equal-height within each content-driven row; rows never stretch to fill the viewport. */
 .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
   align-items: stretch !important;
-  grid-auto-rows: 1fr !important;
+  align-content: start !important;
+  grid-auto-rows: auto !important;
 }
 
 .preparation-workspace[data-section='journals'] .prep-journal-card {
@@ -104,6 +114,28 @@
 
 .preparation-workspace[data-section='journals'] .prep-journal-links::-webkit-scrollbar {
   display: none;
+}
+
+/* Overview journal rows retain the shared compact height without clipping bilingual identity or metadata. */
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card {
+  padding: 7px 11px 6px 13px !important;
+  gap: 3px !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-journal-rank-blocks,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-overview-journal-meta {
+  min-height: 18px !important;
+  height: 18px !important;
+  align-items: center !important;
+}
+
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-journal-rank-blocks > span,
+:is(html[data-ui='luminous'], html[data-ui='luminous-x']) .prep-journal-overview-card .prep-overview-journal-meta > span {
+  min-height: 18px !important;
+  height: 18px !important;
+  padding: 1px 5px !important;
+  font-size: 8.2px !important;
+  line-height: 1 !important;
 }
 
 /* The review lookup is a first-class form action, not an instructional placeholder. */
