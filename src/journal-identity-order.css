@@ -10,10 +10,23 @@
     'metrics metrics' !important;
 }
 
+.preparation-workspace[data-section='journals'] .prep-journal-card-main:not(:has(> .prep-journal-local-identity)):not(:has(> .prep-journal-numbers[hidden])) {
+  grid-template-areas:
+    'title flags'
+    'publisher publisher'
+    'ranks ranks'
+    'facts facts'
+    'metrics metrics' !important;
+}
+
 .preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-local-identity {
   grid-area: identity !important;
   order: 0 !important;
+  width: fit-content;
+  max-width: 100%;
   margin: -1px 0 1px !important;
+  justify-self: start !important;
+  align-self: start !important;
 }
 
 .prep-journal-local-identity {
@@ -68,8 +81,40 @@
   gap: 0 !important;
 }
 
+.prep-overview-journal-copy {
+  gap: 1px !important;
+}
+
 .prep-overview-journal-copy > .prep-journal-local-identity {
-  margin: 3px 0 2px !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-items: initial;
+  gap: 4px !important;
+  margin: 1px 0 !important;
+  line-height: 1 !important;
+}
+
+.prep-overview-journal-copy > .prep-journal-local-identity strong {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden !important;
+  padding: 2px 6px 2px 7px;
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+  overflow-wrap: normal;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.prep-overview-journal-copy > .prep-journal-local-identity em {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 34% !important;
+  padding: 1px 5px !important;
+  font-size: 8.5px !important;
+  line-height: 1.15 !important;
 }
 
 html[data-theme='dark'] .prep-journal-local-identity strong {
@@ -80,5 +125,9 @@ html[data-theme='dark'] .prep-journal-local-identity strong {
 @media (max-width: 720px) {
   .prep-journal-local-identity strong {
     font-size: 11px !important;
+  }
+
+  .prep-overview-journal-copy > .prep-journal-local-identity strong {
+    font-size: 10.5px !important;
   }
 }
