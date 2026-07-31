@@ -4,6 +4,9 @@ const URL_FIELD_LABELS = new Set([
   '见刊 / 在线发表 URL',
 ])
 
+const ACTIVE_SUBMISSION_STATUSES = new Set(['submitted', 'under_review', 'revision'])
+const TERMINAL_SUBMISSION_STATUSES = new Set(['accepted', 'rejected', 'withdrawn'])
+
 function normalizedOpenUrl(value: string) {
   const text = value.trim()
   if (!text) return ''
@@ -86,6 +89,48 @@ function annotateInternalManuscriptNumber(modal: Element) {
   })
 }
 
+function replaceStatusLinkWithStaticBadge(link: HTMLAnchorElement) {
+  const badge = document.createElement('span')
+  badge.className = link.className.replace(/\bpaper-status-backend\b/g, '').trim()
+  badge.innerHTML = link.querySelector(':scope > span:first-child')?.innerHTML || link.textContent || ''
+  link.replaceWith(badge)
+}
+
+function normalizeSubmissionCardActions() {
+  document.querySelectorAll<HTMLElement>('.paper-card-v3').forEach(card => {
+    const statusArea = card.querySelector<HTMLElement>('.paper-status-area')
+    const status = statusArea?.dataset.status || ''
+    if (!status || ACTIVE_SUBMISSION_STATUSES.has(status)) return
+
+    const genericBackend = card.querySelector<HTMLAnchorElement>('.paper-backend-link.is-journal')
+    if (status !== 'preparing') genericBackend?.remove()
+
+    const statusLink = statusArea?.querySelector<HTMLAnchorElement>('a.paper-status-backend')
+    if (!statusLink || !TERMINAL_SUBMISSION_STATUSES.has(status)) return
+
+    if (status === 'accepted') {
+      const publication = card.querySelector<HTMLAnchorElement>('.paper-publication-link, .archive-chip.doi')
+      if (publication?.href) {
+        statusLink.href = publication.href
+        statusLink.title = '已接收 · 打开见刊或 DOI 页面'
+        const hint = statusLink.querySelector<HTMLElement>('.paper-status-backend-hint')
+        if (hint) hint.textContent = '见刊 ↗'
+        return
+      }
+      const manuscriptBackend = card.querySelector<HTMLAnchorElement>('.paper-backend-link.is-manuscript')
+      if (manuscriptBackend?.href) {
+        statusLink.href = manuscriptBackend.href
+        statusLink.title = '已接收 · 打开稿件后台'
+        const hint = statusLink.querySelector<HTMLElement>('.paper-status-backend-hint')
+        if (hint) hint.textContent = '后台 ↗'
+        return
+      }
+    }
+
+    replaceStatusLinkWithStaticBadge(statusLink)
+  })
+}
+
 function enhancePaperForms() {
   document.querySelectorAll('.compact-form-modal').forEach(modal => {
     removeSubmissionPlatformField(modal)
@@ -93,6 +138,7 @@ function enhancePaperForms() {
     enhanceWorkflowGrid(modal)
     modal.querySelectorAll<HTMLElement>('.compact-field').forEach(enhanceUrlField)
   })
+  normalizeSubmissionCardActions()
 }
 
 let queued = false
