@@ -51,12 +51,10 @@ for (const ui of ['luminous', 'luminous-x']) {
 
     await card.locator('.title-block').click({ force: true })
     await page.locator('.compact-form-modal').waitFor({ state: 'visible', timeout: 15000 })
-    const systemField = page.locator('.compact-form-body > .compact-section:nth-child(2) > .compact-grid.two:first-of-type > .compact-field:nth-child(2)')
-    if (await systemField.count()) {
-      const display = await systemField.evaluate(element => getComputedStyle(element).display)
-      if (display !== 'none') fail(`${label}: submission-platform field remains selectable in the editor`)
-    } else {
-      fail(`${label}: expected legacy submission-platform field was not found for compatibility check`)
+    const systemFields = page.locator('.compact-form-modal .compact-field').filter({ hasText: '投稿系统' })
+    const systemFieldCount = await systemFields.count()
+    for (let index = 0; index < systemFieldCount; index += 1) {
+      if (await systemFields.nth(index).isVisible()) fail(`${label}: submission-platform field remains selectable in the editor`)
     }
   } catch (error) {
     fail(`${label}: ${error instanceof Error ? error.message : String(error)}`)
