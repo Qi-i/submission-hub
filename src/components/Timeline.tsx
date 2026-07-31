@@ -40,6 +40,13 @@ type IntervalCandidate = {
   time: number
 }
 
+type ActiveRound = {
+  number: number
+  startIndex: number
+  startTime: number
+  startEvent: string
+}
+
 const pad = (value: number) => String(value).padStart(2, '0')
 const today = () => {
   const date = new Date()
@@ -94,8 +101,7 @@ function daysBetween(start: number, end: number) {
 }
 
 function lineSortValue(line: string) {
-  const parsed = parseLine(line)
-  const time = timeValue(parsed.date)
+  const time = timeValue(parseLine(line).date)
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY
 }
 
@@ -108,32 +114,28 @@ function normalizedEvent(event: string) {
 }
 
 function isSubmissionEvent(event: string) {
-  const normalized = normalizedEvent(event)
-  return /(submitted|submission received|new submission|resubmitted|resubmission|revised manuscript submitted|revision submitted|revised submission|投稿成功|已投稿|首投|修回提交|修订稿提交|返修提交|重新提交)/.test(normalized)
+  return /(submitted|submission received|new submission|resubmitted|resubmission|revised manuscript submitted|revision submitted|revised submission|投稿成功|已投稿|首投|修回提交|修订稿提交|返修提交|重新提交)/.test(normalizedEvent(event))
 }
 
 function isResponseEvent(event: string) {
   if (isSubmissionEvent(event)) return false
-  const normalized = normalizedEvent(event)
-  return /(major revision|minor revision|revision required|revise and resubmit|reviews? returned|decision made|accepted|acceptance|rejected|reject|declined|desk reject|大修|小修|退修|修回意见|返修意见|审稿意见|录用|接收|拒稿|退稿)/.test(normalized)
+  return /(major revision|minor revision|revision required|revise and resubmit|reviews? returned|decision made|accepted|acceptance|rejected|reject|declined|desk reject|大修|小修|退修|修回意见|返修意见|审稿意见|录用|接收|拒稿|退稿)/.test(normalizedEvent(event))
 }
 
 function isRevisionOutcomeEvent(event: string) {
   if (isSubmissionEvent(event)) return false
-  const normalized = normalizedEvent(event)
-  return /(major revision|minor revision|revision required|revise and resubmit|大修|小修|退修|修回意见|返修意见)/.test(normalized)
+  return /(major revision|minor revision|revision required|revise and resubmit|大修|小修|退修|修回意见|返修意见)/.test(normalizedEvent(event))
 }
 
 function isTerminalEvent(event: string) {
-  const normalized = normalizedEvent(event)
-  return /(accepted|accept|published|online published|rejected|reject|withdrawn|withdraw|录用|接收|见刊|在线发表|拒稿|被拒|退稿|撤稿)/.test(normalized)
+  return /(accepted|accept|published|online published|rejected|reject|withdrawn|withdraw|录用|接收|见刊|在线发表|拒稿|被拒|退稿|撤稿)/.test(normalizedEvent(event))
 }
 
 function roundName(number: number) {
   return number === 1 ? '首轮' : `第${number}轮`
 }
 
-function stageBreakdown(items: TimelineDraft[], startIndex: number, endIndex: number, endLabel?: string) {
+function stageBreakdown(items: TimelineDraft[], startIndex: number, endIndex: number) {
   const parts: string[] = []
   let previousIndex: number | null = null
   for (let index = startIndex; index <= endIndex; index += 1) {
@@ -142,7 +144,7 @@ function stageBreakdown(items: TimelineDraft[], startIndex: number, endIndex: nu
     if (previousIndex !== null) {
       const previousTime = timeValue(items[previousIndex]?.date)
       if (Number.isFinite(previousTime)) {
-        parts.push(`${items[previousIndex].event || '未命名事件'} → ${items[index].event || endLabel || '终点'}：${daysBetween(previousTime, time)} 天`)
+        parts.push(`${items[previousIndex].event || '未命名事件'} → ${items[index].event || '终点'}：${daysBetween(previousTime, time)} 天`)
       }
     }
     previousIndex = index
@@ -153,18 +155,19 @@ function stageBreakdown(items: TimelineDraft[], startIndex: number, endIndex: nu
 function analyseTimeline(items: TimelineDraft[], todayTime: number, includeToday: boolean) {
   const rowInsights = new Map<number, RowInsight>()
   const completedRounds: ReviewRound[] = []
-  let activeRound: { number: number; startIndex: number; startTime: number; startEvent: string } | null = null
+  let activeRound: ActiveRound | null = null
   let nextRoundNumber = 1
 
-  items.forEach((item, index) => {
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index]
     const time = timeValue(item.date)
-    if (!Number.isFinite(time)) return
+    if (!Number.isFinite(time)) continue
 
     if (isSubmissionEvent(item.event)) {
       activeRound = { number: nextRoundNumber, startIndex: index, startTime: time, startEvent: item.event }
       rowInsights.set(index, { label: `${roundName(nextRoundNumber)}起点`, kind: 'start' })
       nextRoundNumber += 1
-      return
+      continue
     }
 
     if (activeRound && isResponseEvent(item.event)) {
@@ -188,22 +191,29 @@ function analyseTimeline(items: TimelineDraft[], todayTime: number, includeToday
       })
       activeRound = null
     }
-  })
+  }
 
-  const currentRound = activeRound && Number.isFinite(todayTime) && todayTime >= activeRound.startTime
-    ? {
-        number: activeRound.number,
-        startIndex: activeRound.startIndex,
-        endIndex: null,
-        startEvent: activeRound.startEvent,
-        endEvent: '距今',
-        days: daysBetween(activeRound.startTime, todayTime),
-        kind: 'waiting' as const,
-        breakdown: includeToday
-          ? `${stageBreakdown(items, activeRound.startIndex, items.length - 1)}${items.length > activeRound.startIndex ? '；' : ''}${items[items.length - 1]?.event || activeRound.startEvent} → 距今：${Math.max(0, daysBetween(timeValue(items[items.length - 1]?.date), todayTime))} 天`
-          : '',
-      }
-    : null
+  let currentRound: ReviewRound | null = null
+  if (activeRound && Number.isFinite(todayTime) && todayTime >= activeRound.startTime) {
+    const datedPoints = items
+      .map((item, index) => ({ item, index, time: timeValue(item.date) }))
+      .filter(point => point.index >= activeRound!.startIndex && Number.isFinite(point.time))
+    const lastPoint = datedPoints[datedPoints.length - 1]
+    const breakdownParts = stageBreakdown(items, activeRound.startIndex, lastPoint?.index ?? activeRound.startIndex)
+    const tail = includeToday && lastPoint
+      ? `${lastPoint.item.event || activeRound.startEvent} → 距今：${Math.max(0, daysBetween(lastPoint.time, todayTime))} 天`
+      : ''
+    currentRound = {
+      number: activeRound.number,
+      startIndex: activeRound.startIndex,
+      endIndex: null,
+      startEvent: activeRound.startEvent,
+      endEvent: '距今',
+      days: Math.max(0, daysBetween(activeRound.startTime, todayTime)),
+      kind: 'waiting',
+      breakdown: [breakdownParts, tail].filter(Boolean).join('；'),
+    }
+  }
 
   const validItems = items
     .map((item, index) => ({ item, index, time: timeValue(item.date) }))
@@ -379,12 +389,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
           )}
 
           <div className="timeline-table-head">
-            <span>日期</span>
-            <span>审稿状态</span>
-            <span>间隔</span>
-            <span>累计</span>
-            <span>轮次分析</span>
-            <span>操作</span>
+            <span>日期</span><span>审稿状态</span><span>间隔</span><span>累计</span><span>轮次分析</span><span>操作</span>
           </div>
 
           {lines.map((line, index) => {
@@ -403,7 +408,6 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
                   <div className={`timeline-dot ${isLast ? 'active' : ''}`} />
                   {(!isLast || showTodayGap) && <div className="timeline-line" />}
                 </div>
-
                 <div className="timeline-content timeline-content-editable">
                   {editing ? (
                     <div className="timeline-edit-form">
@@ -447,9 +451,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
         </div>
       )}
 
-      <datalist id="timeline-event-options">
-        {allOpts.map(option => <option key={option} value={option} />)}
-      </datalist>
+      <datalist id="timeline-event-options">{allOpts.map(option => <option key={option} value={option} />)}</datalist>
 
       <div className="timeline-add-row">
         <input type="date" className="input" value={draft.date} onChange={event => setDraft(previous => ({ ...previous, date: event.target.value }))} />
