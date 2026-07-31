@@ -49,6 +49,23 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (geometry.scrollWidth > geometry.clientWidth + 2) fail(`${label}: card has horizontal overflow ${geometry.scrollWidth}/${geometry.clientWidth}`)
     details.push(`${label}: publisher=${geometry.publisherText}; backend=${geometry.backendText}`)
 
+    const acceptedCard = page.locator('.paper-card-v3').filter({ hasText: 'Journal of Open Research Software' }).first()
+    if (await acceptedCard.count()) {
+      const acceptedGenericPortal = acceptedCard.locator('.paper-backend-link.is-journal')
+      if (await acceptedGenericPortal.count()) fail(`${label}: accepted paper still exposes the generic submission portal`)
+      const acceptedStatusLink = acceptedCard.locator('.paper-status-backend')
+      if (await acceptedStatusLink.count() !== 1) {
+        fail(`${label}: accepted status is not linked to the publication page`)
+      } else {
+        const href = await acceptedStatusLink.getAttribute('href')
+        const hint = await acceptedStatusLink.locator('.paper-status-backend-hint').textContent()
+        if (href !== 'https://example.com/article') fail(`${label}: accepted status points to ${href} instead of the publication page`)
+        if (!hint?.includes('见刊')) fail(`${label}: accepted status does not communicate the publication action`)
+      }
+    } else {
+      fail(`${label}: accepted-paper fixture is missing`)
+    }
+
     await card.locator('.title-block').click({ force: true })
     await page.locator('.compact-form-modal').waitFor({ state: 'visible', timeout: 15000 })
     await page.waitForTimeout(150)
