@@ -146,15 +146,15 @@
 }
 
 /* The submission platform is derived context, not another user-maintained field. */
-.compact-form-body > .compact-section:nth-child(2) > .compact-grid.two:first-of-type {
+.compact-form-modal .compact-grid.two:has(input[list='submission-system-options']) {
   grid-template-columns: minmax(0, 1fr) !important;
 }
 
-.compact-form-body > .compact-section:nth-child(2) > .compact-grid.two:first-of-type > .compact-field:nth-child(2) {
+.compact-form-modal .compact-field:has(input[list='submission-system-options']) {
   display: none !important;
 }
 
-.compact-form-body > .compact-section:nth-child(2) > .compact-grid.two:first-of-type > .compact-field:first-child > span::after {
+.compact-form-modal .compact-grid.two:has(input[list='submission-system-options']) > .compact-field:first-child > span::after {
   content: '（仅用于检索与往来邮件，不在卡片外显）';
   margin-left: 5px;
   color: var(--text-muted);
@@ -162,7 +162,8 @@
   font-weight: 650;
 }
 
-.compact-form-body > .compact-section:nth-child(2) > .compact-grid.two:nth-of-type(2) > .compact-field:first-child > span::after {
+.compact-form-modal .compact-field:has(input[value^='http'][placeholder='https://...']) > span::after,
+.compact-form-modal .compact-field:has(input[placeholder='https://...']) > span::after {
   content: '（填写后可点击投稿状态直达）';
   margin-left: 5px;
   color: #0284c7;
@@ -198,8 +199,8 @@ html[data-theme='dark'] .paper-card-v3 .paper-backend-link {
     display: none;
   }
 
-  .compact-form-body > .compact-section:nth-child(2) > .compact-grid.two:first-of-type > .compact-field:first-child > span::after,
-  .compact-form-body > .compact-section:nth-child(2) > .compact-grid.two:nth-of-type(2) > .compact-field:first-child > span::after {
+  .compact-form-modal .compact-grid.two:has(input[list='submission-system-options']) > .compact-field:first-child > span::after,
+  .compact-form-modal .compact-field:has(input[placeholder='https://...']) > span::after {
     display: block;
     margin: 2px 0 0;
   }
