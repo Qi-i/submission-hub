@@ -114,7 +114,7 @@ function normalizeSubmissionCardActions() {
         statusLink.href = publication.href
         statusLink.title = '已接收 · 打开见刊或 DOI 页面'
         const hint = statusLink.querySelector<HTMLElement>('.paper-status-backend-hint')
-        if (hint) hint.textContent = '见刊 ↗'
+        if (hint && hint.textContent !== '见刊 ↗') hint.textContent = '见刊 ↗'
         return
       }
       const manuscriptBackend = card.querySelector<HTMLAnchorElement>('.paper-backend-link.is-manuscript')
@@ -122,7 +122,7 @@ function normalizeSubmissionCardActions() {
         statusLink.href = manuscriptBackend.href
         statusLink.title = '已接收 · 打开稿件后台'
         const hint = statusLink.querySelector<HTMLElement>('.paper-status-backend-hint')
-        if (hint) hint.textContent = '后台 ↗'
+        if (hint && hint.textContent !== '后台 ↗') hint.textContent = '后台 ↗'
         return
       }
     }
