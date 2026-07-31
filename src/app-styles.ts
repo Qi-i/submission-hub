@@ -1,4 +1,5 @@
 import './paper-form-interactions'
+import './submission-form-simplify'
 import './journal-identity-order'
 import './index.css'
 import './refined-ui.css'
