@@ -51,11 +51,19 @@ for (const ui of ['luminous', 'luminous-x']) {
 
     await card.locator('.title-block').click({ force: true })
     await page.locator('.compact-form-modal').waitFor({ state: 'visible', timeout: 15000 })
-    const systemFields = page.locator('.compact-form-modal .compact-field').filter({ hasText: '投稿系统' })
-    const systemFieldCount = await systemFields.count()
-    for (let index = 0; index < systemFieldCount; index += 1) {
-      if (await systemFields.nth(index).isVisible()) fail(`${label}: submission-platform field remains selectable in the editor`)
-    }
+    await page.waitForTimeout(150)
+    const visibleSystemFields = await page.locator('.compact-form-modal .compact-field').evaluateAll(fields => fields
+      .filter(field => {
+        const directLabel = Array.from(field.children).find(child => child.matches('span'))?.textContent?.trim() || ''
+        const input = field.querySelector('input')
+        const platform = directLabel === '投稿系统' || directLabel.startsWith('投稿系统（') || input?.getAttribute('list') === 'submission-system-options'
+        if (!platform) return false
+        const style = getComputedStyle(field)
+        const rect = field.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+      })
+      .map(field => field.textContent?.trim() || '投稿系统'))
+    if (visibleSystemFields.length) fail(`${label}: submission-platform field remains selectable in the editor (${visibleSystemFields.join(' / ')})`)
   } catch (error) {
     fail(`${label}: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
