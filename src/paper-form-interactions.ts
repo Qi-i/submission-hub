@@ -65,8 +65,31 @@ function enhanceWorkflowGrid(modal: Element) {
   })
 }
 
+function removeSubmissionPlatformField(modal: Element) {
+  modal.querySelectorAll<HTMLElement>('.compact-field').forEach(field => {
+    const label = directChild<HTMLSpanElement>(field, 'span')?.textContent?.trim() || ''
+    const input = directChild<HTMLInputElement>(field, 'input')
+    const isPlatformField = label === '投稿系统' || label.startsWith('投稿系统（') || input?.getAttribute('list') === 'submission-system-options'
+    if (!isPlatformField) return
+    field.closest<HTMLElement>('.compact-grid')?.classList.add('submission-system-removed')
+    field.remove()
+  })
+  modal.querySelectorAll('#submission-system-options').forEach(node => node.remove())
+}
+
+function annotateInternalManuscriptNumber(modal: Element) {
+  modal.querySelectorAll<HTMLElement>('.compact-field').forEach(field => {
+    const label = directChild<HTMLSpanElement>(field, 'span')
+    if (!label || label.dataset.internalManuscriptHint === 'true' || label.textContent?.trim() !== '稿件编号') return
+    label.dataset.internalManuscriptHint = 'true'
+    label.textContent = '稿件编号（仅用于检索与往来邮件，不在卡片外显）'
+  })
+}
+
 function enhancePaperForms() {
   document.querySelectorAll('.compact-form-modal').forEach(modal => {
+    removeSubmissionPlatformField(modal)
+    annotateInternalManuscriptNumber(modal)
     enhanceWorkflowGrid(modal)
     modal.querySelectorAll<HTMLElement>('.compact-field').forEach(enhanceUrlField)
   })
