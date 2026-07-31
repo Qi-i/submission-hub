@@ -18,6 +18,8 @@ interface Props {
 }
 
 type RankBadge = { label: string; cls: string }
+type BackendAction = { url: string; label: string; hint: string; kind: 'manuscript' | 'journal' }
+type PublisherIdentity = { name: string; mark: string; tone: string }
 
 function formatDate(date?: string | null) {
   if (!date) return ''
@@ -114,15 +116,68 @@ function oaLabel(value?: JournalProfile['oa_type']) {
   return 'OA 未确认'
 }
 
+function resolveBackend(paper: Paper, profile?: JournalProfile): BackendAction | null {
+  if (isUrl(paper.tracking_url)) {
+    return {
+      url: paper.tracking_url!,
+      label: '稿件后台',
+      hint: '打开该稿件在出版社后台中的处理页面',
+      kind: 'manuscript',
+    }
+  }
+  if (isUrl(profile?.submission_url)) {
+    return {
+      url: profile!.submission_url!,
+      label: '投稿入口',
+      hint: '尚未保存稿件专属链接，打开期刊通用投稿入口',
+      kind: 'journal',
+    }
+  }
+  return null
+}
+
+function publisherIdentity(value?: string | null): PublisherIdentity | null {
+  const name = (value || '').trim()
+  if (!name) return null
+  const normalized = name.toLocaleLowerCase()
+  const presets: Array<[RegExp, string, string]> = [
+    [/elsevier/, 'E', 'elsevier'],
+    [/springer nature/, 'SN', 'springer'],
+    [/springer|birkh[aä]user|palgrave/, 'S', 'springer'],
+    [/taylor\s*(?:&|and)\s*francis|informa/, 'T&F', 'taylor'],
+    [/wiley/, 'W', 'wiley'],
+    [/sage/, 'SAGE', 'sage'],
+    [/mdpi/, 'MDPI', 'mdpi'],
+    [/ieee/, 'IEEE', 'ieee'],
+    [/copernicus/, 'C', 'copernicus'],
+    [/emerald/, 'E', 'emerald'],
+    [/oxford university press|\boup\b/, 'OUP', 'oup'],
+    [/cambridge university press|\bcup\b/, 'CUP', 'cup'],
+  ]
+  const preset = presets.find(([pattern]) => pattern.test(normalized))
+  if (preset) return { name, mark: preset[1], tone: preset[2] }
+
+  const words = name.replace(/[()（）]/g, ' ').split(/\s+/).filter(Boolean)
+  const mark = words.length > 1
+    ? words.slice(0, 2).map(word => word[0]).join('').toUpperCase()
+    : name.slice(0, 2).toUpperCase()
+  return { name, mark, tone: 'default' }
+}
+
 function JournalQuickView({ paper, profile, badges, onClose }: { paper: Paper; profile?: JournalProfile; badges: RankBadge[]; onClose: () => void }) {
   const website = profile?.website_url || paper.journal_url
-  const submission = profile?.submission_url || paper.tracking_url
+  const backend = resolveBackend(paper, profile)
+  const publisher = publisherIdentity(profile?.publisher)
   const scope = profile?.scope
   const indexing = profile?.indexing || []
   return <div className="journal-quick-overlay" onClick={event => { event.stopPropagation(); onClose() }}>
     <div className="journal-quick-card" role="dialog" aria-modal="true" aria-label="期刊信息" onClick={event => event.stopPropagation()}>
       <div className="journal-quick-head">
-        <div><span>期刊信息</span><h3>{profile?.name || paper.journal || '未填写期刊'}</h3>{profile?.publisher && <p>{profile.publisher}</p>}</div>
+        <div>
+          <span>期刊信息</span>
+          <h3>{profile?.name || paper.journal || '未填写期刊'}</h3>
+          {publisher && <p className="journal-quick-publisher"><span>{publisher.mark}</span>{publisher.name}</p>}
+        </div>
         <button type="button" onClick={onClose} aria-label="关闭">×</button>
       </div>
       {badges.length > 0 && <div className="journal-quick-ranks">{badges.map((badge, index) => <span key={`${badge.label}-${index}`} className={badge.cls}>{badge.label}</span>)}</div>}
@@ -135,9 +190,9 @@ function JournalQuickView({ paper, profile, badges, onClose }: { paper: Paper; p
       {indexing.length > 0 && <div className="journal-quick-indexing">{indexing.map(item => <span key={item}>{item}</span>)}</div>}
       {scope && <p className="journal-quick-scope">{scope}</p>}
       <div className="journal-quick-links">
+        {backend && <a className="journal-quick-backend" href={backend.url} target="_blank" rel="noopener noreferrer" title={backend.hint}>{backend.label} ↗</a>}
         {isUrl(website) && <a href={website!} target="_blank" rel="noopener noreferrer">期刊官网 ↗</a>}
         {isUrl(profile?.author_guide_url) && <a href={profile!.author_guide_url!} target="_blank" rel="noopener noreferrer">作者指南 ↗</a>}
-        {isUrl(submission) && <a href={submission!} target="_blank" rel="noopener noreferrer">投稿入口 ↗</a>}
       </div>
     </div>
   </div>
@@ -157,6 +212,9 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   const signal = shouldSuppressSignal(effectivePaper, rawSignal, nextCount) ? null : rawSignal
   const authors = authorItems(linkedPaper, currentUsername, authorName)
   const authorTitle = (linkedPaper.authors || []).join('、')
+  const backend = resolveBackend(linkedPaper, journalProfile)
+  const publisher = publisherIdentity(journalProfile?.publisher)
+  const statusBackend = effectiveStatus !== 'preparing' ? backend : null
 
   let dateInfo = ''
   if (linkedPaper.submitted_date) {
@@ -179,7 +237,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
   const signalColors = signal ? signalStyle(signal.level) : null
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!onClick) return
+    if (!onClick || event.target !== event.currentTarget) return
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       onClick()
@@ -209,7 +267,12 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
     >
       <div className="paper-card-head">
         <div className="paper-status-area" data-status={effectiveStatus}>
-          <span className={`badge status-${effectiveStatus}`}>{status.emoji} {status.label}</span>
+          {statusBackend
+            ? <a className={`badge status-${effectiveStatus} paper-status-backend`} href={statusBackend.url} target="_blank" rel="noopener noreferrer" title={`${status.label} · ${statusBackend.hint}`} onClick={event => event.stopPropagation()}>
+                <span>{status.emoji} {status.label}</span>
+                <span className="paper-status-backend-hint">{statusBackend.kind === 'manuscript' ? '后台' : '投稿'} ↗</span>
+              </a>
+            : <span className={`badge status-${effectiveStatus}`}>{status.emoji} {status.label}</span>}
           {linkedPaper.system_status && <span className="paper-substatus" title={`${linkedPaper.system_status} · 已自动归类为${status.label}`}><span className="paper-substatus-dot" aria-hidden="true" /><span className="paper-substatus-text">{linkedPaper.system_status}</span></span>}
           {!!revisionRound && <span className="paper-revision-inline" title="根据审稿时间线自动识别">R{revisionRound}</span>}
         </div>
@@ -218,9 +281,9 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         </div>
       </div>
 
-      {(linkedPaper.manuscript_no || linkedPaper.submission_system || isUrl(linkedPaper.published_url)) && <div className="paper-meta-row paper-meta-compact">
-        {linkedPaper.manuscript_no && <span className="badge badge-sm badge-outline" title={linkedPaper.manuscript_no}>ID {linkedPaper.manuscript_no}</span>}
-        {linkedPaper.submission_system && <span className="badge badge-sm badge-outline" title={linkedPaper.submission_system}>{linkedPaper.submission_system}</span>}
+      {(publisher || backend || isUrl(linkedPaper.published_url)) && <div className="paper-meta-row paper-meta-compact paper-action-rail">
+        {publisher && <span className="publisher-mark" data-publisher={publisher.tone} title={`出版社：${publisher.name}`}><span className="publisher-mark-symbol">{publisher.mark}</span><span className="publisher-mark-name">{publisher.name}</span></span>}
+        {backend && <a className={`badge badge-sm badge-outline paper-backend-link is-${backend.kind}`} href={backend.url} target="_blank" rel="noopener noreferrer" title={backend.hint} onClick={event => event.stopPropagation()}><span>{backend.label}</span><span aria-hidden="true">↗</span></a>}
         {isUrl(linkedPaper.published_url) && <a className="badge badge-sm badge-outline paper-publication-link" href={linkedPaper.published_url!} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>见刊 ↗</a>}
       </div>}
 

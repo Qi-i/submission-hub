@@ -1,0 +1,207 @@
+/* Submission cards are action surfaces: status and publisher context replace redundant IDs/system names. */
+.paper-card-v3 .paper-action-rail {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 25px !important;
+  margin-top: -1px !important;
+  padding: 1px 0 !important;
+  overflow: visible !important;
+}
+
+.paper-card-v3 .publisher-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: min(58%, 240px);
+  height: 23px;
+  padding: 2px 8px 2px 3px;
+  border: 1px solid rgba(148, 163, 184, .22);
+  border-radius: 999px;
+  background: rgba(248, 250, 252, .88);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 820;
+  line-height: 1;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, .035);
+}
+
+.paper-card-v3 .publisher-mark-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: -.2px;
+}
+
+.paper-card-v3 .publisher-mark-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.publisher-mark[data-publisher='elsevier'] .publisher-mark-symbol { background: rgba(245, 158, 11, .18); color: #9a3412; }
+.publisher-mark[data-publisher='springer'] .publisher-mark-symbol { background: rgba(37, 99, 235, .14); color: #1d4ed8; }
+.publisher-mark[data-publisher='taylor'] .publisher-mark-symbol { background: rgba(14, 116, 144, .14); color: #0e7490; }
+.publisher-mark[data-publisher='wiley'] .publisher-mark-symbol { background: rgba(124, 58, 237, .14); color: #6d28d9; }
+.publisher-mark[data-publisher='sage'] .publisher-mark-symbol { background: rgba(220, 38, 38, .12); color: #b91c1c; }
+.publisher-mark[data-publisher='mdpi'] .publisher-mark-symbol { background: rgba(22, 163, 74, .13); color: #15803d; }
+.publisher-mark[data-publisher='ieee'] .publisher-mark-symbol { background: rgba(2, 132, 199, .14); color: #0369a1; }
+.publisher-mark[data-publisher='copernicus'] .publisher-mark-symbol { background: rgba(8, 145, 178, .13); color: #0e7490; }
+.publisher-mark[data-publisher='emerald'] .publisher-mark-symbol { background: rgba(5, 150, 105, .14); color: #047857; }
+.publisher-mark[data-publisher='oup'] .publisher-mark-symbol,
+.publisher-mark[data-publisher='cup'] .publisher-mark-symbol { background: rgba(30, 64, 175, .13); color: #1e3a8a; }
+
+.paper-card-v3 .paper-backend-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  height: 23px !important;
+  padding: 2px 8px !important;
+  border-color: rgba(14, 165, 233, .25) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, .09), rgba(34, 211, 238, .05)) !important;
+  color: #0369a1 !important;
+  font-weight: 900 !important;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+.paper-card-v3 .paper-backend-link.is-journal {
+  border-style: dashed !important;
+  color: #475569 !important;
+  background: rgba(241, 245, 249, .76) !important;
+}
+
+.paper-card-v3 .paper-backend-link:hover,
+.paper-card-v3 .paper-backend-link:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(14, 165, 233, .52) !important;
+  box-shadow: 0 6px 15px rgba(14, 165, 233, .13);
+  outline: none;
+}
+
+.paper-card-v3 .paper-status-backend {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.paper-card-v3 .paper-status-backend:hover,
+.paper-card-v3 .paper-status-backend:focus-visible {
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+  box-shadow: 0 5px 13px rgba(15, 23, 42, .11);
+  outline: none;
+}
+
+.paper-card-v3 .paper-status-backend-hint {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 5px;
+  border-left: 1px solid currentColor;
+  font-size: 8.5px;
+  font-weight: 950;
+  line-height: 1;
+  opacity: .72;
+}
+
+.journal-quick-publisher {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.journal-quick-publisher > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, .11);
+  color: #0369a1;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+.journal-quick-links .journal-quick-backend {
+  border-color: rgba(14, 165, 233, .34) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, .13), rgba(34, 211, 238, .08)) !important;
+  color: #0369a1 !important;
+  font-weight: 930 !important;
+}
+
+/* The submission platform is derived context, not another user-maintained field. */
+.compact-form-modal .compact-grid.two:has(input[list='submission-system-options']) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.compact-form-modal .compact-field:has(input[list='submission-system-options']) {
+  display: none !important;
+}
+
+.compact-form-modal .compact-grid.two:has(input[list='submission-system-options']) > .compact-field:first-child > span::after {
+  content: '（仅用于检索与往来邮件，不在卡片外显）';
+  margin-left: 5px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.compact-form-modal .compact-field:has(input[value^='http'][placeholder='https://...']) > span::after,
+.compact-form-modal .compact-field:has(input[placeholder='https://...']) > span::after {
+  content: '（填写后可点击投稿状态直达）';
+  margin-left: 5px;
+  color: #0284c7;
+  font-size: 9px;
+  font-weight: 760;
+}
+
+html[data-theme='dark'] .paper-card-v3 .publisher-mark {
+  background: rgba(15, 23, 42, .72);
+  border-color: rgba(148, 163, 184, .2);
+}
+
+html[data-theme='dark'] .paper-card-v3 .publisher-mark-symbol {
+  background: rgba(148, 163, 184, .16);
+  color: #e2e8f0;
+}
+
+html[data-theme='dark'] .paper-card-v3 .paper-backend-link {
+  color: #67e8f9 !important;
+  background: rgba(8, 145, 178, .12) !important;
+}
+
+@media (max-width: 720px) {
+  .paper-card-v3 .paper-action-rail {
+    flex-wrap: wrap !important;
+  }
+
+  .paper-card-v3 .publisher-mark {
+    max-width: calc(100% - 92px);
+  }
+
+  .paper-card-v3 .paper-status-backend-hint {
+    display: none;
+  }
+
+  .compact-form-modal .compact-grid.two:has(input[list='submission-system-options']) > .compact-field:first-child > span::after,
+  .compact-form-modal .compact-field:has(input[placeholder='https://...']) > span::after {
+    display: block;
+    margin: 2px 0 0;
+  }
+}

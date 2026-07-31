@@ -1,0 +1,7 @@
+.compact-form-modal .compact-grid.submission-system-removed {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.compact-form-modal .compact-field[data-platform-field-removed='true'] {
+  display: none !important;
+}
