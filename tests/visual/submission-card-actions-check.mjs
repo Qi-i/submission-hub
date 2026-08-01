@@ -9,13 +9,19 @@ function fail(message) {
   failures.push(message)
 }
 
+async function hoverJournalButton(page, card, journalButton) {
+  await card.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }))
+  await page.waitForTimeout(120)
+  await journalButton.hover()
+}
+
 async function openFirstJournalPopover(page, ui) {
   await page.goto(`${baseUrl}?view=dashboard&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
   await page.locator(`html[data-ui='${ui}'][data-visual-ready='true'] .paper-card-v3`).first().waitFor({ state: 'visible', timeout: 45000 })
   await page.waitForTimeout(250)
   const card = page.locator('.paper-card-v3').first()
   const journalButton = card.locator('.journal-pill-button')
-  await journalButton.hover({ force: true })
+  await hoverJournalButton(page, card, journalButton)
   const journalPopover = card.locator('.journal-quick-overlay')
   await journalPopover.waitFor({ state: 'visible', timeout: 3000 })
   await page.waitForTimeout(120)
@@ -108,9 +114,9 @@ for (const ui of ['luminous', 'luminous-x']) {
     await journalPopover.locator('.journal-quick-close').click({ force: true })
     await journalPopover.waitFor({ state: 'hidden', timeout: 2000 })
 
-    await journalButton.hover({ force: true })
+    await hoverJournalButton(page, card, journalButton)
     await journalPopover.waitFor({ state: 'visible', timeout: 3000 })
-    await journalPopover.locator('.journal-quick-card').hover({ force: true })
+    await journalPopover.locator('.journal-quick-card').hover()
     await page.waitForTimeout(280)
     if (!(await journalPopover.isVisible())) fail(`${label}: journal popover closes while moving from the journal name into the popover`)
     await page.mouse.move(2, 2)
