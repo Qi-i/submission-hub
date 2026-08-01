@@ -80,6 +80,22 @@ function enhanceSearchInput(input: HTMLInputElement) {
   sync()
 }
 
+function markInternalJournalRoute(button: HTMLButtonElement | null) {
+  if (!button) return
+  button.dataset.journalCenterInternal = 'true'
+  button.setAttribute('aria-hidden', 'true')
+  button.tabIndex = -1
+}
+
+function hideDuplicateJournalEntries() {
+  const workspaceNav = document.querySelector<HTMLElement>('.preparation-workspace > .prep-nav')
+  markInternalJournalRoute(workspaceNav ? buttonByLabel(workspaceNav, '期刊库') : null)
+
+  document.querySelectorAll<HTMLElement>('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls').forEach(nav => {
+    markInternalJournalRoute(buttonByLabel(nav, '期刊库'))
+  })
+}
+
 function clickPreparationSection(section: PreparationSection) {
   const targetLabel = section === 'journals' ? '期刊库' : '总览'
   let attempts = 0
@@ -117,6 +133,7 @@ function ensureJournalCenterButton(nav: HTMLElement) {
     journal = document.createElement('button')
     journal.type = 'button'
     journal.dataset.mainNavKey = 'journals'
+    journal.dataset.tone = 'journal-center'
     journal.className = preparation.className.replace(/\bactive\b/g, '').trim()
     journal.innerHTML = `${journalIcon()} 期刊中心`
     journal.title = '进入期刊中心，管理、检索与比较期刊'
@@ -192,6 +209,7 @@ function enhance() {
     ensureJournalCenterButton(nav)
     syncNavigationState(nav)
   })
+  hideDuplicateJournalEntries()
   document.querySelectorAll<HTMLInputElement>(SEARCH_INPUT_SELECTOR).forEach(enhanceSearchInput)
 }
 
