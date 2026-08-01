@@ -19,7 +19,8 @@ async function openFirstJournalPopover(page, ui) {
   const journalPopover = card.locator('.journal-quick-overlay')
   await journalPopover.waitFor({ state: 'visible', timeout: 3000 })
   await page.waitForTimeout(120)
-  return { card, journalButton, journalPopover }
+  const journalName = (await journalPopover.locator('.journal-quick-head h3').innerText()).trim()
+  return { card, journalButton, journalPopover, journalName }
 }
 
 for (const ui of ['luminous', 'luminous-x']) {
@@ -157,9 +158,9 @@ for (const ui of ['luminous', 'luminous-x']) {
     const editRun = await openFirstJournalPopover(page, ui)
     await editRun.journalPopover.locator('.journal-quick-library-action.is-edit').click({ force: true })
     await page.locator('.preparation-workspace .journal-grid').waitFor({ state: 'visible', timeout: 5000 })
-    await page.locator('.compact-form-modal').waitFor({ state: 'visible', timeout: 5000 })
-    const editorText = await page.locator('.compact-form-modal').innerText()
-    if (!editorText.includes('Geomatics Natural Hazards and Risk')) fail(`${label}: “编辑期刊信息” opens the wrong journal editor`)
+    await page.locator('.journal-form-modal').waitFor({ state: 'visible', timeout: 5000 })
+    const editorText = await page.locator('.journal-form-modal').innerText()
+    if (!editorText.includes(editRun.journalName)) fail(`${label}: “编辑期刊信息” opens the wrong journal editor`)
   } catch (error) {
     fail(`${label}: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
