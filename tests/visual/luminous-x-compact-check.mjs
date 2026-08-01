@@ -66,6 +66,8 @@ try {
     const draftList = draftPanel?.querySelector('.prep-overview-draft-list')
     const draftCards = Array.from(draftList?.querySelectorAll('.prep-draft-card.compact') || [])
     const draftTitle = draftPanel?.querySelector('.prep-panel-head h2')?.textContent?.trim() || ''
+    const proxyJournal = Array.from(proxy?.querySelectorAll('button') || []).find(button => button.textContent?.replace(/\s+/g, '').includes('期刊库'))
+    const primaryJournal = document.querySelector(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']")
     if (!workspace || !topbar || !proxy || !original) return null
 
     const listRect = draftList?.getBoundingClientRect()
@@ -73,6 +75,7 @@ try {
     const fullyVisibleDrafts = listRect
       ? cardRects.filter(card => card.top >= listRect.top - 1 && card.bottom <= listRect.bottom + 1).length
       : 0
+    const primaryJournalStyle = primaryJournal ? getComputedStyle(primaryJournal) : null
 
     return {
       display: getComputedStyle(workspace).display,
@@ -86,6 +89,8 @@ try {
       portalJournal: portal?.querySelector('.btn-journal-primary')?.textContent?.trim() || '',
       portalDraft: portal?.querySelector('.btn-context-new')?.textContent?.trim() || '',
       original: getComputedStyle(original).display,
+      proxyJournalDisplay: proxyJournal ? getComputedStyle(proxyJournal).display : 'missing',
+      primaryJournalBackground: primaryJournalStyle ? `${primaryJournalStyle.backgroundColor}|${primaryJournalStyle.backgroundImage}` : '',
       assistant: assistant?.getBoundingClientRect().toJSON(),
       topics: topics?.getBoundingClientRect().toJSON(),
       draftTitle,
@@ -99,6 +104,8 @@ try {
   else {
     if (prepLayout.display !== 'flex' || prepLayout.direction !== 'column') failures.push('preparation: overview is not a vertical flow')
     if (prepLayout.original !== 'none') failures.push('preparation: duplicate navigation is visible')
+    if (prepLayout.proxyJournalDisplay !== 'none' && prepLayout.proxyJournalDisplay !== 'missing') failures.push('preparation: journal library is still duplicated in subsection navigation')
+    if (!prepLayout.primaryJournalBackground || prepLayout.primaryJournalBackground === 'rgba(0, 0, 0, 0)|none') failures.push('preparation: journal center primary navigation has no colored surface')
     if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search and creation controls were not moved into the header center lane')
     if (!prepLayout.portalJournal.includes('收藏期刊') || !prepLayout.portalDraft.includes('新建草稿')) failures.push('preparation: header center lane lacks the expected creation actions')
     if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: the redundant wide overview toolbar remains visible')
@@ -135,7 +142,9 @@ try {
     if (!draftActions.journalActionText.includes('收藏期刊')) failures.push('preparation: journal shortcut is missing from the shared header actions')
   }
 
-  await prepProxy.getByRole('button', { name: /期刊库/ }).click()
+  const journalCenter = prep.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  await journalCenter.click()
+  await prep.locator(".preparation-workspace[data-section='journals']").waitFor({ state: 'visible', timeout: 5000 })
   await prep.waitForTimeout(150)
   const journalActions = await prep.evaluate(() => {
     const portal = document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal')
@@ -146,8 +155,8 @@ try {
       actionText: action.textContent?.trim() || '',
     } : null
   })
-  if (!journalActions) failures.push('preparation: portaled journal creation controls are missing')
-  else if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('收藏期刊')) failures.push('preparation: collect journal action is not visible in the header')
+  if (!journalActions) failures.push('journal center: portaled journal creation controls are missing')
+  else if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('收藏期刊')) failures.push('journal center: collect journal action is not visible in the header')
   await prep.screenshot({ path: 'focused-review/luminous-x-preparation-journal-actions.png', fullPage: true })
   await prep.close()
 
