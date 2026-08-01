@@ -159,8 +159,11 @@ for (const ui of ['luminous', 'luminous-x']) {
     await editRun.journalPopover.locator('.journal-quick-library-action.is-edit').click({ force: true })
     await page.locator('.preparation-workspace .journal-grid').waitFor({ state: 'visible', timeout: 5000 })
     await page.locator('.journal-form-modal').waitFor({ state: 'visible', timeout: 5000 })
-    const editorText = await page.locator('.journal-form-modal').innerText()
-    if (!editorText.includes(editRun.journalName)) fail(`${label}: “编辑期刊信息” opens the wrong journal editor`)
+    const editorJournalName = await page.locator('.journal-form-modal .prep-field').evaluateAll(fields => {
+      const field = fields.find(item => Array.from(item.children).some(child => child.matches('span') && child.textContent?.trim() === '英文期刊名'))
+      return field?.querySelector('input')?.value?.trim() || ''
+    })
+    if (editorJournalName !== editRun.journalName) fail(`${label}: “编辑期刊信息” opens ${editorJournalName || 'an empty record'} instead of ${editRun.journalName}`)
   } catch (error) {
     fail(`${label}: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
