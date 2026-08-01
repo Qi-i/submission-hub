@@ -222,7 +222,10 @@ document.addEventListener('pointerdown', event => {
   const journalButton = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
   if (journalButton) {
     const card = cardFor(journalButton)
-    if (card) togglePinnedFromActivation(card)
+    if (card) {
+      card.dataset.journalActivationHandled = 'true'
+      togglePinnedFromActivation(card)
+    }
     return
   }
 
@@ -239,7 +242,9 @@ document.addEventListener('click', event => {
     const card = cardFor(journalButton)
     if (!card || journalButton.dataset.journalHoverOpening === 'true') return
 
-    if (event.detail === 0) togglePinnedFromActivation(card)
+    const pointerHandled = card.dataset.journalActivationHandled === 'true'
+    delete card.dataset.journalActivationHandled
+    if (!pointerHandled) togglePinnedFromActivation(card)
     if (card.dataset.journalCloseAfterClick === 'true') {
       delete card.dataset.journalCloseAfterClick
       queueMicrotask(() => closeJournalPopover(card))
