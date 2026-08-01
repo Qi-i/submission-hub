@@ -17,11 +17,33 @@ async function openJournalLibrary(page, ui, theme) {
   await page.locator("html[data-visual-ready='true']").waitFor({ state: 'attached', timeout: 45000 })
   const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
   await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
-  await journalCenter.click({ force: true })
+  await journalCenter.evaluate(element => element.click())
 
   const grid = page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first()
   await grid.waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(260)
+}
+
+async function openNewJournalEditor(page) {
+  const buttons = page.locator('.btn-journal-primary')
+  const count = await buttons.count()
+  for (let index = 0; index < count; index += 1) {
+    await buttons.nth(index).evaluate(element => element.click())
+    const modal = page.locator('.journal-form-modal:visible').first()
+    try {
+      await modal.waitFor({ state: 'visible', timeout: 1800 })
+      return modal
+    } catch {
+      // Responsive layouts may retain an inert copy; continue to the next action.
+    }
+  }
+  const diagnostics = await buttons.evaluateAll(elements => elements.map(element => ({
+    text: element.textContent?.trim() || '',
+    display: getComputedStyle(element).display,
+    visibility: getComputedStyle(element).visibility,
+    rect: element.getBoundingClientRect().toJSON(),
+  })))
+  throw new Error(`Unable to open journal editor from ${count} actions: ${JSON.stringify(diagnostics)}`)
 }
 
 async function inspectDesktop(ui, theme) {
@@ -180,6 +202,7 @@ async function inspectMobile(ui) {
 async function inspectReviewLookup(ui) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   const journalUrl = 'https://www.sciencedirect.com/journal/journal-of-rock-mechanics-and-geotechnical-engineering'
+  page.on('pageerror', error => console.error(`[${ui}-journal-form-pageerror]`, error.message))
   try {
     await page.route('https://r.jina.ai/**', async route => {
       const requestUrl = decodeURIComponent(route.request().url())
@@ -193,11 +216,7 @@ async function inspectReviewLookup(ui) {
       })
     })
     await openJournalLibrary(page, ui, 'light')
-    const addJournal = page.locator('.btn-journal-primary:visible').first()
-    await addJournal.waitFor({ state: 'visible', timeout: 15000 })
-    await addJournal.click({ force: true })
-    const modal = page.locator('.journal-form-modal:visible').first()
-    await modal.waitFor({ state: 'visible', timeout: 15000 })
+    const modal = await openNewJournalEditor(page)
     const button = modal.getByRole('button', { name: '获取审稿周期' })
     await button.waitFor({ state: 'visible', timeout: 15000 })
 
