@@ -83,17 +83,21 @@ function enhanceSearchInput(input: HTMLInputElement) {
 function markInternalJournalRoute(button: HTMLButtonElement | null) {
   if (!button) return
   button.dataset.journalCenterInternal = 'true'
+  button.hidden = true
   button.setAttribute('aria-hidden', 'true')
   button.tabIndex = -1
 }
 
-function hideDuplicateJournalEntries() {
-  const workspaceNav = document.querySelector<HTMLElement>('.preparation-workspace > .prep-nav')
-  markInternalJournalRoute(workspaceNav ? buttonByLabel(workspaceNav, '期刊库') : null)
-
-  document.querySelectorAll<HTMLElement>('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls').forEach(nav => {
-    markInternalJournalRoute(buttonByLabel(nav, '期刊库'))
+function markJournalButtonsInside(root: ParentNode | null) {
+  if (!root) return
+  root.querySelectorAll<HTMLButtonElement>('button').forEach(button => {
+    if (compactText(button.textContent).includes('期刊库')) markInternalJournalRoute(button)
   })
+}
+
+function hideDuplicateJournalEntries() {
+  document.querySelectorAll<HTMLElement>('.preparation-workspace > .prep-nav').forEach(markJournalButtonsInside)
+  document.querySelectorAll<HTMLElement>('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls').forEach(markJournalButtonsInside)
 }
 
 function clickPreparationSection(section: PreparationSection) {
@@ -106,7 +110,9 @@ function clickPreparationSection(section: PreparationSection) {
     const nav = workspace?.querySelector<HTMLElement>(':scope > .prep-nav')
     const button = nav ? buttonByLabel(nav, targetLabel) : null
     if (workspace && button) {
+      button.hidden = false
       if (!button.classList.contains('active')) button.click()
+      markInternalJournalRoute(button)
       scheduleEnhance()
       if (workspace.dataset.section === section || attempts >= 12) return
     }
@@ -227,6 +233,7 @@ if (document.readyState === 'loading') {
 new MutationObserver(scheduleEnhance).observe(document.documentElement, {
   childList: true,
   subtree: true,
+  characterData: true,
   attributes: true,
-  attributeFilter: ['class', 'data-section'],
+  attributeFilter: ['class', 'data-section', 'hidden'],
 })
