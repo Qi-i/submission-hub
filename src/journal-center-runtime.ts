@@ -9,13 +9,13 @@ function setTextIfChanged(element: Element | null | undefined, value: string) {
   if (element && element.textContent !== value) element.textContent = value
 }
 
-function replaceTextNode(root: Element | null, from: string, to: string) {
-  if (!root) return
+function replaceExactTextNodes(root: Element | Document, replacements: Record<string, string>) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   let node = walker.nextNode()
   while (node) {
     const value = node.nodeValue || ''
-    if (compact(value) === compact(from)) node.nodeValue = value.replace(from, to)
+    const replacement = replacements[compact(value)]
+    if (replacement && value !== replacement) node.nodeValue = replacement
     node = walker.nextNode()
   }
 }
@@ -62,21 +62,30 @@ function enhanceJournalCards(workspace: HTMLElement) {
   })
 }
 
-function enhanceJournalForm() {
-  const modal = document.querySelector<HTMLElement>('.journal-form-modal')
-  if (!modal) return
-  setExactText(modal.querySelector('#journal-form-title'), '收藏期刊', '新增期刊档案')
-  modal.querySelectorAll<HTMLElement>('.prep-field > span, .prep-form-grid label > span').forEach(label => {
-    setExactText(label, '收藏优先级', '期刊优先级')
+function enhanceGlobalJournalActions() {
+  document.querySelectorAll<HTMLElement>('.btn-journal-primary, .prep-quick-actions button, .prep-empty button').forEach(button => {
+    replaceExactTextNodes(button, {
+      收藏期刊: '新增期刊',
+    })
+    if (compact(button.textContent).includes('新增期刊')) {
+      button.title = button.title || '新增一条期刊档案，可选择是否设为重点期刊'
+      button.setAttribute('aria-label', '新增期刊')
+    }
   })
-  setExactText(modal.querySelector('.prep-switch span'), '加入收藏期刊', '设为重点期刊')
+}
+
+function enhanceJournalForm() {
+  document.querySelectorAll<HTMLElement>('.journal-form-modal').forEach(modal => {
+    setExactText(modal.querySelector('#journal-form-title'), '收藏期刊', '新增期刊档案')
+    modal.querySelectorAll<HTMLElement>('.prep-field > span, .prep-form-grid label > span').forEach(label => {
+      setExactText(label, '收藏优先级', '期刊优先级')
+    })
+    setExactText(modal.querySelector('.prep-switch span'), '加入收藏期刊', '设为重点期刊')
+  })
 }
 
 function enhanceWorkspace(workspace: HTMLElement) {
   const total = journalTotal(workspace)
-
-  workspace.querySelectorAll<HTMLElement>('.btn-journal-primary').forEach(button => replaceTextNode(button, '收藏期刊', '新增期刊'))
-  workspace.querySelectorAll<HTMLElement>('.prep-quick-actions button').forEach(button => replaceTextNode(button, '收藏期刊', '新增期刊'))
 
   workspace.querySelectorAll<HTMLElement>('.prep-panel-head h2').forEach(title => {
     setExactText(title, '收藏期刊', '期刊档案')
@@ -89,7 +98,12 @@ function enhanceWorkspace(workspace: HTMLElement) {
 
   workspace.querySelectorAll<HTMLElement>('.prep-empty').forEach(empty => {
     setExactText(empty.querySelector('span'), '尚未收藏期刊', '尚无期刊记录')
-    empty.querySelectorAll<HTMLElement>('button').forEach(button => replaceTextNode(button, '收藏期刊', '新增期刊'))
+  })
+
+  replaceExactTextNodes(workspace, {
+    收藏期刊: '新增期刊',
+    尚未收藏期刊: '尚无期刊记录',
+    已收藏: '已记录',
   })
 
   syncJournalTotals(workspace, total)
@@ -98,6 +112,7 @@ function enhanceWorkspace(workspace: HTMLElement) {
 
 function enhance() {
   frame = 0
+  enhanceGlobalJournalActions()
   document.querySelectorAll<HTMLElement>(WORKSPACE_SELECTOR).forEach(enhanceWorkspace)
   enhanceJournalForm()
 }
@@ -113,6 +128,7 @@ else enhance()
 new MutationObserver(schedule).observe(document.documentElement, {
   childList: true,
   subtree: true,
+  characterData: true,
   attributes: true,
   attributeFilter: ['class', 'data-section', 'data-metric', 'hidden'],
 })
