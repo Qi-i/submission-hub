@@ -40,14 +40,62 @@ for (const ui of ['luminous', 'luminous-x']) {
       if (href !== 'https://example.com/submission-a') fail(`${label}: status action points to the wrong URL (${href})`)
     }
 
-    const geometry = await card.evaluate(element => ({
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-      publisherText: element.querySelector('.publisher-mark')?.textContent?.trim() || '',
-      backendText: element.querySelector('.paper-backend-link')?.textContent?.trim() || '',
-    }))
+    const geometry = await card.evaluate(element => {
+      const sectionSelector = ':scope > .paper-card-head, :scope > .paper-action-rail, :scope > .title-block, :scope > .archive-chip-row, :scope > .paper-rank-row, :scope > .author-list-v2, :scope > .paper-history, :scope > .paper-card-footer'
+      const sections = Array.from(element.querySelectorAll(sectionSelector)).filter(section => {
+        const style = getComputedStyle(section)
+        const rect = section.getBoundingClientRect()
+        return style.display !== 'none' && rect.width > 0 && rect.height > 0
+      })
+      const gaps = sections.slice(1).map((section, index) => {
+        const previous = sections[index].getBoundingClientRect()
+        const current = section.getBoundingClientRect()
+        return Math.round((current.top - previous.bottom) * 10) / 10
+      })
+      return {
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        publisherText: element.querySelector('.publisher-mark')?.textContent?.trim() || '',
+        backendText: element.querySelector('.paper-backend-link')?.textContent?.trim() || '',
+        gaps,
+        maxGap: gaps.length ? Math.max(...gaps) : 0,
+        minGap: gaps.length ? Math.min(...gaps) : 0,
+      }
+    })
     if (geometry.scrollWidth > geometry.clientWidth + 2) fail(`${label}: card has horizontal overflow ${geometry.scrollWidth}/${geometry.clientWidth}`)
-    details.push(`${label}: publisher=${geometry.publisherText}; backend=${geometry.backendText}`)
+    if (geometry.maxGap > 16) fail(`${label}: card section spacing is still irregular; max gap ${geometry.maxGap}px (${geometry.gaps.join(', ')})`)
+    if (geometry.minGap < -2) fail(`${label}: card sections overlap; min gap ${geometry.minGap}px (${geometry.gaps.join(', ')})`)
+    details.push(`${label}: publisher=${geometry.publisherText}; backend=${geometry.backendText}; gaps=${geometry.gaps.join('/')}`)
+
+    const journalButton = card.locator('.journal-pill-button')
+    await journalButton.hover()
+    const journalPopover = card.locator('.journal-quick-overlay')
+    await journalPopover.waitFor({ state: 'visible', timeout: 3000 })
+    await page.waitForTimeout(120)
+    const popoverGeometry = await journalPopover.evaluate((overlay, cardElement) => {
+      const overlayRect = overlay.getBoundingClientRect()
+      const cardRect = cardElement.getBoundingClientRect()
+      const style = getComputedStyle(overlay)
+      return {
+        position: style.position,
+        width: overlayRect.width,
+        height: overlayRect.height,
+        topDelta: overlayRect.top - cardRect.top,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      }
+    }, await card.elementHandle())
+    if (popoverGeometry.position !== 'absolute') fail(`${label}: journal details still use ${popoverGeometry.position} positioning instead of an anchored popover`)
+    if (popoverGeometry.width > 430 || popoverGeometry.height > 600) fail(`${label}: journal popover is oversized ${popoverGeometry.width}×${popoverGeometry.height}`)
+    if (popoverGeometry.topDelta < 20 || popoverGeometry.topDelta > 90) fail(`${label}: journal popover is not anchored to the journal row (top delta ${popoverGeometry.topDelta})`)
+    if (popoverGeometry.width > popoverGeometry.viewportWidth * 0.75 || popoverGeometry.height > popoverGeometry.viewportHeight * 0.8) fail(`${label}: journal details still behave like a page-covering modal`)
+
+    await journalPopover.locator('.journal-quick-card').hover()
+    await page.waitForTimeout(280)
+    if (!(await journalPopover.isVisible())) fail(`${label}: journal popover closes while moving from the journal name into the popover`)
+    await page.mouse.move(2, 2)
+    await page.waitForTimeout(360)
+    if (await journalPopover.isVisible()) fail(`${label}: journal popover does not close after pointer leaves it`)
 
     const acceptedCard = page.locator('.paper-card-v3').filter({ hasText: 'Journal of Open Research Software' }).first()
     if (await acceptedCard.count()) {
