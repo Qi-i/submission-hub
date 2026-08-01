@@ -51,6 +51,10 @@ function enhanceJournalCards(workspace: HTMLElement) {
       priority.setAttribute('aria-label', '重点期刊')
     }
 
+    const facts = card.querySelector<HTMLElement>('.prep-journal-facts')
+    const apc = card.querySelector<HTMLElement>('[data-metric="apc"]')
+    if (facts && apc && apc.parentElement !== facts) facts.appendChild(apc)
+
     const tags = Array.from(card.querySelectorAll<HTMLElement>('.prep-journal-facts [data-tone="selection"]'))
     const fromHistory = tags.some(tag => compact(tag.textContent) === '投稿历史自动收录')
     const source = fromHistory ? 'submission-history' : 'manual'
@@ -110,5 +114,5 @@ new MutationObserver(schedule).observe(document.documentElement, {
   childList: true,
   subtree: true,
   attributes: true,
-  attributeFilter: ['class', 'data-section'],
+  attributeFilter: ['class', 'data-section', 'data-metric', 'hidden'],
 })
