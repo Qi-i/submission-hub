@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
+import { deriveAutomaticJournalProfiles } from '../lib/journal-auto-catalog'
 import { supabase } from '../lib/supabase'
+import type { Paper } from '../lib/types'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import { createDefaultChecklist } from '../lib/preparation'
 import { invalidateOnlineJournalProfileCache } from './OnlinePaperCard'
@@ -29,6 +31,16 @@ function readableError(error: unknown, fallback: string) {
     : fallback
 }
 
+function normalizeJournal(journal: JournalProfile): JournalProfile {
+  return {
+    ...journal,
+    third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
+    subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
+    selection_tags: Array.isArray(journal.selection_tags) ? journal.selection_tags : [],
+    indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
+  }
+}
+
 export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: Props) {
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
   const [loading, setLoading] = useState(true)
@@ -41,24 +53,31 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     setError('')
 
     try {
-      const [journalResult, topicResult, draftResult] = await Promise.all([
+      const [journalResult, topicResult, draftResult, paperResult] = await Promise.all([
         (supabase.from('journal_profiles') as any).select('*').order('updated_at', { ascending: false }),
         (supabase.from('research_topics') as any).select('*').order('updated_at', { ascending: false }),
         (supabase.from('manuscript_drafts') as any).select('*').order('updated_at', { ascending: false }),
+        (supabase.from('papers') as any).select('*').order('updated_at', { ascending: false }),
       ])
 
       if (version !== loadVersion.current) return
-      const firstError = journalResult.error || topicResult.error || draftResult.error
+      const firstError = journalResult.error || topicResult.error || draftResult.error || paperResult.error
       if (firstError) throw firstError
 
+      let journals = ((journalResult.data || []) as JournalProfile[]).map(normalizeJournal)
+      const automaticJournals = deriveAutomaticJournalProfiles((paperResult.data || []) as Paper[], journals, userId)
+      if (automaticJournals.length) {
+        const { data: inserted, error: insertError } = await (supabase.from('journal_profiles') as any)
+          .insert(automaticJournals)
+          .select('*')
+        if (insertError) throw insertError
+        journals = [...((inserted || []) as JournalProfile[]).map(normalizeJournal), ...journals]
+        invalidateOnlineJournalProfileCache()
+      }
+
+      if (version !== loadVersion.current) return
       setSnapshot({
-        journals: ((journalResult.data || []) as JournalProfile[]).map(journal => ({
-          ...journal,
-          third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
-          subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
-          selection_tags: Array.isArray(journal.selection_tags) ? journal.selection_tags : [],
-          indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
-        })),
+        journals,
         topics: ((topicResult.data || []) as ResearchTopic[]).map(topic => ({
           ...topic,
           keywords: Array.isArray(topic.keywords) ? topic.keywords : [],
@@ -82,7 +101,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     } finally {
       if (version === loadVersion.current) setLoading(false)
     }
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     void load()
