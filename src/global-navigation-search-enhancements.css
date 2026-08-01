@@ -16,11 +16,34 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  color: #087f69 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .12), rgba(6, 182, 212, .08)) !important;
+  border-color: rgba(16, 185, 129, .16) !important;
+}
+
+.header-tabs > button[data-main-nav-key='journals']:hover,
+.tab-bar > button[data-main-nav-key='journals']:hover {
+  color: #047857 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .18), rgba(6, 182, 212, .12)) !important;
+  border-color: rgba(16, 185, 129, .28) !important;
 }
 
 .header-tabs > button[data-main-nav-key='journals'].active,
 .tab-bar > button[data-main-nav-key='journals'].active {
-  color: #087ca7;
+  color: #047857 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .24), rgba(6, 182, 212, .15)) !important;
+  border-color: rgba(5, 150, 105, .58) !important;
+  box-shadow: inset 0 0 0 1px rgba(5, 150, 105, .38), 0 5px 14px rgba(16, 185, 129, .10) !important;
+}
+
+/* The journal library is now reached only through the primary “期刊中心” menu.
+   Keep the internal React route button for state switching, but remove both duplicate UI entries. */
+.preparation-workspace > .prep-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+button[data-journal-center-internal='true'] {
+  display: none !important;
 }
 
 /* All search fields receive a right-side, single-click clear action. */
@@ -74,6 +97,20 @@
   right: 6px;
 }
 
+html[data-theme='dark'] .header-tabs > button[data-main-nav-key='journals'],
+html[data-theme='dark'] .tab-bar > button[data-main-nav-key='journals'] {
+  color: #6ee7b7 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .16), rgba(8, 145, 178, .12)) !important;
+  border-color: rgba(110, 231, 183, .20) !important;
+}
+
+html[data-theme='dark'] .header-tabs > button[data-main-nav-key='journals'].active,
+html[data-theme='dark'] .tab-bar > button[data-main-nav-key='journals'].active {
+  color: #a7f3d0 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .26), rgba(8, 145, 178, .18)) !important;
+  border-color: rgba(110, 231, 183, .48) !important;
+}
+
 html[data-theme='dark'] .global-search-clear-host > .global-search-clear {
   background: rgba(15, 23, 42, .82);
   border-color: rgba(148, 163, 184, .24);
@@ -91,5 +128,9 @@ html[data-theme='dark'] .global-search-clear-host > .global-search-clear:focus-v
   .header-tabs > button[data-main-nav-key='journals'],
   .tab-bar > button[data-main-nav-key='journals'] {
     min-width: 0;
+  }
+
+  .preparation-workspace > .prep-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
