@@ -1,7 +1,7 @@
 /*
- * Global geometry contract.
- * Every primary page uses one horizontal datum, one radius scale and one vertical rhythm.
- * Keep this file last in app-styles.ts; feature CSS must not override these dimensions ad hoc.
+ * Submission Hub geometry contract.
+ * Luminous uses a centered top-bar shell. Luminous X uses a fixed sidebar and a
+ * separate content lane. Shared radii and spacing never rewrite either layout model.
  */
 :root {
   --ui-shell-max: 1440px;
@@ -14,20 +14,17 @@
   --ui-radius-small: 8px;
 }
 
-html[data-ui] body .app-layout {
+/* Luminous: header, page controls and page content share one horizontal datum. */
+html[data-ui='luminous'] body .app-layout {
   padding-inline: 0 !important;
 }
 
-/* One shared left/right boundary for every top-level surface. */
-html[data-ui] body .app-layout > :is(
+html[data-ui='luminous'] body .app-layout > :is(
   .app-header,
-  .lx-status-bar,
   .preparation-suite,
   .metric-grid,
   .action-center,
   .paper-grid,
-  .lx-board-view,
-  .lx-journal-view,
   .stats-panel,
   .admin-panel,
   .admin-page,
@@ -40,20 +37,17 @@ html[data-ui] body .app-layout > :is(
   box-sizing: border-box !important;
 }
 
-html[data-ui] body .app-layout > .app-header {
+html[data-ui='luminous'] body .app-layout > .app-header {
   margin-top: var(--ui-shell-gutter) !important;
   margin-bottom: 0 !important;
   border-radius: var(--ui-radius-shell) !important;
 }
 
-html[data-ui] body .app-layout > :is(
-  .lx-status-bar,
+html[data-ui='luminous'] body .app-layout > :is(
   .preparation-suite,
   .metric-grid,
   .action-center,
   .paper-grid,
-  .lx-board-view,
-  .lx-journal-view,
   .stats-panel,
   .admin-panel,
   .admin-page,
@@ -61,6 +55,94 @@ html[data-ui] body .app-layout > :is(
 ) {
   margin-top: var(--ui-gap-page) !important;
   margin-bottom: 0 !important;
+}
+
+/* Luminous X desktop: retain the fixed 226px sidebar and align only content-lane surfaces. */
+@media (min-width: 981px) {
+  html[data-ui='luminous-x'] body .app-layout > .app-header {
+    width: var(--lx-sidebar, 226px) !important;
+    min-width: var(--lx-sidebar, 226px) !important;
+    max-width: var(--lx-sidebar, 226px) !important;
+    margin: 0 !important;
+    border-radius: 24px !important;
+  }
+
+  html[data-ui='luminous-x'] body .app-layout > :is(
+    .lx-status-bar,
+    .preparation-suite,
+    .metric-grid,
+    .action-center,
+    .paper-grid,
+    .lx-board-view,
+    .lx-journal-view,
+    .stats-panel,
+    .admin-panel,
+    .admin-page,
+    .prep-load-error
+  ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html[data-ui='luminous-x'] body .app-layout > :is(
+    .preparation-suite,
+    .metric-grid,
+    .action-center,
+    .paper-grid,
+    .lx-board-view,
+    .lx-journal-view,
+    .stats-panel,
+    .admin-panel,
+    .admin-page,
+    .prep-load-error
+  ) {
+    margin-top: var(--ui-gap-page) !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Luminous X compact mode becomes a top-bar layout; preserve its native page padding. */
+@media (max-width: 980px) {
+  html[data-ui='luminous-x'] body .app-layout > :is(
+    .app-header,
+    .lx-status-bar,
+    .preparation-suite,
+    .metric-grid,
+    .action-center,
+    .paper-grid,
+    .lx-board-view,
+    .lx-journal-view,
+    .stats-panel,
+    .admin-panel,
+    .admin-page,
+    .prep-load-error
+  ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html[data-ui='luminous-x'] body .app-layout > :is(
+    .lx-status-bar,
+    .preparation-suite,
+    .metric-grid,
+    .action-center,
+    .paper-grid,
+    .lx-board-view,
+    .lx-journal-view,
+    .stats-panel,
+    .admin-panel,
+    .admin-page,
+    .prep-load-error
+  ) {
+    margin-top: var(--ui-gap-page) !important;
+    margin-bottom: 0 !important;
+  }
 }
 
 html[data-ui] body .preparation-suite,
@@ -80,7 +162,7 @@ html[data-ui] body .preparation-workspace {
   row-gap: var(--ui-gap-panel) !important;
 }
 
-/* Main navigation and every subordinate menu share the same control geometry. */
+/* Shared menu geometry. Height is uniform within each navigation family. */
 html[data-ui] body :is(
   .header-tabs,
   .prep-nav,
@@ -93,16 +175,24 @@ html[data-ui] body :is(
   box-sizing: border-box !important;
 }
 
-html[data-ui] body :is(
+html[data-ui='luminous'] body :is(
   .header-tabs,
+  .prep-nav,
+  .stats-module-controls,
+  .segmented-control
+) > button,
+html[data-ui='luminous-x'] body :is(
   .prep-nav,
   .lx-page-proxy-controls,
   .stats-module-controls,
   .segmented-control
-) > button,
-html[data-ui='luminous'] body .preparation-workspace > .prep-nav > button,
-html[data-ui='luminous-x'] body .lx-status-bar .lx-page-proxy-controls > button {
+) > button {
   min-height: 36px !important;
+  border-radius: var(--ui-radius-small) !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui='luminous-x'] body .header-tabs > button {
   border-radius: var(--ui-radius-small) !important;
   box-sizing: border-box !important;
 }
@@ -123,7 +213,7 @@ html[data-ui] body button[data-journal-center-internal='true'] {
   pointer-events: none !important;
 }
 
-/* One radius for page content panels; nested controls use the smaller scale. */
+/* One radius scale for content panels; nested controls use the smaller scale. */
 html[data-ui] body :is(
   .prep-dashboard,
   .prep-panel,
@@ -163,7 +253,6 @@ html[data-ui] body :is(
   border-radius: var(--ui-radius-control) !important;
 }
 
-/* Section grids use the same interval instead of page-specific arbitrary gaps. */
 html[data-ui] body :is(
   .prep-dashboard-grid,
   .prep-overview-grid,
@@ -185,24 +274,8 @@ html[data-ui] body :is(
   column-gap: var(--ui-gap-panel) !important;
 }
 
-html[data-ui] body .preparation-workspace .prep-dashboard-grid,
-html[data-ui] body .preparation-workspace .prep-overview-grid,
-html[data-ui] body .preparation-workspace .prep-card-grid,
-html[data-ui] body .preparation-workspace .journal-grid,
-html[data-ui] body .preparation-workspace .prep-draft-list,
-html[data-ui] body .preparation-workspace .prep-topic-strip,
-html[data-ui] body .preparation-workspace .prep-metrics {
-  gap: var(--ui-gap-panel) !important;
-  row-gap: var(--ui-gap-panel) !important;
-  column-gap: var(--ui-gap-panel) !important;
-}
-
-html[data-ui] body .paper-card-v3,
-html[data-ui] body .prep-journal-card {
-  scroll-margin-top: 96px;
-}
-
 html[data-ui] body .prep-journal-card[data-catalog-source='submission-history'] {
+  position: relative;
   border-style: dashed !important;
 }
 
@@ -221,10 +294,6 @@ html[data-ui] body .prep-journal-card[data-catalog-source='submission-history']:
   pointer-events: none;
 }
 
-html[data-ui] body .prep-journal-card {
-  position: relative;
-}
-
 @media (max-width: 720px) {
   :root {
     --ui-shell-gutter: 8px;
@@ -241,10 +310,5 @@ html[data-ui] body .prep-journal-card {
     .stats-module-controls
   ) > button {
     min-height: 34px !important;
-  }
-
-  html[data-ui] body .paper-card-v3,
-  html[data-ui] body .prep-journal-card {
-    scroll-margin-top: 76px;
   }
 }
