@@ -185,6 +185,18 @@ html[data-ui] body :is(
   column-gap: var(--ui-gap-panel) !important;
 }
 
+html[data-ui] body .preparation-workspace .prep-dashboard-grid,
+html[data-ui] body .preparation-workspace .prep-overview-grid,
+html[data-ui] body .preparation-workspace .prep-card-grid,
+html[data-ui] body .preparation-workspace .journal-grid,
+html[data-ui] body .preparation-workspace .prep-draft-list,
+html[data-ui] body .preparation-workspace .prep-topic-strip,
+html[data-ui] body .preparation-workspace .prep-metrics {
+  gap: var(--ui-gap-panel) !important;
+  row-gap: var(--ui-gap-panel) !important;
+  column-gap: var(--ui-gap-panel) !important;
+}
+
 html[data-ui] body .paper-card-v3,
 html[data-ui] body .prep-journal-card {
   scroll-margin-top: 96px;
