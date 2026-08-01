@@ -1,6 +1,7 @@
 const JOURNAL_BUTTON_SELECTOR = '.paper-card-v3 .journal-pill-button'
 const JOURNAL_POPOVER_SELECTOR = '.paper-card-v3 .journal-quick-overlay'
 const MAIN_NAV_SELECTOR = '.header-tabs button, .tab-bar .tab-btn'
+let repositionFrame = 0
 
 function compactText(value: string | null | undefined) {
   return (value || '').replace(/\s+/g, '').toLocaleLowerCase()
@@ -76,6 +77,39 @@ async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edi
   else main?.focus({ preventScroll: true })
 }
 
+function positionPopover(overlay: HTMLElement) {
+  window.requestAnimationFrame(() => {
+    if (!overlay.isConnected) return
+    if (window.matchMedia('(max-width: 720px)').matches) {
+      overlay.classList.remove('opens-upward')
+      overlay.style.removeProperty('--journal-popover-max-height')
+      return
+    }
+
+    const card = overlay.closest<HTMLElement>('.paper-card-v3')
+    const panel = overlay.querySelector<HTMLElement>('.journal-quick-card')
+    if (!card || !panel) return
+
+    const cardRect = card.getBoundingClientRect()
+    const availableBelow = Math.max(0, window.innerHeight - cardRect.top - 52)
+    const availableAbove = Math.max(0, cardRect.top - 12)
+    const desiredHeight = Math.min(520, panel.scrollHeight || 520)
+    const openUpward = availableBelow < Math.min(desiredHeight, 300) && availableAbove > availableBelow
+    const available = openUpward ? availableAbove : availableBelow
+
+    overlay.classList.toggle('opens-upward', openUpward)
+    overlay.style.setProperty('--journal-popover-max-height', `${Math.max(180, Math.floor(available - 8))}px`)
+  })
+}
+
+function schedulePopoverPositioning() {
+  if (repositionFrame) return
+  repositionFrame = window.requestAnimationFrame(() => {
+    repositionFrame = 0
+    document.querySelectorAll<HTMLElement>(JOURNAL_POPOVER_SELECTOR).forEach(positionPopover)
+  })
+}
+
 function addPinControl(overlay: HTMLElement) {
   if (overlay.querySelector('.journal-quick-pin-button')) return
   const head = overlay.querySelector<HTMLElement>('.journal-quick-head')
@@ -144,10 +178,12 @@ function annotateJournalUi(root: ParentNode = document) {
   })
   root.querySelectorAll<HTMLElement>(JOURNAL_POPOVER_SELECTOR).forEach(overlay => {
     overlay.dataset.journalPopover = 'true'
-    overlay.setAttribute('aria-modal', 'false')
-    overlay.querySelector<HTMLElement>('.journal-quick-card')?.setAttribute('aria-label', '期刊信息悬浮卡片')
+    const panel = overlay.querySelector<HTMLElement>('.journal-quick-card')
+    panel?.setAttribute('aria-label', '期刊信息悬浮卡片')
+    panel?.setAttribute('aria-modal', 'false')
     addPinControl(overlay)
     addLibraryActions(overlay)
+    positionPopover(overlay)
   })
 }
 
@@ -156,6 +192,9 @@ if (document.readyState === 'loading') {
 } else {
   annotateJournalUi()
 }
+
+window.addEventListener('resize', schedulePopoverPositioning, { passive: true })
+document.addEventListener('scroll', schedulePopoverPositioning, { passive: true, capture: true })
 
 new MutationObserver(records => {
   records.forEach(record => record.addedNodes.forEach(node => {
