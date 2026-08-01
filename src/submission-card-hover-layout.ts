@@ -76,6 +76,32 @@ async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edi
   else main?.focus({ preventScroll: true })
 }
 
+function addPinControl(overlay: HTMLElement) {
+  if (overlay.querySelector('.journal-quick-pin-button')) return
+  const head = overlay.querySelector<HTMLElement>('.journal-quick-head')
+  const card = overlay.closest<HTMLElement>('.paper-card-v3')
+  const journalButton = card?.querySelector<HTMLButtonElement>('.journal-pill-button')
+  if (!head || !journalButton) return
+
+  const tools = document.createElement('div')
+  tools.className = 'journal-quick-head-tools'
+  const pin = document.createElement('button')
+  pin.type = 'button'
+  pin.className = 'journal-quick-pin-button'
+  pin.textContent = overlay.classList.contains('is-pinned') ? '取消固定' : '固定'
+  pin.title = '固定悬浮卡片，移开鼠标后仍保持打开'
+  pin.addEventListener('click', event => {
+    event.stopPropagation()
+    journalButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+  })
+  tools.appendChild(pin)
+
+  const close = head.querySelector<HTMLButtonElement>(':scope > button')
+  close?.classList.add('journal-quick-close')
+  if (close) head.insertBefore(tools, close)
+  else head.appendChild(tools)
+}
+
 function addLibraryActions(overlay: HTMLElement) {
   if (overlay.querySelector('.journal-quick-library-actions')) return
   const popover = overlay.querySelector<HTMLElement>('.journal-quick-card')
@@ -120,6 +146,7 @@ function annotateJournalUi(root: ParentNode = document) {
     overlay.dataset.journalPopover = 'true'
     overlay.setAttribute('aria-modal', 'false')
     overlay.querySelector<HTMLElement>('.journal-quick-card')?.setAttribute('aria-label', '期刊信息悬浮卡片')
+    addPinControl(overlay)
     addLibraryActions(overlay)
   })
 }
