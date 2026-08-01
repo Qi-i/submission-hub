@@ -1,0 +1,81 @@
+/* Highest-specificity spacing contract for both Luminous themes. */
+html[data-ui] body .paper-card-v3 {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-content: stretch !important;
+  grid-template-rows: none !important;
+  grid-auto-rows: max-content !important;
+  gap: 8px !important;
+  row-gap: 8px !important;
+  column-gap: 0 !important;
+}
+
+html[data-ui] body .paper-card-v3 > :where(
+  .paper-card-head,
+  .paper-action-rail,
+  .title-block,
+  .archive-chip-row,
+  .paper-rank-row,
+  .author-list-v2,
+  .paper-history,
+  .paper-card-footer
+) {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  margin-block: 0 !important;
+  inset: auto !important;
+  translate: none !important;
+}
+
+html[data-ui] body .paper-card-v3 > .paper-card-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, .92fr) minmax(0, 1.55fr) !important;
+  align-items: start !important;
+  gap: 8px !important;
+  min-height: 0 !important;
+}
+
+html[data-ui] body .paper-card-v3 .journal-pill-button {
+  min-height: 36px !important;
+  padding-block: 4px !important;
+}
+
+html[data-ui] body .paper-card-v3 .journal-pill-text {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.08px !important;
+}
+
+html[data-ui] body .paper-card-v3 > .paper-action-rail {
+  align-self: stretch !important;
+  justify-content: flex-end !important;
+  min-height: 23px !important;
+  padding: 0 !important;
+}
+
+html[data-ui] body .paper-card-v3 > .title-block,
+html[data-ui] body .paper-card-v3 > .archive-chip-row,
+html[data-ui] body .paper-card-v3 > .paper-rank-row,
+html[data-ui] body .paper-card-v3 > .author-list-v2,
+html[data-ui] body .paper-card-v3 > .paper-history {
+  min-height: 0 !important;
+}
+
+html[data-ui] body .paper-card-v3 > .paper-card-footer {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  min-height: 28px !important;
+}
+
+@media (max-width: 720px) {
+  html[data-ui] body .paper-card-v3 > .paper-card-head {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  html[data-ui] body .paper-card-v3 > .paper-action-rail {
+    justify-content: flex-start !important;
+  }
+}

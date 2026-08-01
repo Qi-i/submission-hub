@@ -1,0 +1,66 @@
+.paper-card-v3 .journal-quick-head-tools {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button {
+  width: auto !important;
+  min-width: 46px !important;
+  height: 27px !important;
+  flex: 0 0 auto !important;
+  padding: 0 8px !important;
+  border: 1px solid rgba(14, 165, 233, .28) !important;
+  border-radius: 8px !important;
+  background: rgba(14, 165, 233, .08) !important;
+  color: #0369a1 !important;
+  font-size: 9.5px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button:hover,
+.paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button:focus-visible {
+  border-color: rgba(14, 165, 233, .58) !important;
+  box-shadow: 0 5px 13px rgba(14, 165, 233, .13);
+  outline: none;
+}
+
+.paper-card-v3 > .journal-quick-overlay.is-pinned > .journal-quick-card::after {
+  display: none !important;
+}
+
+/* Luminous X applies a stronger overflow rule to cards; an open popover must escape the card bounds. */
+html[data-ui] body .paper-card-v3:has(> .journal-quick-overlay),
+html[data-ui='luminous-x'] body .paper-card-v3:has(> .journal-quick-overlay) {
+  overflow: visible !important;
+  contain: none !important;
+}
+
+.paper-card-v3 > .journal-quick-overlay > .journal-quick-card {
+  max-height: min(520px, var(--journal-popover-max-height, calc(100vh - 110px))) !important;
+}
+
+.paper-card-v3 > .journal-quick-overlay.opens-upward {
+  inset: auto 0 calc(100% - 4px) auto !important;
+}
+
+.paper-card-v3 > .journal-quick-overlay.opens-upward > .journal-quick-card {
+  transform-origin: bottom right;
+}
+
+html[data-theme='dark'] .paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button {
+  color: #67e8f9 !important;
+  background: rgba(8, 145, 178, .14) !important;
+  border-color: rgba(103, 232, 249, .28) !important;
+}
+
+@media (max-width: 720px) {
+  .paper-card-v3 > .journal-quick-overlay.opens-upward {
+    inset: auto 10px 10px 10px !important;
+  }
+}
