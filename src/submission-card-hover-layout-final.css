@@ -36,6 +36,18 @@ html[data-ui] body .paper-card-v3 > .paper-card-head {
   min-height: 0 !important;
 }
 
+html[data-ui] body .paper-card-v3 .journal-pill-button {
+  min-height: 36px !important;
+  padding-block: 4px !important;
+}
+
+html[data-ui] body .paper-card-v3 .journal-pill-text {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.08px !important;
+}
+
 html[data-ui] body .paper-card-v3 > .paper-action-rail {
   align-self: stretch !important;
   justify-content: flex-end !important;
