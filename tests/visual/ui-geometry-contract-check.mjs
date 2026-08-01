@@ -30,7 +30,6 @@ for (const ui of ['luminous', 'luminous-x']) {
         }
         const rect = element => element?.getBoundingClientRect().toJSON() || null
         const header = document.querySelector('.app-layout > .app-header')
-        const headerTabs = Array.from(document.querySelectorAll('.app-header .header-tabs, .app-layout > .tab-bar')).find(visible)
         const statusBar = Array.from(document.querySelectorAll('.app-layout > .lx-status-bar')).find(visible)
         const targets = currentView === 'dashboard'
           ? ['.app-layout > .metric-grid', '.app-layout > .action-center', '.app-layout > .paper-grid, .app-layout > .lx-board-view, .app-layout > .lx-journal-view']
@@ -38,22 +37,17 @@ for (const ui of ['luminous', 'luminous-x']) {
             ? ['.app-layout > .preparation-suite']
             : ['.app-layout > .stats-panel']
         const surfaces = targets.map(selector => Array.from(document.querySelectorAll(selector)).find(visible)).filter(Boolean)
-        const navigationSurfaces = [header, headerTabs, statusBar].filter(visible)
-        const navigationBottom = navigationSurfaces.length
-          ? Math.max(...navigationSurfaces.map(element => element.getBoundingClientRect().bottom))
-          : 0
-        const firstContent = [...surfaces].sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top)[0]
-        const navigationGap = firstContent ? Math.round((firstContent.getBoundingClientRect().top - navigationBottom) * 10) / 10 : null
+        const shell = statusBar || header
 
-        const contentGaps = [...surfaces]
-          .sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top)
-          .slice(1)
-          .map((element, index, ordered) => {
-            const previous = [...surfaces].sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top)[index].getBoundingClientRect()
-            const current = element.getBoundingClientRect()
-            return Math.round((current.top - previous.bottom) * 10) / 10
-          })
-          .filter(gap => gap >= 0)
+        const surfaceStyles = surfaces.map(element => {
+          const style = getComputedStyle(element)
+          return {
+            rect: rect(element),
+            marginTop: parseFloat(style.marginTop) || 0,
+            marginLeft: style.marginLeft,
+            marginRight: style.marginRight,
+          }
+        })
 
         const menuRoots = Array.from(document.querySelectorAll('.header-tabs, .prep-nav, .lx-page-proxy-controls, .stats-module-controls')).filter(visible)
         const menuButtons = menuRoots.flatMap(root => Array.from(root.querySelectorAll(':scope > button')).filter(visible))
@@ -62,6 +56,12 @@ for (const ui of ['luminous', 'luminous-x']) {
 
         const panels = Array.from(document.querySelectorAll('.prep-dashboard, .prep-panel, .prep-topic-card, .prep-draft-card, .prep-journal-card, .action-center, .metric-card, .stats-summary-card, .chart-card')).filter(visible).slice(0, 18)
         const panelRadii = panels.map(panel => parseFloat(getComputedStyle(panel).borderRadius) || 0)
+
+        const grids = Array.from(document.querySelectorAll('.prep-dashboard-grid, .prep-overview-grid, .prep-card-grid, .journal-grid, .paper-grid, .metric-grid, .stats-summary-unified, .stats-distribution-grid')).filter(visible)
+        const gridGaps = grids.map(grid => {
+          const style = getComputedStyle(grid)
+          return Math.max(parseFloat(style.rowGap) || 0, parseFloat(style.columnGap) || 0)
+        })
 
         const journalCenter = document.querySelector(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']")
         const journalStyle = journalCenter ? getComputedStyle(journalCenter) : null
@@ -74,13 +74,12 @@ for (const ui of ['luminous', 'luminous-x']) {
 
         return {
           header: rect(header),
-          primaryNav: rect(statusBar || headerTabs || header),
-          surfaces: surfaces.map(rect),
-          navigationGap,
-          contentGaps,
+          shell: rect(shell),
+          surfaces: surfaceStyles,
           menuHeights,
           menuRadii,
           panelRadii,
+          gridGaps,
           journalCenter: journalCenter ? {
             display: journalStyle?.display,
             backgroundColor: journalStyle?.backgroundColor,
@@ -92,21 +91,23 @@ for (const ui of ['luminous', 'luminous-x']) {
         }
       }, view)
 
-      if (!report.header || !report.primaryNav) {
-        fail(`${ui}/${view}: primary navigation geometry is missing`)
+      if (!report.header || !report.shell) {
+        fail(`${ui}/${view}: top-level shell is missing`)
         continue
       }
       report.surfaces.forEach((surface, index) => {
-        if (!surface) return
-        if (!closeEnough(surface.left, report.primaryNav.left) || !closeEnough(surface.right, report.primaryNav.right)) {
-          fail(`${ui}/${view}: surface ${index + 1} does not share primary-navigation boundaries (${surface.left}/${surface.right} vs ${report.primaryNav.left}/${report.primaryNav.right})`)
+        if (!surface.rect) return
+        if (!closeEnough(surface.rect.left, report.shell.left) || !closeEnough(surface.rect.right, report.shell.right)) {
+          fail(`${ui}/${view}: surface ${index + 1} does not share shell boundaries (${surface.rect.left}/${surface.rect.right} vs ${report.shell.left}/${report.shell.right})`)
         }
+        if (surface.marginTop < 8 || surface.marginTop > 18) fail(`${ui}/${view}: surface ${index + 1} uses a non-contract top margin (${surface.marginTop})`)
+        if (surface.marginLeft !== '0px' && surface.marginLeft !== 'auto') fail(`${ui}/${view}: surface ${index + 1} has a custom left margin (${surface.marginLeft})`)
+        if (surface.marginRight !== '0px' && surface.marginRight !== 'auto') fail(`${ui}/${view}: surface ${index + 1} has a custom right margin (${surface.marginRight})`)
       })
-      if (report.navigationGap !== null && (report.navigationGap < 8 || report.navigationGap > 18)) fail(`${ui}/${view}: primary navigation to content gap is outside the contract (${report.navigationGap})`)
-      if (report.contentGaps.some(gap => gap < 8 || gap > 18)) fail(`${ui}/${view}: content-module gap is outside the contract (${report.contentGaps.join(', ')})`)
       if (report.menuHeights.length && Math.max(...report.menuHeights) - Math.min(...report.menuHeights) > 3) fail(`${ui}/${view}: menu button heights differ (${report.menuHeights.join(', ')})`)
       if (report.menuRadii.some(radius => radius < 7 || radius > 11)) fail(`${ui}/${view}: menu radius is outside the control scale (${report.menuRadii.join(', ')})`)
       if (report.panelRadii.some(radius => radius < 12 || radius > 16)) fail(`${ui}/${view}: panel radius is outside the panel scale (${report.panelRadii.join(', ')})`)
+      if (report.gridGaps.some(gap => gap < 8 || gap > 14)) fail(`${ui}/${view}: grid interval is outside the 12px rhythm (${report.gridGaps.join(', ')})`)
 
       if (view === 'preparation') {
         if (!report.journalCenter) fail(`${ui}: journal center primary entry is missing`)
@@ -118,7 +119,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         if (!/新增期刊|期刊档案/.test(report.visibleText)) fail(`${ui}: journal center terminology is missing`)
       }
 
-      details.push(`${ui}/${view}: boundaries=${report.primaryNav.left}-${report.primaryNav.right}; navigationGap=${report.navigationGap}; contentGaps=${report.contentGaps.join('/')}; menuRadius=${report.menuRadii.slice(0, 5).join('/')}; panelRadius=${report.panelRadii.slice(0, 5).join('/')}`)
+      details.push(`${ui}/${view}: boundaries=${report.shell.left}-${report.shell.right}; margins=${report.surfaces.map(item => item.marginTop).join('/')}; menuRadius=${report.menuRadii.slice(0, 5).join('/')}; panelRadius=${report.panelRadii.slice(0, 5).join('/')}; gridGap=${report.gridGaps.slice(0, 5).join('/')}`)
     } catch (error) {
       fail(`${ui}/${view}: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
