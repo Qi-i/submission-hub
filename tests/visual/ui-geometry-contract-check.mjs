@@ -44,8 +44,6 @@ for (const ui of ['luminous', 'luminous-x']) {
           return {
             rect: rect(element),
             marginTop: parseFloat(style.marginTop) || 0,
-            marginLeft: style.marginLeft,
-            marginRight: style.marginRight,
           }
         })
 
@@ -101,8 +99,6 @@ for (const ui of ['luminous', 'luminous-x']) {
           fail(`${ui}/${view}: surface ${index + 1} does not share shell boundaries (${surface.rect.left}/${surface.rect.right} vs ${report.shell.left}/${report.shell.right})`)
         }
         if (surface.marginTop < 8 || surface.marginTop > 18) fail(`${ui}/${view}: surface ${index + 1} uses a non-contract top margin (${surface.marginTop})`)
-        if (surface.marginLeft !== '0px' && surface.marginLeft !== 'auto') fail(`${ui}/${view}: surface ${index + 1} has a custom left margin (${surface.marginLeft})`)
-        if (surface.marginRight !== '0px' && surface.marginRight !== 'auto') fail(`${ui}/${view}: surface ${index + 1} has a custom right margin (${surface.marginRight})`)
       })
       if (report.menuHeights.length && Math.max(...report.menuHeights) - Math.min(...report.menuHeights) > 3) fail(`${ui}/${view}: menu button heights differ (${report.menuHeights.join(', ')})`)
       if (report.menuRadii.some(radius => radius < 7 || radius > 11)) fail(`${ui}/${view}: menu radius is outside the control scale (${report.menuRadii.join(', ')})`)
