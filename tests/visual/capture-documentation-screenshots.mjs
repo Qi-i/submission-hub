@@ -73,10 +73,13 @@ async function captureReviewLookup() {
     })
 
     await openJournalLibrary(page, 'luminous-x')
-    await page.locator('.preparation-workspace[data-section="journals"]:visible .prep-journal-card-main').first().click({ force: true })
+    const addJournal = page.locator('.btn-journal-primary:visible').first()
+    await addJournal.waitFor({ state: 'visible', timeout: 15000 })
+    await addJournal.click({ force: true })
     const modal = page.locator('.journal-form-modal:visible').first()
     await modal.waitFor({ state: 'visible', timeout: 15000 })
 
+    await modal.locator('.prep-field', { hasText: '英文期刊名' }).locator('input').first().fill('Journal of Rock Mechanics and Geotechnical Engineering')
     await modal.locator('.prep-field', { hasText: '期刊官网' }).locator('input').first().fill(journalUrl)
     await modal.locator('.prep-field', { hasText: '审稿周期来源' }).locator('input').first().fill('')
     await modal.getByRole('button', { name: '获取审稿周期' }).click()
