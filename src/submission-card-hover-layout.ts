@@ -219,7 +219,7 @@ document.addEventListener('click', event => {
   }
 
   const closeButton = target?.closest<HTMLButtonElement>('.paper-card-v3 .journal-quick-head > button')
-  const card = cardFor(closeButton)
+  const card = cardFor(closeButton || null)
   if (card) setPinned(card, false)
 }, true)
 
