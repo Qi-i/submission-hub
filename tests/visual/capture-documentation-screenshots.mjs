@@ -39,7 +39,7 @@ async function openJournalLibrary(page, ui) {
 
   const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
   await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
-  await journalCenter.click()
+  await journalCenter.click({ force: true })
 
   await page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.evaluate(() => window.scrollTo(0, 0))
@@ -73,7 +73,7 @@ async function captureReviewLookup() {
     })
 
     await openJournalLibrary(page, 'luminous-x')
-    await page.locator('.preparation-workspace[data-section="journals"]:visible .prep-journal-card-main').first().click()
+    await page.locator('.preparation-workspace[data-section="journals"]:visible .prep-journal-card-main').first().click({ force: true })
     const modal = page.locator('.journal-form-modal:visible').first()
     await modal.waitFor({ state: 'visible', timeout: 15000 })
 
