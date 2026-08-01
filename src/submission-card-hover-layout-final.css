@@ -69,6 +69,72 @@ html[data-ui] body .paper-card-v3 > .paper-card-footer {
   min-height: 28px !important;
 }
 
+/* Desktop: main status + journal share row 1; system status + publisher/actions share row 2. */
+@media (min-width: 721px) {
+  html[data-ui] body .paper-grid .paper-card-v3 {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3 > .paper-card-head {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: 64px !important;
+    padding: 0 62% 0 0 !important;
+    overflow: visible !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3 .paper-status-area {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3 .paper-journal-slot {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 39% !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3 > .paper-action-rail {
+    position: absolute !important;
+    top: 58px !important;
+    right: 18px !important;
+    left: calc(39% + 18px) !important;
+    z-index: 2 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 24px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 5px !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3 > .paper-card-head:has(+ .paper-action-rail) {
+    min-height: 88px !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3 > .paper-card-head:not(:has(+ .paper-action-rail)) {
+    min-height: 64px !important;
+  }
+}
+
 @media (max-width: 720px) {
   html[data-ui] body .paper-card-v3 > .paper-card-head {
     grid-template-columns: minmax(0, 1fr) !important;
