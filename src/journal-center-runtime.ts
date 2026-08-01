@@ -84,6 +84,25 @@ function enhanceJournalForm() {
   })
 }
 
+function enhanceOverviewGuidance(workspace: HTMLElement, total: number) {
+  const nextCard = workspace.querySelector<HTMLElement>('.prep-dashboard-next-card')
+  if (!nextCard) return
+  const title = nextCard.querySelector<HTMLElement>('h3')
+  const detail = nextCard.querySelector<HTMLElement>('p')
+  const action = nextCard.querySelector<HTMLElement>('.prep-next-primary')
+
+  if (total > 0 && compact(title?.textContent) === '建立目标期刊库') {
+    setTextIfChanged(title, '完善期刊档案')
+    setTextIfChanged(detail, '已有期刊记录，可补充分区、收录、费用、审稿周期，并将常用期刊设为重点期刊。')
+    replaceExactTextNodes(action || nextCard, { 收藏期刊: '完善档案' })
+  } else if (total === 0) {
+    setExactText(title, '建立目标期刊库', '建立首条期刊档案')
+    if (detail && compact(detail.textContent).includes('收藏目标期刊')) {
+      setTextIfChanged(detail, '新增期刊档案并补充分区、收录、费用和审稿周期；正式投稿后也会自动简易入库。')
+    }
+  }
+}
+
 function enhanceWorkspace(workspace: HTMLElement) {
   const total = journalTotal(workspace)
 
@@ -107,6 +126,7 @@ function enhanceWorkspace(workspace: HTMLElement) {
   })
 
   syncJournalTotals(workspace, total)
+  enhanceOverviewGuidance(workspace, total)
   enhanceJournalCards(workspace)
 }
 
