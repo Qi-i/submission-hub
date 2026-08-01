@@ -1,0 +1,41 @@
+.paper-card-v3 .journal-quick-head-tools {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button {
+  width: auto !important;
+  min-width: 46px !important;
+  height: 27px !important;
+  flex: 0 0 auto !important;
+  padding: 0 8px !important;
+  border: 1px solid rgba(14, 165, 233, .28) !important;
+  border-radius: 8px !important;
+  background: rgba(14, 165, 233, .08) !important;
+  color: #0369a1 !important;
+  font-size: 9.5px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button:hover,
+.paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button:focus-visible {
+  border-color: rgba(14, 165, 233, .58) !important;
+  box-shadow: 0 5px 13px rgba(14, 165, 233, .13);
+  outline: none;
+}
+
+.paper-card-v3 > .journal-quick-overlay.is-pinned > .journal-quick-card::after {
+  display: none !important;
+}
+
+html[data-theme='dark'] .paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button {
+  color: #67e8f9 !important;
+  background: rgba(8, 145, 178, .14) !important;
+  border-color: rgba(103, 232, 249, .28) !important;
+}
