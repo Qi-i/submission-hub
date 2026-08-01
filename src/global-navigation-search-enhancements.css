@@ -1,0 +1,95 @@
+/* Main navigation order: submission management, journal center, preparation, stats, admin. */
+.header-tabs > button[data-main-nav-key='dashboard'],
+.tab-bar > button[data-main-nav-key='dashboard'] { order: 1; }
+.header-tabs > button[data-main-nav-key='journals'],
+.tab-bar > button[data-main-nav-key='journals'] { order: 2; }
+.header-tabs > button[data-main-nav-key='preparation'],
+.tab-bar > button[data-main-nav-key='preparation'] { order: 3; }
+.header-tabs > button[data-main-nav-key='stats'],
+.tab-bar > button[data-main-nav-key='stats'] { order: 4; }
+.header-tabs > button[data-main-nav-key='admin'],
+.tab-bar > button[data-main-nav-key='admin'] { order: 5; }
+
+.header-tabs > button[data-main-nav-key='journals'],
+.tab-bar > button[data-main-nav-key='journals'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.header-tabs > button[data-main-nav-key='journals'].active,
+.tab-bar > button[data-main-nav-key='journals'].active {
+  color: #087ca7;
+}
+
+/* All search fields receive a right-side, single-click clear action. */
+.global-search-clear-host {
+  position: relative !important;
+}
+
+.global-search-clear-host > input.has-global-search-clear {
+  padding-right: 34px !important;
+}
+
+.global-search-clear-host > .global-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  z-index: 4;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--border, #cbd5e1) 74%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg-card, #fff) 88%, transparent);
+  color: var(--text-muted, #64748b);
+  box-shadow: 0 2px 7px rgba(15, 23, 42, .05);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color 130ms ease, border-color 130ms ease, background 130ms ease, opacity 130ms ease;
+}
+
+.global-search-clear-host > .global-search-clear:hover,
+.global-search-clear-host > .global-search-clear:focus-visible {
+  border-color: color-mix(in srgb, var(--primary, #0ea5e9) 46%, var(--border, #cbd5e1));
+  background: color-mix(in srgb, var(--primary, #0ea5e9) 9%, var(--bg-card, #fff));
+  color: var(--primary, #0284c7);
+  outline: none;
+}
+
+.global-search-clear-host > .global-search-clear[hidden] {
+  display: none !important;
+}
+
+.prep-search.global-search-clear-host > .global-search-clear,
+.search-wrap.global-search-clear-host > .global-search-clear {
+  right: 6px;
+}
+
+html[data-theme='dark'] .global-search-clear-host > .global-search-clear {
+  background: rgba(15, 23, 42, .82);
+  border-color: rgba(148, 163, 184, .24);
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .global-search-clear-host > .global-search-clear:hover,
+html[data-theme='dark'] .global-search-clear-host > .global-search-clear:focus-visible {
+  background: rgba(8, 145, 178, .18);
+  border-color: rgba(103, 232, 249, .35);
+  color: #67e8f9;
+}
+
+@media (max-width: 720px) {
+  .header-tabs > button[data-main-nav-key='journals'],
+  .tab-bar > button[data-main-nav-key='journals'] {
+    min-width: 0;
+  }
+}
