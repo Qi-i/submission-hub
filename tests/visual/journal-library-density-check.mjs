@@ -15,21 +15,9 @@ function errorMessage(error) {
 async function openJournalLibrary(page, ui, theme) {
   await page.goto(`${baseUrl}?view=preparation&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
   await page.locator("html[data-visual-ready='true']").waitFor({ state: 'attached', timeout: 45000 })
-
-  if (ui === 'luminous-x') {
-    const proxyButton = page.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls").getByRole('button', { name: /期刊库/ }).first()
-    if (await proxyButton.isVisible()) {
-      await proxyButton.click({ force: true })
-    } else {
-      const fallbackButton = page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first()
-      await fallbackButton.waitFor({ state: 'visible', timeout: 15000 })
-      await fallbackButton.click({ force: true })
-    }
-  } else {
-    const journalButton = page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first()
-    await journalButton.waitFor({ state: 'visible', timeout: 15000 })
-    await journalButton.click({ force: true })
-  }
+  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
+  await journalCenter.click({ force: true })
 
   const grid = page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first()
   await grid.waitFor({ state: 'visible', timeout: 15000 })
@@ -205,7 +193,9 @@ async function inspectReviewLookup(ui) {
       })
     })
     await openJournalLibrary(page, ui, 'light')
-    await page.locator('.preparation-workspace[data-section="journals"]:visible .prep-journal-card-main').first().click()
+    const addJournal = page.locator('.btn-journal-primary:visible').first()
+    await addJournal.waitFor({ state: 'visible', timeout: 15000 })
+    await addJournal.click({ force: true })
     const modal = page.locator('.journal-form-modal:visible').first()
     await modal.waitFor({ state: 'visible', timeout: 15000 })
     const button = modal.getByRole('button', { name: '获取审稿周期' })
@@ -218,8 +208,10 @@ async function inspectReviewLookup(ui) {
       if (!fieldLabels.some(text => text.trim() === label)) failures.push(`${ui}/form: missing journal selection field ${label}`)
     }
 
+    const nameField = modal.locator('.prep-field', { hasText: '英文期刊名' }).locator('input').first()
     const websiteField = modal.locator('.prep-field', { hasText: '期刊官网' }).locator('input').first()
     const sourceField = modal.locator('.prep-field', { hasText: '审稿周期来源' }).locator('input').first()
+    await nameField.fill('Journal of Rock Mechanics and Geotechnical Engineering')
     await websiteField.fill(journalUrl)
     await sourceField.fill('')
 
