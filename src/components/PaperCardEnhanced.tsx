@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { isSupabaseStoragePath } from '../lib/file-storage-path'
 import { mergePaperWithJournalProfile } from '../lib/journal-paper-sync'
 import type { JournalProfile } from '../lib/preparation'
@@ -164,14 +164,32 @@ function publisherIdentity(value?: string | null): PublisherIdentity | null {
   return { name, mark, tone: 'default' }
 }
 
-function JournalQuickView({ paper, profile, badges, onClose }: { paper: Paper; profile?: JournalProfile; badges: RankBadge[]; onClose: () => void }) {
+function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, onClose }: {
+  paper: Paper
+  profile?: JournalProfile
+  badges: RankBadge[]
+  pinned: boolean
+  onEnter: () => void
+  onLeave: () => void
+  onClose: () => void
+}) {
   const website = profile?.website_url || paper.journal_url
   const backend = resolveBackend(paper, profile)
   const publisher = publisherIdentity(profile?.publisher)
   const scope = profile?.scope
   const indexing = profile?.indexing || []
-  return <div className="journal-quick-overlay" onClick={event => { event.stopPropagation(); onClose() }}>
-    <div className="journal-quick-card" role="dialog" aria-modal="true" aria-label="期刊信息" onClick={event => event.stopPropagation()}>
+  return <div className={`journal-quick-overlay${pinned ? ' is-pinned' : ''}`} onClick={event => event.stopPropagation()}>
+    <div
+      className="journal-quick-card"
+      role="dialog"
+      aria-modal="false"
+      aria-label="期刊信息"
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
+      onFocusCapture={onEnter}
+      onBlurCapture={onLeave}
+      onClick={event => event.stopPropagation()}
+    >
       <div className="journal-quick-head">
         <div>
           <span>期刊信息</span>
@@ -200,6 +218,10 @@ function JournalQuickView({ paper, profile, badges, onClose }: { paper: Paper; p
 
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, journalProfile, index = 0, onClick, onOpenStoredFile }: Props) {
   const [journalOpen, setJournalOpen] = useState(false)
+  const [journalPinned, setJournalPinned] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const journalCloseTimerRef = useRef<number | null>(null)
+  const journalPinnedRef = useRef(false)
   const linkedPaper = mergePaperWithJournalProfile(paper, journalProfile)
   const effectiveStatus = inferMainSubmissionStatus(linkedPaper.system_status, linkedPaper.status)
   const revisionRound = inferRevisionRound(linkedPaper.timeline, linkedPaper.system_status, Number(linkedPaper.revision_round || 0))
@@ -215,6 +237,69 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   const backend = resolveBackend(linkedPaper, journalProfile)
   const publisher = publisherIdentity(journalProfile?.publisher)
   const statusBackend = effectiveStatus !== 'preparing' ? backend : null
+
+  const clearJournalCloseTimer = () => {
+    if (journalCloseTimerRef.current === null) return
+    window.clearTimeout(journalCloseTimerRef.current)
+    journalCloseTimerRef.current = null
+  }
+
+  const openJournalPreview = () => {
+    clearJournalCloseTimer()
+    setJournalOpen(true)
+  }
+
+  const closeJournal = () => {
+    clearJournalCloseTimer()
+    journalPinnedRef.current = false
+    setJournalPinned(false)
+    setJournalOpen(false)
+  }
+
+  const scheduleJournalClose = () => {
+    clearJournalCloseTimer()
+    if (journalPinnedRef.current) return
+    journalCloseTimerRef.current = window.setTimeout(() => {
+      journalCloseTimerRef.current = null
+      if (journalPinnedRef.current) return
+      const hoveredOrFocused = cardRef.current?.querySelector('.journal-pill-button:hover, .journal-quick-card:hover, .journal-pill-button:focus-visible, .journal-quick-card:focus-within')
+      if (!hoveredOrFocused) setJournalOpen(false)
+    }, 220)
+  }
+
+  const toggleJournalPinned = () => {
+    clearJournalCloseTimer()
+    const next = !journalPinnedRef.current
+    journalPinnedRef.current = next
+    setJournalPinned(next)
+    setJournalOpen(next)
+  }
+
+  useEffect(() => () => clearJournalCloseTimer(), [])
+
+  useEffect(() => {
+    if (!journalPinned) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      const card = cardRef.current
+      const button = card?.querySelector('.journal-pill-button')
+      const popover = card?.querySelector('.journal-quick-card')
+      if (button?.contains(target) || popover?.contains(target)) return
+      closeJournal()
+    }
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') closeJournal()
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [journalPinned])
 
   let dateInfo = ''
   if (linkedPaper.submitted_date) {
@@ -258,6 +343,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
 
   return (
     <div
+      ref={cardRef}
       className="card glass-card paper-card-v3 animate-in"
       style={{ ['--paper-status-color' as any]: status.color, animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
       onClick={onClick}
@@ -277,7 +363,18 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
           {!!revisionRound && <span className="paper-revision-inline" title="根据审稿时间线自动识别">R{revisionRound}</span>}
         </div>
         <div className="paper-journal-slot">
-          {linkedPaper.journal && <button type="button" className="journal-pill journal-pill-button" title="点击查看期刊信息" onClick={event => { event.stopPropagation(); setJournalOpen(true) }}><span className="journal-pill-icon" aria-hidden="true">📖</span><span className="journal-pill-text">{linkedPaper.journal}</span><span className="journal-pill-hint">详情</span></button>}
+          {linkedPaper.journal && <button
+            type="button"
+            className="journal-pill journal-pill-button"
+            title="悬停预览期刊信息；点击可固定或关闭"
+            aria-haspopup="dialog"
+            aria-expanded={journalOpen}
+            onPointerEnter={event => { event.stopPropagation(); openJournalPreview() }}
+            onPointerLeave={event => { event.stopPropagation(); scheduleJournalClose() }}
+            onFocus={event => { event.stopPropagation(); openJournalPreview() }}
+            onBlur={event => { event.stopPropagation(); scheduleJournalClose() }}
+            onClick={event => { event.stopPropagation(); toggleJournalPinned() }}
+          ><span className="journal-pill-icon" aria-hidden="true">📖</span><span className="journal-pill-text">{linkedPaper.journal}</span><span className="journal-pill-hint">详情</span></button>}
         </div>
       </div>
 
@@ -309,7 +406,15 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         <span className="paper-date-info">{dateInfo}</span>
       </div>
 
-      {journalOpen && <JournalQuickView paper={linkedPaper} profile={journalProfile} badges={badges} onClose={() => setJournalOpen(false)} />}
+      {journalOpen && <JournalQuickView
+        paper={linkedPaper}
+        profile={journalProfile}
+        badges={badges}
+        pinned={journalPinned}
+        onEnter={openJournalPreview}
+        onLeave={scheduleJournalClose}
+        onClose={closeJournal}
+      />}
     </div>
   )
 }
