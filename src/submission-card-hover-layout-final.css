@@ -69,7 +69,7 @@ html[data-ui] body .paper-card-v3 > .paper-card-footer {
   min-height: 28px !important;
 }
 
-/* Desktop: journal name owns the upper-right row; status and publisher/actions share the next row. */
+/* Desktop: main status + journal share row 1; system status + publisher/actions share row 2. */
 @media (min-width: 721px) {
   html[data-ui] body .paper-card-v3 {
     display: grid !important;
@@ -81,8 +81,27 @@ html[data-ui] body .paper-card-v3 > .paper-card-footer {
     row-gap: 8px !important;
   }
 
-  html[data-ui] body .paper-card-v3 > .paper-card-head {
+  html[data-ui] body .paper-card-v3 > .paper-card-head,
+  html[data-ui] body .paper-card-v3 .paper-status-area {
     display: contents !important;
+  }
+
+  html[data-ui] body .paper-card-v3 .paper-status-area > :where(.badge, .paper-status-backend) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: start !important;
+    justify-self: start !important;
+    min-width: 0 !important;
+  }
+
+  html[data-ui] body .paper-card-v3 .paper-status-area > .paper-substatus,
+  html[data-ui] body .paper-card-v3 .paper-status-area > .paper-status-detail-row {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    justify-self: start !important;
+    min-width: 0 !important;
+    margin: 0 !important;
   }
 
   html[data-ui] body .paper-card-v3 .paper-journal-slot {
@@ -90,13 +109,6 @@ html[data-ui] body .paper-card-v3 > .paper-card-footer {
     grid-row: 1 !important;
     align-self: start !important;
     justify-self: stretch !important;
-    min-width: 0 !important;
-  }
-
-  html[data-ui] body .paper-card-v3 .paper-status-area {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    align-self: start !important;
     min-width: 0 !important;
   }
 
