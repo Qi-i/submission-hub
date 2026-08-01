@@ -5,6 +5,10 @@ function compact(value: string | null | undefined) {
   return (value || '').replace(/\s+/g, '')
 }
 
+function setTextIfChanged(element: Element | null | undefined, value: string) {
+  if (element && element.textContent !== value) element.textContent = value
+}
+
 function replaceTextNode(root: Element | null, from: string, to: string) {
   if (!root) return
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
@@ -17,7 +21,7 @@ function replaceTextNode(root: Element | null, from: string, to: string) {
 }
 
 function setExactText(element: Element | null, from: string, to: string) {
-  if (element && compact(element.textContent) === compact(from)) element.textContent = to
+  if (element && compact(element.textContent) === compact(from)) setTextIfChanged(element, to)
 }
 
 function journalTotal(workspace: HTMLElement) {
@@ -29,21 +33,18 @@ function journalTotal(workspace: HTMLElement) {
 function syncJournalTotals(workspace: HTMLElement, total: number) {
   const pipeline = Array.from(workspace.querySelectorAll<HTMLButtonElement>('.prep-pipeline button'))
     .find(button => compact(button.querySelector('span')?.textContent) === '期刊')
-  const pipelineCount = pipeline?.querySelector('b')
-  if (pipelineCount) pipelineCount.textContent = String(total)
+  setTextIfChanged(pipeline?.querySelector('b'), String(total))
 
   const metric = workspace.querySelector<HTMLElement>('.prep-metrics > [data-tone="journal"]')
-  const metricCount = metric?.querySelector('b')
-  const metricHelper = metric?.querySelector('small')
-  if (metricCount) metricCount.textContent = String(total)
-  if (metricHelper) metricHelper.textContent = '已记录'
+  setTextIfChanged(metric?.querySelector('b'), String(total))
+  setTextIfChanged(metric?.querySelector('small'), '已记录')
 }
 
 function enhanceJournalCards(workspace: HTMLElement) {
   workspace.querySelectorAll<HTMLElement>('.prep-journal-card').forEach(card => {
     const priority = card.querySelector<HTMLElement>('.prep-priority')
     if (priority && compact(priority.textContent) === '未收藏') {
-      priority.textContent = '普通记录'
+      setTextIfChanged(priority, '普通记录')
       priority.title = '已收入期刊中心，未设为重点期刊'
     } else if (priority && !priority.textContent?.trim()) {
       priority.title = '重点期刊'
@@ -52,7 +53,8 @@ function enhanceJournalCards(workspace: HTMLElement) {
 
     const tags = Array.from(card.querySelectorAll<HTMLElement>('.prep-journal-facts [data-tone="selection"]'))
     const fromHistory = tags.some(tag => compact(tag.textContent) === '投稿历史自动收录')
-    card.dataset.catalogSource = fromHistory ? 'submission-history' : 'manual'
+    const source = fromHistory ? 'submission-history' : 'manual'
+    if (card.dataset.catalogSource !== source) card.dataset.catalogSource = source
   })
 }
 
@@ -77,7 +79,7 @@ function enhanceWorkspace(workspace: HTMLElement) {
   })
   workspace.querySelectorAll<HTMLElement>('.prep-panel-head p').forEach(subtitle => {
     if (compact(subtitle.textContent).includes('按期刊类型突出主要分区')) {
-      subtitle.textContent = '统一展示重点期刊、手动记录与投稿历史自动收录档案'
+      setTextIfChanged(subtitle, '统一展示重点期刊、手动记录与投稿历史自动收录档案')
     }
   })
 
@@ -107,7 +109,6 @@ else enhance()
 new MutationObserver(schedule).observe(document.documentElement, {
   childList: true,
   subtree: true,
-  characterData: true,
   attributes: true,
   attributeFilter: ['class', 'data-section'],
 })
