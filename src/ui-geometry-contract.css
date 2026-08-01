@@ -175,20 +175,17 @@ html[data-ui] body :is(
   box-sizing: border-box !important;
 }
 
-html[data-ui='luminous'] body :is(
-  .header-tabs,
-  .prep-nav,
-  .stats-module-controls,
-  .segmented-control
-) > button,
-html[data-ui='luminous-x'] body :is(
-  .prep-nav,
-  .lx-page-proxy-controls,
-  .stats-module-controls,
-  .segmented-control
-) > button {
+html[data-ui='luminous'] body .app-layout .preparation-workspace > .prep-nav > button:not([data-journal-center-internal='true']),
+html[data-ui='luminous-x'] body .app-layout .lx-page-proxy-controls > button,
+html[data-ui] body .app-layout .stats-module-controls > button,
+html[data-ui] body .app-layout .segmented-control > button {
+  height: 36px !important;
   min-height: 36px !important;
-  border-radius: var(--ui-radius-small) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  border-radius: var(--ui-radius-control) !important;
   box-sizing: border-box !important;
 }
 
@@ -253,7 +250,7 @@ html[data-ui] body :is(
   border-radius: var(--ui-radius-control) !important;
 }
 
-html[data-ui] body :is(
+html[data-ui] body .app-layout :is(
   .prep-dashboard-grid,
   .prep-overview-grid,
   .prep-card-grid,
@@ -303,12 +300,10 @@ html[data-ui] body .prep-journal-card[data-catalog-source='submission-history']:
     --ui-radius-panel: 12px;
   }
 
-  html[data-ui] body :is(
-    .header-tabs,
-    .prep-nav,
-    .lx-page-proxy-controls,
-    .stats-module-controls
-  ) > button {
+  html[data-ui='luminous'] body .app-layout .preparation-workspace > .prep-nav > button:not([data-journal-center-internal='true']),
+  html[data-ui='luminous-x'] body .app-layout .lx-page-proxy-controls > button,
+  html[data-ui] body .app-layout .stats-module-controls > button {
+    height: 34px !important;
     min-height: 34px !important;
   }
 }
