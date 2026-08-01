@@ -107,7 +107,7 @@ try {
     if (prepLayout.proxyJournalDisplay !== 'none' && prepLayout.proxyJournalDisplay !== 'missing') failures.push('preparation: journal library is still duplicated in subsection navigation')
     if (!prepLayout.primaryJournalBackground || prepLayout.primaryJournalBackground === 'rgba(0, 0, 0, 0)|none') failures.push('preparation: journal center primary navigation has no colored surface')
     if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search and creation controls were not moved into the header center lane')
-    if (!prepLayout.portalJournal.includes('收藏期刊') || !prepLayout.portalDraft.includes('新建草稿')) failures.push('preparation: header center lane lacks the expected creation actions')
+    if (!prepLayout.portalJournal.includes('新增期刊') || !prepLayout.portalDraft.includes('新建草稿')) failures.push('preparation: header center lane lacks the expected creation actions')
     if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: the redundant wide overview toolbar remains visible')
     if (overlaps(prepLayout.portal, prepLayout.proxy)) failures.push('preparation: header actions overlap subsection navigation')
     if (prepLayout.statusHost && prepLayout.portal && (prepLayout.portal.left < prepLayout.statusHost.left - 2 || prepLayout.portal.right > prepLayout.statusHost.right + 2)) failures.push('preparation: header actions escape the control lane')
@@ -139,7 +139,7 @@ try {
   if (!draftActions) failures.push('preparation: portaled draft creation controls are missing')
   else {
     if (draftActions.actionDisplay === 'none' || !draftActions.actionText.includes('新建草稿')) failures.push('preparation: new draft action is not visible in the header')
-    if (!draftActions.journalActionText.includes('收藏期刊')) failures.push('preparation: journal shortcut is missing from the shared header actions')
+    if (!draftActions.journalActionText.includes('新增期刊')) failures.push('preparation: journal shortcut is missing from the shared header actions')
   }
 
   const journalCenter = prep.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
@@ -156,7 +156,7 @@ try {
     } : null
   })
   if (!journalActions) failures.push('journal center: portaled journal creation controls are missing')
-  else if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('收藏期刊')) failures.push('journal center: collect journal action is not visible in the header')
+  else if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('新增期刊')) failures.push('journal center: add journal action is not visible in the header')
   await prep.screenshot({ path: 'focused-review/luminous-x-preparation-journal-actions.png', fullPage: true })
   await prep.close()
 
