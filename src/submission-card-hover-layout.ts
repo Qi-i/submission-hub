@@ -1,5 +1,6 @@
 const JOURNAL_BUTTON_SELECTOR = '.paper-card-v3 .journal-pill-button'
 const JOURNAL_POPOVER_SELECTOR = '.paper-card-v3 .journal-quick-overlay'
+const LOCAL_POPOVER_SELECTOR = '.journal-quick-overlay'
 const OPEN_DELAY = 90
 const CLOSE_DELAY = 220
 
@@ -18,7 +19,7 @@ function clearTimer(map: WeakMap<HTMLElement, number>, element: HTMLElement | nu
 }
 
 function closeJournalPopover(card: HTMLElement) {
-  const overlay = card.querySelector<HTMLElement>('.journal-quick-overlay')
+  const overlay = card.querySelector<HTMLElement>(LOCAL_POPOVER_SELECTOR)
   if (!overlay) return
   const closeButton = overlay.querySelector<HTMLButtonElement>('.journal-quick-head > button')
   closeButton?.click()
@@ -32,7 +33,7 @@ function pointerOrFocusInside(card: HTMLElement) {
 
 function queueOpen(button: HTMLButtonElement) {
   const card = cardFor(button)
-  if (!card || card.querySelector(JOURNAL_POPOVER_SELECTOR)) return
+  if (!card || card.querySelector(LOCAL_POPOVER_SELECTOR)) return
   clearTimer(closeTimers, card)
   clearTimer(openTimers, button)
   const timer = window.setTimeout(() => {
@@ -62,7 +63,10 @@ function annotateJournalUi(root: ParentNode = document) {
     const card = cardFor(overlay)
     const panel = overlay.querySelector<HTMLElement>('.journal-quick-card')
     panel?.setAttribute('aria-label', '期刊信息悬浮卡片')
-    panel?.addEventListener('pointerenter', () => clearTimer(closeTimers, card), { once: true })
+    if (panel && panel.dataset.hoverRetentionBound !== 'true') {
+      panel.dataset.hoverRetentionBound = 'true'
+      panel.addEventListener('pointerenter', () => clearTimer(closeTimers, card))
+    }
   })
 }
 
