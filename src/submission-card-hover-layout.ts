@@ -54,7 +54,11 @@ function queueOpen(button: HTMLButtonElement) {
   clearTimer(openTimers, button)
   const timer = window.setTimeout(() => {
     openTimers.delete(button)
-    if (button.matches(':hover') || document.activeElement === button) button.click()
+    if (button.matches(':hover') || document.activeElement === button) {
+      button.dataset.journalHoverOpening = 'true'
+      button.click()
+      delete button.dataset.journalHoverOpening
+    }
   }, OPEN_DELAY)
   openTimers.set(button, timer)
 }
@@ -206,7 +210,7 @@ function annotateJournalUi(root: ParentNode = document) {
 document.addEventListener('click', event => {
   const target = event.target as Element | null
   const journalButton = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
-  if (journalButton && event.isTrusted) {
+  if (journalButton && journalButton.dataset.journalHoverOpening !== 'true') {
     const card = cardFor(journalButton)
     if (!card) return
     if (isPinned(card)) {
