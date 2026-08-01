@@ -34,8 +34,33 @@
   display: none !important;
 }
 
+/* Luminous X applies a stronger overflow rule to cards; an open popover must escape the card bounds. */
+html[data-ui] body .paper-card-v3:has(> .journal-quick-overlay),
+html[data-ui='luminous-x'] body .paper-card-v3:has(> .journal-quick-overlay) {
+  overflow: visible !important;
+  contain: none !important;
+}
+
+.paper-card-v3 > .journal-quick-overlay > .journal-quick-card {
+  max-height: min(520px, var(--journal-popover-max-height, calc(100vh - 110px))) !important;
+}
+
+.paper-card-v3 > .journal-quick-overlay.opens-upward {
+  inset: auto 0 calc(100% - 4px) auto !important;
+}
+
+.paper-card-v3 > .journal-quick-overlay.opens-upward > .journal-quick-card {
+  transform-origin: bottom right;
+}
+
 html[data-theme='dark'] .paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button {
   color: #67e8f9 !important;
   background: rgba(8, 145, 178, .14) !important;
   border-color: rgba(103, 232, 249, .28) !important;
+}
+
+@media (max-width: 720px) {
+  .paper-card-v3 > .journal-quick-overlay.opens-upward {
+    inset: auto 10px 10px 10px !important;
+  }
 }
