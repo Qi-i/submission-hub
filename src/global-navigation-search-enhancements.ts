@@ -134,8 +134,8 @@ function ensureJournalCenterButton(nav: HTMLElement) {
 
   if (preparation.dataset.journalCenterBound !== 'true') {
     preparation.dataset.journalCenterBound = 'true'
-    preparation.addEventListener('click', () => {
-      if (openingJournalCenter) return
+    preparation.addEventListener('click', event => {
+      if (openingJournalCenter || !event.isTrusted) return
       clickPreparationSection('overview')
     }, true)
   }
