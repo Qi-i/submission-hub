@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Paper } from '../lib/types'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
+import { deriveAutomaticJournalProfiles } from '../lib/journal-auto-catalog'
 import * as prepStore from '../lib/local-preparation-store'
 import * as paperStore from '../lib/local-store'
 import PreparationWorkspaceSuite from './PreparationWorkspaceSuite'
@@ -22,7 +23,13 @@ export default function OfflinePreparationWorkspace({ authorName, refreshToken, 
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
 
   const refresh = useCallback(() => {
-    setSnapshot(prepStore.getPreparationSnapshot())
+    let next = prepStore.getPreparationSnapshot()
+    const additions = deriveAutomaticJournalProfiles(paperStore.getPapers(), next.journals, 'offline')
+    if (additions.length) {
+      additions.forEach(journal => prepStore.upsertJournal(journal))
+      next = prepStore.getPreparationSnapshot()
+    }
+    setSnapshot(next)
   }, [])
 
   useEffect(() => { refresh() }, [refresh, refreshToken])
