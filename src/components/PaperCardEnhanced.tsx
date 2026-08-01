@@ -164,19 +164,20 @@ function publisherIdentity(value?: string | null): PublisherIdentity | null {
   return { name, mark, tone: 'default' }
 }
 
-function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, onClose }: {
+function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, onTogglePinned, onClose }: {
   paper: Paper
   profile?: JournalProfile
   badges: RankBadge[]
   pinned: boolean
   onEnter: () => void
   onLeave: () => void
+  onTogglePinned: () => void
   onClose: () => void
 }) {
   const website = profile?.website_url || paper.journal_url
   const backend = resolveBackend(paper, profile)
   const publisher = publisherIdentity(profile?.publisher)
-  const scope = profile?.scope
+  const scope = profile?.scope_zh || profile?.selection_notes || null
   const indexing = profile?.indexing || []
   return <div className={`journal-quick-overlay${pinned ? ' is-pinned' : ''}`} onClick={event => event.stopPropagation()}>
     <div
@@ -196,7 +197,16 @@ function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, on
           <h3>{profile?.name || paper.journal || '未填写期刊'}</h3>
           {publisher && <p className="journal-quick-publisher"><span>{publisher.mark}</span>{publisher.name}</p>}
         </div>
-        <button type="button" onClick={onClose} aria-label="关闭">×</button>
+        <div className="journal-quick-head-tools">
+          <button
+            type="button"
+            className="journal-quick-pin-button"
+            aria-pressed={pinned}
+            title={pinned ? '取消固定；鼠标移出后自动关闭' : '固定悬浮卡片，移开鼠标后仍保持打开'}
+            onClick={event => { event.stopPropagation(); onTogglePinned() }}
+          >{pinned ? '取消固定' : '固定'}</button>
+          <button type="button" className="journal-quick-close" onClick={onClose} aria-label="关闭">×</button>
+        </div>
       </div>
       {badges.length > 0 && <div className="journal-quick-ranks">{badges.map((badge, index) => <span key={`${badge.label}-${index}`} className={badge.cls}>{badge.label}</span>)}</div>}
       <div className="journal-quick-facts">
@@ -206,7 +216,7 @@ function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, on
         <div><b>{oaLabel(profile?.oa_type)}</b><span>开放获取</span></div>
       </div>
       {indexing.length > 0 && <div className="journal-quick-indexing">{indexing.map(item => <span key={item}>{item}</span>)}</div>}
-      {scope && <p className="journal-quick-scope">{scope}</p>}
+      {scope && <p className="journal-quick-scope journal-quick-scope-zh">{scope}</p>}
       <div className="journal-quick-links">
         {backend && <a className="journal-quick-backend" href={backend.url} target="_blank" rel="noopener noreferrer" title={backend.hint}>{backend.label} ↗</a>}
         {isUrl(website) && <a href={website!} target="_blank" rel="noopener noreferrer">期刊官网 ↗</a>}
@@ -272,7 +282,13 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
     const next = !journalPinnedRef.current
     journalPinnedRef.current = next
     setJournalPinned(next)
-    setJournalOpen(next)
+    setJournalOpen(true)
+    if (!next) scheduleJournalClose()
+  }
+
+  const activateJournalLabel = () => {
+    if (journalPinnedRef.current) closeJournal()
+    else toggleJournalPinned()
   }
 
   useEffect(() => () => clearJournalCloseTimer(), [])
@@ -373,7 +389,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
             onPointerLeave={event => { event.stopPropagation(); scheduleJournalClose() }}
             onFocus={event => { event.stopPropagation(); openJournalPreview() }}
             onBlur={event => { event.stopPropagation(); scheduleJournalClose() }}
-            onClick={event => { event.stopPropagation(); toggleJournalPinned() }}
+            onClick={event => { event.stopPropagation(); activateJournalLabel() }}
           ><span className="journal-pill-icon" aria-hidden="true">📖</span><span className="journal-pill-text">{linkedPaper.journal}</span><span className="journal-pill-hint">详情</span></button>}
         </div>
       </div>
@@ -413,6 +429,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
         pinned={journalPinned}
         onEnter={openJournalPreview}
         onLeave={scheduleJournalClose}
+        onTogglePinned={toggleJournalPinned}
         onClose={closeJournal}
       />}
     </div>
