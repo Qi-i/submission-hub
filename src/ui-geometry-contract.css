@@ -14,12 +14,12 @@
   --ui-radius-small: 8px;
 }
 
-html[data-ui] .app-layout {
+html[data-ui] body .app-layout {
   padding-inline: 0 !important;
 }
 
 /* One shared left/right boundary for every top-level surface. */
-html[data-ui] .app-layout > :where(
+html[data-ui] body .app-layout > :is(
   .app-header,
   .lx-status-bar,
   .preparation-suite,
@@ -40,13 +40,13 @@ html[data-ui] .app-layout > :where(
   box-sizing: border-box !important;
 }
 
-html[data-ui] .app-layout > .app-header {
+html[data-ui] body .app-layout > .app-header {
   margin-top: var(--ui-shell-gutter) !important;
   margin-bottom: 0 !important;
   border-radius: var(--ui-radius-shell) !important;
 }
 
-html[data-ui] .app-layout > :where(
+html[data-ui] body .app-layout > :is(
   .lx-status-bar,
   .preparation-suite,
   .metric-grid,
@@ -63,16 +63,16 @@ html[data-ui] .app-layout > :where(
   margin-bottom: 0 !important;
 }
 
-html[data-ui] .preparation-suite,
-html[data-ui] .preparation-workspace,
-html[data-ui] .stats-panel,
-html[data-ui] .admin-panel,
-html[data-ui] .admin-page {
+html[data-ui] body .preparation-suite,
+html[data-ui] body .preparation-workspace,
+html[data-ui] body .stats-panel,
+html[data-ui] body .admin-panel,
+html[data-ui] body .admin-page {
   min-width: 0 !important;
   box-sizing: border-box !important;
 }
 
-html[data-ui] .preparation-workspace {
+html[data-ui] body .preparation-workspace {
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
@@ -81,7 +81,7 @@ html[data-ui] .preparation-workspace {
 }
 
 /* Main navigation and every subordinate menu share the same control geometry. */
-html[data-ui] :where(
+html[data-ui] body :is(
   .header-tabs,
   .prep-nav,
   .lx-page-proxy-controls,
@@ -93,28 +93,38 @@ html[data-ui] :where(
   box-sizing: border-box !important;
 }
 
-html[data-ui] :where(
+html[data-ui] body :is(
   .header-tabs,
   .prep-nav,
   .lx-page-proxy-controls,
   .stats-module-controls,
   .segmented-control
-) > button {
+) > button,
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav > button,
+html[data-ui='luminous-x'] body .lx-status-bar .lx-page-proxy-controls > button {
   min-height: 36px !important;
   border-radius: var(--ui-radius-small) !important;
   box-sizing: border-box !important;
 }
 
-html[data-ui] .preparation-workspace > :where(.prep-topbar, .prep-nav) {
+html[data-ui] body .preparation-workspace > :is(.prep-topbar, .prep-nav) {
   margin: 0 !important;
 }
 
-html[data-ui] .preparation-workspace > .prep-nav {
+html[data-ui] body .preparation-workspace > .prep-nav {
   width: 100% !important;
 }
 
+/* The journal center is the sole visible journal-library route. */
+html[data-ui] body .preparation-workspace > .prep-nav > button[data-tone='journal'],
+html[data-ui] body button[data-journal-center-internal='true'] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* One radius for page content panels; nested controls use the smaller scale. */
-html[data-ui] :where(
+html[data-ui] body :is(
   .prep-dashboard,
   .prep-panel,
   .prep-dashboard-score-card,
@@ -138,7 +148,7 @@ html[data-ui] :where(
   box-sizing: border-box !important;
 }
 
-html[data-ui] :where(
+html[data-ui] body :is(
   .prep-search,
   .prep-top-actions,
   .prep-panel-head button,
@@ -154,7 +164,7 @@ html[data-ui] :where(
 }
 
 /* Section grids use the same interval instead of page-specific arbitrary gaps. */
-html[data-ui] :where(
+html[data-ui] body :is(
   .prep-dashboard-grid,
   .prep-overview-grid,
   .prep-card-grid,
@@ -175,11 +185,16 @@ html[data-ui] :where(
   column-gap: var(--ui-gap-panel) !important;
 }
 
-html[data-ui] .prep-journal-card[data-catalog-source='submission-history'] {
+html[data-ui] body .paper-card-v3,
+html[data-ui] body .prep-journal-card {
+  scroll-margin-top: 96px;
+}
+
+html[data-ui] body .prep-journal-card[data-catalog-source='submission-history'] {
   border-style: dashed !important;
 }
 
-html[data-ui] .prep-journal-card[data-catalog-source='submission-history']::before {
+html[data-ui] body .prep-journal-card[data-catalog-source='submission-history']::before {
   content: '投稿历史';
   position: absolute;
   right: 12px;
@@ -194,7 +209,7 @@ html[data-ui] .prep-journal-card[data-catalog-source='submission-history']::befo
   pointer-events: none;
 }
 
-html[data-ui] .prep-journal-card {
+html[data-ui] body .prep-journal-card {
   position: relative;
 }
 
@@ -207,12 +222,17 @@ html[data-ui] .prep-journal-card {
     --ui-radius-panel: 12px;
   }
 
-  html[data-ui] :where(
+  html[data-ui] body :is(
     .header-tabs,
     .prep-nav,
     .lx-page-proxy-controls,
     .stats-module-controls
   ) > button {
     min-height: 34px !important;
+  }
+
+  html[data-ui] body .paper-card-v3,
+  html[data-ui] body .prep-journal-card {
+    scroll-margin-top: 76px;
   }
 }
