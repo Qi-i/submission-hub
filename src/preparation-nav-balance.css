@@ -1,0 +1,21 @@
+/* Four visible preparation routes should form a balanced 2×2 workbench in overview. */
+html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-nav {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-flow: row !important;
+}
+
+html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-nav > button:not([data-journal-center-internal='true']) {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* In full subpages the same four routes remain a single compact row. */
+html[data-ui] body .preparation-workspace:not([data-section='overview']) > .prep-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 720px) {
+  html[data-ui] body .preparation-workspace > .prep-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
