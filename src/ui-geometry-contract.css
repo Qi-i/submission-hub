@@ -1,0 +1,218 @@
+/*
+ * Global geometry contract.
+ * Every primary page uses one horizontal datum, one radius scale and one vertical rhythm.
+ * Keep this file last in app-styles.ts; feature CSS must not override these dimensions ad hoc.
+ */
+:root {
+  --ui-shell-max: 1440px;
+  --ui-shell-gutter: clamp(12px, 1.25vw, 18px);
+  --ui-gap-page: 12px;
+  --ui-gap-panel: 12px;
+  --ui-radius-shell: 16px;
+  --ui-radius-panel: 14px;
+  --ui-radius-control: 10px;
+  --ui-radius-small: 8px;
+}
+
+html[data-ui] .app-layout {
+  padding-inline: 0 !important;
+}
+
+/* One shared left/right boundary for every top-level surface. */
+html[data-ui] .app-layout > :where(
+  .app-header,
+  .lx-status-bar,
+  .preparation-suite,
+  .metric-grid,
+  .action-center,
+  .paper-grid,
+  .lx-board-view,
+  .lx-journal-view,
+  .stats-panel,
+  .admin-panel,
+  .admin-page,
+  .prep-load-error
+) {
+  width: calc(100% - (var(--ui-shell-gutter) * 2)) !important;
+  max-width: var(--ui-shell-max) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] .app-layout > .app-header {
+  margin-top: var(--ui-shell-gutter) !important;
+  margin-bottom: 0 !important;
+  border-radius: var(--ui-radius-shell) !important;
+}
+
+html[data-ui] .app-layout > :where(
+  .lx-status-bar,
+  .preparation-suite,
+  .metric-grid,
+  .action-center,
+  .paper-grid,
+  .lx-board-view,
+  .lx-journal-view,
+  .stats-panel,
+  .admin-panel,
+  .admin-page,
+  .prep-load-error
+) {
+  margin-top: var(--ui-gap-page) !important;
+  margin-bottom: 0 !important;
+}
+
+html[data-ui] .preparation-suite,
+html[data-ui] .preparation-workspace,
+html[data-ui] .stats-panel,
+html[data-ui] .admin-panel,
+html[data-ui] .admin-page {
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] .preparation-workspace {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  gap: var(--ui-gap-panel) !important;
+  row-gap: var(--ui-gap-panel) !important;
+}
+
+/* Main navigation and every subordinate menu share the same control geometry. */
+html[data-ui] :where(
+  .header-tabs,
+  .prep-nav,
+  .lx-page-proxy-controls,
+  .stats-module-controls,
+  .segmented-control
+) {
+  border-radius: var(--ui-radius-control) !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] :where(
+  .header-tabs,
+  .prep-nav,
+  .lx-page-proxy-controls,
+  .stats-module-controls,
+  .segmented-control
+) > button {
+  min-height: 36px !important;
+  border-radius: var(--ui-radius-small) !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] .preparation-workspace > :where(.prep-topbar, .prep-nav) {
+  margin: 0 !important;
+}
+
+html[data-ui] .preparation-workspace > .prep-nav {
+  width: 100% !important;
+}
+
+/* One radius for page content panels; nested controls use the smaller scale. */
+html[data-ui] :where(
+  .prep-dashboard,
+  .prep-panel,
+  .prep-dashboard-score-card,
+  .prep-dashboard-attention-card,
+  .prep-dashboard-next-card,
+  .prep-topic-card,
+  .prep-draft-card,
+  .prep-journal-card,
+  .prep-empty,
+  .action-center,
+  .metric-card,
+  .lx-board-column,
+  .lx-journal-group,
+  .stats-summary-card,
+  .process-insight-card,
+  .chart-card,
+  .distribution-panel,
+  .admin-card
+) {
+  border-radius: var(--ui-radius-panel) !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] :where(
+  .prep-search,
+  .prep-top-actions,
+  .prep-panel-head button,
+  .prep-journal-links a,
+  .prep-journal-facts span,
+  .prep-journal-numbers > div,
+  .prep-metrics > div,
+  .prep-pipeline button,
+  .prep-attention-grid button,
+  .prep-quick-actions button
+) {
+  border-radius: var(--ui-radius-control) !important;
+}
+
+/* Section grids use the same interval instead of page-specific arbitrary gaps. */
+html[data-ui] :where(
+  .prep-dashboard-grid,
+  .prep-overview-grid,
+  .prep-card-grid,
+  .journal-grid,
+  .prep-draft-list,
+  .prep-topic-strip,
+  .prep-metrics,
+  .paper-grid,
+  .metric-grid,
+  .stats-summary-unified,
+  .process-insight-grid,
+  .stats-distribution-grid,
+  .lx-board-view,
+  .lx-journal-group-grid
+) {
+  gap: var(--ui-gap-panel) !important;
+  row-gap: var(--ui-gap-panel) !important;
+  column-gap: var(--ui-gap-panel) !important;
+}
+
+html[data-ui] .prep-journal-card[data-catalog-source='submission-history'] {
+  border-style: dashed !important;
+}
+
+html[data-ui] .prep-journal-card[data-catalog-source='submission-history']::before {
+  content: '投稿历史';
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #0ea5e9) 10%, transparent);
+  color: var(--primary, #0284c7);
+  font-size: 9px;
+  font-weight: 850;
+  pointer-events: none;
+}
+
+html[data-ui] .prep-journal-card {
+  position: relative;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --ui-shell-gutter: 8px;
+    --ui-gap-page: 8px;
+    --ui-gap-panel: 8px;
+    --ui-radius-shell: 14px;
+    --ui-radius-panel: 12px;
+  }
+
+  html[data-ui] :where(
+    .header-tabs,
+    .prep-nav,
+    .lx-page-proxy-controls,
+    .stats-module-controls
+  ) > button {
+    min-height: 34px !important;
+  }
+}
