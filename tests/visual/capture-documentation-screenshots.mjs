@@ -37,16 +37,9 @@ async function openJournalLibrary(page, ui) {
     selector: '.preparation-workspace:visible',
   })
 
-  if (ui === 'luminous-x') {
-    const proxyButton = page.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls").getByRole('button', { name: /期刊库/ }).first()
-    if (await proxyButton.isVisible()) {
-      await proxyButton.click({ force: true })
-    } else {
-      await page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first().click({ force: true })
-    }
-  } else {
-    await page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first().click({ force: true })
-  }
+  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
+  await journalCenter.click()
 
   await page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.evaluate(() => window.scrollTo(0, 0))
