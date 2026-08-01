@@ -16,6 +16,10 @@ function compactText(value: string | null | undefined) {
   return (value || '').replace(/\s+/g, '')
 }
 
+function setText(element: HTMLElement | null | undefined, value: string) {
+  if (element && element.textContent !== value) element.textContent = value
+}
+
 function buttonByLabel(nav: Element, label: string) {
   const wanted = compactText(label)
   return Array.from(nav.querySelectorAll<HTMLButtonElement>(':scope > button'))
@@ -50,6 +54,9 @@ function enhanceSearchInput(input: HTMLInputElement) {
   input.classList.add('has-global-search-clear')
   host.classList.add('global-search-clear-host')
 
+  const previousButton = host.querySelector<HTMLButtonElement>(':scope > .global-search-clear')
+  previousButton?.remove()
+
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'global-search-clear'
@@ -80,7 +87,8 @@ function clickPreparationSection(section: PreparationSection) {
   const apply = () => {
     attempts += 1
     const workspace = document.querySelector<HTMLElement>('.preparation-workspace')
-    const button = workspace ? buttonByLabel(workspace.querySelector(':scope > .prep-nav') || workspace, targetLabel) : null
+    const nav = workspace?.querySelector<HTMLElement>(':scope > .prep-nav')
+    const button = nav ? buttonByLabel(nav, targetLabel) : null
     if (workspace && button) {
       if (!button.classList.contains('active')) button.click()
       scheduleEnhance()
@@ -139,11 +147,11 @@ function syncNavigationState(nav: HTMLElement) {
   if (!preparation || !journal) return
 
   const workspace = document.querySelector<HTMLElement>('.preparation-workspace')
-  const journalSection = workspace && ['journals', 'compare'].includes(workspace.dataset.section || '')
+  const journalSection = !!workspace && ['journals', 'compare'].includes(workspace.dataset.section || '')
 
   if (workspace) {
     preparation.classList.toggle('active', !journalSection)
-    journal.classList.toggle('active', !!journalSection)
+    journal.classList.toggle('active', journalSection)
     preparation.setAttribute('aria-current', journalSection ? 'false' : 'page')
     journal.setAttribute('aria-current', journalSection ? 'page' : 'false')
   } else {
@@ -157,13 +165,13 @@ function syncNavigationState(nav: HTMLElement) {
   const description = heading?.querySelector<HTMLElement>('p')
   if (title && eyebrow && description) {
     if (journalSection) {
-      eyebrow.textContent = 'JOURNAL INTELLIGENCE CENTER'
-      title.textContent = '期刊中心'
-      description.textContent = '集中管理期刊档案、投稿入口、评价指标与期刊比较。'
+      setText(eyebrow, 'JOURNAL INTELLIGENCE CENTER')
+      setText(title, '期刊中心')
+      setText(description, '集中管理期刊档案、投稿入口、评价指标与期刊比较。')
     } else {
-      eyebrow.textContent = 'PRE-SUBMISSION WORKSPACE'
-      title.textContent = '投稿准备'
-      description.textContent = '把选题、草稿与目标期刊组织成一条清晰的投稿前流程。'
+      setText(eyebrow, 'PRE-SUBMISSION WORKSPACE')
+      setText(title, '投稿准备')
+      setText(description, '把选题、草稿与目标期刊组织成一条清晰的投稿前流程。')
     }
   }
 
@@ -171,10 +179,10 @@ function syncNavigationState(nav: HTMLElement) {
   const statusTitle = statusBar?.querySelector<HTMLElement>('.lx-status-core strong')
   const statusDescription = statusBar?.querySelector<HTMLElement>('.lx-status-core p')
   if (statusTitle && statusDescription) {
-    statusTitle.textContent = journalSection ? '期刊中心' : '投稿准备'
-    statusDescription.textContent = journalSection
+    setText(statusTitle, journalSection ? '期刊中心' : '投稿准备')
+    setText(statusDescription, journalSection
       ? '集中管理期刊档案、投稿入口、评价指标与期刊比较。'
-      : '组织选题、论文草稿和目标期刊，形成清晰的投稿前流程。'
+      : '组织选题、论文草稿和目标期刊，形成清晰的投稿前流程。')
   }
 }
 
