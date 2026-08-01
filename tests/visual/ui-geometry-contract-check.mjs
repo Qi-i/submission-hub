@@ -30,15 +30,18 @@ for (const ui of ['luminous', 'luminous-x']) {
         }
         const rect = element => element?.getBoundingClientRect().toJSON() || null
         const header = document.querySelector('.app-layout > .app-header')
+        const statusBar = Array.from(document.querySelectorAll('.app-layout > .lx-status-bar')).find(visible)
         const targets = currentView === 'dashboard'
           ? ['.app-layout > .metric-grid', '.app-layout > .action-center', '.app-layout > .paper-grid, .app-layout > .lx-board-view, .app-layout > .lx-journal-view']
           : currentView === 'preparation'
             ? ['.app-layout > .preparation-suite']
             : ['.app-layout > .stats-panel']
         const surfaces = targets.map(selector => Array.from(document.querySelectorAll(selector)).find(visible)).filter(Boolean)
-        const topLevel = Array.from(document.querySelectorAll('.app-layout > *')).filter(visible)
-        const gaps = topLevel.slice(1).map((element, index) => {
-          const previous = topLevel[index].getBoundingClientRect()
+        const contracted = [header, statusBar, ...surfaces]
+          .filter((element, index, array) => element && array.indexOf(element) === index)
+          .sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top)
+        const gaps = contracted.slice(1).map((element, index) => {
+          const previous = contracted[index].getBoundingClientRect()
           const current = element.getBoundingClientRect()
           return Math.round((current.top - previous.bottom) * 10) / 10
         }).filter(gap => gap >= 0)
@@ -88,8 +91,8 @@ for (const ui of ['luminous', 'luminous-x']) {
           fail(`${ui}/${view}: surface ${index + 1} does not share header boundaries (${surface.left}/${surface.right} vs ${report.header.left}/${report.header.right})`)
         }
       })
-      if (report.gaps.some(gap => gap > 18)) fail(`${ui}/${view}: top-level vertical gap exceeds contract (${report.gaps.join(', ')})`)
-      if (report.gaps.length && Math.max(...report.gaps) - Math.min(...report.gaps) > 6) fail(`${ui}/${view}: top-level gaps are inconsistent (${report.gaps.join(', ')})`)
+      if (report.gaps.some(gap => gap < 8 || gap > 18)) fail(`${ui}/${view}: top-level vertical gap is outside the contract (${report.gaps.join(', ')})`)
+      if (report.gaps.length && Math.max(...report.gaps) - Math.min(...report.gaps) > 4) fail(`${ui}/${view}: top-level gaps are inconsistent (${report.gaps.join(', ')})`)
       if (report.menuHeights.length && Math.max(...report.menuHeights) - Math.min(...report.menuHeights) > 3) fail(`${ui}/${view}: menu button heights differ (${report.menuHeights.join(', ')})`)
       if (report.menuRadii.some(radius => radius < 7 || radius > 11)) fail(`${ui}/${view}: menu radius is outside the control scale (${report.menuRadii.join(', ')})`)
       if (report.panelRadii.some(radius => radius < 12 || radius > 16)) fail(`${ui}/${view}: panel radius is outside the panel scale (${report.panelRadii.join(', ')})`)
