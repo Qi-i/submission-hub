@@ -73,6 +73,16 @@ function queueClose(card: HTMLElement) {
   closeTimers.set(card, timer)
 }
 
+function togglePinnedFromActivation(card: HTMLElement) {
+  if (isPinned(card)) {
+    setPinned(card, false)
+    card.dataset.journalCloseAfterClick = 'true'
+  } else {
+    setPinned(card, true)
+    delete card.dataset.journalCloseAfterClick
+  }
+}
+
 function findButton(selector: string, label: string) {
   const wanted = compactText(label)
   return Array.from(document.querySelectorAll<HTMLButtonElement>(selector))
@@ -207,17 +217,32 @@ function annotateJournalUi(root: ParentNode = document) {
   })
 }
 
+document.addEventListener('pointerdown', event => {
+  const target = event.target as Element | null
+  const journalButton = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
+  if (journalButton) {
+    const card = cardFor(journalButton)
+    if (card) togglePinnedFromActivation(card)
+    return
+  }
+
+  document.querySelectorAll<HTMLElement>('.paper-card-v3[data-journal-pinned="true"]:has(.journal-quick-overlay)').forEach(card => {
+    if (target?.closest('.journal-quick-card')) return
+    closeJournalPopover(card)
+  })
+}, true)
+
 document.addEventListener('click', event => {
   const target = event.target as Element | null
   const journalButton = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
-  if (journalButton && journalButton.dataset.journalHoverOpening !== 'true') {
+  if (journalButton) {
     const card = cardFor(journalButton)
-    if (!card) return
-    if (isPinned(card)) {
-      setPinned(card, false)
+    if (!card || journalButton.dataset.journalHoverOpening === 'true') return
+
+    if (event.detail === 0) togglePinnedFromActivation(card)
+    if (card.dataset.journalCloseAfterClick === 'true') {
+      delete card.dataset.journalCloseAfterClick
       queueMicrotask(() => closeJournalPopover(card))
-    } else {
-      setPinned(card, true)
     }
     return
   }
@@ -225,14 +250,6 @@ document.addEventListener('click', event => {
   const closeButton = target?.closest<HTMLButtonElement>('.paper-card-v3 .journal-quick-head > button')
   const card = cardFor(closeButton || null)
   if (card) setPinned(card, false)
-}, true)
-
-document.addEventListener('pointerdown', event => {
-  const target = event.target as Element | null
-  document.querySelectorAll<HTMLElement>('.paper-card-v3[data-journal-pinned="true"]:has(.journal-quick-overlay)').forEach(card => {
-    if (target?.closest('.journal-pill-button, .journal-quick-card')) return
-    closeJournalPopover(card)
-  })
 }, true)
 
 document.addEventListener('pointerover', event => {
