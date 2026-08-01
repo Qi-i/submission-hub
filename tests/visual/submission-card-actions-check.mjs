@@ -97,13 +97,15 @@ for (const ui of ['luminous', 'luminous-x']) {
 
     const libraryActions = journalPopover.locator('.journal-quick-library-actions button')
     if (await libraryActions.count() !== 2) fail(`${label}: journal popover does not expose both library view and edit actions`)
+    const pinButton = journalPopover.locator('.journal-quick-pin-button')
+    if (await pinButton.count() !== 1) fail(`${label}: journal popover has no explicit pin control`)
 
-    await journalButton.click({ force: true })
+    await pinButton.click({ force: true })
     await page.mouse.move(2, 2)
     await page.waitForTimeout(360)
-    if (!(await journalPopover.isVisible())) fail(`${label}: clicking the journal name does not pin the popover open`)
+    if (!(await journalPopover.isVisible())) fail(`${label}: explicit pin control does not keep the popover open`)
     if (!(await journalPopover.evaluate(element => element.classList.contains('is-pinned')))) fail(`${label}: pinned journal popover has no pinned state`)
-    await journalPopover.locator('.journal-quick-head > button').click({ force: true })
+    await journalPopover.locator('.journal-quick-close').click({ force: true })
     await journalPopover.waitFor({ state: 'hidden', timeout: 2000 })
 
     await journalButton.hover()
