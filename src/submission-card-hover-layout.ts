@@ -1,86 +1,9 @@
 const JOURNAL_BUTTON_SELECTOR = '.paper-card-v3 .journal-pill-button'
 const JOURNAL_POPOVER_SELECTOR = '.paper-card-v3 .journal-quick-overlay'
-const LOCAL_POPOVER_SELECTOR = '.journal-quick-overlay'
 const MAIN_NAV_SELECTOR = '.header-tabs button, .tab-bar .tab-btn'
-const OPEN_DELAY = 90
-const CLOSE_DELAY = 220
-
-const openTimers = new WeakMap<HTMLElement, number>()
-const closeTimers = new WeakMap<HTMLElement, number>()
 
 function compactText(value: string | null | undefined) {
   return (value || '').replace(/\s+/g, '').toLocaleLowerCase()
-}
-
-function cardFor(element: Element | null) {
-  return element?.closest<HTMLElement>('.paper-card-v3') || null
-}
-
-function clearTimer(map: WeakMap<HTMLElement, number>, element: HTMLElement | null) {
-  if (!element) return
-  const timer = map.get(element)
-  if (timer !== undefined) window.clearTimeout(timer)
-  map.delete(element)
-}
-
-function isPinned(card: HTMLElement) {
-  return card.dataset.journalPinned === 'true'
-}
-
-function setPinned(card: HTMLElement, pinned: boolean) {
-  card.dataset.journalPinned = pinned ? 'true' : 'false'
-  card.querySelector<HTMLElement>(LOCAL_POPOVER_SELECTOR)?.classList.toggle('is-pinned', pinned)
-  if (pinned) clearTimer(closeTimers, card)
-}
-
-function closeJournalPopover(card: HTMLElement) {
-  const overlay = card.querySelector<HTMLElement>(LOCAL_POPOVER_SELECTOR)
-  if (!overlay) return
-  setPinned(card, false)
-  const closeButton = overlay.querySelector<HTMLButtonElement>('.journal-quick-head > button')
-  closeButton?.click()
-}
-
-function pointerOrFocusInside(card: HTMLElement) {
-  const active = document.activeElement
-  return !!card.querySelector('.journal-pill-button:hover, .journal-quick-card:hover')
-    || (!!active && (active.matches(JOURNAL_BUTTON_SELECTOR) || card.querySelector('.journal-quick-card')?.contains(active)))
-}
-
-function queueOpen(button: HTMLButtonElement) {
-  const card = cardFor(button)
-  if (!card || card.querySelector(LOCAL_POPOVER_SELECTOR)) return
-  clearTimer(closeTimers, card)
-  clearTimer(openTimers, button)
-  const timer = window.setTimeout(() => {
-    openTimers.delete(button)
-    if (button.matches(':hover') || document.activeElement === button) {
-      button.dataset.journalHoverOpening = 'true'
-      button.click()
-      delete button.dataset.journalHoverOpening
-    }
-  }, OPEN_DELAY)
-  openTimers.set(button, timer)
-}
-
-function queueClose(card: HTMLElement) {
-  if (isPinned(card)) return
-  clearTimer(closeTimers, card)
-  const timer = window.setTimeout(() => {
-    closeTimers.delete(card)
-    if (!isPinned(card) && !pointerOrFocusInside(card)) closeJournalPopover(card)
-  }, CLOSE_DELAY)
-  closeTimers.set(card, timer)
-}
-
-function togglePinnedFromActivation(card: HTMLElement) {
-  if (isPinned(card)) {
-    setPinned(card, false)
-    card.dataset.journalCloseAfterClick = 'true'
-  } else {
-    setPinned(card, true)
-    delete card.dataset.journalCloseAfterClick
-  }
 }
 
 function findButton(selector: string, label: string) {
@@ -97,22 +20,20 @@ function waitForElement<T extends Element>(resolve: () => T | null, timeout = 35
       return
     }
 
-    const started = Date.now()
+    let settled = false
+    const finishOnce = (element: T | null) => {
+      if (settled) return
+      settled = true
+      observer.disconnect()
+      window.clearTimeout(timeoutId)
+      finish(element)
+    }
     const observer = new MutationObserver(() => {
       const element = resolve()
-      if (element) {
-        observer.disconnect()
-        finish(element)
-      } else if (Date.now() - started > timeout) {
-        observer.disconnect()
-        finish(null)
-      }
+      if (element) finishOnce(element)
     })
+    const timeoutId = window.setTimeout(() => finishOnce(resolve()), timeout)
     observer.observe(document.body, { childList: true, subtree: true })
-    window.setTimeout(() => {
-      observer.disconnect()
-      finish(resolve())
-    }, timeout)
   })
 }
 
@@ -126,17 +47,13 @@ function setControlledInputValue(input: HTMLInputElement, value: string) {
 function matchingJournalCard(journalName: string) {
   const wanted = compactText(journalName)
   const cards = Array.from(document.querySelectorAll<HTMLElement>('.prep-journal-card'))
-  return cards.find(card => {
-    const name = card.querySelector('h3')?.textContent
-    return compactText(name) === wanted
-  }) || cards.find(card => compactText(card.querySelector('h3')?.textContent).includes(wanted)) || null
+  return cards.find(card => compactText(card.querySelector('h3')?.textContent) === wanted)
+    || cards.find(card => compactText(card.querySelector('h3')?.textContent).includes(wanted))
+    || null
 }
 
 async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edit') {
-  document.querySelectorAll<HTMLElement>('.paper-card-v3:has(.journal-quick-overlay)').forEach(closeJournalPopover)
-
-  const preparationButton = findButton(MAIN_NAV_SELECTOR, '投稿准备')
-  preparationButton?.click()
+  findButton(MAIN_NAV_SELECTOR, '投稿准备')?.click()
 
   const workspace = await waitForElement(() => document.querySelector<HTMLElement>('.preparation-workspace'))
   if (!workspace) return
@@ -155,19 +72,16 @@ async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edi
   window.setTimeout(() => journalCard.classList.remove('journal-library-focus'), 2600)
 
   const main = journalCard.querySelector<HTMLButtonElement>('.prep-journal-card-main')
-  if (mode === 'edit') {
-    window.setTimeout(() => main?.click(), 180)
-  } else {
-    main?.focus({ preventScroll: true })
-  }
+  if (mode === 'edit') window.setTimeout(() => main?.click(), 180)
+  else main?.focus({ preventScroll: true })
 }
 
 function addLibraryActions(overlay: HTMLElement) {
   if (overlay.querySelector('.journal-quick-library-actions')) return
-  const card = overlay.querySelector<HTMLElement>('.journal-quick-card')
+  const popover = overlay.querySelector<HTMLElement>('.journal-quick-card')
   const links = overlay.querySelector<HTMLElement>('.journal-quick-links')
   const journalName = overlay.querySelector('.journal-quick-head h3')?.textContent?.trim() || ''
-  if (!card || !journalName) return
+  if (!popover || !journalName) return
 
   const actions = document.createElement('div')
   actions.className = 'journal-quick-library-actions'
@@ -193,8 +107,8 @@ function addLibraryActions(overlay: HTMLElement) {
   })
 
   actions.append(view, edit)
-  if (links) card.insertBefore(actions, links)
-  else card.appendChild(actions)
+  if (links) popover.insertBefore(actions, links)
+  else popover.appendChild(actions)
 }
 
 function annotateJournalUi(root: ParentNode = document) {
@@ -205,102 +119,10 @@ function annotateJournalUi(root: ParentNode = document) {
   root.querySelectorAll<HTMLElement>(JOURNAL_POPOVER_SELECTOR).forEach(overlay => {
     overlay.dataset.journalPopover = 'true'
     overlay.setAttribute('aria-modal', 'false')
-    const card = cardFor(overlay)
-    overlay.classList.toggle('is-pinned', !!card && isPinned(card))
-    const panel = overlay.querySelector<HTMLElement>('.journal-quick-card')
-    panel?.setAttribute('aria-label', '期刊信息悬浮卡片')
-    if (panel && panel.dataset.hoverRetentionBound !== 'true') {
-      panel.dataset.hoverRetentionBound = 'true'
-      panel.addEventListener('pointerenter', () => clearTimer(closeTimers, card))
-    }
+    overlay.querySelector<HTMLElement>('.journal-quick-card')?.setAttribute('aria-label', '期刊信息悬浮卡片')
     addLibraryActions(overlay)
   })
 }
-
-document.addEventListener('pointerdown', event => {
-  const target = event.target as Element | null
-  const journalButton = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
-  if (journalButton) {
-    const card = cardFor(journalButton)
-    if (card) {
-      card.dataset.journalActivationHandled = 'true'
-      togglePinnedFromActivation(card)
-    }
-    return
-  }
-
-  document.querySelectorAll<HTMLElement>('.paper-card-v3[data-journal-pinned="true"]:has(.journal-quick-overlay)').forEach(card => {
-    if (target?.closest('.journal-quick-card')) return
-    closeJournalPopover(card)
-  })
-}, true)
-
-document.addEventListener('click', event => {
-  const target = event.target as Element | null
-  const journalButton = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
-  if (journalButton) {
-    const card = cardFor(journalButton)
-    if (!card || journalButton.dataset.journalHoverOpening === 'true') return
-
-    const pointerHandled = card.dataset.journalActivationHandled === 'true'
-    delete card.dataset.journalActivationHandled
-    if (!pointerHandled) togglePinnedFromActivation(card)
-    if (card.dataset.journalCloseAfterClick === 'true') {
-      delete card.dataset.journalCloseAfterClick
-      queueMicrotask(() => closeJournalPopover(card))
-    }
-    return
-  }
-
-  const closeButton = target?.closest<HTMLButtonElement>('.paper-card-v3 .journal-quick-head > button')
-  const card = cardFor(closeButton || null)
-  if (card) setPinned(card, false)
-}, true)
-
-document.addEventListener('pointerover', event => {
-  const target = event.target as Element | null
-  const button = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
-  if (button && !button.contains(event.relatedTarget as Node | null)) queueOpen(button)
-
-  const panel = target?.closest<HTMLElement>('.paper-card-v3 .journal-quick-card')
-  if (panel) clearTimer(closeTimers, cardFor(panel))
-})
-
-document.addEventListener('pointerout', event => {
-  const target = event.target as Element | null
-  const button = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
-  if (button && !button.contains(event.relatedTarget as Node | null)) {
-    clearTimer(openTimers, button)
-    const card = cardFor(button)
-    if (card) queueClose(card)
-  }
-
-  const panel = target?.closest<HTMLElement>('.paper-card-v3 .journal-quick-card')
-  if (panel && !panel.contains(event.relatedTarget as Node | null)) {
-    const card = cardFor(panel)
-    if (card) queueClose(card)
-  }
-})
-
-document.addEventListener('focusin', event => {
-  const target = event.target as Element | null
-  const button = target?.closest<HTMLButtonElement>(JOURNAL_BUTTON_SELECTOR)
-  if (button) queueOpen(button)
-  const card = cardFor(target)
-  if (card) clearTimer(closeTimers, card)
-})
-
-document.addEventListener('focusout', event => {
-  const card = cardFor(event.target as Element | null)
-  if (card) queueClose(card)
-})
-
-document.addEventListener('keydown', event => {
-  if (event.key !== 'Escape') return
-  const card = cardFor(document.activeElement)
-    || document.querySelector<HTMLElement>('.paper-card-v3:has(.journal-quick-overlay)')
-  if (card) closeJournalPopover(card)
-})
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => annotateJournalUi(), { once: true })
@@ -311,6 +133,7 @@ if (document.readyState === 'loading') {
 new MutationObserver(records => {
   records.forEach(record => record.addedNodes.forEach(node => {
     if (!(node instanceof Element)) return
-    annotateJournalUi(node.matches('.paper-card-v3, .journal-quick-overlay') ? node.parentElement || document : node)
+    const root = node.matches('.paper-card-v3, .journal-quick-overlay') ? node.parentElement || document : node
+    annotateJournalUi(root)
   }))
 }).observe(document.documentElement, { childList: true, subtree: true })
