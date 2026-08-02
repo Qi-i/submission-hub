@@ -94,6 +94,20 @@ function clearPreparationActionSource(except?: HTMLButtonElement) {
     })
 }
 
+function syncProxyContent(proxy: HTMLButtonElement, action: PrimaryAction) {
+  const iconMarkup = action.source.querySelector('svg')?.outerHTML || ''
+  const contentKey = `${action.label}|${iconMarkup}`
+  if (proxy.dataset.contentKey === contentKey) return
+
+  const icon = action.source.querySelector('svg')?.cloneNode(true)
+  proxy.replaceChildren()
+  if (icon) proxy.appendChild(icon)
+  const label = document.createElement('span')
+  label.textContent = action.label
+  proxy.appendChild(label)
+  proxy.dataset.contentKey = contentKey
+}
+
 function syncPrimaryAction() {
   const root = document.documentElement
   const isDesktopX = root.dataset.ui === 'luminous-x' && window.matchMedia(DESKTOP_X_QUERY).matches
@@ -101,7 +115,7 @@ function syncPrimaryAction() {
   const existingProxy = document.querySelector<HTMLButtonElement>('.header-context-primary')
   const nativeDashboardAction = stack?.querySelector<HTMLButtonElement>(':scope > .lx-new-paper')
 
-  if (nativeDashboardAction) {
+  if (nativeDashboardAction && nativeDashboardAction.dataset.headerPrimaryAction !== 'true') {
     nativeDashboardAction.dataset.headerPrimaryAction = 'true'
   }
 
@@ -124,18 +138,14 @@ function syncPrimaryAction() {
   action.source.classList.add('header-action-source')
 
   const proxy = existingProxy || document.createElement('button')
-  proxy.type = 'button'
-  proxy.className = 'btn btn-primary btn-sm header-context-primary'
-  proxy.dataset.headerPrimaryAction = 'true'
-  proxy.title = action.title
-  proxy.setAttribute('aria-label', action.label)
-
-  const icon = action.source.querySelector('svg')?.cloneNode(true)
-  proxy.replaceChildren()
-  if (icon) proxy.appendChild(icon)
-  const label = document.createElement('span')
-  label.textContent = action.label
-  proxy.appendChild(label)
+  if (!existingProxy) {
+    proxy.type = 'button'
+    proxy.className = 'btn btn-primary btn-sm header-context-primary'
+    proxy.dataset.headerPrimaryAction = 'true'
+  }
+  if (proxy.title !== action.title) proxy.title = action.title
+  if (proxy.getAttribute('aria-label') !== action.label) proxy.setAttribute('aria-label', action.label)
+  syncProxyContent(proxy, action)
   proxy.onclick = event => {
     event.preventDefault()
     preparationPrimaryAction()?.source.click()
