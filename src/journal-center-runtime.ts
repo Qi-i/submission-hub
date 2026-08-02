@@ -138,7 +138,7 @@ function ensureCatalogFilters(workspace: HTMLElement) {
   let filters = document.querySelector<HTMLElement>('.journal-catalog-top-filters')
   if (!filters) {
     filters = document.createElement('div')
-    filters.className = 'journal-catalog-top-filters'
+    filters.className = 'journal-catalog-top-filters journal-catalog-toolbar'
     filters.setAttribute('role', 'group')
     filters.setAttribute('aria-label', '筛选期刊档案')
     filters.innerHTML = FILTERS.map(filter => (
