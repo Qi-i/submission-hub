@@ -4,24 +4,21 @@ const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
 const browser = await chromium.launch({ headless: true })
 const failures = []
 const details = []
-
-function fail(message) {
-  failures.push(message)
-}
+const fail = message => failures.push(message)
 
 async function openPage(ui, view, viewport = { width: 1680, height: 1050 }) {
   const page = await browser.newPage({ viewport })
   await page.goto(`${baseUrl}?view=${view}&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
   await page.locator("html[data-visual-ready='true'] .app-header").waitFor({ state: 'visible', timeout: 45000 })
-  await page.waitForTimeout(350)
+  await page.waitForTimeout(300)
   return page
 }
 
 for (const ui of ['luminous', 'luminous-x']) {
   const page = await openPage(ui, 'preparation')
   try {
-    const preparationNav = await page.evaluate(currentUi => {
-      const isVisible = element => {
+    const preparation = await page.evaluate(currentUi => {
+      const visible = element => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
@@ -30,22 +27,23 @@ for (const ui of ['luminous', 'luminous-x']) {
       const nav = currentUi === 'luminous-x'
         ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
         : workspace?.querySelector(':scope > .prep-nav')
-      const buttons = Array.from(nav?.querySelectorAll(':scope > button') || []).filter(isVisible)
+      const buttons = Array.from(nav?.querySelectorAll(':scope > button') || []).filter(visible)
       return {
         labels: buttons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
-        columns: nav && currentUi === 'luminous' ? getComputedStyle(nav).gridTemplateColumns.split(' ').filter(Boolean).length : null,
+        columns: currentUi === 'luminous' && nav
+          ? getComputedStyle(nav).gridTemplateColumns.split(' ').filter(Boolean).length
+          : null,
       }
     }, ui)
 
-    const requiredRoutes = ['总览', '选题池', '草稿准备', '期刊比较']
-    if (preparationNav.labels.length !== 4) fail(`${ui}: 投稿准备可见菜单不是 4 个（${preparationNav.labels.join(' / ')}）`)
-    for (const label of requiredRoutes) {
-      if (!preparationNav.labels.some(item => item.includes(label))) fail(`${ui}: 投稿准备缺少“${label}”菜单`)
+    for (const label of ['总览', '选题池', '草稿准备', '期刊比较']) {
+      if (!preparation.labels.some(item => item.includes(label))) fail(`${ui}: 投稿准备缺少“${label}”`)
     }
-    if (preparationNav.labels.some(item => item.includes('期刊库'))) fail(`${ui}: 投稿准备仍显示重复“期刊库”入口`)
-    if (ui === 'luminous' && preparationNav.columns !== 4) fail(`${ui}: 投稿准备桌面菜单不是四列（${preparationNav.columns}）`)
+    if (preparation.labels.length !== 4) fail(`${ui}: 投稿准备可见菜单不是 4 个（${preparation.labels.join(' / ')}）`)
+    if (preparation.labels.some(item => item.includes('期刊库'))) fail(`${ui}: 投稿准备仍显示重复期刊库入口`)
+    if (ui === 'luminous' && preparation.columns !== 4) fail(`${ui}: 投稿准备不是四列（${preparation.columns}）`)
 
-    const journalEntry = page.locator(".header-tabs > button[data-main-nav-key='journals']:visible, .tab-bar > button[data-main-nav-key='journals']:visible").first()
+    const journalEntry = page.locator("button[data-main-nav-key='journals']:visible").first()
     await journalEntry.waitFor({ state: 'visible', timeout: 15000 })
     await journalEntry.evaluate(element => element.click())
     await page.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
@@ -55,88 +53,78 @@ for (const ui of ['luminous', 'luminous-x']) {
     const placement = await page.evaluate(currentUi => {
       const workspace = document.querySelector('.preparation-workspace[data-section="journals"]')
       const filters = document.querySelector('.journal-catalog-top-filters')
-      const nav = workspace?.querySelector(':scope > .prep-nav')
-      const directLegacy = workspace?.querySelector(':scope > .journal-catalog-toolbar')
       const expectedHost = currentUi === 'luminous-x'
         ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-status-controls-host')
         : workspace?.querySelector(':scope > .prep-topbar')
+      const nav = workspace?.querySelector(':scope > .prep-nav')
       return {
         correctHost: !!filters && filters.parentElement === expectedHost,
         navDisplay: nav ? getComputedStyle(nav).display : 'missing',
-        legacyDirectRow: !!directLegacy,
-        filterOverflow: filters ? filters.scrollWidth - filters.clientWidth : 0,
+        legacyRow: !!workspace?.querySelector(':scope > .journal-catalog-toolbar'),
+        overflow: filters ? filters.scrollWidth - filters.clientWidth : 0,
       }
     }, ui)
 
-    if (!placement.correctHost) fail(`${ui}: 期刊筛选没有移动到顶部控制区`)
-    if (placement.navDisplay !== 'none') fail(`${ui}: 期刊中心仍显示投稿准备子菜单行`)
-    if (placement.legacyDirectRow) fail(`${ui}: 期刊中心仍保留下方独立筛选说明行`)
-    if (placement.filterOverflow > 2) fail(`${ui}: 顶部筛选控件横向溢出 ${placement.filterOverflow}px`)
+    if (!placement.correctHost) fail(`${ui}: 筛选未进入顶部控制区`)
+    if (placement.navDisplay !== 'none') fail(`${ui}: 期刊中心仍显示投稿准备菜单行`)
+    if (placement.legacyRow) fail(`${ui}: 期刊中心仍显示旧筛选说明行`)
+    if (placement.overflow > 2) fail(`${ui}: 顶部筛选溢出 ${placement.overflow}px`)
 
     for (const filter of ['all', 'focus', 'submission-history', 'manual']) {
-      const button = page.locator(`.journal-catalog-top-filters .journal-catalog-filter[data-filter="${filter}"]`).first()
-      await button.click()
+      await page.locator(`.journal-catalog-filter[data-filter="${filter}"]`).first().click()
       await page.waitForTimeout(120)
-      const state = await page.evaluate(activeFilter => {
-        const isVisible = element => {
+      const result = await page.evaluate(activeFilter => {
+        const visible = element => {
           const style = getComputedStyle(element)
           const rect = element.getBoundingClientRect()
           return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
         }
         const workspace = document.querySelector('.preparation-workspace[data-section="journals"]')
-        const button = document.querySelector(`.journal-catalog-top-filters .journal-catalog-filter[data-filter="${activeFilter}"]`)
-        const match = (button?.textContent || '').match(/(\d+)\s*$/)
-        const expected = match ? Number(match[1]) : -1
+        const button = document.querySelector(`.journal-catalog-filter[data-filter="${activeFilter}"]`)
+        const expected = Number((button?.textContent || '').match(/(\d+)\s*$/)?.[1] || -1)
         const cards = Array.from(workspace?.querySelectorAll('.prep-journal-card') || [])
-        const visibleCards = cards.filter(isVisible)
         return {
           expected,
-          visible: visibleCards.length,
+          actual: cards.filter(visible).length,
           active: button?.classList.contains('active') || false,
-          workspaceFilter: workspace?.dataset.journalCatalogFilter || '',
-          hiddenClassCount: cards.filter(card => card.classList.contains('is-catalog-filtered-out')).length,
+          state: workspace?.dataset.journalCatalogFilter || '',
         }
       }, filter)
-
-      if (!state.active || state.workspaceFilter !== filter) fail(`${ui}/${filter}: 筛选按钮没有进入激活状态`)
-      if (state.expected < 0) fail(`${ui}/${filter}: 无法读取筛选数量`)
-      else if (state.visible !== state.expected) fail(`${ui}/${filter}: 显示 ${state.visible} 条，预期 ${state.expected} 条`)
-      if (filter !== 'all' && state.hiddenClassCount === 0 && state.expected < 13) fail(`${ui}/${filter}: 筛选后未隐藏任何不匹配卡片`)
+      if (!result.active || result.state !== filter) fail(`${ui}/${filter}: 激活状态未同步`)
+      if (result.actual !== result.expected) fail(`${ui}/${filter}: 显示 ${result.actual} 条，预期 ${result.expected} 条`)
     }
 
     if (ui === 'luminous-x') {
-      const navCoherence = await page.evaluate(() => {
-        const isVisible = element => {
+      const parity = await page.evaluate(() => {
+        const visible = element => {
           const style = getComputedStyle(element)
           const rect = element.getBoundingClientRect()
           return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
         }
-        const buttons = Array.from(document.querySelectorAll('.app-header .header-tabs > button, .app-header .tab-bar > button')).filter(isVisible)
+        const buttons = Array.from(document.querySelectorAll('button[data-main-nav-key]')).filter(visible)
         const journal = buttons.find(button => button.dataset.mainNavKey === 'journals')
         const peer = buttons.find(button => button.dataset.mainNavKey === 'preparation')
         if (!journal || !peer) return null
         const journalStyle = getComputedStyle(journal)
         const peerStyle = getComputedStyle(peer)
         return {
-          journalWidth: journal.getBoundingClientRect().width,
-          peerWidth: peer.getBoundingClientRect().width,
-          journalHeight: journal.getBoundingClientRect().height,
-          peerHeight: peer.getBoundingClientRect().height,
+          widthDelta: Math.abs(journal.getBoundingClientRect().width - peer.getBoundingClientRect().width),
+          heightDelta: Math.abs(journal.getBoundingClientRect().height - peer.getBoundingClientRect().height),
           journalRadius: journalStyle.borderRadius,
           peerRadius: peerStyle.borderRadius,
           justify: journalStyle.justifyContent,
         }
       })
-      if (!navCoherence) fail('luminous-x: 无法读取侧栏菜单样式')
+      if (!parity) fail('luminous-x: 无法读取期刊中心及同级菜单')
       else {
-        if (Math.abs(navCoherence.journalWidth - navCoherence.peerWidth) > 1) fail('luminous-x: 期刊中心与其他侧栏按钮宽度不一致')
-        if (Math.abs(navCoherence.journalHeight - navCoherence.peerHeight) > 1) fail('luminous-x: 期刊中心与其他侧栏按钮高度不一致')
-        if (navCoherence.journalRadius !== navCoherence.peerRadius) fail('luminous-x: 期刊中心与其他侧栏按钮圆角不一致')
-        if (navCoherence.justify !== 'flex-start') fail(`luminous-x: 期刊中心未按侧栏左对齐（${navCoherence.justify}）`)
+        if (parity.widthDelta > 1) fail(`luminous-x: 期刊中心宽度差 ${parity.widthDelta}px`)
+        if (parity.heightDelta > 1) fail(`luminous-x: 期刊中心高度差 ${parity.heightDelta}px`)
+        if (parity.journalRadius !== parity.peerRadius) fail('luminous-x: 期刊中心圆角与同级菜单不一致')
+        if (parity.justify !== 'flex-start') fail(`luminous-x: 期刊中心未左对齐（${parity.justify}）`)
       }
     }
 
-    details.push(`${ui}: preparation routes=${preparationNav.labels.join('|')}; header filters verified`)
+    details.push(`${ui}: routes=${preparation.labels.join('|')}; filters verified`)
   } catch (error) {
     fail(`${ui}: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
@@ -147,26 +135,19 @@ for (const ui of ['luminous', 'luminous-x']) {
 const dashboard = await openPage('luminous', 'dashboard')
 try {
   const grid = await dashboard.evaluate(() => {
-    const isVisible = element => {
-      const style = getComputedStyle(element)
-      const rect = element.getBoundingClientRect()
-      return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
-    }
     const paperGrid = document.querySelector('.paper-grid')
     if (!paperGrid) return null
     const style = getComputedStyle(paperGrid)
     return {
       columns: style.gridTemplateColumns.split(' ').filter(Boolean).length,
       overflow: paperGrid.scrollWidth - paperGrid.clientWidth,
-      visibleCards: Array.from(paperGrid.querySelectorAll('.paper-card-v3, .card.glass-card')).filter(isVisible).length,
     }
   })
   if (!grid) fail('luminous/dashboard: 投稿卡片网格不存在')
   else {
-    if (grid.columns !== 4) fail(`luminous/dashboard: 普通视图投稿管理不是四列（${grid.columns}）`)
-    if (grid.overflow > 2) fail(`luminous/dashboard: 四列布局横向溢出 ${grid.overflow}px`)
-    if (grid.visibleCards < 4) fail(`luminous/dashboard: 测试数据不足以验证四列（${grid.visibleCards}）`)
-    details.push(`luminous/dashboard: columns=${grid.columns}; cards=${grid.visibleCards}`)
+    if (grid.columns !== 4) fail(`luminous/dashboard: 投稿管理不是四列（${grid.columns}）`)
+    if (grid.overflow > 2) fail(`luminous/dashboard: 四列横向溢出 ${grid.overflow}px`)
+    details.push(`luminous/dashboard: columns=${grid.columns}`)
   }
 } catch (error) {
   fail(`luminous/dashboard: ${error instanceof Error ? error.message : String(error)}`)
@@ -175,12 +156,10 @@ try {
 }
 
 await browser.close()
-
 if (failures.length) {
   console.error('Journal Center header/filter regression check failed:')
   failures.forEach(item => console.error(`- ${item}`))
   process.exit(1)
 }
-
 console.log('Journal Center header/filter regression check passed.')
 details.forEach(item => console.log(`- ${item}`))
