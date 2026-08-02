@@ -1,0 +1,166 @@
+/* Submission-management density must stay equivalent across Luminous and Luminous X.
+ * Luminous X previously hard-coded three columns in luminous-x-rebuild.css.
+ * This final layer replaces that fixed rule with the same viewport-driven density contract
+ * used by standard Luminous while preserving the X sidebar and card minimum width.
+ * Journal-group subgrids are explicitly excluded because a group containing one manuscript
+ * should continue to use the full row instead of inheriting the global dashboard column count.
+ */
+
+html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) {
+  min-width: 0 !important;
+  grid-auto-flow: row !important;
+  align-items: stretch !important;
+}
+
+@media (min-width: 2200px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1560px) and (max-width: 2199px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1180px) and (max-width: 1559px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1179px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Four-column X cards have less usable width because the permanent sidebar remains visible.
+ * Use a vertical internal header at this range instead of squeezing status and journal identity
+ * into two competing columns. This preserves four cards per row without clipping long titles.
+ */
+@media (min-width: 1560px) and (max-width: 2199px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 {
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: max-content max-content !important;
+    grid-auto-rows: max-content !important;
+    row-gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 > .paper-card-head {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: max-content max-content !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 .paper-status-area {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 .paper-status-area > * {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 .paper-journal-slot {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 > .paper-action-rail {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    justify-self: stretch !important;
+    align-self: start !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 > :where(
+    .title-block,
+    .archive-chip-row,
+    .paper-rank-row,
+    .author-list-v2,
+    .paper-history,
+    .paper-card-footer
+  ) {
+    grid-column: 1 !important;
+  }
+}
+
+/* Journal and publisher controls remain box-contained at every dense desktop width. */
+@media (min-width: 1560px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 .paper-journal-slot,
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 .journal-pill-button,
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 > .paper-action-rail {
+    box-sizing: border-box !important;
+    inline-size: 100% !important;
+    width: 100% !important;
+    max-inline-size: 100% !important;
+    max-width: 100% !important;
+    min-inline-size: 0 !important;
+    min-width: 0 !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 .journal-pill-button {
+    position: relative !important;
+    inset: auto !important;
+    margin: 0 !important;
+    flex: 1 1 0% !important;
+    flex-basis: 0% !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    align-items: center !important;
+    transform: none !important;
+    translate: none !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) .paper-card-v3 .journal-pill-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+}
