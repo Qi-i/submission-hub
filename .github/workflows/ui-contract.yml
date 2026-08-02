@@ -10,6 +10,7 @@ on:
       - 'tests/visual/journal-center-header-filter-check.mjs'
       - 'tests/visual/header-action-coherence-check.mjs'
       - 'tests/visual/responsive-workspace-density-check.mjs'
+      - 'tests/visual/submission-grid-parity-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -19,6 +20,7 @@ on:
       - 'tests/visual/journal-center-header-filter-check.mjs'
       - 'tests/visual/header-action-coherence-check.mjs'
       - 'tests/visual/responsive-workspace-density-check.mjs'
+      - 'tests/visual/submission-grid-parity-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -62,3 +64,5 @@ jobs:
         run: node tests/visual/header-action-coherence-check.mjs
       - name: Verify responsive workspace density at zoom-equivalent viewports
         run: node tests/visual/responsive-workspace-density-check.mjs
+      - name: Verify submission grid parity across Luminous and Luminous X
+        run: node tests/visual/submission-grid-parity-check.mjs
