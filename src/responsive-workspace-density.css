@@ -50,18 +50,21 @@ html[data-ui='luminous'] body .paper-grid {
   /* At ultrawide widths, sparse journal records must keep content-driven heights.
    * Equal row tracks may remain, but cards no longer stretch to the tallest sibling.
    */
-  html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+  html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid,
+  html[data-ui='luminous-x'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
     align-items: start !important;
     grid-auto-rows: max-content !important;
   }
 
-  html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid > .prep-journal-card {
+  html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid > .prep-journal-card,
+  html[data-ui='luminous-x'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid > .prep-journal-card {
     height: auto !important;
     min-height: 0 !important;
     align-self: start !important;
   }
 
-  html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid > .prep-journal-card > .prep-journal-card-main {
+  html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid > .prep-journal-card > .prep-journal-card-main,
+  html[data-ui='luminous-x'] body .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid > .prep-journal-card > .prep-journal-card-main {
     flex: 0 1 auto !important;
     min-height: 0 !important;
   }

@@ -1,5 +1,11 @@
 const WORKSPACE_SELECTOR = '.preparation-workspace'
 const FILTERS = ['all', 'focus', 'submission-history', 'manual'] as const
+const OA_SHORT_LABELS: Record<string, string> = {
+  订阅制: '订阅',
+  混合开放获取: 'Hybrid OA',
+  全开放获取: 'Gold OA',
+  '钻石开放获取（无APC）': 'Diamond OA',
+}
 
 type JournalFilter = typeof FILTERS[number]
 
@@ -43,6 +49,16 @@ function syncJournalTotals(workspace: HTMLElement, total: number) {
   const metric = workspace.querySelector<HTMLElement>('.prep-metrics > [data-tone="journal"]')
   setTextIfChanged(metric?.querySelector('b'), String(total))
   setTextIfChanged(metric?.querySelector('small'), '档案总数')
+}
+
+function compactOaLabels(workspace: HTMLElement) {
+  workspace.querySelectorAll<HTMLElement>('[data-tone="oa"]').forEach(label => {
+    const original = compact(label.textContent)
+    const shortLabel = OA_SHORT_LABELS[original]
+    if (!shortLabel) return
+    if (!label.title) label.title = label.textContent?.trim() || original
+    setTextIfChanged(label, shortLabel)
+  })
 }
 
 function classifyJournalCard(card: HTMLElement) {
@@ -240,6 +256,7 @@ function enhanceWorkspace(workspace: HTMLElement) {
 
   syncJournalTotals(workspace, total)
   enhanceOverviewGuidance(workspace, total)
+  compactOaLabels(workspace)
   workspace.querySelectorAll<HTMLElement>('.prep-journal-card').forEach(classifyJournalCard)
   ensureCatalogFilters(workspace)
 }

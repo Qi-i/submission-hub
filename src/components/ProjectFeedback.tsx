@@ -46,9 +46,9 @@ export default function ProjectFeedback() {
   if (!target) return null
 
   return createPortal(
-    <div className="project-feedback" ref={rootRef}>
+    <div className="project-feedback" ref={rootRef} data-utility-key="feedback">
       <button
-        className={`project-feedback-trigger btn btn-ghost btn-sm btn-icon ${open ? 'active' : ''}`}
+        className={`project-feedback-trigger btn btn-ghost btn-sm ${open ? 'active' : ''}`}
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
@@ -58,6 +58,7 @@ export default function ProjectFeedback() {
         onClick={() => setOpen(value => !value)}
       >
         <MessageSquareText size={15} />
+        <span className="header-utility-label">反馈</span>
       </button>
 
       {open && (

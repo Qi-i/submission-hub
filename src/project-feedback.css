@@ -9,11 +9,12 @@
 
 .project-feedback-trigger {
   position: relative;
-  width: 32px;
+  width: auto;
   min-width: 32px;
   height: 32px;
   min-height: 32px;
-  padding: 0;
+  padding: 0 9px;
+  gap: 5px;
   border-radius: 9px;
   color: var(--text-secondary, #475569);
 }
@@ -61,6 +62,7 @@
 
 .project-feedback-menu {
   position: absolute;
+  z-index: 1900;
   top: calc(100% + 9px);
   right: 0;
   width: min(310px, calc(100vw - 24px));
@@ -180,9 +182,37 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@media (min-width: 981px) {
+  html[data-ui='luminous-x'] .header-utility-grid > .project-feedback {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1 / -1;
+    order: 5;
+  }
+
+  html[data-ui='luminous-x'] .project-feedback-trigger {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    justify-content: center !important;
+  }
+
+  html[data-ui='luminous-x'] .project-feedback-trigger::after {
+    display: none;
+  }
+
+  html[data-ui='luminous-x'] .project-feedback-menu {
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 9px);
+    left: 0;
+    width: min(310px, calc(100vw - 32px));
+  }
+}
+
 @media (max-width: 640px) {
   .project-feedback-trigger {
-    width: 32px;
     min-width: 32px;
     height: 32px;
     min-height: 32px;

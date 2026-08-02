@@ -10,6 +10,32 @@ html[data-ui='luminous'] .header-tabs button {
   line-height: 1.2 !important;
 }
 
+/* Every primary route, including Journal Center, uses the same neutral,
+   hover and active material. No route receives a one-off color treatment. */
+html[data-ui='luminous'] body .header-tabs > button[data-main-nav-key],
+html[data-ui='luminous'] body .tab-bar > button[data-main-nav-key] {
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--luminous-line) !important;
+  background: rgba(105, 126, 173, .07) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+}
+
+html[data-ui='luminous'] body .header-tabs > button[data-main-nav-key]:hover,
+html[data-ui='luminous'] body .tab-bar > button[data-main-nav-key]:hover {
+  color: var(--text-primary) !important;
+  border-color: rgba(60, 245, 255, .42) !important;
+  background: rgba(60, 245, 255, .09) !important;
+  box-shadow: 0 0 12px rgba(60, 245, 255, .10), inset 0 1px 0 rgba(255, 255, 255, .10) !important;
+}
+
+html[data-ui='luminous'] body .header-tabs > button[data-main-nav-key].active,
+html[data-ui='luminous'] body .tab-bar > button[data-main-nav-key].active {
+  color: var(--text-primary) !important;
+  border-color: rgba(60, 245, 255, .52) !important;
+  background: linear-gradient(135deg, rgba(60, 245, 255, .18), rgba(139, 92, 246, .16), rgba(255, 79, 159, .13)) !important;
+  box-shadow: 0 0 15px rgba(60, 245, 255, .16), inset 0 0 14px rgba(255, 255, 255, .06) !important;
+}
+
 html[data-ui='luminous'] .app-header .luminous-header-center-slot {
   min-width: 0;
   width: 100%;

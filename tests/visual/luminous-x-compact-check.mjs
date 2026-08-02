@@ -69,6 +69,7 @@ try {
     const proxyJournal = Array.from(proxy?.querySelectorAll('button') || []).find(button => button.textContent?.replace(/\s+/g, '').includes('期刊库'))
     const primaryJournal = document.querySelector("button[data-main-nav-key='journals']")
     const primaryPeer = document.querySelector("button[data-main-nav-key='preparation']")
+    const sidebarAction = document.querySelector('.header-context-primary')
     if (!workspace || !topbar || !proxy || !original) return null
 
     const listRect = draftList?.getBoundingClientRect()
@@ -92,6 +93,11 @@ try {
       portalDraft: portal?.querySelector('.btn-context-new')?.textContent?.trim() || '',
       original: getComputedStyle(original).display,
       proxyJournalDisplay: proxyJournal ? getComputedStyle(proxyJournal).display : 'missing',
+      sidebarAction: sidebarAction ? {
+        display: getComputedStyle(sidebarAction).display,
+        text: sidebarAction.textContent?.trim() || '',
+        rect: sidebarAction.getBoundingClientRect().toJSON(),
+      } : null,
       primaryJournalGeometry: primaryJournal && primaryJournalStyle ? {
         width: primaryJournal.getBoundingClientRect().width,
         height: primaryJournal.getBoundingClientRect().height,
@@ -125,11 +131,12 @@ try {
       if (prepLayout.primaryJournalGeometry.radius !== prepLayout.primaryPeerGeometry.radius) failures.push('preparation: journal center radius differs from peer routes')
       if (prepLayout.primaryJournalGeometry.justify !== prepLayout.primaryPeerGeometry.justify) failures.push('preparation: journal center alignment differs from peer routes')
     }
-    if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search and creation controls were not moved into the header center lane')
-    if (!prepLayout.portalJournal.includes('新增期刊') || !prepLayout.portalDraft.includes('新建草稿')) failures.push('preparation: header center lane lacks the expected creation actions')
+    if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search controls were not moved into the header center lane')
+    if (!prepLayout.portalJournal.includes('新增期刊') || !prepLayout.portalDraft.includes('新建草稿')) failures.push('preparation: source creation controls are missing')
+    if (!prepLayout.sidebarAction || prepLayout.sidebarAction.display === 'none' || !prepLayout.sidebarAction.text.includes('新建草稿')) failures.push('preparation: contextual primary action is not visible above the sidebar filter')
     if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: the redundant wide overview toolbar remains visible')
-    if (overlaps(prepLayout.portal, prepLayout.proxy)) failures.push('preparation: header actions overlap subsection navigation')
-    if (prepLayout.statusHost && prepLayout.portal && (prepLayout.portal.left < prepLayout.statusHost.left - 2 || prepLayout.portal.right > prepLayout.statusHost.right + 2)) failures.push('preparation: header actions escape the control lane')
+    if (overlaps(prepLayout.portal, prepLayout.proxy)) failures.push('preparation: header search overlaps subsection navigation')
+    if (prepLayout.statusHost && prepLayout.portal && (prepLayout.portal.left < prepLayout.statusHost.left - 2 || prepLayout.portal.right > prepLayout.statusHost.right + 2)) failures.push('preparation: header search escapes the control lane')
     if (prepLayout.draftTitle !== '草稿推进') failures.push(`preparation: draft panel title is ${prepLayout.draftTitle || 'missing'}`)
     if (prepLayout.draftPanel && prepLayout.journalPanel && Math.abs(prepLayout.draftPanel.height - prepLayout.journalPanel.height) > 4) failures.push('preparation: draft and journal panels are not equal height')
     if (prepLayout.draftCards.length >= 2 && prepLayout.fullyVisibleDrafts < 2) failures.push('preparation: fewer than two complete draft records are visible')
@@ -146,19 +153,22 @@ try {
   await prep.waitForTimeout(150)
   const draftActions = await prep.evaluate(() => {
     const portal = document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal')
-    const action = portal?.querySelector('.btn-context-new')
+    const sourceAction = portal?.querySelector('.btn-context-new')
     const journalAction = portal?.querySelector('.btn-journal-primary')
-    return portal && action ? {
-      host: 'portal',
+    const action = document.querySelector('.header-context-primary')
+    return sourceAction && action ? {
+      host: 'sidebar',
       actionDisplay: getComputedStyle(action).display,
       actionText: action.textContent?.trim() || '',
       journalActionText: journalAction?.textContent?.trim() || '',
+      sourceDisplay: getComputedStyle(sourceAction).display,
     } : null
   })
-  if (!draftActions) failures.push('preparation: portaled draft creation controls are missing')
+  if (!draftActions) failures.push('preparation: contextual draft creation control is missing')
   else {
-    if (draftActions.actionDisplay === 'none' || !draftActions.actionText.includes('新建草稿')) failures.push('preparation: new draft action is not visible in the header')
-    if (!draftActions.journalActionText.includes('新增期刊')) failures.push('preparation: journal shortcut is missing from the shared header actions')
+    if (draftActions.actionDisplay === 'none' || !draftActions.actionText.includes('新建草稿')) failures.push('preparation: new draft action is not visible above the sidebar filter')
+    if (!draftActions.journalActionText.includes('新增期刊')) failures.push('preparation: journal source action is missing')
+    if (draftActions.sourceDisplay !== 'none') failures.push('preparation: duplicate draft creation action remains in the header center lane')
   }
 
   const journalCenter = prep.locator("button[data-main-nav-key='journals']:visible").first()
@@ -167,15 +177,20 @@ try {
   await prep.waitForTimeout(150)
   const journalActions = await prep.evaluate(() => {
     const portal = document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal')
-    const action = portal?.querySelector('.btn-journal-primary')
-    return portal && action ? {
-      host: 'portal',
+    const sourceAction = portal?.querySelector('.btn-journal-primary')
+    const action = document.querySelector('.header-context-primary')
+    return sourceAction && action ? {
+      host: 'sidebar',
       actionDisplay: getComputedStyle(action).display,
       actionText: action.textContent?.trim() || '',
+      sourceDisplay: getComputedStyle(sourceAction).display,
     } : null
   })
-  if (!journalActions) failures.push('journal center: portaled journal creation controls are missing')
-  else if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('新增期刊')) failures.push('journal center: add journal action is not visible in the header')
+  if (!journalActions) failures.push('journal center: contextual journal creation control is missing')
+  else {
+    if (journalActions.actionDisplay === 'none' || !journalActions.actionText.includes('新增期刊')) failures.push('journal center: add journal action is not visible above the sidebar filter')
+    if (journalActions.sourceDisplay !== 'none') failures.push('journal center: duplicate add journal action remains in the header center lane')
+  }
   await prep.screenshot({ path: 'focused-review/luminous-x-preparation-journal-actions.png', fullPage: true })
   await prep.close()
 
@@ -186,21 +201,24 @@ try {
   const narrowFallback = await narrowPrep.evaluate(() => {
     const workspace = document.querySelector(".preparation-workspace[data-section='drafts']")
     const topbar = workspace?.querySelector(':scope > .prep-topbar')
-    const action = topbar?.querySelector('.btn-context-new')
+    const sourceAction = topbar?.querySelector('.btn-context-new')
     const portal = document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal')
-    return workspace && topbar && action ? {
+    const action = document.querySelector('.header-context-primary')
+    return workspace && topbar && sourceAction && action ? {
       portalPresent: !!portal,
       topbarDisplay: getComputedStyle(topbar).display,
       position: getComputedStyle(topbar).position,
       actionDisplay: getComputedStyle(action).display,
       actionText: action.textContent?.trim() || '',
+      sourceDisplay: getComputedStyle(sourceAction).display,
     } : null
   })
-  if (!narrowFallback) failures.push('preparation narrow: in-page fallback controls are missing')
+  if (!narrowFallback) failures.push('preparation narrow: contextual sidebar action is missing')
   else {
     if (narrowFallback.portalPresent) failures.push('preparation narrow: actions remain portaled despite insufficient header width')
-    if (narrowFallback.topbarDisplay === 'none' || narrowFallback.position !== 'sticky') failures.push('preparation narrow: fallback action strip is not visible and sticky')
-    if (narrowFallback.actionDisplay === 'none' || !narrowFallback.actionText.includes('新建草稿')) failures.push('preparation narrow: new draft fallback action is unavailable')
+    if (narrowFallback.topbarDisplay === 'none' || narrowFallback.position !== 'sticky') failures.push('preparation narrow: fallback search strip is not visible and sticky')
+    if (narrowFallback.actionDisplay === 'none' || !narrowFallback.actionText.includes('新建草稿')) failures.push('preparation narrow: new draft action is unavailable above the sidebar filter')
+    if (narrowFallback.sourceDisplay !== 'none') failures.push('preparation narrow: duplicate in-page creation action remains visible')
   }
   await narrowPrep.screenshot({ path: 'focused-review/luminous-x-preparation-narrow-fallback.png', fullPage: true })
   await narrowPrep.close()

@@ -8,6 +8,7 @@ on:
       - 'src/**'
       - 'tests/visual/ui-geometry-contract-check.mjs'
       - 'tests/visual/journal-center-header-filter-check.mjs'
+      - 'tests/visual/header-action-coherence-check.mjs'
       - 'tests/visual/responsive-workspace-density-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'src/**'
       - 'tests/visual/ui-geometry-contract-check.mjs'
       - 'tests/visual/journal-center-header-filter-check.mjs'
+      - 'tests/visual/header-action-coherence-check.mjs'
       - 'tests/visual/responsive-workspace-density-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
@@ -56,5 +58,7 @@ jobs:
         run: node tests/visual/ui-geometry-contract-check.mjs
       - name: Verify Journal Center filters, Preparation routes and standard four-column grid
         run: node tests/visual/journal-center-header-filter-check.mjs
+      - name: Verify header actions, feedback popup and navigation parity
+        run: node tests/visual/header-action-coherence-check.mjs
       - name: Verify responsive workspace density at zoom-equivalent viewports
         run: node tests/visual/responsive-workspace-density-check.mjs
