@@ -8,6 +8,7 @@ on:
       - 'src/**'
       - 'tests/visual/ui-geometry-contract-check.mjs'
       - 'tests/visual/journal-center-header-filter-check.mjs'
+      - 'tests/visual/responsive-workspace-density-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - 'src/**'
       - 'tests/visual/ui-geometry-contract-check.mjs'
       - 'tests/visual/journal-center-header-filter-check.mjs'
+      - 'tests/visual/responsive-workspace-density-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -54,3 +56,5 @@ jobs:
         run: node tests/visual/ui-geometry-contract-check.mjs
       - name: Verify Journal Center filters, Preparation routes and standard four-column grid
         run: node tests/visual/journal-center-header-filter-check.mjs
+      - name: Verify responsive workspace density at zoom-equivalent viewports
+        run: node tests/visual/responsive-workspace-density-check.mjs
