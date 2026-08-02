@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
 
 const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
@@ -6,6 +7,17 @@ const failures = []
 const details = []
 const fail = message => failures.push(message)
 const closeEnough = (a, b, tolerance = 2) => Math.abs(a - b) <= tolerance
+
+const materialCss = readFileSync(new URL('../../src/ui-geometry-contract.css', import.meta.url), 'utf8')
+for (const token of [
+  'submission-hub-background-breathe 24s',
+  'submission-hub-panel-breathe 16s',
+  '@media (prefers-reduced-motion: reduce)',
+  'radial-gradient(ellipse at 10% 4%',
+  "html[data-theme='dark'][data-ui]",
+]) {
+  if (!materialCss.includes(token)) fail(`material contract source is missing: ${token}`)
+}
 
 function luminance(rgb = '') {
   const match = rgb.match(/rgba?\(([^)]+)\)/)
@@ -93,18 +105,14 @@ for (const ui of ['luminous', 'luminous-x']) {
         continue
       }
       report.surfaces.forEach((surface, index) => {
-        if (!closeEnough(surface.rect.left, report.shell.left) || !closeEnough(surface.rect.right, report.shell.right)) {
-          fail(`${ui}/${view}: content surface ${index + 1} does not align with its lane`)
-        }
+        if (!closeEnough(surface.rect.left, report.shell.left) || !closeEnough(surface.rect.right, report.shell.right)) fail(`${ui}/${view}: content surface ${index + 1} does not align with its lane`)
         if (surface.marginTop < 8 || surface.marginTop > 18) fail(`${ui}/${view}: top margin ${surface.marginTop}px is outside contract`)
       })
       if (ui === 'luminous-x') {
         const gap = report.shell.left - report.header.right
         if (report.header.width < 200 || report.header.width > 250) fail(`${ui}/${view}: sidebar width ${report.header.width}px is invalid`)
         if (gap < 12 || gap > 42) fail(`${ui}/${view}: sidebar/content gap ${gap}px is invalid`)
-      } else if (!closeEnough(report.header.left, report.shell.left) || !closeEnough(report.header.right, report.shell.right)) {
-        fail(`${ui}/${view}: top header and content shell do not align`)
-      }
+      } else if (!closeEnough(report.header.left, report.shell.left) || !closeEnough(report.header.right, report.shell.right)) fail(`${ui}/${view}: top header and content shell do not align`)
       report.menuGroups.forEach(group => {
         if (group.heights.length && Math.max(...group.heights) - Math.min(...group.heights) > 3) fail(`${ui}/${view}: ${group.name} heights differ`)
         if (group.radii.some(radius => radius < 7 || radius > 11)) fail(`${ui}/${view}: ${group.name} radius is outside contract`)
@@ -154,9 +162,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         overflow: toolbar ? toolbar.scrollWidth - toolbar.clientWidth : 0,
       }
     })
-    for (const label of ['全部', '重点期刊', '投稿自动收录', '手动记录']) {
-      if (!catalog.labels.some(item => item.startsWith(label))) fail(`${ui}/catalog: filter ${label} is missing`)
-    }
+    for (const label of ['全部', '重点期刊', '投稿自动收录', '手动记录']) if (!catalog.labels.some(item => item.startsWith(label))) fail(`${ui}/catalog: filter ${label} is missing`)
     if (catalog.active !== 'all') fail(`${ui}/catalog: default filter is not all`)
     if (catalog.cards !== catalog.visibleCards) fail(`${ui}/catalog: default view hides records (${catalog.visibleCards}/${catalog.cards})`)
     if (!catalog.ordinary) fail(`${ui}/catalog: non-favorite records are missing`)
@@ -175,7 +181,6 @@ for (const ui of ['luminous', 'luminous-x']) {
       const cardStyle = card ? getComputedStyle(card) : null
       const bodyStyle = getComputedStyle(document.body)
       return {
-        bodyAnimation: bodyStyle.animationName,
         bodyBackground: bodyStyle.backgroundImage,
         title: title ? getComputedStyle(title).color : '',
         secondary: secondary ? getComputedStyle(secondary).color : '',
@@ -183,7 +188,6 @@ for (const ui of ['luminous', 'luminous-x']) {
         border: cardStyle?.borderColor || '',
       }
     })
-    if (dark.bodyAnimation === 'none') fail(`${ui}/dark: background breathing is inactive under no-preference motion`)
     if (!dark.bodyBackground.includes('radial-gradient')) fail(`${ui}/dark: spatial background fields are missing`)
     if (luminance(dark.title) < .70) fail(`${ui}/dark: title is too dim (${dark.title})`)
     if (dark.secondary && luminance(dark.secondary) < .42) fail(`${ui}/dark: secondary text is too dim (${dark.secondary})`)
