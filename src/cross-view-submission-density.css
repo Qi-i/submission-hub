@@ -62,8 +62,12 @@ html[data-ui='luminous-x'] body .paper-grid {
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .paper-journal-slot,
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .journal-pill-button,
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 > .paper-action-rail {
+    box-sizing: border-box !important;
+    inline-size: 100% !important;
     width: 100% !important;
+    max-inline-size: 100% !important;
     max-width: 100% !important;
+    min-inline-size: 0 !important;
     min-width: 0 !important;
   }
 
@@ -73,8 +77,12 @@ html[data-ui='luminous-x'] body .paper-grid {
   }
 
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .journal-pill-button {
-    width: 100% !important;
-    margin-left: 0 !important;
+    position: relative !important;
+    inset: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+    translate: none !important;
+    justify-self: stretch !important;
     overflow: hidden !important;
   }
 
