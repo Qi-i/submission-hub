@@ -1,7 +1,8 @@
 /*
- * Submission Hub geometry contract.
+ * Submission Hub geometry and material contract.
  * Luminous uses a centered top-bar shell. Luminous X uses a fixed sidebar and a
- * separate content lane. Shared radii and spacing never rewrite either layout model.
+ * separate content lane. Shared radii, spacing and material rules never rewrite
+ * either layout model or the established information hierarchy.
  */
 :root {
   --ui-shell-max: 1440px;
@@ -12,6 +13,11 @@
   --ui-radius-panel: 14px;
   --ui-radius-control: 10px;
   --ui-radius-small: 8px;
+  --space-glass-border: rgba(148, 163, 184, .24);
+  --space-glass-highlight: rgba(255, 255, 255, .68);
+  --space-glass-shadow: 0 14px 34px rgba(15, 23, 42, .08);
+  --space-glass-surface: rgba(255, 255, 255, .72);
+  --space-glass-surface-strong: rgba(255, 255, 255, .84);
 }
 
 /* Luminous: header, page controls and page content share one horizontal datum. */
@@ -277,7 +283,7 @@ html[data-ui] body .prep-journal-card[data-catalog-source='submission-history'] 
 }
 
 html[data-ui] body .prep-journal-card[data-catalog-source='submission-history']::before {
-  content: '投稿历史';
+  content: '投稿自动收录';
   position: absolute;
   right: 12px;
   bottom: 10px;
@@ -289,6 +295,231 @@ html[data-ui] body .prep-journal-card[data-catalog-source='submission-history']:
   font-size: 9px;
   font-weight: 850;
   pointer-events: none;
+}
+
+/* Spatial-glass material layer: restrained, content-first and layout-neutral. */
+html[data-ui] body {
+  background-color: #eef4f8 !important;
+  background-image:
+    radial-gradient(ellipse at 12% 8%, rgba(56, 189, 248, .12), transparent 42%),
+    radial-gradient(ellipse at 86% 18%, rgba(139, 92, 246, .09), transparent 44%),
+    radial-gradient(ellipse at 52% 92%, rgba(16, 185, 129, .07), transparent 48%),
+    linear-gradient(135deg, #f7fafc 0%, #edf5f8 48%, #f7f8fc 100%) !important;
+  background-size: 145% 145%, 155% 155%, 150% 150%, 100% 100% !important;
+  animation: submission-hub-background-breathe 24s ease-in-out infinite alternate;
+}
+
+html[data-ui] body .app-layout {
+  position: relative;
+  isolation: isolate;
+}
+
+html[data-ui] body :is(
+  .app-header,
+  .lx-status-bar,
+  .action-center,
+  .prep-dashboard,
+  .prep-panel,
+  .stats-summary-card,
+  .process-insight-card,
+  .chart-card,
+  .distribution-panel,
+  .admin-card,
+  .compact-form-modal,
+  .journal-form-modal
+) {
+  border-color: var(--space-glass-border) !important;
+  box-shadow: inset 0 1px 0 var(--space-glass-highlight), var(--space-glass-shadow) !important;
+  backdrop-filter: blur(18px) saturate(128%);
+  -webkit-backdrop-filter: blur(18px) saturate(128%);
+}
+
+html[data-ui] body :is(
+  .paper-card-v3,
+  .metric-card,
+  .prep-topic-card,
+  .prep-draft-card,
+  .prep-journal-card,
+  .prep-dashboard-score-card,
+  .prep-dashboard-attention-card,
+  .prep-dashboard-next-card
+) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .62), 0 9px 24px rgba(15, 23, 42, .06) !important;
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+
+html[data-ui] body :is(.app-header, .lx-status-bar, .prep-dashboard, .action-center) {
+  animation: submission-hub-panel-breathe 16s ease-in-out infinite alternate;
+}
+
+/* Dark mode is a production workspace, not a dim decorative theme. */
+html[data-theme='dark'][data-ui] {
+  --text-primary: #f8fafc;
+  --text-secondary: #d7e0ec;
+  --text-muted: #aebdd0;
+  --text-tertiary: #94a3b8;
+  --bg-page: #07101c;
+  --bg-card: rgba(15, 23, 42, .90);
+  --bg-elevated: rgba(30, 41, 59, .86);
+  --border-default: rgba(148, 163, 184, .34);
+  --border-subtle: rgba(148, 163, 184, .22);
+  --space-glass-border: rgba(148, 163, 184, .30);
+  --space-glass-highlight: rgba(226, 232, 240, .09);
+  --space-glass-shadow: 0 16px 38px rgba(2, 6, 23, .32);
+  color-scheme: dark;
+}
+
+html[data-theme='dark'][data-ui] body {
+  color: #e8eef7 !important;
+  background-color: #07101c !important;
+  background-image:
+    radial-gradient(ellipse at 10% 4%, rgba(14, 165, 233, .17), transparent 40%),
+    radial-gradient(ellipse at 88% 16%, rgba(124, 58, 237, .14), transparent 42%),
+    radial-gradient(ellipse at 52% 94%, rgba(13, 148, 136, .11), transparent 46%),
+    linear-gradient(135deg, #07101c 0%, #0a1422 52%, #09111e 100%) !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(
+  .app-header,
+  .lx-status-bar,
+  .action-center,
+  .prep-dashboard,
+  .prep-panel,
+  .stats-summary-card,
+  .process-insight-card,
+  .chart-card,
+  .distribution-panel,
+  .admin-card,
+  .compact-form-modal,
+  .journal-form-modal
+) {
+  background: linear-gradient(145deg, rgba(20, 31, 49, .93), rgba(11, 23, 38, .86)) !important;
+  border-color: rgba(148, 163, 184, .30) !important;
+  box-shadow: inset 0 1px 0 rgba(226, 232, 240, .08), 0 18px 42px rgba(2, 6, 23, .34) !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(
+  .paper-card-v3,
+  .metric-card,
+  .prep-topic-card,
+  .prep-draft-card,
+  .prep-journal-card,
+  .prep-dashboard-score-card,
+  .prep-dashboard-attention-card,
+  .prep-dashboard-next-card,
+  .lx-board-column,
+  .lx-journal-group
+) {
+  background-color: rgba(15, 23, 42, .88) !important;
+  border-color: rgba(148, 163, 184, .25) !important;
+  box-shadow: inset 0 1px 0 rgba(226, 232, 240, .07), 0 12px 28px rgba(2, 6, 23, .28) !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(
+  .card-title,
+  .prep-heading h1,
+  .prep-dashboard h2,
+  .prep-panel h2,
+  .prep-topic-card h3,
+  .prep-draft-card h3,
+  .prep-journal-card h3,
+  .stats-panel h2,
+  .stats-panel h3,
+  .chart-card h3,
+  .distribution-panel h3,
+  .action-center h2,
+  .compact-form-modal h2,
+  .compact-form-modal h3,
+  .journal-form-modal h2,
+  .journal-form-modal h3
+) {
+  color: #f8fafc !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(
+  .card-subtitle,
+  .paper-history,
+  .paper-date-info,
+  .prep-heading p,
+  .prep-panel-head p,
+  .prep-journal-publisher,
+  .prep-dashboard p,
+  .chart-subtitle,
+  .summary-label,
+  .metric-label,
+  .compact-section-head span,
+  .compact-field > span,
+  .journal-form-modal .prep-field > span,
+  .journal-catalog-toolbar-copy > p
+) {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(
+  input,
+  select,
+  textarea,
+  .input,
+  .select,
+  .textarea
+) {
+  color: #f8fafc !important;
+  caret-color: #67e8f9;
+  background: rgba(7, 16, 28, .88) !important;
+  border-color: rgba(148, 163, 184, .34) !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(input, textarea)::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(
+  .btn-ghost,
+  .journal-catalog-filter,
+  .prep-panel-head button,
+  .prep-quick-actions button,
+  .prep-pipeline button,
+  .prep-attention-grid button,
+  .prep-journal-links a
+) {
+  color: #dbe7f3 !important;
+  border-color: rgba(148, 163, 184, .30) !important;
+  background: rgba(30, 41, 59, .72) !important;
+}
+
+html[data-theme='dark'][data-ui] body :is(
+  .btn-ghost,
+  .journal-catalog-filter,
+  .prep-panel-head button,
+  .prep-quick-actions button,
+  .prep-pipeline button,
+  .prep-attention-grid button,
+  .prep-journal-links a
+):hover {
+  color: #f8fafc !important;
+  border-color: rgba(103, 232, 249, .48) !important;
+  background: rgba(14, 116, 144, .30) !important;
+}
+
+@keyframes submission-hub-background-breathe {
+  0% { background-position: 0% 0%, 100% 0%, 50% 100%, 0 0; }
+  100% { background-position: 8% 5%, 92% 9%, 47% 91%, 0 0; }
+}
+
+@keyframes submission-hub-panel-breathe {
+  0% { box-shadow: inset 0 1px 0 var(--space-glass-highlight), 0 12px 30px rgba(15, 23, 42, .07); }
+  100% { box-shadow: inset 0 1px 0 var(--space-glass-highlight), 0 16px 38px rgba(14, 116, 144, .10); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui] body,
+  html[data-ui] body :is(.app-header, .lx-status-bar, .prep-dashboard, .action-center) {
+    animation: none !important;
+  }
 }
 
 @media (max-width: 720px) {
