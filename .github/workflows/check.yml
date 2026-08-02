@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, submission-workflow-enhancements]
+    branches: [main, submission-workflow-enhancements, 'release/**']
 
 permissions:
   contents: read
@@ -18,10 +18,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: node tests/journal-auto-catalog-check.mjs
-      - run: npm run build
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run complete verification
+        run: npm run verify
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-      - run: npm run build:offline
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: build-verification-key
+          VITE_ADMIN_ID: build-verification-admin
