@@ -20,28 +20,33 @@ const screenshotWorkflow = readText('.github/workflows/update-doc-screenshots.ym
 const version = String(pkg.version || '').trim()
 const tag = `v${version}`
 const releaseDocument = `docs/releases/${tag}.md`
+const releaseDate = String(releaseInfo.date || '').trim()
 
 assert(/^\d+\.\d+\.\d+$/.test(version), `package.json version is not stable semver: ${version || '(empty)'}`)
 assert(lock.version === version, `package-lock.json version ${lock.version} does not match ${version}`)
 assert(lock.packages?.['']?.version === version, `package-lock root package version ${lock.packages?.['']?.version} does not match ${version}`)
 assert(releaseInfo.release === tag, `public/release-info.json release ${releaseInfo.release} does not match ${tag}`)
-assert(/^\d{4}-\d{2}-\d{2}$/.test(String(releaseInfo.date || '')), 'public/release-info.json date must use YYYY-MM-DD')
+assert(/^\d{4}-\d{2}-\d{2}$/.test(releaseDate), 'public/release-info.json date must use YYYY-MM-DD')
 assert(fs.existsSync(path.join(root, releaseDocument)), `${releaseDocument} is missing`)
 
 if (fs.existsSync(path.join(root, releaseDocument))) {
   const releaseNotes = readText(releaseDocument)
   assert(releaseNotes.includes(tag), `${releaseDocument} does not identify ${tag}`)
+  assert(releaseNotes.includes(`发布日期：${releaseDate}`), `${releaseDocument} date does not match public/release-info.json`)
   assert(releaseNotes.includes('自动验证'), `${releaseDocument} does not document release verification`)
 }
 
 assert(readme.includes(`docs/releases/${tag}.md`), `README does not link ${releaseDocument}`)
 assert(readme.includes(`version-${tag.replaceAll('-', '--')}`) || readme.includes(`version-${tag}`), `README version badge does not identify ${tag}`)
 assert(readme.includes(`当前版本：\`${tag}\``), `README current-version line does not identify ${tag}`)
+assert(readme.includes('投稿管理 → 期刊中心 → 投稿准备 → 个人统计 → 后台管理'), 'README does not document the five-module primary navigation')
 
 assert(releaseWorkflow.includes("require('./package.json').version"), 'release workflow does not derive the version from package.json')
 assert(releaseWorkflow.includes('docs/releases/v${VERSION}.md'), 'release workflow does not load version-matched release notes')
+assert(releaseWorkflow.includes("paths:\n      - 'package.json'"), 'release workflow is not bound to package-version changes')
 assert(!/v1\.5\.0/.test(releaseWorkflow), 'release workflow still contains the retired v1.5.0 hardcode')
 assert(screenshotWorkflow.includes("require('./package.json').version"), 'screenshot workflow does not derive package-lock version dynamically')
+assert(screenshotWorkflow.includes("branches: [main, 'release/**']"), 'screenshot workflow cannot synchronize release branches before merge')
 assert(!/npm version\s+1\.5\.0/.test(screenshotWorkflow), 'screenshot workflow can still downgrade the repository to v1.5.0')
 
 if (failures.length) {
