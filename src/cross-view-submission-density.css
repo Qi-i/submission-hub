@@ -1,0 +1,89 @@
+/* Submission-management density must stay equivalent across Luminous and Luminous X.
+ * Luminous X previously hard-coded three columns in luminous-x-rebuild.css.
+ * This final layer replaces that fixed rule with the same viewport-driven density contract
+ * used by standard Luminous while preserving the X sidebar and card minimum width.
+ */
+
+html[data-ui='luminous-x'] body .app-layout > .paper-grid,
+html[data-ui='luminous-x'] body .app-layout .paper-grid,
+html[data-ui='luminous-x'] body .paper-grid {
+  min-width: 0 !important;
+  grid-auto-flow: row !important;
+  align-items: stretch !important;
+}
+
+@media (min-width: 2200px) {
+  html[data-ui='luminous-x'] body .app-layout > .paper-grid,
+  html[data-ui='luminous-x'] body .app-layout .paper-grid,
+  html[data-ui='luminous-x'] body .paper-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1560px) and (max-width: 2199px) {
+  html[data-ui='luminous-x'] body .app-layout > .paper-grid,
+  html[data-ui='luminous-x'] body .app-layout .paper-grid,
+  html[data-ui='luminous-x'] body .paper-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1180px) and (max-width: 1559px) {
+  html[data-ui='luminous-x'] body .app-layout > .paper-grid,
+  html[data-ui='luminous-x'] body .app-layout .paper-grid,
+  html[data-ui='luminous-x'] body .paper-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1179px) {
+  html[data-ui='luminous-x'] body .app-layout > .paper-grid,
+  html[data-ui='luminous-x'] body .app-layout .paper-grid,
+  html[data-ui='luminous-x'] body .paper-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  html[data-ui='luminous-x'] body .app-layout > .paper-grid,
+  html[data-ui='luminous-x'] body .app-layout .paper-grid,
+  html[data-ui='luminous-x'] body .paper-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Four-column X cards at the 2K/150% effective viewport remain compact but readable. */
+@media (min-width: 1560px) {
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 {
+    min-width: 0 !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .paper-journal-slot,
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .journal-pill-button,
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 > .paper-action-rail {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .journal-pill-button {
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .journal-pill-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 > .paper-action-rail {
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    overflow: hidden !important;
+  }
+}
