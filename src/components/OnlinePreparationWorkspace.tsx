@@ -20,6 +20,17 @@ function cleanPayload<T extends Record<string, any>>(data: T) {
   return payload
 }
 
+function legacyAutomaticJournalPayload(journal: JournalProfile) {
+  const {
+    name_zh, official_abbreviation, scope_zh, selection_tags, selection_notes,
+    ...legacy
+  } = journal
+  return {
+    ...legacy,
+    notes: journal.notes || '系统根据投稿历史自动建立的简易期刊档案。',
+  }
+}
+
 function localDateString() {
   const date = new Date()
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -67,12 +78,30 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       let journals = ((journalResult.data || []) as JournalProfile[]).map(normalizeJournal)
       const automaticJournals = deriveAutomaticJournalProfiles((paperResult.data || []) as Paper[], journals, userId)
       if (automaticJournals.length) {
-        const { data: inserted, error: insertError } = await (supabase.from('journal_profiles') as any)
+        let persisted: JournalProfile[] = []
+        const fullInsert = await (supabase.from('journal_profiles') as any)
           .insert(automaticJournals)
           .select('*')
-        if (insertError) throw insertError
-        journals = [...((inserted || []) as JournalProfile[]).map(normalizeJournal), ...journals]
-        invalidateOnlineJournalProfileCache()
+
+        if (!fullInsert.error) {
+          persisted = ((fullInsert.data || []) as JournalProfile[]).map(normalizeJournal)
+        } else {
+          console.warn('Persist automatic journal profiles with current schema failed; retrying legacy-compatible fields:', fullInsert.error)
+          const legacyInsert = await (supabase.from('journal_profiles') as any)
+            .insert(automaticJournals.map(legacyAutomaticJournalPayload))
+            .select('*')
+          if (!legacyInsert.error) {
+            persisted = ((legacyInsert.data || []) as JournalProfile[]).map(normalizeJournal)
+          } else {
+            console.warn('Automatic journal profiles will remain visible in memory for this session:', legacyInsert.error)
+          }
+        }
+
+        const visibleAutomatic = persisted.length
+          ? persisted
+          : automaticJournals.map(normalizeJournal)
+        journals = [...visibleAutomatic, ...journals]
+        if (persisted.length) invalidateOnlineJournalProfileCache()
       }
 
       if (version !== loadVersion.current) return
@@ -111,8 +140,21 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
   const saveJournal = async (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => {
     const now = new Date().toISOString()
     if (data.id) {
-      const { error } = await (supabase.from('journal_profiles') as any).update({ ...cleanPayload(data), updated_at: now }).eq('id', data.id)
-      if (error) throw error
+      const updateResult = await (supabase.from('journal_profiles') as any)
+        .update({ ...cleanPayload(data), updated_at: now })
+        .eq('id', data.id)
+        .select('id')
+      if (updateResult.error) throw updateResult.error
+      if (!updateResult.data?.length) {
+        const { error } = await (supabase.from('journal_profiles') as any).insert({
+          ...cleanPayload(data),
+          id: data.id,
+          user_id: userId,
+          created_at: data.created_at || now,
+          updated_at: now,
+        })
+        if (error) throw error
+      }
     } else {
       const { error } = await (supabase.from('journal_profiles') as any).insert({ ...cleanPayload(data), id: crypto.randomUUID(), user_id: userId, created_at: now, updated_at: now })
       if (error) throw error
