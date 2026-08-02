@@ -53,6 +53,13 @@
   display: none !important;
 }
 
+/* The density layer uses !important display rules, so the runtime empty-value
+   contract must be equally explicit or unknown metrics reappear in Luminous X. */
+.preparation-workspace[data-section='journals'] .prep-journal-numbers[hidden],
+.preparation-workspace[data-section='journals'] .prep-journal-numbers > div[hidden] {
+  display: none !important;
+}
+
 /* 投稿准备 retains exactly four visible routes: 总览、选题池、草稿准备、期刊比较. */
 .preparation-workspace:not([data-section='journals']) > .prep-nav {
   display: grid !important;
