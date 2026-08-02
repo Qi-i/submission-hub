@@ -4,12 +4,15 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
     paths:
       - 'src/**'
       - 'scripts/**'
-      - 'tests/visual/**'
+      - 'tests/**'
       - 'supabase/**'
+      - 'docs/releases/**'
+      - 'README.md'
+      - 'public/release-info.json'
       - 'index.html'
       - 'offline.html'
       - 'package.json'
@@ -17,6 +20,8 @@ on:
       - 'tsconfig*.json'
       - 'vite.config.*'
       - '.github/workflows/quality.yml'
+      - '.github/workflows/release-offline.yml'
+      - '.github/workflows/update-doc-screenshots.yml'
 
 permissions:
   contents: read
@@ -36,8 +41,12 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Verify release metadata consistency
+        run: npm run check:release
       - name: Verify privacy-safe samples
         run: npm run check:privacy
+      - name: Verify automatic journal catalog
+        run: node tests/journal-auto-catalog-check.mjs
       - name: Verify journal selection metadata
         run: npm run check:journal-selection
       - name: Verify journal rank display policy
