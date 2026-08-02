@@ -11,6 +11,8 @@
 /* Standard Luminous uses nearly the full effective viewport. */
 html[data-ui='luminous'] body .app-layout > :is(
   .app-header,
+  .dashboard-metrics,
+  .stats-bar,
   .preparation-suite,
   .metric-grid,
   .action-center,
@@ -22,6 +24,9 @@ html[data-ui='luminous'] body .app-layout > :is(
 ) {
   width: calc(100% - (var(--ui-shell-gutter) * 2)) !important;
   max-width: var(--ui-shell-max) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
 }
 
 /* Keep cards wide enough for status, journal identity and publisher actions.
