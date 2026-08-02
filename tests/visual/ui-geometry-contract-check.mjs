@@ -84,8 +84,11 @@ for (const ui of ['luminous', 'luminous-x']) {
           })
         const panels = Array.from(document.querySelectorAll('.prep-dashboard, .prep-panel, .prep-topic-card, .prep-draft-card, .prep-journal-card, .action-center, .metric-card, .stats-summary-card, .chart-card')).filter(visible).slice(0, 18)
         const grids = Array.from(document.querySelectorAll('.prep-dashboard-grid, .prep-overview-grid, .prep-card-grid, .journal-grid, .paper-grid, .metric-grid, .stats-summary-unified, .stats-distribution-grid')).filter(visible)
-        const journalCenter = Array.from(document.querySelectorAll(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']")).find(visible)
+        const mainNavButtons = Array.from(document.querySelectorAll(".header-tabs > button[data-main-nav-key], .tab-bar > button[data-main-nav-key]")).filter(visible)
+        const journalCenter = mainNavButtons.find(button => button.dataset.mainNavKey === 'journals')
+        const preparationButton = mainNavButtons.find(button => button.dataset.mainNavKey === 'preparation')
         const journalStyle = journalCenter ? getComputedStyle(journalCenter) : null
+        const preparationStyle = preparationButton ? getComputedStyle(preparationButton) : null
         const prepNav = document.documentElement.dataset.ui === 'luminous-x'
           ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
           : document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav')
@@ -104,8 +107,16 @@ for (const ui of ['luminous', 'luminous-x']) {
             backgroundImage: journalStyle.backgroundImage,
             borderColor: journalStyle.borderColor,
             boxShadow: journalStyle.boxShadow,
+            width: journalCenter.getBoundingClientRect().width,
             height: journalCenter.getBoundingClientRect().height,
             radius: journalStyle.borderRadius,
+            justifyContent: journalStyle.justifyContent,
+          } : null,
+          preparationRoute: preparationStyle ? {
+            width: preparationButton.getBoundingClientRect().width,
+            height: preparationButton.getBoundingClientRect().height,
+            radius: preparationStyle.borderRadius,
+            justifyContent: preparationStyle.justifyContent,
           } : null,
           prepLabels,
           overviewJournalPanel: !!Array.from(document.querySelectorAll('.prep-overview-journals')).find(visible),
@@ -137,11 +148,18 @@ for (const ui of ['luminous', 'luminous-x']) {
 
       if (view === 'preparation') {
         if (!report.journal) fail(`${ui}: Journal Center primary entry is missing`)
-        else {
+        else if (ui === 'luminous') {
           const transparent = ['transparent', 'rgba(0, 0, 0, 0)'].includes(report.journal.backgroundColor)
           if (transparent && report.journal.backgroundImage === 'none') fail(`${ui}: Journal Center has no route surface`)
           if (['transparent', 'rgba(0, 0, 0, 0)'].includes(report.journal.borderColor)) fail(`${ui}: Journal Center has no visible boundary`)
           if (report.journal.boxShadow === 'none') fail(`${ui}: Journal Center has no depth`)
+        } else if (!report.preparationRoute) {
+          fail(`${ui}: Preparation peer route is missing`)
+        } else {
+          if (!closeEnough(report.journal.width, report.preparationRoute.width, 1)) fail(`${ui}: Journal Center width differs from its sidebar peers`)
+          if (!closeEnough(report.journal.height, report.preparationRoute.height, 1)) fail(`${ui}: Journal Center height differs from its sidebar peers`)
+          if (report.journal.radius !== report.preparationRoute.radius) fail(`${ui}: Journal Center radius differs from its sidebar peers`)
+          if (report.journal.justifyContent !== report.preparationRoute.justifyContent) fail(`${ui}: Journal Center alignment differs from its sidebar peers`)
         }
         const required = ['总览', '选题池', '草稿准备', '期刊比较']
         if (report.prepLabels.length !== 4) fail(`${ui}: Preparation does not expose exactly four routes (${report.prepLabels.join(' / ')})`)
