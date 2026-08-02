@@ -170,7 +170,7 @@ function syncNavigationState(nav: HTMLElement) {
   if (!preparation || !journal) return
 
   const workspace = document.querySelector<HTMLElement>('.preparation-workspace')
-  const journalSection = !!workspace && ['journals', 'compare'].includes(workspace.dataset.section || '')
+  const journalSection = !!workspace && workspace.dataset.section === 'journals'
 
   if (workspace) {
     preparation.classList.toggle('active', !journalSection)
