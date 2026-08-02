@@ -24,18 +24,10 @@ async function openPreparation(page, ui) {
   await page.waitForTimeout(300)
 }
 
-async function openJournalLibrary(page, ui) {
-  if (ui === 'luminous-x') {
-    const proxyButton = page.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls").getByRole('button', { name: /期刊库/ }).first()
-    if (await proxyButton.isVisible()) {
-      await proxyButton.click({ force: true })
-    } else {
-      await page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first().click({ force: true })
-    }
-  } else {
-    await page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first().click({ force: true })
-  }
-
+async function openJournalLibrary(page) {
+  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
+  await journalCenter.evaluate(element => element.click())
   await page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(300)
 }
@@ -123,7 +115,7 @@ async function inspect(ui, viewport) {
       if (card.identityBottom !== null && card.publisherTop !== null && card.publisherTop < card.identityBottom - 2) failures.push(`${label}: overview journal ${card.index + 1} publisher overlaps the Chinese identity`)
     })
 
-    await openJournalLibrary(page, ui)
+    await openJournalLibrary(page)
     await ensureBilingualFixture(page)
 
     const library = await page.evaluate(() => {
