@@ -47,7 +47,8 @@ for (const ui of ['luminous', 'luminous-x']) {
     const journalEntry = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
     await journalEntry.waitFor({ state: 'visible', timeout: 15000 })
     await journalEntry.evaluate(element => element.click())
-    await page.locator('.preparation-workspace[data-section="journals"] .journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
+    await page.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
+    await page.locator('.preparation-workspace[data-section="journals"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
     await page.waitForTimeout(250)
 
     const placement = await page.evaluate(currentUi => {
