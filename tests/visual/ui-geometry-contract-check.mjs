@@ -84,9 +84,11 @@ for (const ui of ['luminous', 'luminous-x']) {
           })
         const panels = Array.from(document.querySelectorAll('.prep-dashboard, .prep-panel, .prep-topic-card, .prep-draft-card, .prep-journal-card, .action-center, .metric-card, .stats-summary-card, .chart-card')).filter(visible).slice(0, 18)
         const grids = Array.from(document.querySelectorAll('.prep-dashboard-grid, .prep-overview-grid, .prep-card-grid, .journal-grid, .paper-grid, .metric-grid, .stats-summary-unified, .stats-distribution-grid')).filter(visible)
-        const journalCenter = document.querySelector(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']")
+        const journalCenter = Array.from(document.querySelectorAll(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']")).find(visible)
         const journalStyle = journalCenter ? getComputedStyle(journalCenter) : null
-        const prepNav = document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav')
+        const prepNav = document.documentElement.dataset.ui === 'luminous-x'
+          ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
+          : document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav')
         const prepLabels = prepNav
           ? Array.from(prepNav.querySelectorAll(':scope > button')).filter(visible).map(button => (button.textContent || '').replace(/\s+/g, ' ').trim())
           : []
@@ -156,7 +158,7 @@ for (const ui of ['luminous', 'luminous-x']) {
 
   const catalogPage = await openPage(ui, 'preparation')
   try {
-    const entry = catalogPage.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+    const entry = catalogPage.locator(".header-tabs > button[data-main-nav-key='journals']:visible, .tab-bar > button[data-main-nav-key='journals']:visible").first()
     await entry.evaluate(element => element.click())
     await catalogPage.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
     await catalogPage.locator('.preparation-workspace[data-section="journals"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
