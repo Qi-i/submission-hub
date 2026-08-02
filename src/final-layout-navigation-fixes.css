@@ -110,47 +110,7 @@
   pointer-events: none !important;
 }
 
-/* Luminous X Journal Center must inherit the same sidebar language as every other route. */
-html[data-ui='luminous-x'] body .app-header .header-tabs > button[data-main-nav-key='journals'],
-html[data-ui='luminous-x'] body .app-header .tab-bar > button[data-main-nav-key='journals'],
-html[data-ui='luminous-x'] body .header-tabs > button[data-main-nav-key='journals'],
-html[data-ui='luminous-x'] body .tab-bar > button[data-main-nav-key='journals'] {
-  width: 100% !important;
-  min-width: 0 !important;
-  min-height: 42px !important;
-  padding: 0 12px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 10px !important;
-  color: var(--text-secondary) !important;
-  border: 1px solid transparent !important;
-  border-radius: 11px !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-html[data-ui='luminous-x'] body .app-header .header-tabs > button[data-main-nav-key='journals']:hover,
-html[data-ui='luminous-x'] body .app-header .tab-bar > button[data-main-nav-key='journals']:hover,
-html[data-ui='luminous-x'] body .header-tabs > button[data-main-nav-key='journals']:hover,
-html[data-ui='luminous-x'] body .tab-bar > button[data-main-nav-key='journals']:hover {
-  color: var(--text-primary) !important;
-  border-color: var(--lx-line) !important;
-  background: var(--lx-surface-soft) !important;
-  box-shadow: none !important;
-}
-
-html[data-ui='luminous-x'] body .app-header .header-tabs > button[data-main-nav-key='journals'].active,
-html[data-ui='luminous-x'] body .app-header .tab-bar > button[data-main-nav-key='journals'].active,
-html[data-ui='luminous-x'] body .header-tabs > button[data-main-nav-key='journals'].active,
-html[data-ui='luminous-x'] body .tab-bar > button[data-main-nav-key='journals'].active {
-  color: var(--text-primary) !important;
-  border-color: rgba(60, 245, 255, .56) !important;
-  background: var(--lx-nav-active) !important;
-  box-shadow: var(--lx-focus) !important;
-}
-
+/* Luminous X route styling is centralized in final-luminous-x-navigation-coherence.css. */
 html[data-ui='luminous-x'] .lx-status-bar[data-journal-center-active] .lx-page-proxy-controls {
   display: none !important;
 }
