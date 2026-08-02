@@ -1,0 +1,132 @@
+/* Resolution-aware workspace density.
+ * Browser zoom changes the CSS viewport, so responsive breakpoints—not device pixels—
+ * are the reliable way to keep the workspace dense without forcing narrow cards.
+ */
+
+:root {
+  --ui-shell-max: 2400px;
+  --ui-shell-gutter: clamp(8px, .7vw, 14px);
+}
+
+/* Standard Luminous uses nearly the full effective viewport. */
+html[data-ui='luminous'] body .app-layout > :is(
+  .app-header,
+  .preparation-suite,
+  .metric-grid,
+  .action-center,
+  .paper-grid,
+  .stats-panel,
+  .admin-panel,
+  .admin-page,
+  .prep-load-error
+) {
+  width: calc(100% - (var(--ui-shell-gutter) * 2)) !important;
+  max-width: var(--ui-shell-max) !important;
+}
+
+/* Keep cards wide enough for status, journal identity and publisher actions.
+ * 2K at 150% zoom resolves to roughly 1707 CSS px and therefore uses four columns.
+ */
+html[data-ui='luminous'] body .paper-grid {
+  min-width: 0 !important;
+  grid-auto-flow: row !important;
+  align-items: stretch !important;
+}
+
+@media (min-width: 2200px) {
+  html[data-ui='luminous'] body .paper-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1560px) and (max-width: 2199px) {
+  html[data-ui='luminous'] body .paper-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1180px) and (max-width: 1559px) {
+  html[data-ui='luminous'] body .paper-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1179px) {
+  html[data-ui='luminous'] body .paper-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  html[data-ui='luminous'] body .paper-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Harden the compact card header against long journal and backend labels. */
+html[data-ui='luminous'] body .paper-grid .paper-card-v3 {
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+@media (min-width: 721px) {
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 {
+    grid-template-columns: minmax(112px, .82fr) minmax(0, 1.18fr) !important;
+    column-gap: 8px !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-journal-slot,
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-journal-slot .journal-pill-button,
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 > .paper-action-rail {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-journal-slot .journal-pill-button {
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding-inline: 9px !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .journal-pill-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    text-align: left !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-status-area > :where(.badge, .paper-status-backend),
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-status-area > :where(.paper-substatus, .paper-status-detail-row) {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-substatus,
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-substatus-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 > .paper-action-rail {
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 > .paper-action-rail > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
