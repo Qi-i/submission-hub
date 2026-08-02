@@ -1,16 +1,19 @@
 {
-  "release": "v1.5.0",
-  "published_via": "github-release-workflow",
-  "date": "2026-07-25",
-  "documentation": "dual-interface-readme-and-screenshots",
+  "release": "v2.0.0",
+  "published_via": "version-driven-github-release-workflow",
+  "date": "2026-08-02",
+  "documentation": "v2-major-release-and-dual-interface-screenshots",
   "features": [
-    "luminous-and-luminous-x-unified-interfaces",
-    "direct-online-and-offline-usage-guide",
-    "dual-interface-primary-page-screenshots",
-    "private-r2-and-supabase-document-previews",
-    "compact-journal-library-and-review-metric-lookup",
-    "translated-journal-selection-metadata",
-    "customizable-easyscholar-card-labels",
-    "email-github-identity-and-profile-management"
+    "journal-center-as-primary-catalog",
+    "luminous-and-luminous-x-navigation-coherence",
+    "responsive-research-workspace-density",
+    "preparation-secondary-navigation-stability",
+    "journal-filtering-and-high-density-cards",
+    "review-round-and-custom-interval-analysis",
+    "direct-submission-backend-actions",
+    "anchored-journal-preview-and-editing",
+    "restrained-spatial-glass-interface",
+    "private-document-storage-and-preview",
+    "version-consistent-online-offline-release-pipeline"
   ]
 }

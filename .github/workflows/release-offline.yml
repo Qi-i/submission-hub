@@ -4,16 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag
-        required: true
-        default: v1.5.0
+        description: Optional release tag; defaults to package.json version
+        required: false
       title:
-        description: Release title
-        required: true
-        default: Submission Hub v1.5.0
+        description: Optional release title; defaults to Submission Hub plus version
+        required: false
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
 
 permissions:
   contents: write
+
+concurrency:
+  group: release-offline-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release-offline:
@@ -24,6 +30,27 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - id: metadata
+        name: Resolve release metadata
+        env:
+          REQUESTED_TAG: ${{ github.event.inputs.tag }}
+          REQUESTED_TITLE: ${{ github.event.inputs.title }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG_NAME="${REQUESTED_TAG:-v${VERSION}}"
+          RELEASE_TITLE="${REQUESTED_TITLE:-Submission Hub v${VERSION}}"
+          RELEASE_NOTES="docs/releases/v${VERSION}.md"
+
+          test "$TAG_NAME" = "v${VERSION}"
+          test -s "$RELEASE_NOTES"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "title=$RELEASE_TITLE" >> "$GITHUB_OUTPUT"
+          echo "notes=$RELEASE_NOTES" >> "$GITHUB_OUTPUT"
+      - name: Synchronize package lock with package version
+        run: npm version "${{ steps.metadata.outputs.version }}" --no-git-tag-version --allow-same-version
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Run complete release verification
@@ -33,26 +60,27 @@ jobs:
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.event.inputs.tag }}
-          RELEASE_TITLE: ${{ github.event.inputs.title }}
-          RELEASE_NOTES: |
-            Submission Hub v1.5.0
-
-            主要更新：
-            - Luminous 与 Luminous X 两套界面完整保留，导航、主题、桌面和移动端布局统一
-            - 投稿准备、投稿管理、期刊库、个人统计和附件归档形成完整论文工作流
-            - 期刊库新增中文名、缩写、中文简介、选刊标签、备注和自定义卡片外显
-            - 公开审稿指标读取覆盖首轮决定、投稿至接收周期和接收率
-            - 私有附件覆盖上传、预览、替换、删除和生命周期清理
-            - 在线版、离线版、隐私检查和视觉回归全部纳入发布验证
-
-            使用说明与完整变更记录见仓库 README 和 docs/releases/v1.5.0.md。
-
-            附件：submission-hub-offline.html
+          TAG_NAME: ${{ steps.metadata.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.metadata.outputs.title }}
+          RELEASE_NOTES: ${{ steps.metadata.outputs.notes }}
         run: |
+          set -euo pipefail
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" release/submission-hub-offline.html --clobber
-            gh release edit "$TAG_NAME" --title "$RELEASE_TITLE" --notes "$RELEASE_NOTES" --latest
+            gh release edit "$TAG_NAME" --title "$RELEASE_TITLE" --notes-file "$RELEASE_NOTES" --latest
           else
-            gh release create "$TAG_NAME" release/submission-hub-offline.html --title "$RELEASE_TITLE" --notes "$RELEASE_NOTES" --latest
+            gh release create "$TAG_NAME" release/submission-hub-offline.html \
+              --target "$GITHUB_SHA" \
+              --title "$RELEASE_TITLE" \
+              --notes-file "$RELEASE_NOTES" \
+              --latest
           fi
+      - name: Publish release summary
+        run: |
+          {
+            echo "## Released ${{ steps.metadata.outputs.tag }}"
+            echo
+            echo "- Verification: passed"
+            echo "- Offline asset: submission-hub-offline.html"
+            echo "- Notes: ${{ steps.metadata.outputs.notes }}"
+          } >> "$GITHUB_STEP_SUMMARY"
