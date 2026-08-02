@@ -166,3 +166,46 @@ html[data-ui='luminous'] body .paper-grid .paper-card-v3 {
     max-width: 100% !important;
   }
 }
+
+@media (max-width: 720px) {
+  /* Mobile uses a single internal column. Journal identity must participate in
+   * normal flow instead of extending to the desktop card's right-hand lane.
+   */
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 > .paper-card-head {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-journal-slot {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    justify-self: stretch !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .paper-journal-slot .journal-pill-button {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous'] body .paper-grid .paper-card-v3 .journal-pill-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
