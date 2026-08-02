@@ -10,40 +10,12 @@
 .header-tabs > button[data-main-nav-key='admin'],
 .tab-bar > button[data-main-nav-key='admin'] { order: 5; }
 
-/* Journal Center is a first-class primary route. The selectors intentionally match
-   both Luminous top navigation and the higher-specificity Luminous X sidebar rules. */
-html[data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'],
-html[data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'],
+/* Journal Center is a primary route, but it deliberately inherits the same
+   visual rules as the sibling navigation buttons in each interface. */
 html[data-ui] body .header-tabs > button[data-main-nav-key='journals'],
 html[data-ui] body .tab-bar > button[data-main-nav-key='journals'] {
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  color: #066a5b !important;
-  background: linear-gradient(135deg, rgba(16, 185, 129, .23), rgba(6, 182, 212, .17)) !important;
-  border-color: rgba(13, 148, 136, .42) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .42), 0 5px 15px rgba(13, 148, 136, .09) !important;
-}
-
-html[data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals']:hover,
-html[data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals']:hover,
-html[data-ui] body .header-tabs > button[data-main-nav-key='journals']:hover,
-html[data-ui] body .tab-bar > button[data-main-nav-key='journals']:hover {
-  color: #045f50 !important;
-  background: linear-gradient(135deg, rgba(16, 185, 129, .31), rgba(6, 182, 212, .23)) !important;
-  border-color: rgba(13, 148, 136, .58) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .48), 0 8px 20px rgba(13, 148, 136, .14) !important;
-}
-
-html[data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'].active,
-html[data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'].active,
-html[data-ui] body .header-tabs > button[data-main-nav-key='journals'].active,
-html[data-ui] body .tab-bar > button[data-main-nav-key='journals'].active {
-  color: #ffffff !important;
-  background: linear-gradient(135deg, #0f9f79, #0891b2) !important;
-  border-color: rgba(5, 150, 105, .78) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .26), 0 9px 23px rgba(13, 148, 136, .23) !important;
 }
 
 /* The journal library is reached only through the primary Journal Center route.
@@ -56,6 +28,78 @@ button[data-journal-center-internal='true'] {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
+}
+
+/* Header utility controls use explicit, readable labels and a stable order. */
+.header-utility-grid > button,
+.project-feedback-trigger,
+.header-user button[title='退出'] {
+  gap: 5px;
+}
+
+.header-utility-label,
+.header-logout-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.header-user button[title='退出'] {
+  width: auto !important;
+  min-width: 0 !important;
+  padding-inline: 6px !important;
+}
+
+@media (min-width: 981px) {
+  html[data-ui='luminous-x'] .header-utility-stack > .lx-new-paper,
+  html[data-ui='luminous-x'] .header-utility-stack > .header-context-primary {
+    order: -30;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    background: var(--lx-primary) !important;
+    box-shadow: 0 7px 18px rgba(139, 92, 246, .20) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+  }
+
+  html[data-ui='luminous-x'] .header-utility-stack > .header-toolbox {
+    order: -20;
+  }
+
+  html[data-ui='luminous-x'] .header-utility-stack > .header-utility-grid {
+    order: -10;
+  }
+
+  html[data-ui='luminous-x'] .header-utility-stack > .header-user {
+    order: 0;
+  }
+
+  html[data-ui='luminous-x'] .header-utility-grid > button[data-utility-key='theme'] { order: 1; }
+  html[data-ui='luminous-x'] .header-utility-grid > button[data-utility-key='settings'] { order: 2; }
+  html[data-ui='luminous-x'] .header-utility-grid > button[data-utility-key='import'] { order: 3; }
+  html[data-ui='luminous-x'] .header-utility-grid > button[data-utility-key='export'] { order: 4; }
+
+  html[data-ui='luminous-x'] .header-utility-grid > button {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 8px !important;
+    justify-content: center !important;
+  }
+
+  html[data-ui='luminous-x'].header-context-primary-active .prep-top-actions-portal :is(.btn-journal-primary, .btn-context-new),
+  html[data-ui='luminous-x'].header-context-primary-active .preparation-workspace .prep-top-actions :is(.btn-journal-primary, .btn-context-new) {
+    display: none !important;
+  }
 }
 
 /* Journal Center catalog toolbar: all journals remain visible by default, while
@@ -204,26 +248,6 @@ button[data-journal-center-internal='true'] {
 .prep-search.global-search-clear-host > .global-search-clear,
 .search-wrap.global-search-clear-host > .global-search-clear {
   right: 6px;
-}
-
-html[data-theme='dark'][data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'],
-html[data-theme='dark'][data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'],
-html[data-theme='dark'][data-ui] body .header-tabs > button[data-main-nav-key='journals'],
-html[data-theme='dark'][data-ui] body .tab-bar > button[data-main-nav-key='journals'] {
-  color: #b7f7e3 !important;
-  background: linear-gradient(135deg, rgba(16, 185, 129, .28), rgba(8, 145, 178, .23)) !important;
-  border-color: rgba(110, 231, 183, .44) !important;
-  box-shadow: inset 0 0 0 1px rgba(207, 250, 254, .10), 0 8px 20px rgba(6, 182, 212, .10) !important;
-}
-
-html[data-theme='dark'][data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'].active,
-html[data-theme='dark'][data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'].active,
-html[data-theme='dark'][data-ui] body .header-tabs > button[data-main-nav-key='journals'].active,
-html[data-theme='dark'][data-ui] body .tab-bar > button[data-main-nav-key='journals'].active {
-  color: #062e2b !important;
-  background: linear-gradient(135deg, #6ee7b7, #67e8f9) !important;
-  border-color: rgba(167, 243, 208, .88) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .38), 0 10px 26px rgba(45, 212, 191, .20) !important;
 }
 
 html[data-theme='dark'] .preparation-workspace[data-section='journals'] > .journal-catalog-toolbar {
