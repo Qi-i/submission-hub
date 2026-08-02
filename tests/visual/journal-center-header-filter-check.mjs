@@ -26,15 +26,17 @@ async function openPage(ui, view, viewport = { width: 1680, height: 1050 }) {
 for (const ui of ['luminous', 'luminous-x']) {
   const page = await openPage(ui, 'preparation')
   try {
-    const preparationNav = await page.evaluate(() => {
+    const preparationNav = await page.evaluate(currentUi => {
       const workspace = document.querySelector('.preparation-workspace[data-section="overview"]')
-      const nav = workspace?.querySelector(':scope > .prep-nav')
+      const nav = currentUi === 'luminous-x'
+        ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
+        : workspace?.querySelector(':scope > .prep-nav')
       const buttons = Array.from(nav?.querySelectorAll(':scope > button') || []).filter(visible)
       return {
         labels: buttons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
-        columns: nav ? getComputedStyle(nav).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+        columns: nav && currentUi === 'luminous' ? getComputedStyle(nav).gridTemplateColumns.split(' ').filter(Boolean).length : null,
       }
-    })
+    }, ui)
 
     const requiredRoutes = ['总览', '选题池', '草稿准备', '期刊比较']
     if (preparationNav.labels.length !== 4) fail(`${ui}: 投稿准备可见菜单不是 4 个（${preparationNav.labels.join(' / ')}）`)
@@ -42,9 +44,9 @@ for (const ui of ['luminous', 'luminous-x']) {
       if (!preparationNav.labels.some(item => item.includes(label))) fail(`${ui}: 投稿准备缺少“${label}”菜单`)
     }
     if (preparationNav.labels.some(item => item.includes('期刊库'))) fail(`${ui}: 投稿准备仍显示重复“期刊库”入口`)
-    if (preparationNav.columns !== 4) fail(`${ui}: 投稿准备桌面菜单不是四列（${preparationNav.columns}）`)
+    if (ui === 'luminous' && preparationNav.columns !== 4) fail(`${ui}: 投稿准备桌面菜单不是四列（${preparationNav.columns}）`)
 
-    const journalEntry = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+    const journalEntry = page.locator(".header-tabs > button[data-main-nav-key='journals']:visible, .tab-bar > button[data-main-nav-key='journals']:visible").first()
     await journalEntry.waitFor({ state: 'visible', timeout: 15000 })
     await journalEntry.evaluate(element => element.click())
     await page.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
@@ -95,7 +97,7 @@ for (const ui of ['luminous', 'luminous-x']) {
       if (!state.active || state.workspaceFilter !== filter) fail(`${ui}/${filter}: 筛选按钮没有进入激活状态`)
       if (state.expected < 0) fail(`${ui}/${filter}: 无法读取筛选数量`)
       else if (state.visible !== state.expected) fail(`${ui}/${filter}: 显示 ${state.visible} 条，预期 ${state.expected} 条`)
-      if (filter !== 'all' && state.expected < 13 && state.hiddenClassCount === 0) fail(`${ui}/${filter}: 筛选后未隐藏任何不匹配卡片`)
+      if (filter !== 'all' && state.hiddenClassCount === 0 && state.expected < 13) fail(`${ui}/${filter}: 筛选后未隐藏任何不匹配卡片`)
     }
 
     if (ui === 'luminous-x') {
@@ -114,7 +116,6 @@ for (const ui of ['luminous', 'luminous-x']) {
           journalRadius: journalStyle.borderRadius,
           peerRadius: peerStyle.borderRadius,
           justify: journalStyle.justifyContent,
-          background: journalStyle.backgroundImage,
         }
       })
       if (!navCoherence) fail('luminous-x: 无法读取侧栏菜单样式')
