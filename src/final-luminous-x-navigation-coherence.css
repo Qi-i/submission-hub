@@ -1,4 +1,5 @@
 /* Luminous X sidebar routes share one neutral surface language; no single route may look like a foreign primary button. */
+html[data-ui='luminous-x'] body button[data-main-nav-key],
 html[data-ui='luminous-x'] body .app-header .header-tabs > button,
 html[data-ui='luminous-x'] body .app-header .tab-bar > button,
 html[data-ui='luminous-x'] body .header-tabs > button,
@@ -9,6 +10,7 @@ html[data-ui='luminous-x'] body .tab-bar > button {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
 }
 
+html[data-ui='luminous-x'] body button[data-main-nav-key]:hover,
 html[data-ui='luminous-x'] body .app-header .header-tabs > button:hover,
 html[data-ui='luminous-x'] body .app-header .tab-bar > button:hover,
 html[data-ui='luminous-x'] body .header-tabs > button:hover,
@@ -19,6 +21,7 @@ html[data-ui='luminous-x'] body .tab-bar > button:hover {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 8%, transparent) !important;
 }
 
+html[data-ui='luminous-x'] body button[data-main-nav-key].active,
 html[data-ui='luminous-x'] body .app-header .header-tabs > button.active,
 html[data-ui='luminous-x'] body .app-header .tab-bar > button.active,
 html[data-ui='luminous-x'] body .header-tabs > button.active,
