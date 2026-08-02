@@ -10,17 +10,149 @@
 .header-tabs > button[data-main-nav-key='admin'],
 .tab-bar > button[data-main-nav-key='admin'] { order: 5; }
 
-.header-tabs > button[data-main-nav-key='journals'],
-.tab-bar > button[data-main-nav-key='journals'] {
-  display: inline-flex;
+/* Journal Center is a first-class primary route. The selectors intentionally match
+   both Luminous top navigation and the higher-specificity Luminous X sidebar rules. */
+html[data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'],
+html[data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'],
+html[data-ui] body .header-tabs > button[data-main-nav-key='journals'],
+html[data-ui] body .tab-bar > button[data-main-nav-key='journals'] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  color: #066a5b !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .23), rgba(6, 182, 212, .17)) !important;
+  border-color: rgba(13, 148, 136, .42) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .42), 0 5px 15px rgba(13, 148, 136, .09) !important;
+}
+
+html[data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals']:hover,
+html[data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals']:hover,
+html[data-ui] body .header-tabs > button[data-main-nav-key='journals']:hover,
+html[data-ui] body .tab-bar > button[data-main-nav-key='journals']:hover {
+  color: #045f50 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .31), rgba(6, 182, 212, .23)) !important;
+  border-color: rgba(13, 148, 136, .58) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .48), 0 8px 20px rgba(13, 148, 136, .14) !important;
+}
+
+html[data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'].active,
+html[data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'].active,
+html[data-ui] body .header-tabs > button[data-main-nav-key='journals'].active,
+html[data-ui] body .tab-bar > button[data-main-nav-key='journals'].active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #0f9f79, #0891b2) !important;
+  border-color: rgba(5, 150, 105, .78) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .26), 0 9px 23px rgba(13, 148, 136, .23) !important;
+}
+
+/* The journal library is reached only through the primary Journal Center route.
+   The internal React state button remains available to routing code, but is never visible. */
+.preparation-workspace > .prep-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+button[data-journal-center-internal='true'] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Journal Center catalog toolbar: all journals remain visible by default, while
+   the categories make automatic, manual and focus records explicit. */
+.preparation-workspace[data-section='journals'] > .journal-catalog-toolbar {
+  min-width: 0;
+  padding: 11px 12px;
+  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid color-mix(in srgb, var(--border, #cbd5e1) 82%, transparent);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .82), rgba(236, 254, 255, .68));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 8px 22px rgba(15, 23, 42, .05);
+  backdrop-filter: blur(16px) saturate(128%);
+  -webkit-backdrop-filter: blur(16px) saturate(128%);
+}
+
+.journal-catalog-toolbar-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.journal-catalog-toolbar-copy > span {
+  color: #0f766e;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.journal-catalog-toolbar-copy > strong {
+  color: var(--text-primary, #0f172a);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.journal-catalog-toolbar-copy > p {
+  margin: 0;
+  color: var(--text-secondary, #475569);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.journal-catalog-filters {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.header-tabs > button[data-main-nav-key='journals'].active,
-.tab-bar > button[data-main-nav-key='journals'].active {
-  color: #087ca7;
+.journal-catalog-filter {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(100, 116, 139, .22);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .72);
+  color: #475569;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 140ms ease, color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.journal-catalog-filter:hover,
+.journal-catalog-filter:focus-visible {
+  transform: translateY(-1px);
+  color: #0f766e;
+  border-color: rgba(13, 148, 136, .38);
+  background: rgba(240, 253, 250, .92);
+  outline: none;
+}
+
+.journal-catalog-filter.active {
+  color: #ffffff;
+  border-color: #0f9f79;
+  background: linear-gradient(135deg, #0f9f79, #0891b2);
+  box-shadow: 0 6px 15px rgba(13, 148, 136, .18);
+}
+
+.prep-journal-card[data-catalog-source='submission-history'] {
+  border-style: dashed !important;
+}
+
+.prep-journal-card[data-catalog-source='submission-history']::before {
+  content: '投稿自动收录';
+}
+
+.prep-journal-card[data-catalog-priority='focus'] .prep-priority {
+  color: #9a6700 !important;
+  background: rgba(250, 204, 21, .16) !important;
+  border-color: rgba(202, 138, 4, .28) !important;
 }
 
 /* All search fields receive a right-side, single-click clear action. */
@@ -74,6 +206,55 @@
   right: 6px;
 }
 
+html[data-theme='dark'][data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'],
+html[data-theme='dark'][data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'],
+html[data-theme='dark'][data-ui] body .header-tabs > button[data-main-nav-key='journals'],
+html[data-theme='dark'][data-ui] body .tab-bar > button[data-main-nav-key='journals'] {
+  color: #b7f7e3 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, .28), rgba(8, 145, 178, .23)) !important;
+  border-color: rgba(110, 231, 183, .44) !important;
+  box-shadow: inset 0 0 0 1px rgba(207, 250, 254, .10), 0 8px 20px rgba(6, 182, 212, .10) !important;
+}
+
+html[data-theme='dark'][data-ui] body .app-header .header-tabs > button[data-main-nav-key='journals'].active,
+html[data-theme='dark'][data-ui] body .app-header .tab-bar > button[data-main-nav-key='journals'].active,
+html[data-theme='dark'][data-ui] body .header-tabs > button[data-main-nav-key='journals'].active,
+html[data-theme='dark'][data-ui] body .tab-bar > button[data-main-nav-key='journals'].active {
+  color: #062e2b !important;
+  background: linear-gradient(135deg, #6ee7b7, #67e8f9) !important;
+  border-color: rgba(167, 243, 208, .88) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .38), 0 10px 26px rgba(45, 212, 191, .20) !important;
+}
+
+html[data-theme='dark'] .preparation-workspace[data-section='journals'] > .journal-catalog-toolbar {
+  border-color: rgba(125, 211, 252, .22);
+  background: linear-gradient(135deg, rgba(15, 23, 42, .84), rgba(6, 78, 93, .54));
+  box-shadow: inset 0 1px 0 rgba(226, 232, 240, .08), 0 12px 30px rgba(2, 6, 23, .22);
+}
+
+html[data-theme='dark'] .journal-catalog-toolbar-copy > span { color: #5eead4; }
+html[data-theme='dark'] .journal-catalog-toolbar-copy > strong { color: #f8fafc; }
+html[data-theme='dark'] .journal-catalog-toolbar-copy > p { color: #cbd5e1; }
+
+html[data-theme='dark'] .journal-catalog-filter {
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, .30);
+  background: rgba(15, 23, 42, .76);
+}
+
+html[data-theme='dark'] .journal-catalog-filter:hover,
+html[data-theme='dark'] .journal-catalog-filter:focus-visible {
+  color: #99f6e4;
+  border-color: rgba(94, 234, 212, .45);
+  background: rgba(13, 148, 136, .18);
+}
+
+html[data-theme='dark'] .journal-catalog-filter.active {
+  color: #062e2b;
+  border-color: #99f6e4;
+  background: linear-gradient(135deg, #6ee7b7, #67e8f9);
+}
+
 html[data-theme='dark'] .global-search-clear-host > .global-search-clear {
   background: rgba(15, 23, 42, .82);
   border-color: rgba(148, 163, 184, .24);
@@ -91,5 +272,18 @@ html[data-theme='dark'] .global-search-clear-host > .global-search-clear:focus-v
   .header-tabs > button[data-main-nav-key='journals'],
   .tab-bar > button[data-main-nav-key='journals'] {
     min-width: 0;
+  }
+
+  .preparation-workspace > .prep-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .preparation-workspace[data-section='journals'] > .journal-catalog-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .journal-catalog-filters {
+    justify-content: flex-start;
   }
 }

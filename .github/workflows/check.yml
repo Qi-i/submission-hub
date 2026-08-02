@@ -19,6 +19,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: node tests/journal-auto-catalog-check.mjs
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}

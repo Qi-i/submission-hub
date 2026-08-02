@@ -212,9 +212,9 @@ try {
   failures.push(...preparation.failures)
   details.preparation = preparation.details
 
-  const journalTab = page.locator('.prep-nav button[data-tone="journal"]')
-  if (await journalTab.count()) {
-    await journalTab.first().click()
+  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  if (await journalCenter.count()) {
+    await journalCenter.click()
     await page.locator('.prep-card-grid.journal-grid').waitFor({ state: 'visible' })
     await page.waitForTimeout(120)
     const journalTabGeometry = await page.evaluate((tol) => {

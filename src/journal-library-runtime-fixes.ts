@@ -27,7 +27,14 @@ function normalizeHref(value: string) {
 
 function fixMetricVisibility(card: HTMLElement) {
   const host = card.querySelector<HTMLElement>('.prep-journal-numbers')
+  const facts = card.querySelector<HTMLElement>('.prep-journal-facts')
   if (!host) return
+
+  const apc = card.querySelector<HTMLElement>('[data-metric="apc"]')
+  if (apc && facts && apc.parentElement !== facts) {
+    apc.classList.add('prep-journal-apc-fact')
+    facts.appendChild(apc)
+  }
 
   const cells = Array.from(host.querySelectorAll<HTMLElement>(':scope > div'))
   cells.forEach(cell => {
@@ -222,7 +229,12 @@ function start() {
   const schedule = scheduleFactory(enhanceAll)
   enhanceAll()
   const observer = new MutationObserver(schedule)
-  observer.observe(document.body, { childList: true, subtree: true })
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['data-metric'],
+  })
   window.addEventListener('resize', schedule, { passive: true })
 }
 

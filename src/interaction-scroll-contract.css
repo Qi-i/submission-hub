@@ -1,0 +1,42 @@
+/* Ensure keyboard/pointer targets are never scrolled underneath the visible top navigation. */
+html[data-ui='luminous'] {
+  scroll-padding-top: 112px;
+}
+
+html[data-ui='luminous'] body :is(.paper-card-v3, .prep-journal-card, .prep-topic-card, .prep-draft-card) {
+  scroll-margin-top: 112px;
+}
+
+/* Luminous X desktop uses a left sidebar, not a top overlay. */
+@media (min-width: 981px) {
+  html[data-ui='luminous-x'] {
+    scroll-padding-top: 24px;
+  }
+
+  html[data-ui='luminous-x'] body :is(.paper-card-v3, .prep-journal-card, .prep-topic-card, .prep-draft-card) {
+    scroll-margin-top: 24px;
+  }
+}
+
+/* Luminous X converts to a sticky top bar below 980px. */
+@media (min-width: 721px) and (max-width: 980px) {
+  html[data-ui='luminous-x'] {
+    scroll-padding-top: 92px;
+  }
+
+  html[data-ui='luminous-x'] body :is(.paper-card-v3, .prep-journal-card, .prep-topic-card, .prep-draft-card) {
+    scroll-margin-top: 92px;
+  }
+}
+
+@media (max-width: 720px) {
+  html[data-ui='luminous'],
+  html[data-ui='luminous-x'] {
+    scroll-padding-top: 84px;
+  }
+
+  html[data-ui='luminous'] body :is(.paper-card-v3, .prep-journal-card, .prep-topic-card, .prep-draft-card),
+  html[data-ui='luminous-x'] body :is(.paper-card-v3, .prep-journal-card, .prep-topic-card, .prep-draft-card) {
+    scroll-margin-top: 84px;
+  }
+}

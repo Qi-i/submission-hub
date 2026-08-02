@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
+import { deriveAutomaticJournalProfiles } from '../lib/journal-auto-catalog'
 import { supabase } from '../lib/supabase'
+import type { Paper } from '../lib/types'
 import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopic } from '../lib/preparation'
 import { createDefaultChecklist } from '../lib/preparation'
 import { invalidateOnlineJournalProfileCache } from './OnlinePaperCard'
@@ -18,6 +20,17 @@ function cleanPayload<T extends Record<string, any>>(data: T) {
   return payload
 }
 
+function legacyAutomaticJournalPayload(journal: JournalProfile) {
+  const {
+    name_zh, official_abbreviation, scope_zh, selection_tags, selection_notes,
+    ...legacy
+  } = journal
+  return {
+    ...legacy,
+    notes: journal.notes || '系统根据投稿历史自动建立的简易期刊档案。',
+  }
+}
+
 function localDateString() {
   const date = new Date()
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -27,6 +40,16 @@ function readableError(error: unknown, fallback: string) {
   return error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
     ? error.message
     : fallback
+}
+
+function normalizeJournal(journal: JournalProfile): JournalProfile {
+  return {
+    ...journal,
+    third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
+    subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
+    selection_tags: Array.isArray(journal.selection_tags) ? journal.selection_tags : [],
+    indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
+  }
 }
 
 export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: Props) {
@@ -41,24 +64,49 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     setError('')
 
     try {
-      const [journalResult, topicResult, draftResult] = await Promise.all([
+      const [journalResult, topicResult, draftResult, paperResult] = await Promise.all([
         (supabase.from('journal_profiles') as any).select('*').order('updated_at', { ascending: false }),
         (supabase.from('research_topics') as any).select('*').order('updated_at', { ascending: false }),
         (supabase.from('manuscript_drafts') as any).select('*').order('updated_at', { ascending: false }),
+        (supabase.from('papers') as any).select('*').order('updated_at', { ascending: false }),
       ])
 
       if (version !== loadVersion.current) return
-      const firstError = journalResult.error || topicResult.error || draftResult.error
+      const firstError = journalResult.error || topicResult.error || draftResult.error || paperResult.error
       if (firstError) throw firstError
 
+      let journals = ((journalResult.data || []) as JournalProfile[]).map(normalizeJournal)
+      const automaticJournals = deriveAutomaticJournalProfiles((paperResult.data || []) as Paper[], journals, userId)
+      if (automaticJournals.length) {
+        let persisted: JournalProfile[] = []
+        const fullInsert = await (supabase.from('journal_profiles') as any)
+          .insert(automaticJournals)
+          .select('*')
+
+        if (!fullInsert.error) {
+          persisted = ((fullInsert.data || []) as JournalProfile[]).map(normalizeJournal)
+        } else {
+          console.warn('Persist automatic journal profiles with current schema failed; retrying legacy-compatible fields:', fullInsert.error)
+          const legacyInsert = await (supabase.from('journal_profiles') as any)
+            .insert(automaticJournals.map(legacyAutomaticJournalPayload))
+            .select('*')
+          if (!legacyInsert.error) {
+            persisted = ((legacyInsert.data || []) as JournalProfile[]).map(normalizeJournal)
+          } else {
+            console.warn('Automatic journal profiles will remain visible in memory for this session:', legacyInsert.error)
+          }
+        }
+
+        const visibleAutomatic = persisted.length
+          ? persisted
+          : automaticJournals.map(normalizeJournal)
+        journals = [...visibleAutomatic, ...journals]
+        if (persisted.length) invalidateOnlineJournalProfileCache()
+      }
+
+      if (version !== loadVersion.current) return
       setSnapshot({
-        journals: ((journalResult.data || []) as JournalProfile[]).map(journal => ({
-          ...journal,
-          third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
-          subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
-          selection_tags: Array.isArray(journal.selection_tags) ? journal.selection_tags : [],
-          indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
-        })),
+        journals,
         topics: ((topicResult.data || []) as ResearchTopic[]).map(topic => ({
           ...topic,
           keywords: Array.isArray(topic.keywords) ? topic.keywords : [],
@@ -82,7 +130,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     } finally {
       if (version === loadVersion.current) setLoading(false)
     }
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     void load()
@@ -92,8 +140,21 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
   const saveJournal = async (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => {
     const now = new Date().toISOString()
     if (data.id) {
-      const { error } = await (supabase.from('journal_profiles') as any).update({ ...cleanPayload(data), updated_at: now }).eq('id', data.id)
-      if (error) throw error
+      const updateResult = await (supabase.from('journal_profiles') as any)
+        .update({ ...cleanPayload(data), updated_at: now })
+        .eq('id', data.id)
+        .select('id')
+      if (updateResult.error) throw updateResult.error
+      if (!updateResult.data?.length) {
+        const { error } = await (supabase.from('journal_profiles') as any).insert({
+          ...cleanPayload(data),
+          id: data.id,
+          user_id: userId,
+          created_at: data.created_at || now,
+          updated_at: now,
+        })
+        if (error) throw error
+      }
     } else {
       const { error } = await (supabase.from('journal_profiles') as any).insert({ ...cleanPayload(data), id: crypto.randomUUID(), user_id: userId, created_at: now, updated_at: now })
       if (error) throw error

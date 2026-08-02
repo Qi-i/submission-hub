@@ -12,10 +12,10 @@
   height: 27px !important;
   flex: 0 0 auto !important;
   padding: 0 8px !important;
-  border: 1px solid rgba(14, 165, 233, .28) !important;
+  border: 1px solid rgba(14, 165, 233, .32) !important;
   border-radius: 8px !important;
-  background: rgba(14, 165, 233, .08) !important;
-  color: #0369a1 !important;
+  background: rgba(14, 165, 233, .10) !important;
+  color: #075985 !important;
   font-size: 9.5px !important;
   font-weight: 900 !important;
   line-height: 1 !important;
@@ -25,13 +25,57 @@
 
 .paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button:hover,
 .paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button:focus-visible {
-  border-color: rgba(14, 165, 233, .58) !important;
+  border-color: rgba(14, 165, 233, .62) !important;
   box-shadow: 0 5px 13px rgba(14, 165, 233, .13);
   outline: none;
 }
 
+.paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button[aria-pressed='true'] {
+  color: #ffffff !important;
+  background: #0284c7 !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 5px 14px rgba(2, 132, 199, .22);
+}
+
+.paper-card-v3 > .journal-quick-overlay.is-pinned > .journal-quick-card {
+  border-color: rgba(2, 132, 199, .48) !important;
+  box-shadow: 0 22px 54px rgba(15, 23, 42, .22), 0 0 0 1px rgba(14, 165, 233, .14) !important;
+}
+
 .paper-card-v3 > .journal-quick-overlay.is-pinned > .journal-quick-card::after {
   display: none !important;
+}
+
+.paper-card-v3 .journal-quick-scope-zh {
+  color: #334155 !important;
+  opacity: 1 !important;
+  line-height: 1.65 !important;
+  background: rgba(248, 250, 252, .92) !important;
+  border: 1px solid rgba(148, 163, 184, .22) !important;
+}
+
+.paper-card-v3 .journal-quick-links,
+.paper-card-v3 .journal-quick-library-actions {
+  opacity: 1 !important;
+}
+
+.paper-card-v3 .journal-quick-links a,
+.paper-card-v3 .journal-quick-library-action {
+  opacity: 1 !important;
+  color: #0f4c81 !important;
+  background: rgba(239, 246, 255, .96) !important;
+  border-color: rgba(59, 130, 246, .30) !important;
+  font-weight: 800 !important;
+}
+
+.paper-card-v3 .journal-quick-links a:hover,
+.paper-card-v3 .journal-quick-links a:focus-visible,
+.paper-card-v3 .journal-quick-library-action:hover,
+.paper-card-v3 .journal-quick-library-action:focus-visible {
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  outline: none;
 }
 
 /* Luminous X applies a stronger overflow rule to cards; an open popover must escape the card bounds. */
@@ -54,9 +98,37 @@ html[data-ui='luminous-x'] body .paper-card-v3:has(> .journal-quick-overlay) {
 }
 
 html[data-theme='dark'] .paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button {
-  color: #67e8f9 !important;
-  background: rgba(8, 145, 178, .14) !important;
-  border-color: rgba(103, 232, 249, .28) !important;
+  color: #a5f3fc !important;
+  background: rgba(8, 145, 178, .20) !important;
+  border-color: rgba(103, 232, 249, .38) !important;
+}
+
+html[data-theme='dark'] .paper-card-v3 .journal-quick-head .journal-quick-head-tools .journal-quick-pin-button[aria-pressed='true'] {
+  color: #082f49 !important;
+  background: #67e8f9 !important;
+  border-color: #67e8f9 !important;
+}
+
+html[data-theme='dark'] .paper-card-v3 .journal-quick-scope-zh {
+  color: #e2e8f0 !important;
+  background: rgba(15, 23, 42, .90) !important;
+  border-color: rgba(148, 163, 184, .28) !important;
+}
+
+html[data-theme='dark'] .paper-card-v3 .journal-quick-links a,
+html[data-theme='dark'] .paper-card-v3 .journal-quick-library-action {
+  color: #bae6fd !important;
+  background: rgba(12, 74, 110, .52) !important;
+  border-color: rgba(125, 211, 252, .34) !important;
+}
+
+html[data-theme='dark'] .paper-card-v3 .journal-quick-links a:hover,
+html[data-theme='dark'] .paper-card-v3 .journal-quick-links a:focus-visible,
+html[data-theme='dark'] .paper-card-v3 .journal-quick-library-action:hover,
+html[data-theme='dark'] .paper-card-v3 .journal-quick-library-action:focus-visible {
+  color: #082f49 !important;
+  background: #7dd3fc !important;
+  border-color: #7dd3fc !important;
 }
 
 @media (max-width: 720px) {

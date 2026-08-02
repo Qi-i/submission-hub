@@ -29,7 +29,6 @@ const PREPARATION_OPTIONS: ProxyOption[] = [
   { label: '总览', match: '总览' },
   { label: '选题池', match: '选题池' },
   { label: '草稿准备', match: '草稿准备' },
-  { label: '期刊库', match: '期刊库' },
   { label: '期刊比较', match: '期刊比较' },
 ]
 

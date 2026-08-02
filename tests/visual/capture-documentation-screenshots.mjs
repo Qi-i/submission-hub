@@ -37,20 +37,36 @@ async function openJournalLibrary(page, ui) {
     selector: '.preparation-workspace:visible',
   })
 
-  if (ui === 'luminous-x') {
-    const proxyButton = page.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls").getByRole('button', { name: /期刊库/ }).first()
-    if (await proxyButton.isVisible()) {
-      await proxyButton.click({ force: true })
-    } else {
-      await page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first().click({ force: true })
-    }
-  } else {
-    await page.locator(".preparation-workspace:visible .prep-nav button[data-tone='journal']:visible").first().click({ force: true })
-  }
+  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
+  await journalCenter.evaluate(element => element.click())
 
   await page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.waitForTimeout(300)
+}
+
+async function openNewJournalEditor(page) {
+  const buttons = page.locator('.btn-journal-primary')
+  const count = await buttons.count()
+  for (let index = 0; index < count; index += 1) {
+    await buttons.nth(index).evaluate(element => element.click())
+    const modal = page.locator('.journal-form-modal:visible').first()
+    try {
+      await modal.waitFor({ state: 'visible', timeout: 1800 })
+      return modal
+    } catch {
+      // Try the next rendered action; responsive layouts may retain an inert hidden copy.
+    }
+  }
+  const diagnostics = await buttons.evaluateAll(elements => elements.map(element => ({
+    text: element.textContent?.trim() || '',
+    connected: element.isConnected,
+    display: getComputedStyle(element).display,
+    visibility: getComputedStyle(element).visibility,
+    rect: element.getBoundingClientRect().toJSON(),
+  })))
+  throw new Error(`Unable to open journal editor from ${count} actions: ${JSON.stringify(diagnostics)}`)
 }
 
 async function captureJournalLibrary(ui, path) {
@@ -66,6 +82,7 @@ async function captureJournalLibrary(ui, path) {
 async function captureReviewLookup() {
   const page = await browser.newPage({ viewport: desktopViewport })
   const journalUrl = 'https://www.sciencedirect.com/journal/journal-of-rock-mechanics-and-geotechnical-engineering'
+  page.on('pageerror', error => console.error('[journal-doc-pageerror]', error.message))
   try {
     await page.route('https://r.jina.ai/**', async route => {
       const requestUrl = decodeURIComponent(route.request().url())
@@ -80,10 +97,9 @@ async function captureReviewLookup() {
     })
 
     await openJournalLibrary(page, 'luminous-x')
-    await page.locator('.preparation-workspace[data-section="journals"]:visible .prep-journal-card-main').first().click()
-    const modal = page.locator('.journal-form-modal:visible').first()
-    await modal.waitFor({ state: 'visible', timeout: 15000 })
+    const modal = await openNewJournalEditor(page)
 
+    await modal.locator('.prep-field', { hasText: '英文期刊名' }).locator('input').first().fill('Journal of Rock Mechanics and Geotechnical Engineering')
     await modal.locator('.prep-field', { hasText: '期刊官网' }).locator('input').first().fill(journalUrl)
     await modal.locator('.prep-field', { hasText: '审稿周期来源' }).locator('input').first().fill('')
     await modal.getByRole('button', { name: '获取审稿周期' }).click()
