@@ -7,23 +7,113 @@ html[data-ui] body .preparation-workspace[data-section='journals'] .prep-journal
   pointer-events: none !important;
 }
 
+/* Standard Luminous overview uses normal document flow: top bar, one-row secondary
+   navigation, dashboard, then the remaining preparation modules. This resets the
+   legacy split workbench that caused spanning buttons and an overlapping click layer. */
+html[data-ui='luminous'] body .preparation-workspace[data-section='overview'] {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: none !important;
+  grid-auto-flow: row !important;
+  grid-auto-rows: max-content !important;
+  column-gap: 0 !important;
+  row-gap: 12px !important;
+  align-items: stretch !important;
+}
+
+html[data-ui='luminous'] body .preparation-workspace[data-section='overview'] > :is(
+  .prep-topbar,
+  .prep-nav,
+  .prep-dashboard,
+  .prep-metrics,
+  .prep-overview-grid,
+  .prep-topic-overview
+) {
+  grid-column: 1 !important;
+  grid-row: auto !important;
+}
+
 html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
   grid-auto-columns: minmax(0, 1fr) !important;
+  grid-auto-flow: row !important;
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  padding: 6px !important;
+  align-content: stretch !important;
+  align-self: stretch !important;
+  position: relative !important;
+  z-index: 20 !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
 }
+
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav::before,
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav::after {
+  content: none !important;
+  display: none !important;
+  pointer-events: none !important;
+}
+
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button:not([data-journal-center-internal='true']) {
+  display: inline-flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 0 11px !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  align-self: stretch !important;
+  justify-self: stretch !important;
+  position: relative !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='overview'] { order: 1 !important; }
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='topic'] { order: 2 !important; }
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='draft'] { order: 3 !important; }
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='compare'] { order: 4 !important; }
 
 html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='overview'],
 html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='topic'],
 html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='draft'],
 html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='compare'] {
-  display: inline-flex !important;
   visibility: visible !important;
 }
 
 html[data-ui='luminous'] body .preparation-workspace > .prep-nav > button[data-tone='journal'],
 html[data-ui='luminous'] body .preparation-workspace > .prep-nav > button[data-journal-center-internal='true'] {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Journal Center is a separate route. Its information bar and card grid must have
+   a deliberate panel gap instead of visually touching at their borders. */
+html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-auto-flow: row !important;
+  grid-auto-rows: max-content !important;
+  column-gap: 0 !important;
+  row-gap: 14px !important;
+  align-items: start !important;
+}
+
+html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] > .prep-topbar,
+html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] > .prep-card-grid.journal-grid {
+  grid-column: 1 !important;
+  margin: 0 !important;
 }
 
 @media (min-width: 1280px) {
@@ -37,5 +127,9 @@ html[data-ui='luminous'] body .preparation-workspace > .prep-nav > button[data-j
 @media (max-width: 720px) {
   html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    height: auto !important;
+    min-height: 90px !important;
+    max-height: none !important;
   }
 }
