@@ -98,6 +98,8 @@ html[data-ui='luminous-x'] body .paper-grid {
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .paper-journal-slot {
     grid-column: 1 !important;
     grid-row: 2 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     justify-self: stretch !important;
     align-self: stretch !important;
     min-width: 0 !important;
@@ -149,9 +151,15 @@ html[data-ui='luminous-x'] body .paper-grid {
     position: relative !important;
     inset: auto !important;
     margin: 0 !important;
+    flex: 1 1 0% !important;
+    flex-basis: 0% !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    align-items: center !important;
     transform: none !important;
     translate: none !important;
-    justify-self: stretch !important;
     overflow: hidden !important;
   }
 
