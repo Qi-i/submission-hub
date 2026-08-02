@@ -9,6 +9,8 @@ on:
       - 'src/**'
       - 'tests/visual/**'
       - 'vite.config.visual.ts'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/update-doc-screenshots.yml'
   push:
     branches: [main, 'release/**']
@@ -34,6 +36,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -86,7 +90,7 @@ jobs:
             test -s "docs/screenshots/${file}.png"
           done
       - name: Commit documentation assets and lock metadata
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/'))
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
@@ -96,4 +100,4 @@ jobs:
             exit 0
           fi
           git commit -m "Update documentation screenshots and lock metadata"
-          git push
+          git push origin HEAD:${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
