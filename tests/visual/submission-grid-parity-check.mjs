@@ -35,6 +35,11 @@ function fail(message) {
   failures.push(message)
 }
 
+function rectText(rect) {
+  if (!rect) return 'none'
+  return `${rect.left.toFixed(2)}..${rect.right.toFixed(2)} (w=${rect.width.toFixed(2)})`
+}
+
 for (const current of cases) {
   const columnsByInterface = new Map()
 
@@ -43,12 +48,22 @@ for (const current of cases) {
     try {
       await page.goto(`${baseUrl}?view=dashboard&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
       await page.locator("html[data-visual-ready='true'] .paper-grid .paper-card-v3").first().waitFor({ state: 'visible', timeout: 45000 })
-      await page.waitForTimeout(350)
+      await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important;}' })
+      await page.waitForTimeout(100)
 
       const result = await page.evaluate(() => {
         const grid = document.querySelector('.paper-grid')
         const cards = Array.from(grid?.querySelectorAll('.paper-card-v3') || [])
         if (!grid || cards.length === 0) return null
+
+        const serializeRect = rect => rect ? {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        } : null
 
         const gridRect = grid.getBoundingClientRect()
         const firstTop = Math.round(cards[0].getBoundingClientRect().top)
@@ -56,16 +71,44 @@ for (const current of cases) {
 
         const cardChecks = firstRow.map((card, index) => {
           const rect = card.getBoundingClientRect()
+          const slot = card.querySelector('.paper-journal-slot')
           const journal = card.querySelector('.journal-pill-button, .journal-pill')
           const rail = card.querySelector('.paper-action-rail')
+          const slotRect = slot?.getBoundingClientRect() || null
           const journalRect = journal?.getBoundingClientRect() || null
           const railRect = rail?.getBoundingClientRect() || null
+          const cardStyle = getComputedStyle(card)
+          const slotStyle = slot ? getComputedStyle(slot) : null
+          const journalStyle = journal ? getComputedStyle(journal) : null
           return {
             index,
             width: rect.width,
             overflow: card.scrollWidth - card.clientWidth,
+            cardRect: serializeRect(rect),
+            slotRect: serializeRect(slotRect),
+            journalRect: serializeRect(journalRect),
+            railRect: serializeRect(railRect),
             journalEscapes: journalRect ? journalRect.left < rect.left - 1 || journalRect.right > rect.right + 1 : false,
             railEscapes: railRect ? railRect.left < rect.left - 1 || railRect.right > rect.right + 1 : false,
+            styles: {
+              cardDisplay: cardStyle.display,
+              cardColumns: cardStyle.gridTemplateColumns,
+              cardOverflow: cardStyle.overflow,
+              slotDisplay: slotStyle?.display || '',
+              slotWidth: slotStyle?.width || '',
+              slotMaxWidth: slotStyle?.maxWidth || '',
+              slotOverflow: slotStyle?.overflow || '',
+              slotTransform: slotStyle?.transform || '',
+              journalDisplay: journalStyle?.display || '',
+              journalPosition: journalStyle?.position || '',
+              journalWidth: journalStyle?.width || '',
+              journalMaxWidth: journalStyle?.maxWidth || '',
+              journalMargin: journalStyle?.margin || '',
+              journalPadding: journalStyle?.padding || '',
+              journalBorder: journalStyle?.borderWidth || '',
+              journalBoxSizing: journalStyle?.boxSizing || '',
+              journalTransform: journalStyle?.transform || '',
+            },
           }
         })
 
@@ -100,8 +143,12 @@ for (const current of cases) {
           fail(`${current.name}/${ui}/card-${card.index + 1}: width ${card.width.toFixed(1)}px is below ${minimum}px`)
         }
         if (card.overflow > 2) fail(`${current.name}/${ui}/card-${card.index + 1}: horizontal overflow ${card.overflow}px`)
-        if (card.journalEscapes) fail(`${current.name}/${ui}/card-${card.index + 1}: journal escapes card`)
-        if (card.railEscapes) fail(`${current.name}/${ui}/card-${card.index + 1}: action rail escapes card`)
+        if (card.journalEscapes) {
+          fail(`${current.name}/${ui}/card-${card.index + 1}: journal escapes card; card=${rectText(card.cardRect)}; slot=${rectText(card.slotRect)}; journal=${rectText(card.journalRect)}; styles=${JSON.stringify(card.styles)}`)
+        }
+        if (card.railEscapes) {
+          fail(`${current.name}/${ui}/card-${card.index + 1}: action rail escapes card; card=${rectText(card.cardRect)}; rail=${rectText(card.railRect)}`)
+        }
       }
 
       details.push(`${current.name}/${ui}: ${result.columns} columns; grid=${result.gridWidth.toFixed(1)}px; card=${result.cardChecks[0]?.width.toFixed(1) || 'n/a'}px`)
