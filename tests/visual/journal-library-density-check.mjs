@@ -187,9 +187,17 @@ async function inspectReviewLookup(ui) {
     })
     await openJournalLibrary(page, ui, 'light')
     const modal = await openNewJournalEditor(page)
-    const fieldLabels = await modal.locator('.prep-field > span').allTextContents()
-    for (const label of ['APC', '中文译名', '缩写', '中文简介翻译', '选刊标签', '选刊备注']) {
-      if (!fieldLabels.some(text => text.trim() === label)) failures.push(`${ui}/form: missing field ${label}`)
+    const fieldLabels = (await modal.locator('.prep-field > span').allTextContents()).map(text => text.trim())
+    const requiredFields = [
+      { name: 'APC', matches: label => label.includes('APC') },
+      { name: '中文译名', matches: label => label === '中文译名' },
+      { name: '缩写', matches: label => label === '缩写' },
+      { name: '中文简介翻译', matches: label => label === '中文简介翻译' },
+      { name: '选刊标签', matches: label => label === '选刊标签' },
+      { name: '选刊备注', matches: label => label === '选刊备注' },
+    ]
+    for (const field of requiredFields) {
+      if (!fieldLabels.some(field.matches)) failures.push(`${ui}/form: missing field ${field.name}`)
     }
     await modal.locator('.prep-field', { hasText: '英文期刊名' }).locator('input').first().fill('Journal of Rock Mechanics and Geotechnical Engineering')
     await modal.locator('.prep-field', { hasText: '期刊官网' }).locator('input').first().fill(journalUrl)

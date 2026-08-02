@@ -7,12 +7,14 @@ on:
     paths:
       - 'src/**'
       - 'tests/visual/ui-geometry-contract-check.mjs'
+      - 'tests/visual/journal-center-header-filter-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
     paths:
       - 'src/**'
       - 'tests/visual/ui-geometry-contract-check.mjs'
+      - 'tests/visual/journal-center-header-filter-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -50,3 +52,5 @@ jobs:
           exit 1
       - name: Verify boundaries, radii, spacing and journal terminology
         run: node tests/visual/ui-geometry-contract-check.mjs
+      - name: Verify Journal Center filters, Preparation routes and standard four-column grid
+        run: node tests/visual/journal-center-header-filter-check.mjs

@@ -67,7 +67,8 @@ try {
     const draftCards = Array.from(draftList?.querySelectorAll('.prep-draft-card.compact') || [])
     const draftTitle = draftPanel?.querySelector('.prep-panel-head h2')?.textContent?.trim() || ''
     const proxyJournal = Array.from(proxy?.querySelectorAll('button') || []).find(button => button.textContent?.replace(/\s+/g, '').includes('期刊库'))
-    const primaryJournal = document.querySelector(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']")
+    const primaryJournal = document.querySelector("button[data-main-nav-key='journals']")
+    const primaryPeer = document.querySelector("button[data-main-nav-key='preparation']")
     if (!workspace || !topbar || !proxy || !original) return null
 
     const listRect = draftList?.getBoundingClientRect()
@@ -76,6 +77,7 @@ try {
       ? cardRects.filter(card => card.top >= listRect.top - 1 && card.bottom <= listRect.bottom + 1).length
       : 0
     const primaryJournalStyle = primaryJournal ? getComputedStyle(primaryJournal) : null
+    const primaryPeerStyle = primaryPeer ? getComputedStyle(primaryPeer) : null
 
     return {
       display: getComputedStyle(workspace).display,
@@ -90,7 +92,18 @@ try {
       portalDraft: portal?.querySelector('.btn-context-new')?.textContent?.trim() || '',
       original: getComputedStyle(original).display,
       proxyJournalDisplay: proxyJournal ? getComputedStyle(proxyJournal).display : 'missing',
-      primaryJournalBackground: primaryJournalStyle ? `${primaryJournalStyle.backgroundColor}|${primaryJournalStyle.backgroundImage}` : '',
+      primaryJournalGeometry: primaryJournal && primaryJournalStyle ? {
+        width: primaryJournal.getBoundingClientRect().width,
+        height: primaryJournal.getBoundingClientRect().height,
+        radius: primaryJournalStyle.borderRadius,
+        justify: primaryJournalStyle.justifyContent,
+      } : null,
+      primaryPeerGeometry: primaryPeer && primaryPeerStyle ? {
+        width: primaryPeer.getBoundingClientRect().width,
+        height: primaryPeer.getBoundingClientRect().height,
+        radius: primaryPeerStyle.borderRadius,
+        justify: primaryPeerStyle.justifyContent,
+      } : null,
       assistant: assistant?.getBoundingClientRect().toJSON(),
       topics: topics?.getBoundingClientRect().toJSON(),
       draftTitle,
@@ -105,7 +118,13 @@ try {
     if (prepLayout.display !== 'flex' || prepLayout.direction !== 'column') failures.push('preparation: overview is not a vertical flow')
     if (prepLayout.original !== 'none') failures.push('preparation: duplicate navigation is visible')
     if (prepLayout.proxyJournalDisplay !== 'none' && prepLayout.proxyJournalDisplay !== 'missing') failures.push('preparation: journal library is still duplicated in subsection navigation')
-    if (!prepLayout.primaryJournalBackground || prepLayout.primaryJournalBackground === 'rgba(0, 0, 0, 0)|none') failures.push('preparation: journal center primary navigation has no colored surface')
+    if (!prepLayout.primaryJournalGeometry || !prepLayout.primaryPeerGeometry) failures.push('preparation: primary navigation geometry is missing')
+    else {
+      if (Math.abs(prepLayout.primaryJournalGeometry.width - prepLayout.primaryPeerGeometry.width) > 1) failures.push('preparation: journal center width differs from peer routes')
+      if (Math.abs(prepLayout.primaryJournalGeometry.height - prepLayout.primaryPeerGeometry.height) > 1) failures.push('preparation: journal center height differs from peer routes')
+      if (prepLayout.primaryJournalGeometry.radius !== prepLayout.primaryPeerGeometry.radius) failures.push('preparation: journal center radius differs from peer routes')
+      if (prepLayout.primaryJournalGeometry.justify !== prepLayout.primaryPeerGeometry.justify) failures.push('preparation: journal center alignment differs from peer routes')
+    }
     if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search and creation controls were not moved into the header center lane')
     if (!prepLayout.portalJournal.includes('新增期刊') || !prepLayout.portalDraft.includes('新建草稿')) failures.push('preparation: header center lane lacks the expected creation actions')
     if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: the redundant wide overview toolbar remains visible')
@@ -142,7 +161,7 @@ try {
     if (!draftActions.journalActionText.includes('新增期刊')) failures.push('preparation: journal shortcut is missing from the shared header actions')
   }
 
-  const journalCenter = prep.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  const journalCenter = prep.locator("button[data-main-nav-key='journals']:visible").first()
   await journalCenter.click()
   await prep.locator(".preparation-workspace[data-section='journals']").waitFor({ state: 'visible', timeout: 5000 })
   await prep.waitForTimeout(150)
