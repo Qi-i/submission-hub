@@ -8,6 +8,17 @@ const details = []
 const closeEnough = (left, right, tolerance = 2) => Math.abs(left - right) <= tolerance
 const fail = message => failures.push(message)
 
+function rgbLuminance(value = '') {
+  const match = value.match(/rgba?\(([^)]+)\)/)
+  if (!match) return 0
+  const [r = 0, g = 0, b = 0] = match[1].split(',').slice(0, 3).map(Number)
+  const channel = number => {
+    const normalized = number / 255
+    return normalized <= .03928 ? normalized / 12.92 : ((normalized + .055) / 1.055) ** 2.4
+  }
+  return .2126 * channel(r) + .7152 * channel(g) + .0722 * channel(b)
+}
+
 for (const ui of ['luminous', 'luminous-x']) {
   for (const view of ['dashboard', 'preparation', 'stats']) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } })
@@ -76,9 +87,12 @@ for (const ui of ['luminous', 'luminous-x']) {
           journalCenter: journalCenter ? {
             backgroundColor: journalStyle?.backgroundColor,
             backgroundImage: journalStyle?.backgroundImage,
+            borderColor: journalStyle?.borderColor,
+            boxShadow: journalStyle?.boxShadow,
           } : null,
           duplicateJournalCount: duplicateJournalButtons.length,
           visibleText,
+          overviewJournalPanel: !!Array.from(document.querySelectorAll('.prep-overview-journals')).find(visible),
         }
       }, view)
 
@@ -112,8 +126,14 @@ for (const ui of ['luminous', 'luminous-x']) {
 
       if (view === 'preparation') {
         if (!report.journalCenter) fail(`${ui}: journal center primary entry is missing`)
-        else if ((report.journalCenter.backgroundColor === 'rgba(0, 0, 0, 0)' || report.journalCenter.backgroundColor === 'transparent') && report.journalCenter.backgroundImage === 'none') fail(`${ui}: journal center has no colored surface`)
+        else {
+          const transparent = report.journalCenter.backgroundColor === 'rgba(0, 0, 0, 0)' || report.journalCenter.backgroundColor === 'transparent'
+          if (transparent && report.journalCenter.backgroundImage === 'none') fail(`${ui}: journal center has no colored surface`)
+          if (!report.journalCenter.borderColor || report.journalCenter.borderColor === 'rgba(0, 0, 0, 0)') fail(`${ui}: journal center has no visible border`)
+          if (!report.journalCenter.boxShadow || report.journalCenter.boxShadow === 'none') fail(`${ui}: journal center lacks primary-route depth`)
+        }
         if (report.duplicateJournalCount) fail(`${ui}: journal library is duplicated in preparation navigation`)
+        if (!report.overviewJournalPanel) fail(`${ui}: preparation overview lost its journal summary panel`)
         if (/收藏期刊/.test(report.visibleText)) fail(`${ui}: legacy “收藏期刊” wording remains visible`)
         if (!/新增期刊|期刊档案/.test(report.visibleText)) fail(`${ui}: journal center terminology is missing`)
       }
@@ -125,13 +145,107 @@ for (const ui of ['luminous', 'luminous-x']) {
       await page.close()
     }
   }
+
+  const catalogPage = await browser.newPage({ viewport: { width: 1440, height: 1100 } })
+  try {
+    await catalogPage.goto(`${baseUrl}?view=preparation&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+    await catalogPage.locator("html[data-visual-ready='true'] .preparation-workspace").waitFor({ state: 'visible', timeout: 45000 })
+    const journalCenter = catalogPage.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+    await journalCenter.evaluate(element => element.click())
+    await catalogPage.locator('.preparation-workspace[data-section="journals"] .journal-catalog-toolbar').waitFor({ state: 'visible', timeout: 10000 })
+    await catalogPage.waitForTimeout(250)
+
+    const catalog = await catalogPage.evaluate(() => {
+      const visible = element => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
+      }
+      const workspace = document.querySelector('.preparation-workspace[data-section="journals"]')
+      const toolbar = workspace?.querySelector('.journal-catalog-toolbar')
+      const filters = Array.from(toolbar?.querySelectorAll('.journal-catalog-filter') || [])
+      const cards = Array.from(workspace?.querySelectorAll('.prep-journal-card') || [])
+      return {
+        filterLabels: filters.map(button => button.textContent?.trim() || ''),
+        activeFilter: filters.find(button => button.classList.contains('active'))?.dataset.filter || '',
+        cardCount: cards.length,
+        visibleCardCount: cards.filter(visible).length,
+        autoCards: cards.filter(card => card.dataset.catalogSource === 'submission-history').length,
+        ordinaryCards: cards.filter(card => card.dataset.catalogPriority === 'ordinary').length,
+        toolbarOverflow: toolbar ? toolbar.scrollWidth - toolbar.clientWidth : 0,
+      }
+    })
+
+    if (catalog.filterLabels.length !== 4) fail(`${ui}: journal catalog must expose four filters (${catalog.filterLabels.join(' / ')})`)
+    for (const label of ['全部', '重点期刊', '投稿自动收录', '手动记录']) {
+      if (!catalog.filterLabels.some(item => item.startsWith(label))) fail(`${ui}: journal catalog filter “${label}” is missing`)
+    }
+    if (catalog.activeFilter !== 'all') fail(`${ui}: journal catalog does not default to all records`)
+    if (catalog.visibleCardCount !== catalog.cardCount) fail(`${ui}: default journal catalog hides records (${catalog.visibleCardCount}/${catalog.cardCount})`)
+    if (catalog.ordinaryCards === 0) fail(`${ui}: journal catalog has no ordinary/non-favorite records in the visual fixture`)
+    if (catalog.toolbarOverflow > 2) fail(`${ui}: journal catalog toolbar overflows by ${catalog.toolbarOverflow}px`)
+    details.push(`${ui}/catalog: filters=${catalog.filterLabels.join('|')}; cards=${catalog.visibleCardCount}/${catalog.cardCount}; auto=${catalog.autoCards}; ordinary=${catalog.ordinaryCards}`)
+  } catch (error) {
+    fail(`${ui}/catalog: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    await catalogPage.close()
+  }
+
+  const darkPage = await browser.newPage({ viewport: { width: 1440, height: 1100 } })
+  try {
+    await darkPage.goto(`${baseUrl}?view=dashboard&theme=dark&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+    await darkPage.locator("html[data-visual-ready='true'] .paper-card-v3").first().waitFor({ state: 'visible', timeout: 45000 })
+    await darkPage.waitForTimeout(350)
+    const dark = await darkPage.evaluate(() => {
+      const bodyStyle = getComputedStyle(document.body)
+      const card = document.querySelector('.paper-card-v3')
+      const title = card?.querySelector('.card-title')
+      const secondary = card?.querySelector('.card-subtitle, .paper-date-info, .paper-history')
+      const input = document.querySelector('input')
+      const panelStyle = card ? getComputedStyle(card) : null
+      return {
+        bodyAnimation: bodyStyle.animationName,
+        bodyBackground: bodyStyle.backgroundImage,
+        titleColor: title ? getComputedStyle(title).color : '',
+        secondaryColor: secondary ? getComputedStyle(secondary).color : '',
+        panelBackground: panelStyle?.backgroundColor || '',
+        panelBorder: panelStyle?.borderColor || '',
+        inputColor: input ? getComputedStyle(input).color : '',
+      }
+    })
+    if (dark.bodyAnimation === 'none') fail(`${ui}/dark: background breathing is not active`)
+    if (!dark.bodyBackground.includes('radial-gradient')) fail(`${ui}/dark: spatial background fields are missing`)
+    if (rgbLuminance(dark.titleColor) < .70) fail(`${ui}/dark: title is too dim (${dark.titleColor})`)
+    if (dark.secondaryColor && rgbLuminance(dark.secondaryColor) < .42) fail(`${ui}/dark: secondary text is too dim (${dark.secondaryColor})`)
+    if (!dark.panelBorder || dark.panelBorder === 'rgba(0, 0, 0, 0)') fail(`${ui}/dark: card boundary disappears`)
+    details.push(`${ui}/dark: title=${dark.titleColor}; secondary=${dark.secondaryColor}; panel=${dark.panelBackground}; border=${dark.panelBorder}`)
+  } catch (error) {
+    fail(`${ui}/dark: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    await darkPage.close()
+  }
+
+  const reducedPage = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+  try {
+    await reducedPage.goto(`${baseUrl}?view=dashboard&theme=dark&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+    await reducedPage.locator("html[data-visual-ready='true'] .app-header").waitFor({ state: 'visible', timeout: 45000 })
+    const animations = await reducedPage.evaluate(() => ({
+      body: getComputedStyle(document.body).animationName,
+      header: getComputedStyle(document.querySelector('.app-header')).animationName,
+    }))
+    if (animations.body !== 'none' || animations.header !== 'none') fail(`${ui}/reduced-motion: material animations remain active (${animations.body}/${animations.header})`)
+  } catch (error) {
+    fail(`${ui}/reduced-motion: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    await reducedPage.close()
+  }
 }
 
 await browser.close()
 if (failures.length) {
-  console.error('UI geometry contract check failed:')
+  console.error('UI geometry and material contract check failed:')
   failures.forEach(item => console.error(`- ${item}`))
   process.exit(1)
 }
-console.log('UI geometry contract check passed.')
+console.log('UI geometry and material contract check passed.')
 details.forEach(item => console.log(`- ${item}`))
