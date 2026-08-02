@@ -9,12 +9,6 @@ function fail(message) {
   failures.push(message)
 }
 
-function visible(element) {
-  const style = getComputedStyle(element)
-  const rect = element.getBoundingClientRect()
-  return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
-}
-
 async function openPage(ui, view, viewport = { width: 1680, height: 1050 }) {
   const page = await browser.newPage({ viewport })
   await page.goto(`${baseUrl}?view=${view}&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
@@ -27,11 +21,16 @@ for (const ui of ['luminous', 'luminous-x']) {
   const page = await openPage(ui, 'preparation')
   try {
     const preparationNav = await page.evaluate(currentUi => {
+      const isVisible = element => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
+      }
       const workspace = document.querySelector('.preparation-workspace[data-section="overview"]')
       const nav = currentUi === 'luminous-x'
         ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
         : workspace?.querySelector(':scope > .prep-nav')
-      const buttons = Array.from(nav?.querySelectorAll(':scope > button') || []).filter(visible)
+      const buttons = Array.from(nav?.querySelectorAll(':scope > button') || []).filter(isVisible)
       return {
         labels: buttons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
         columns: nav && currentUi === 'luminous' ? getComputedStyle(nav).gridTemplateColumns.split(' ').filter(Boolean).length : null,
@@ -79,12 +78,17 @@ for (const ui of ['luminous', 'luminous-x']) {
       await button.click()
       await page.waitForTimeout(120)
       const state = await page.evaluate(activeFilter => {
+        const isVisible = element => {
+          const style = getComputedStyle(element)
+          const rect = element.getBoundingClientRect()
+          return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
+        }
         const workspace = document.querySelector('.preparation-workspace[data-section="journals"]')
         const button = document.querySelector(`.journal-catalog-top-filters .journal-catalog-filter[data-filter="${activeFilter}"]`)
         const match = (button?.textContent || '').match(/(\d+)\s*$/)
         const expected = match ? Number(match[1]) : -1
         const cards = Array.from(workspace?.querySelectorAll('.prep-journal-card') || [])
-        const visibleCards = cards.filter(visible)
+        const visibleCards = cards.filter(isVisible)
         return {
           expected,
           visible: visibleCards.length,
@@ -102,7 +106,12 @@ for (const ui of ['luminous', 'luminous-x']) {
 
     if (ui === 'luminous-x') {
       const navCoherence = await page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('.app-header .header-tabs > button')).filter(visible)
+        const isVisible = element => {
+          const style = getComputedStyle(element)
+          const rect = element.getBoundingClientRect()
+          return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
+        }
+        const buttons = Array.from(document.querySelectorAll('.app-header .header-tabs > button, .app-header .tab-bar > button')).filter(isVisible)
         const journal = buttons.find(button => button.dataset.mainNavKey === 'journals')
         const peer = buttons.find(button => button.dataset.mainNavKey === 'preparation')
         if (!journal || !peer) return null
@@ -138,13 +147,18 @@ for (const ui of ['luminous', 'luminous-x']) {
 const dashboard = await openPage('luminous', 'dashboard')
 try {
   const grid = await dashboard.evaluate(() => {
+    const isVisible = element => {
+      const style = getComputedStyle(element)
+      const rect = element.getBoundingClientRect()
+      return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
+    }
     const paperGrid = document.querySelector('.paper-grid')
     if (!paperGrid) return null
     const style = getComputedStyle(paperGrid)
     return {
       columns: style.gridTemplateColumns.split(' ').filter(Boolean).length,
       overflow: paperGrid.scrollWidth - paperGrid.clientWidth,
-      visibleCards: Array.from(paperGrid.querySelectorAll('.paper-card-v3, .card.glass-card')).filter(visible).length,
+      visibleCards: Array.from(paperGrid.querySelectorAll('.paper-card-v3, .card.glass-card')).filter(isVisible).length,
     }
   })
   if (!grid) fail('luminous/dashboard: 投稿卡片网格不存在')
