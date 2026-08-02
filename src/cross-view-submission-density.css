@@ -56,6 +56,7 @@ html[data-ui='luminous-x'] body .paper-grid {
 @media (min-width: 1560px) {
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 {
     min-width: 0 !important;
+    grid-template-columns: minmax(94px, .78fr) minmax(0, 1.22fr) !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .paper-journal-slot,
@@ -66,7 +67,14 @@ html[data-ui='luminous-x'] body .paper-grid {
     min-width: 0 !important;
   }
 
+  html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .paper-journal-slot {
+    justify-self: stretch !important;
+    overflow: hidden !important;
+  }
+
   html[data-ui='luminous-x'] body .paper-grid .paper-card-v3 .journal-pill-button {
+    width: 100% !important;
+    margin-left: 0 !important;
     overflow: hidden !important;
   }
 
