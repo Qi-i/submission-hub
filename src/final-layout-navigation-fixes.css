@@ -1,0 +1,233 @@
+/* Final regression fixes loaded after every legacy and theme layer. */
+
+/* Journal Center filters live in the top information bar, not in a second content row. */
+.preparation-workspace[data-section='journals'] > .prep-nav,
+.preparation-workspace > .journal-catalog-toolbar {
+  display: none !important;
+}
+
+.prep-topbar > .journal-catalog-top-filters {
+  flex: 0 1 auto;
+  margin-left: auto;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  position: relative;
+  z-index: 3;
+}
+
+.journal-catalog-filter {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(100, 116, 139, .22);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .72);
+  color: #475569;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 130ms ease, background 130ms ease, border-color 130ms ease, box-shadow 130ms ease;
+}
+
+.journal-catalog-filter:hover,
+.journal-catalog-filter:focus-visible {
+  color: #0f766e;
+  border-color: rgba(13, 148, 136, .42);
+  background: rgba(240, 253, 250, .94);
+  outline: none;
+}
+
+.journal-catalog-filter.active {
+  color: #fff;
+  border-color: #0f9f79;
+  background: linear-gradient(135deg, #0f9f79, #0891b2);
+  box-shadow: 0 6px 15px rgba(13, 148, 136, .18);
+}
+
+.prep-journal-card.is-catalog-filtered-out {
+  display: none !important;
+}
+
+/* 投稿准备 retains exactly four visible routes: 总览、选题池、草稿准备、期刊比较. */
+.preparation-workspace:not([data-section='journals']) > .prep-nav {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-flow: row !important;
+  gap: 8px !important;
+  margin: 12px 0 !important;
+  padding: 6px !important;
+  border-radius: 12px !important;
+}
+
+.preparation-workspace:not([data-section='journals']) > .prep-nav::before,
+.preparation-workspace:not([data-section='journals']) > .prep-nav::after {
+  content: none !important;
+  display: none !important;
+}
+
+.preparation-workspace:not([data-section='journals']) > .prep-nav > button:not([data-journal-center-internal='true']) {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 11px !important;
+  display: inline-flex !important;
+  grid-template-columns: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border-radius: 9px !important;
+  font-size: 11px !important;
+  text-align: center !important;
+  transform: none !important;
+}
+
+.preparation-workspace:not([data-section='journals']) > .prep-nav > button:not([data-journal-center-internal='true'])::before {
+  content: none !important;
+  display: none !important;
+}
+
+.preparation-workspace:not([data-section='journals']) > .prep-nav > button:not([data-journal-center-internal='true']) svg {
+  display: block !important;
+}
+
+.preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='overview'],
+.preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='topic'],
+.preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='draft'],
+.preparation-workspace:not([data-section='journals']) > .prep-nav > button[data-tone='compare'] {
+  visibility: visible !important;
+}
+
+.preparation-workspace > .prep-nav > button[data-tone='journal'],
+.preparation-workspace > .prep-nav > button[data-journal-center-internal='true'] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Luminous X Journal Center must inherit the same sidebar language as every other route. */
+html[data-ui='luminous-x'] body .app-header .header-tabs > button[data-main-nav-key='journals'],
+html[data-ui='luminous-x'] body .app-header .tab-bar > button[data-main-nav-key='journals'],
+html[data-ui='luminous-x'] body .header-tabs > button[data-main-nav-key='journals'],
+html[data-ui='luminous-x'] body .tab-bar > button[data-main-nav-key='journals'] {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 42px !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-ui='luminous-x'] body .app-header .header-tabs > button[data-main-nav-key='journals']:hover,
+html[data-ui='luminous-x'] body .app-header .tab-bar > button[data-main-nav-key='journals']:hover,
+html[data-ui='luminous-x'] body .header-tabs > button[data-main-nav-key='journals']:hover,
+html[data-ui='luminous-x'] body .tab-bar > button[data-main-nav-key='journals']:hover {
+  color: var(--text-primary) !important;
+  border-color: var(--lx-line) !important;
+  background: var(--lx-surface-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-ui='luminous-x'] body .app-header .header-tabs > button[data-main-nav-key='journals'].active,
+html[data-ui='luminous-x'] body .app-header .tab-bar > button[data-main-nav-key='journals'].active,
+html[data-ui='luminous-x'] body .header-tabs > button[data-main-nav-key='journals'].active,
+html[data-ui='luminous-x'] body .tab-bar > button[data-main-nav-key='journals'].active {
+  color: var(--text-primary) !important;
+  border-color: rgba(60, 245, 255, .56) !important;
+  background: var(--lx-nav-active) !important;
+  box-shadow: var(--lx-focus) !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-bar[data-journal-center-active] .lx-page-proxy-controls {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .journal-catalog-top-filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .journal-catalog-top-filters .journal-catalog-filter {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  border-color: var(--lx-line);
+  background: var(--lx-surface-soft);
+  font-size: 9px;
+}
+
+html[data-ui='luminous-x'] .lx-status-controls-host > .journal-catalog-top-filters .journal-catalog-filter.active {
+  color: var(--text-primary);
+  border-color: rgba(60, 245, 255, .56);
+  background: var(--lx-nav-active);
+  box-shadow: var(--lx-focus);
+}
+
+/* Restore the productive four-column submission grid in standard Luminous desktop view. */
+@media (min-width: 1280px) {
+  html[data-ui='luminous'] body .paper-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 1050px) {
+  .prep-topbar > .journal-catalog-top-filters {
+    order: 3;
+    width: 100%;
+    margin: 8px 0 0;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .preparation-workspace:not([data-section='journals']) > .prep-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .prep-topbar > .journal-catalog-top-filters {
+    gap: 5px;
+  }
+
+  .journal-catalog-filter {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+}
+
+html[data-theme='dark'] .journal-catalog-filter {
+  color: #d5e0ec;
+  border-color: rgba(148, 163, 184, .32);
+  background: rgba(30, 41, 59, .78);
+}
+
+html[data-theme='dark'] .journal-catalog-filter:hover,
+html[data-theme='dark'] .journal-catalog-filter:focus-visible {
+  color: #99f6e4;
+  border-color: rgba(94, 234, 212, .46);
+  background: rgba(13, 148, 136, .20);
+}
+
+html[data-theme='dark'] .journal-catalog-filter.active {
+  color: #062e2b;
+  border-color: #99f6e4;
+  background: linear-gradient(135deg, #6ee7b7, #67e8f9);
+}
