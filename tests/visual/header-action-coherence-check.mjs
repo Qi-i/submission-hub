@@ -140,15 +140,70 @@ try {
 
 const preparationLuminous = await openPage('luminous', 'preparation')
 try {
+  const secondaryGeometry = await preparationLuminous.evaluate(() => {
+    const tones = ['overview', 'topic', 'draft', 'compare']
+    const buttons = tones.map(tone => {
+      const element = document.querySelector(`.preparation-workspace > .prep-nav > button[data-tone='${tone}']`)
+      if (!element) return null
+      const style = getComputedStyle(element)
+      const rect = element.getBoundingClientRect()
+      return {
+        tone,
+        display: style.display,
+        visibility: style.visibility,
+        pointerEvents: style.pointerEvents,
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+      }
+    }).filter(Boolean)
+    const nav = document.querySelector('.preparation-workspace > .prep-nav')?.getBoundingClientRect()
+    return { buttons, nav: nav?.toJSON() || null }
+  })
+
+  if (secondaryGeometry.buttons.length !== 4) {
+    fail(`luminous/preparation: 二级菜单可见按钮数量错误（${secondaryGeometry.buttons.length}）`)
+  } else {
+    const tops = secondaryGeometry.buttons.map(item => item.top)
+    const widths = secondaryGeometry.buttons.map(item => item.width)
+    if (Math.max(...tops) - Math.min(...tops) > 1) fail('luminous/preparation: 四个二级菜单未处于同一行')
+    if (Math.max(...widths) - Math.min(...widths) > 2) fail('luminous/preparation: 四个二级菜单宽度不一致')
+    for (const item of secondaryGeometry.buttons) {
+      if (item.display === 'none' || item.visibility === 'hidden' || item.pointerEvents === 'none') {
+        fail(`luminous/preparation: ${item.tone} 二级菜单不可交互`)
+      }
+    }
+  }
+  if (!secondaryGeometry.nav || secondaryGeometry.nav.height > 60) {
+    fail(`luminous/preparation: 二级菜单容器高度异常（${secondaryGeometry.nav?.height ?? 'missing'}）`)
+  }
+
+  for (const [tone, section] of [['topic', 'topics'], ['draft', 'drafts'], ['compare', 'compare']]) {
+    await preparationLuminous.locator(`.preparation-workspace > .prep-nav > button[data-tone='${tone}']`).click()
+    await preparationLuminous.locator(`.preparation-workspace[data-section='${section}']`).waitFor({ state: 'visible', timeout: 10000 })
+    await preparationLuminous.locator(".preparation-workspace > .prep-nav > button[data-tone='overview']").click()
+    await preparationLuminous.locator(".preparation-workspace[data-section='overview']").waitFor({ state: 'visible', timeout: 10000 })
+  }
+
   const preparationActive = await activeStyle(preparationLuminous, 'preparation')
   await preparationLuminous.locator("button[data-main-nav-key='journals']").click()
   await preparationLuminous.locator('.preparation-workspace[data-section="journals"]').waitFor({ state: 'visible', timeout: 15000 })
   await preparationLuminous.waitForTimeout(300)
+
+  const journalGap = await preparationLuminous.evaluate(() => {
+    const topbar = document.querySelector('.preparation-workspace[data-section="journals"] > .prep-topbar')?.getBoundingClientRect()
+    const grid = document.querySelector('.preparation-workspace[data-section="journals"] > .prep-card-grid.journal-grid')?.getBoundingClientRect()
+    return topbar && grid ? grid.top - topbar.bottom : null
+  })
+  if (journalGap === null) fail('luminous/journals: 无法读取顶栏与期刊卡片网格位置')
+  else if (journalGap < 12) fail(`luminous/journals: 顶栏与期刊卡片间距过小（${journalGap.toFixed(1)}px）`)
+
   const journalActive = await activeStyle(preparationLuminous, 'journals')
   compareStyles('luminous active navigation', journalActive, preparationActive, [
     'color', 'backgroundColor', 'backgroundImage', 'borderColor', 'borderRadius', 'boxShadow', 'height',
   ])
-  details.push('luminous Journal Center active style matches Preparation')
+  details.push(`luminous secondary routes remain clickable; journal gap=${journalGap?.toFixed(1) ?? 'missing'}px`)
 } catch (error) {
   fail(`luminous/preparation: ${error instanceof Error ? error.message : String(error)}`)
 } finally {
