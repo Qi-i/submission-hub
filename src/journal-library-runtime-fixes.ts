@@ -233,7 +233,7 @@ function start() {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['data-metric', 'hidden'],
+    attributeFilter: ['data-metric'],
   })
   window.addEventListener('resize', schedule, { passive: true })
 }
