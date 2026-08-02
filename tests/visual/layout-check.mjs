@@ -173,8 +173,10 @@ try {
     if (workbench && dashboard) {
       const workbenchRect = workbench.getBoundingClientRect()
       const dashboardRect = dashboard.getBoundingClientRect()
-      if (Math.abs(workbenchRect.height - dashboardRect.height) > tol) failures.push('preparation workbench and dashboard heights differ')
-      if (workbenchRect.height > 190 || dashboardRect.height > 190) failures.push('preparation workbench row is not compact')
+      if (workbenchRect.height > 70) failures.push('preparation secondary navigation is not compact')
+      if (dashboardRect.height > 190) failures.push('preparation dashboard row is not compact')
+      if (workbenchRect.bottom > dashboardRect.top + tol) failures.push('preparation secondary navigation overlaps the dashboard')
+      if (dashboardRect.top - workbenchRect.bottom < 8) failures.push('preparation secondary navigation lacks separation from the dashboard')
       const beforeContent = getComputedStyle(workbench, '::before').content
       const afterContent = getComputedStyle(workbench, '::after').content
       if (!['none', 'normal', '""', "''"].includes(beforeContent)) failures.push('preparation workbench still renders an overlapping pseudo title')
