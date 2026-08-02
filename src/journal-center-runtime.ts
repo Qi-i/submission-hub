@@ -50,17 +50,20 @@ function classifyJournalCard(card: HTMLElement) {
   const priorityText = compact(priority?.textContent)
   const isFocus = !!priority?.querySelector('svg') || (!priorityText && !!priority)
 
-  if (priority && priorityText === '未收藏') {
-    setTextIfChanged(priority, '普通记录')
-  }
+  if (priority && priorityText === '未收藏') setTextIfChanged(priority, '普通记录')
   if (priority) {
     priority.title = isFocus ? '重点期刊' : '普通期刊档案'
     priority.setAttribute('aria-label', isFocus ? '重点期刊' : '普通期刊档案')
   }
 
+  const existingSource = card.dataset.catalogSource
+  const cardText = compact(card.textContent)
   const tags = Array.from(card.querySelectorAll<HTMLElement>('.prep-journal-facts [data-tone="selection"]'))
-  const fromHistory = tags.some(tag => compact(tag.textContent) === '投稿历史自动收录')
+  const fromHistory = existingSource === 'submission-history'
+    || tags.some(tag => /投稿(?:历史)?自动收录/.test(compact(tag.textContent)))
+    || /投稿(?:历史)?自动收录/.test(cardText)
   const source = fromHistory ? 'submission-history' : 'manual'
+
   card.dataset.catalogSource = source
   card.dataset.catalogPriority = isFocus ? 'focus' : 'ordinary'
 
@@ -78,20 +81,49 @@ function applyJournalFilter(workspace: HTMLElement, filter: JournalFilter) {
       || (filter === 'focus' && card.dataset.catalogPriority === 'focus')
       || (filter === 'submission-history' && card.dataset.catalogSource === 'submission-history')
       || (filter === 'manual' && card.dataset.catalogSource === 'manual')
-    card.hidden = !visible
+    card.classList.toggle('is-catalog-filtered-out', !visible)
+    card.setAttribute('aria-hidden', String(!visible))
   })
 
-  workspace.querySelectorAll<HTMLButtonElement>('.journal-catalog-filter').forEach(button => {
+  document.querySelectorAll<HTMLButtonElement>('.journal-catalog-filter').forEach(button => {
     const active = button.dataset.filter === filter
     button.classList.toggle('active', active)
     button.setAttribute('aria-pressed', String(active))
   })
 }
 
-function ensureCatalogToolbar(workspace: HTMLElement) {
-  if (workspace.dataset.section !== 'journals') return
+function desiredCatalogHost(workspace: HTMLElement) {
+  if (document.documentElement.dataset.ui === 'luminous-x') {
+    const statusHost = document.querySelector<HTMLElement>('.lx-status-bar[data-page="preparation"] .lx-status-controls-host')
+    if (statusHost) return statusHost
+  }
+  return workspace.querySelector<HTMLElement>(':scope > .prep-topbar')
+}
+
+function removeLegacyCatalogRows(workspace: HTMLElement) {
+  workspace.querySelectorAll<HTMLElement>(':scope > .journal-catalog-toolbar').forEach(element => element.remove())
+}
+
+function ensureCatalogFilters(workspace: HTMLElement) {
+  const activeSection = workspace.dataset.section === 'journals'
+  const statusBar = document.querySelector<HTMLElement>('.lx-status-bar[data-page="preparation"]')
+  statusBar?.toggleAttribute('data-journal-center-active', activeSection)
+
+  if (!activeSection) {
+    document.querySelectorAll<HTMLElement>('.journal-catalog-top-filters').forEach(element => element.remove())
+    workspace.querySelectorAll<HTMLElement>('.prep-journal-card.is-catalog-filtered-out').forEach(card => {
+      card.classList.remove('is-catalog-filtered-out')
+      card.removeAttribute('aria-hidden')
+    })
+    removeLegacyCatalogRows(workspace)
+    return
+  }
+
   const grid = workspace.querySelector<HTMLElement>('.journal-grid')
-  if (!grid) return
+  const host = desiredCatalogHost(workspace)
+  if (!grid || !host) return
+
+  removeLegacyCatalogRows(workspace)
 
   const cards = Array.from(grid.querySelectorAll<HTMLElement>('.prep-journal-card'))
   const counts = cards.reduce((result, card) => {
@@ -103,31 +135,25 @@ function ensureCatalogToolbar(workspace: HTMLElement) {
     return result
   }, { all: 0, focus: 0, history: 0, manual: 0 })
 
-  let toolbar = workspace.querySelector<HTMLElement>(':scope > .journal-catalog-toolbar')
-  if (!toolbar) {
-    toolbar = document.createElement('section')
-    toolbar.className = 'journal-catalog-toolbar'
-    toolbar.setAttribute('aria-label', '期刊中心分类筛选')
-    toolbar.innerHTML = `
-      <div class="journal-catalog-toolbar-copy">
-        <span>JOURNAL CATALOG</span>
-        <strong>全部期刊档案</strong>
-        <p>同时包含重点期刊、手动记录与投稿历史自动收录记录。</p>
-      </div>
-      <div class="journal-catalog-filters" role="group" aria-label="筛选期刊档案">
-        <button type="button" class="journal-catalog-filter" data-filter="all"></button>
-        <button type="button" class="journal-catalog-filter" data-filter="focus"></button>
-        <button type="button" class="journal-catalog-filter" data-filter="submission-history"></button>
-        <button type="button" class="journal-catalog-filter" data-filter="manual"></button>
-      </div>
-    `
-    grid.before(toolbar)
-    toolbar.querySelectorAll<HTMLButtonElement>('.journal-catalog-filter').forEach(button => {
-      button.addEventListener('click', () => {
-        const next = (button.dataset.filter || 'all') as JournalFilter
-        applyJournalFilter(workspace, FILTERS.includes(next) ? next : 'all')
-      })
-    })
+  let filters = document.querySelector<HTMLElement>('.journal-catalog-top-filters')
+  if (!filters) {
+    filters = document.createElement('div')
+    filters.className = 'journal-catalog-top-filters'
+    filters.setAttribute('role', 'group')
+    filters.setAttribute('aria-label', '筛选期刊档案')
+    filters.innerHTML = FILTERS.map(filter => (
+      `<button type="button" class="journal-catalog-filter" data-filter="${filter}" aria-pressed="false"></button>`
+    )).join('')
+  }
+
+  if (filters.parentElement !== host) {
+    if (host.classList.contains('prep-topbar')) {
+      const actions = host.querySelector(':scope > .prep-top-actions')
+      host.insertBefore(filters, actions || null)
+    } else {
+      const proxy = host.querySelector(':scope > .lx-page-proxy-controls')
+      host.insertBefore(filters, proxy || host.firstChild)
+    }
   }
 
   const labels: Record<JournalFilter, string> = {
@@ -136,9 +162,16 @@ function ensureCatalogToolbar(workspace: HTMLElement) {
     'submission-history': `投稿自动收录 ${counts.history}`,
     manual: `手动记录 ${counts.manual}`,
   }
-  toolbar.querySelectorAll<HTMLButtonElement>('.journal-catalog-filter').forEach(button => {
+
+  filters.querySelectorAll<HTMLButtonElement>('.journal-catalog-filter').forEach(button => {
     const filter = (button.dataset.filter || 'all') as JournalFilter
     setTextIfChanged(button, labels[filter])
+    button.onclick = event => {
+      event.preventDefault()
+      event.stopPropagation()
+      const next = (button.dataset.filter || 'all') as JournalFilter
+      applyJournalFilter(workspace, FILTERS.includes(next) ? next : 'all')
+    }
   })
 
   const active = (workspace.dataset.journalCatalogFilter || 'all') as JournalFilter
@@ -147,9 +180,7 @@ function ensureCatalogToolbar(workspace: HTMLElement) {
 
 function enhanceGlobalJournalActions() {
   document.querySelectorAll<HTMLElement>('.btn-journal-primary, .prep-quick-actions button, .prep-empty button').forEach(button => {
-    replaceExactTextNodes(button, {
-      收藏期刊: '新增期刊',
-    })
+    replaceExactTextNodes(button, { 收藏期刊: '新增期刊' })
     if (compact(button.textContent).includes('新增期刊')) {
       button.title = '新增一条期刊档案，可选择是否设为重点期刊'
       button.setAttribute('aria-label', '新增期刊')
@@ -210,7 +241,7 @@ function enhanceWorkspace(workspace: HTMLElement) {
   syncJournalTotals(workspace, total)
   enhanceOverviewGuidance(workspace, total)
   workspace.querySelectorAll<HTMLElement>('.prep-journal-card').forEach(classifyJournalCard)
-  ensureCatalogToolbar(workspace)
+  ensureCatalogFilters(workspace)
 }
 
 function enhance() {
@@ -233,5 +264,5 @@ new MutationObserver(schedule).observe(document.documentElement, {
   subtree: true,
   characterData: true,
   attributes: true,
-  attributeFilter: ['class', 'data-section', 'data-metric'],
+  attributeFilter: ['data-section', 'data-metric', 'data-ui'],
 })
