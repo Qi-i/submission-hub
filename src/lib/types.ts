@@ -207,6 +207,11 @@ export function inferNextAction(paper: Partial<Pick<Paper,
 export function getWorkflowSignal(paper: Partial<Pick<Paper,
   'status' | 'system_status' | 'last_status_date' | 'submitted_date' | 'deadline' | 'next_action' | 'reminder_level' | 'published_url' | 'doi' | 'publication_info'
 >>): WorkflowSignal | null {
+  // 终态优先于历史手工待办：稿件已经接收/见刊后，旧的“等待外审”等下一步必须失效。
+  const system = (paper.system_status || '').toLowerCase()
+  const acceptedBySystem = /(accepted|published|online|proof|录用|接收|见刊|在线发表|校样)/.test(system)
+  if (paper.status === 'accepted' || acceptedBySystem) return null
+
   // 见刊资料属于成果归档，不作为首页待办。
   if (paper.next_action === '补充见刊信息') return null
   if (paper.reminder_level === 'urgent') return { level: 'danger', text: '紧急处理', detail: paper.next_action || '请尽快处理该稿件' }
