@@ -12,9 +12,9 @@ html[data-ui='luminous-x'] {
   --lx-page-gap: 18px;
   --lx-radius: 14px;
   --lx-radius-lg: 20px;
-  --lx-cyan: #72c8df;
-  --lx-magenta: #d58bab;
-  --lx-purple: #9e91d4;
+  --lx-cyan: #3cf5ff;
+  --lx-magenta: #ff4f9f;
+  --lx-purple: #8b5cf6;
   --lx-nav-active: linear-gradient(110deg, rgba(60, 245, 255, .14), rgba(139, 92, 246, .10) 55%, rgba(255, 79, 159, .10));
   --lx-primary: linear-gradient(118deg, #1b6cff 0%, #8b5cf6 52%, #ff2f88 100%);
   --lx-focus: 0 0 0 2px rgba(60, 245, 255, .18), 0 0 18px rgba(139, 92, 246, .14);
@@ -58,6 +58,9 @@ html[data-ui='luminous-x'][data-theme='light'] {
 }
 
 html[data-ui='luminous-x'][data-theme='dark'] {
+  --lx-cyan: #72c8df;
+  --lx-magenta: #d58bab;
+  --lx-purple: #9e91d4;
   --bg-base: #1e2630;
   --bg-surface: #24303c;
   --bg-card: #273340;
