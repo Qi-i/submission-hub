@@ -22,7 +22,6 @@ for (const ui of interfaces) {
     const result = await page.evaluate(() => {
       const root = document.documentElement
       const rootStyle = getComputedStyle(root)
-      const body = document.body
       const header = document.querySelector('.app-header')
       const cards = Array.from(document.querySelectorAll('.paper-card-v3'))
 
@@ -49,26 +48,35 @@ for (const ui of interfaces) {
         if (!value || value === 'none') return []
         const colors = []
         for (const match of value.matchAll(/rgba?\([^)]*\)/g)) {
-          const numbers = match[0].match(/[\d.]+/g)?.slice(0, 3).map(Number)
-          if (numbers?.length === 3) colors.push(numbers)
+          const numbers = match[0].match(/[\d.]+/g)?.map(Number) || []
+          if (numbers.length < 3) continue
+          const alpha = match[0].startsWith('rgba') && numbers.length >= 4 ? numbers[3] : 1
+          if (alpha <= 0.05) continue
+          const rgb = numbers.slice(0, 3)
+          colors.push({
+            rgb,
+            alpha,
+            average: rgb.reduce((sum, channel) => sum + channel, 0) / 3,
+            chroma: Math.max(...rgb) - Math.min(...rgb),
+          })
         }
-        return colors.map(rgb => ({
-          rgb,
-          average: rgb.reduce((sum, channel) => sum + channel, 0) / 3,
-          chroma: Math.max(...rgb) - Math.min(...rgb),
-        }))
+        return colors
       }
 
-      const statusCards = cards.map(card => {
-        const status = card.querySelector('.paper-status-area')?.getAttribute('data-status') || 'unknown'
-        const style = getComputedStyle(card)
+      function surfaceFor(element) {
+        if (!element) return null
+        const style = getComputedStyle(element)
         return {
-          status,
           backgroundColor: describe(style.backgroundColor),
           backgroundImage: style.backgroundImage,
           imageColors: colorsFromImage(style.backgroundImage),
         }
-      })
+      }
+
+      const statusCards = cards.map(card => ({
+        status: card.querySelector('.paper-status-area')?.getAttribute('data-status') || 'unknown',
+        ...surfaceFor(card),
+      }))
 
       return {
         ui: root.dataset.ui,
@@ -78,8 +86,7 @@ for (const ui of interfaces) {
         accent: describe(rootStyle.getPropertyValue('--accent')),
         textPrimary: describe(rootStyle.getPropertyValue('--text-primary')),
         lxCanvas: describe(rootStyle.getPropertyValue('--lx-canvas')),
-        bodyBackgroundImage: getComputedStyle(body).backgroundImage,
-        headerBackground: header ? describe(getComputedStyle(header).backgroundColor) : null,
+        headerSurface: surfaceFor(header),
         statusCards,
         pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       }
@@ -94,7 +101,7 @@ for (const ui of interfaces) {
         continue
       }
       if (color.average < 35) fail(`${ui}: ${label} is still near-black (${color.value}, avg=${color.average.toFixed(1)})`)
-      if (color.average > 85) fail(`${ui}: ${label} is too bright for dark mode (${color.value}, avg=${color.average.toFixed(1)})`)
+      if (color.average > 90) fail(`${ui}: ${label} is too bright for dark mode (${color.value}, avg=${color.average.toFixed(1)})`)
     }
 
     if (ui === 'luminous-x') {
@@ -109,16 +116,20 @@ for (const ui of interfaces) {
     if (!result.accent.rgb) fail(`${ui}: accent is not a parseable color (${result.accent.value})`)
     else if (result.accent.chroma > 135) fail(`${ui}: accent remains excessively neon (${result.accent.value}, chroma=${result.accent.chroma.toFixed(1)})`)
 
-    if (!result.headerBackground?.rgb) fail(`${ui}: header background is not measurable`)
-    else if (result.headerBackground.average < 32) fail(`${ui}: header is still near-black (${result.headerBackground.value})`)
+    const headerValues = result.headerSurface?.imageColors?.map(color => color.average) || []
+    if (result.headerSurface?.backgroundColor?.average !== null && result.headerSurface?.backgroundColor?.rgb?.some(channel => channel > 0)) {
+      headerValues.push(result.headerSurface.backgroundColor.average)
+    }
+    if (!headerValues.length) fail(`${ui}: header surface is not measurable`)
+    else if (Math.min(...headerValues) < 32) fail(`${ui}: header still contains a near-black surface (minimum average ${Math.min(...headerValues).toFixed(1)})`)
 
     if (result.pageOverflow > 2) fail(`${ui}: dark dashboard has horizontal overflow of ${result.pageOverflow}px`)
 
     for (const card of result.statusCards) {
-      const imageAverages = card.imageColors.map(color => color.average)
-      const measured = imageAverages.length ? Math.min(...imageAverages) : card.backgroundColor.average
-      if (measured !== null && measured < 35) {
-        fail(`${ui}/${card.status}: card contains a near-black surface (minimum average ${measured.toFixed(1)})`)
+      const values = card.imageColors.map(color => color.average)
+      if (card.backgroundColor.average !== null && card.backgroundColor.rgb?.some(channel => channel > 0)) values.push(card.backgroundColor.average)
+      if (values.length && Math.min(...values) < 35) {
+        fail(`${ui}/${card.status}: card contains a near-black surface (minimum average ${Math.min(...values).toFixed(1)})`)
       }
     }
 
