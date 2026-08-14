@@ -14,7 +14,7 @@ for (const token of [
   'submission-hub-background-breathe 24s',
   'submission-hub-panel-breathe 16s',
   '@media (prefers-reduced-motion: reduce)',
-  'radial-gradient(ellipse at 10% 4%',
+  'background-image: linear-gradient(180deg, #1b242d',
   "html[data-theme='dark'][data-ui]",
 ]) {
   if (!materialCss.includes(token)) fail(`material contract source is missing: ${token}`)
@@ -232,7 +232,8 @@ for (const ui of ['luminous', 'luminous-x']) {
         border: cardStyle?.borderColor || '',
       }
     })
-    if (!dark.bodyBackground.includes('radial-gradient')) fail(`${ui}/dark: spatial background fields are missing`)
+    if (!dark.bodyBackground.includes('linear-gradient')) fail(`${ui}/dark: calm blue-gray background field is missing`)
+    if (dark.bodyBackground.includes('radial-gradient')) fail(`${ui}/dark: decorative radial glow fields remain in the production dark workspace`)
     if (luminance(dark.title) < .70) fail(`${ui}/dark: title is too dim (${dark.title})`)
     if (dark.secondary && luminance(dark.secondary) < .42) fail(`${ui}/dark: secondary text is too dim (${dark.secondary})`)
     if (['transparent', 'rgba(0, 0, 0, 0)'].includes(dark.border)) fail(`${ui}/dark: card boundary disappears`)
