@@ -1,0 +1,396 @@
+name: Temporary dark theme patch
+
+on:
+  push:
+    branches: [fix/dark-theme-bluegray-refinement]
+    paths:
+      - '.github/workflows/_temporary-dark-theme-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/dark-theme-bluegray-refinement
+          fetch-depth: 0
+      - name: Refine canonical dark theme rules
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def load(path):
+              return Path(path).read_text(encoding='utf-8')
+
+          def save(path, text):
+              Path(path).write_text(text, encoding='utf-8')
+
+          def sub_once(text, pattern, replacement, label):
+              updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one replacement, got {count}')
+              return updated
+
+          # 1) Core design-system tokens: lift the canvas away from near-black and reduce neon/shadow intensity.
+          path = 'src/index.css'
+          text = load(path)
+          core_dark = '''/* ── Dark Theme ── */
+          [data-theme="dark"] {
+            --bg-base: #171d24;
+            --bg-surface: rgba(29,38,48,0.90);
+            --bg-card: rgba(32,42,53,0.92);
+            --bg-elevated: rgba(39,50,63,0.92);
+            --bg-input: rgba(25,33,42,0.95);
+            --bg-hover: rgba(43,55,69,0.94);
+            --bg-glass: rgba(30,39,50,0.72);
+            --bg-glass-strong: rgba(31,41,52,0.90);
+
+            --border-subtle: rgba(205,220,235,0.07);
+            --border-default: rgba(205,220,235,0.11);
+            --border-strong: rgba(205,220,235,0.18);
+            --border-focus: #69b8cf;
+            --border-glass: rgba(205,220,235,0.10);
+
+            --text-primary: #eef3f8;
+            --text-secondary: #b5c0cd;
+            --text-muted: #8492a2;
+            --text-inverse: #171d24;
+
+            --accent: #69b8cf;
+            --accent-hover: #86cadc;
+            --accent-bg: rgba(105,184,207,0.10);
+            --accent-border: rgba(105,184,207,0.24);
+            --accent-glow: rgba(105,184,207,0.16);
+
+            --purple: #a295d3;
+            --purple-bg: rgba(162,149,211,0.10);
+            --purple-glow: rgba(162,149,211,0.14);
+
+            --gold: #e7ad55;
+            --gold-bg: rgba(231,173,85,0.10);
+
+            --success: #55bd8a;
+            --success-bg: rgba(85,189,138,0.10);
+            --warning: #e5ad55;
+            --warning-bg: rgba(229,173,85,0.10);
+            --danger: #e4777f;
+            --danger-bg: rgba(228,119,127,0.10);
+            --info: #6ea9e8;
+            --info-bg: rgba(110,169,232,0.10);
+
+            --shadow-sm: 0 2px 8px rgba(4,10,16,0.16);
+            --shadow: 0 8px 26px rgba(4,10,16,0.20), 0 1px 3px rgba(4,10,16,0.12);
+            --shadow-lg: 0 18px 48px rgba(4,10,16,0.26), 0 4px 12px rgba(4,10,16,0.16);
+            --shadow-glow: 0 0 26px rgba(105,184,207,0.10);
+            --shadow-card: 0 5px 18px rgba(4,10,16,0.16), 0 0 0 1px rgba(205,220,235,0.035);
+
+            --gradient-accent: linear-gradient(135deg, #69b8cf, #9b8dd0);
+            --gradient-warm: linear-gradient(135deg, #e7ad55, #dc7d83);
+            --gradient-cool: linear-gradient(135deg, #72c2d7, #7ba9d8);
+            --gradient-page: radial-gradient(circle at 9% -4%, rgba(86,145,181,0.07), transparent 31%), radial-gradient(circle at 92% 0%, rgba(139,116,177,0.05), transparent 28%), linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%);
+
+            --status-preparing: #9098e5;
+            --status-submitted: #6bb9df;
+            --status-review: #e7b15b;
+            --status-revision: #b692db;
+            --status-accepted: #61bf8d;
+            --status-rejected: #e17f87;
+            --status-withdrawn: #9aa8b7;
+
+            color-scheme: dark;
+          }'''
+          text = sub_once(text, r'/\* ── Dark Theme ── \*/\n\[data-theme="dark"\] \{.*?\n\}', core_dark, 'index dark tokens')
+          text = text.replace('  opacity: 0.35;\n}', '  opacity: 0.18;\n}', 1)
+          save(path, text)
+
+          # 2) Shared UI layer: this carries !important on the real dark body/header and was the main near-black source.
+          path = 'src/unified-ui.css'
+          text = load(path)
+          unified_dark = '''[data-theme="dark"] {
+            --ui-glass: rgba(30, 39, 50, .82);
+            --ui-glass-strong: rgba(32, 42, 54, .92);
+            --ui-glass-soft: rgba(38, 49, 62, .68);
+            --ui-border: rgba(183, 199, 216, .16);
+            --ui-border-hover: rgba(105, 184, 207, .30);
+            --ui-shadow: 0 10px 28px rgba(4, 10, 16, .17);
+            --ui-shadow-hover: 0 16px 40px rgba(4, 10, 16, .23);
+            --ui-title: #eef3f8;
+            --ui-body: #c6d0db;
+            --ui-muted: #8c99a9;
+          }'''
+          text = sub_once(text, r'\[data-theme="dark"\] \{\n  --ui-glass:.*?\n\}', unified_dark, 'unified dark tokens')
+          dark_body = '''[data-theme="dark"] body {
+            background:
+              radial-gradient(circle at 10% -5%, rgba(86, 145, 181, .075), transparent 31%),
+              radial-gradient(circle at 92% 0%, rgba(139, 116, 177, .05), transparent 29%),
+              linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%) !important;
+          }'''
+          text = sub_once(text, r'\[data-theme="dark"\] body \{\n  background:.*?\n\}', dark_body, 'unified dark body')
+          old_header = '[data-theme="dark"] .app-header { background: rgba(10, 15, 24, .78) !important; }'
+          new_header = '[data-theme="dark"] .app-header { background: rgba(28, 37, 47, .92) !important; border-bottom-color: rgba(183, 199, 216, .13) !important; box-shadow: 0 8px 24px rgba(4, 10, 16, .16) !important; }'
+          if old_header not in text:
+              raise SystemExit('unified dark header: source rule not found')
+          text = text.replace(old_header, new_header, 1)
+          save(path, text)
+
+          # 3) Luminous: keep the identity but move dark mode to restrained blue-gray glass.
+          path = 'src/luminous-ui.css'
+          text = load(path)
+          luminous_dark = '''html[data-ui="luminous"][data-theme="dark"] {
+            --luminous-cyan: #72c8df;
+            --luminous-magenta: #d58bab;
+            --luminous-purple: #9e91d4;
+            --bg-base: #171e27;
+            --bg-surface: rgba(28, 38, 50, 0.88);
+            --bg-card: rgba(30, 41, 53, 0.92);
+            --bg-elevated: rgba(39, 52, 66, 0.92);
+            --bg-input: rgba(24, 33, 43, 0.95);
+            --bg-hover: rgba(43, 57, 72, 0.94);
+            --bg-glass: rgba(29, 39, 51, 0.72);
+            --bg-glass-strong: rgba(30, 40, 52, 0.91);
+            --border-subtle: rgba(184, 207, 228, 0.08);
+            --border-default: rgba(184, 207, 228, 0.13);
+            --border-strong: rgba(192, 214, 234, 0.20);
+            --border-focus: #72c8df;
+            --border-glass: rgba(184, 207, 228, 0.12);
+            --text-primary: #eef4f9;
+            --text-secondary: #b7c3d0;
+            --text-muted: #8795a7;
+            --text-inverse: #17202a;
+            --accent: #72c8df;
+            --accent-hover: #91d7e8;
+            --accent-bg: rgba(114, 200, 223, 0.10);
+            --accent-border: rgba(114, 200, 223, 0.24);
+            --accent-glow: rgba(114, 200, 223, 0.14);
+            --purple: #a89bd7;
+            --purple-bg: rgba(168, 155, 215, 0.10);
+            --purple-glow: rgba(168, 155, 215, 0.14);
+            --shadow-sm: 0 5px 16px rgba(4, 10, 16, 0.16);
+            --shadow: 0 12px 32px rgba(4, 10, 16, 0.20), 0 0 16px rgba(114, 200, 223, 0.035);
+            --shadow-lg: 0 22px 58px rgba(4, 10, 16, 0.27), 0 0 26px rgba(168, 155, 215, 0.05);
+            --shadow-card: 0 10px 28px rgba(4, 10, 16, 0.18), 0 0 0 1px rgba(184, 207, 228, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+            --shadow-glow: 0 0 20px rgba(114, 200, 223, 0.10), 0 0 34px rgba(168, 155, 215, 0.06);
+            --gradient-accent: linear-gradient(135deg, #72c8df 0%, #9e91d4 55%, #d58bab 100%);
+            --gradient-cool: linear-gradient(135deg, #72c8df, #7ca9d2);
+            --gradient-warm: linear-gradient(135deg, #d58bab, #9e91d4);
+            --gradient-page: radial-gradient(circle at 8% 2%, rgba(114, 200, 223, 0.055), transparent 30%), radial-gradient(circle at 92% 2%, rgba(213, 139, 171, 0.035), transparent 28%), linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%);
+            --luminous-panel: rgba(30, 41, 53, 0.84);
+            --luminous-panel-strong: rgba(32, 43, 55, 0.93);
+            --luminous-line: rgba(184, 207, 228, 0.14);
+            --luminous-inner: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+            color-scheme: dark;
+          }'''
+          text = sub_once(text, r'html\[data-ui="luminous"\]\[data-theme="dark"\] \{.*?\n\}', luminous_dark, 'luminous dark tokens')
+
+          # Tone down luminous-only chrome in dark mode without changing light mode.
+          anchor = '''html[data-ui="luminous"] .app-header::after {
+            left: 24px;
+            right: 24px;
+            bottom: -1px;
+            height: 2px;
+            border-radius: 999px;
+            opacity: 0.7;
+            background: linear-gradient(90deg, transparent, var(--luminous-cyan), var(--luminous-purple), var(--luminous-magenta), transparent);
+            background-size: 200% 100%;
+            animation: luminous-line-flow 6s linear infinite;
+          }'''
+          dark_chrome = anchor + '''
+
+          html[data-ui="luminous"][data-theme="dark"] .app-header {
+            border-color: rgba(184, 207, 228, 0.15);
+            background: rgba(30, 40, 52, 0.92);
+            box-shadow: 0 10px 30px rgba(4, 10, 16, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+          }
+
+          html[data-ui="luminous"][data-theme="dark"] .app-header::after {
+            opacity: 0.24;
+          }
+
+          html[data-ui="luminous"][data-theme="dark"] .app-layout::before,
+          html[data-ui="luminous"][data-theme="dark"] .app-layout::after {
+            opacity: 0.16;
+          }
+
+          html[data-ui="luminous"][data-theme="dark"] :is(.card, .glass-card, .stat-card, .metric-card, .action-center, .prep-panel, .prep-dashboard-card, .prep-workbench-card, .prep-productivity-panel, .journal-card, .comparison-card, .personal-stats-card, .stats-card, .admin-card, .journal-quick-card, .login-card, .modal) {
+            border-color: rgba(184, 207, 228, 0.14);
+            background: rgba(30, 41, 53, 0.86);
+            box-shadow: var(--shadow-card), var(--luminous-inner);
+          }
+
+          html[data-ui="luminous"][data-theme="dark"] :is(.header-tabs button.active, .tab-btn.active, .prep-nav button.active, .preparation-nav button.active) {
+            background: rgba(114, 200, 223, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(114, 200, 223, 0.13);
+          }'''
+          if anchor not in text:
+              raise SystemExit('luminous header anchor not found')
+          text = text.replace(anchor, dark_chrome, 1)
+
+          status_replacements = {
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) { background: linear-gradient(155deg, #1b1a37, #11182d) padding-box, linear-gradient(135deg, #34315a, rgba(139, 92, 246, .42)) border-box !important; }":
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) { background: linear-gradient(155deg, #25293a, #1e2935) padding-box, linear-gradient(135deg, rgba(144, 152, 229, .25), rgba(158, 145, 212, .12)) border-box !important; }",
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) { background: linear-gradient(155deg, #10283a, #11182d) padding-box, linear-gradient(135deg, #28506a, rgba(60, 245, 255, .34)) border-box !important; }":
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) { background: linear-gradient(155deg, #20303b, #1e2935) padding-box, linear-gradient(135deg, rgba(107, 185, 223, .25), rgba(114, 200, 223, .12)) border-box !important; }",
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) { background: linear-gradient(155deg, #2d2414, #11182d) padding-box, linear-gradient(135deg, #5d4a25, rgba(245, 158, 11, .38)) border-box !important; }":
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) { background: linear-gradient(155deg, #302d25, #1e2935) padding-box, linear-gradient(135deg, rgba(231, 177, 91, .25), rgba(229, 173, 85, .12)) border-box !important; }",
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='revision']) { background: linear-gradient(155deg, #291936, #11182d) padding-box, linear-gradient(135deg, #513163, rgba(255, 79, 159, .36)) border-box !important; }":
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='revision']) { background: linear-gradient(155deg, #2d2937, #1e2935) padding-box, linear-gradient(135deg, rgba(182, 146, 219, .25), rgba(213, 139, 171, .12)) border-box !important; }",
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) { background: linear-gradient(155deg, #132b22, #11182d) padding-box, linear-gradient(135deg, #28533f, rgba(34, 197, 94, .36)) border-box !important; }":
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) { background: linear-gradient(155deg, #22312f, #1e2935) padding-box, linear-gradient(135deg, rgba(97, 191, 141, .26), rgba(114, 200, 223, .11)) border-box !important; }",
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) { background: linear-gradient(155deg, #30191f, #11182d) padding-box, linear-gradient(135deg, #61303a, rgba(239, 68, 68, .38)) border-box !important; }":
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) { background: linear-gradient(155deg, #32282d, #1e2935) padding-box, linear-gradient(135deg, rgba(225, 127, 135, .26), rgba(213, 139, 171, .12)) border-box !important; }",
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) { background: linear-gradient(155deg, #1a2230, #11182d) padding-box, linear-gradient(135deg, #354153, rgba(100, 116, 139, .34)) border-box !important; }":
+            "html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) { background: linear-gradient(155deg, #252e38, #1e2935) padding-box, linear-gradient(135deg, rgba(154, 168, 183, .22), rgba(126, 148, 172, .10)) border-box !important; }",
+          }
+          for old, new in status_replacements.items():
+              if old not in text:
+                  raise SystemExit(f'luminous status rule not found: {old[:80]}')
+              text = text.replace(old, new, 1)
+          save(path, text)
+
+          # 4) Luminous X base theme definitions used by early X components.
+          path = 'src/luminous-x-ui.css'
+          text = load(path)
+          lx_ui_dark = '''html[data-ui="luminous-x"][data-theme="dark"] {
+            --bg-base: #171e27;
+            --bg-surface: rgba(28, 38, 50, 0.90);
+            --bg-card: rgba(30, 41, 53, 0.92);
+            --bg-elevated: rgba(39, 52, 66, 0.92);
+            --bg-input: rgba(24, 33, 43, 0.95);
+            --bg-hover: rgba(43, 57, 72, 0.94);
+            --bg-glass: rgba(29, 39, 51, 0.76);
+            --bg-glass-strong: rgba(30, 40, 52, 0.92);
+            --border-subtle: rgba(184, 207, 228, 0.08);
+            --border-default: rgba(184, 207, 228, 0.13);
+            --border-strong: rgba(192, 214, 234, 0.20);
+            --border-focus: #72c8df;
+            --border-glass: rgba(184, 207, 228, 0.12);
+            --text-primary: #eef4f9;
+            --text-secondary: #b7c3d0;
+            --text-muted: #8795a7;
+            --text-inverse: #17202a;
+            --accent: #72c8df;
+            --accent-hover: #91d7e8;
+            --accent-bg: rgba(114, 200, 223, 0.10);
+            --accent-border: rgba(114, 200, 223, 0.24);
+            --accent-glow: rgba(114, 200, 223, 0.14);
+            --purple: #a89bd7;
+            --purple-bg: rgba(168, 155, 215, 0.10);
+            --purple-glow: rgba(168, 155, 215, 0.14);
+            --lx-stage-bg:
+              radial-gradient(circle at 8% 2%, rgba(114, 200, 223, 0.055), transparent 30%),
+              radial-gradient(circle at 92% 2%, rgba(213, 139, 171, 0.035), transparent 28%),
+              linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%);
+            --lx-panel: rgba(30, 41, 53, 0.84);
+            --lx-panel-solid: rgba(32, 43, 55, 0.94);
+            --lx-panel-deep: rgba(38, 50, 64, 0.92);
+            --lx-line: rgba(184, 207, 228, 0.14);
+            --lx-grid: rgba(143, 169, 194, 0.04);
+            --lx-shadow: 0 14px 36px rgba(4, 10, 16, 0.20), 0 0 0 1px rgba(184, 207, 228, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+            --lx-shadow-hover: 0 20px 48px rgba(4, 10, 16, 0.25), 0 0 20px rgba(114, 200, 223, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+            --gradient-accent: linear-gradient(120deg, #72c8df 0%, #9e91d4 55%, #d58bab 100%);
+            --gradient-cool: linear-gradient(135deg, #72c8df, #7ca9d2);
+            --gradient-warm: linear-gradient(135deg, #d58bab, #9e91d4);
+            color-scheme: dark;
+          }'''
+          text = sub_once(text, r'html\[data-ui="luminous-x"\]\[data-theme="dark"\] \{.*?\n\}', lx_ui_dark, 'luminous x ui dark tokens')
+          save(path, text)
+
+          # 5) Final Luminous X rebuild tokens are the actual late-loaded X source of truth.
+          path = 'src/luminous-x-rebuild.css'
+          text = load(path)
+          lx_rebuild_dark = '''html[data-ui='luminous-x'][data-theme='dark'] {
+            --bg-base: #171e27;
+            --bg-surface: #1d2834;
+            --bg-card: #1e2935;
+            --bg-elevated: #273542;
+            --bg-input: #19232d;
+            --bg-hover: #2b3947;
+            --bg-glass: #1d2834;
+            --bg-glass-strong: #202c38;
+            --border-subtle: #2b3a49;
+            --border-default: #354656;
+            --border-strong: #46596a;
+            --border-focus: #72c8df;
+            --border-glass: #354656;
+            --text-primary: #eef4f9;
+            --text-secondary: #b7c3d0;
+            --text-muted: #8795a7;
+            --accent: #72c8df;
+            --accent-hover: #91d7e8;
+            --accent-bg: rgba(114, 200, 223, .10);
+            --accent-border: rgba(114, 200, 223, .24);
+            --accent-glow: rgba(114, 200, 223, .13);
+            --purple: #a89bd7;
+            --purple-bg: rgba(168, 155, 215, .10);
+            --purple-glow: rgba(168, 155, 215, .13);
+            --lx-canvas: #171e27;
+            --lx-sidebar-surface: #1b2631;
+            --lx-surface: #1e2935;
+            --lx-surface-soft: #24313e;
+            --lx-surface-strong: #293744;
+            --lx-line: #354656;
+            --lx-line-soft: #2b3a49;
+            --lx-shadow: 0 12px 30px rgba(4, 10, 16, .18);
+            --lx-shadow-hover: 0 17px 40px rgba(4, 10, 16, .24);
+            color-scheme: dark;
+          }'''
+          text = sub_once(text, r"html\[data-ui='luminous-x'\]\[data-theme='dark'\] \{.*?\n\}", lx_rebuild_dark, 'luminous x rebuild dark tokens')
+          text = text.replace("  --lx-cyan: #3cf5ff;\n  --lx-magenta: #ff4f9f;\n  --lx-purple: #8b5cf6;", "  --lx-cyan: #72c8df;\n  --lx-magenta: #d58bab;\n  --lx-purple: #9e91d4;", 1)
+          save(path, text)
+
+          # 6) Final correction layer currently hardcodes the X body/card back to near-black; align it with the new palette.
+          path = 'src/luminous-x-rebuild-corrections.css'
+          text = load(path)
+          old_body = '''html[data-ui='luminous-x'][data-theme='dark'] body {
+            background:
+              radial-gradient(circle at 12% -8%, rgba(60, 245, 255, .13), transparent 25%),
+              radial-gradient(circle at 96% 0%, rgba(255, 79, 159, .10), transparent 24%),
+              linear-gradient(180deg, #0b1021 0%, #080d1b 100%) !important;
+          }'''
+          new_body = '''html[data-ui='luminous-x'][data-theme='dark'] body {
+            background:
+              radial-gradient(circle at 12% -8%, rgba(114, 200, 223, .055), transparent 27%),
+              radial-gradient(circle at 96% 0%, rgba(213, 139, 171, .035), transparent 25%),
+              linear-gradient(180deg, #171e27 0%, #1a222c 52%, #171d25 100%) !important;
+          }'''
+          if old_body not in text:
+              raise SystemExit('luminous x corrections body not found')
+          text = text.replace(old_body, new_body, 1)
+          old_cards = '''html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3,
+          html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
+          html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
+            background-color: #11182d !important;
+            background-image: none !important;
+          }'''
+          new_cards = '''html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3,
+          html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
+          html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
+            background-color: #1e2935 !important;
+            background-image: none !important;
+          }'''
+          if old_cards not in text:
+              raise SystemExit('luminous x corrections cards not found')
+          text = text.replace(old_cards, new_cards, 1)
+          save(path, text)
+          PY
+
+          git diff --check
+          git status --short
+      - name: Commit canonical theme changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No theme changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/index.css src/unified-ui.css src/luminous-ui.css src/luminous-x-ui.css src/luminous-x-rebuild.css src/luminous-x-rebuild-corrections.css
+          git commit -m "Refine dark theme blue-gray surfaces"
+          git push origin HEAD:fix/dark-theme-bluegray-refinement
