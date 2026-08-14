@@ -1,0 +1,32 @@
+name: Temporary render file marks
+
+on:
+  push:
+    branches:
+      - fix/dark-card-readability-balance
+    paths:
+      - .github/workflows/_temporary-render-file-marks.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/dark-card-readability-balance
+          fetch-depth: 0
+      - name: Render semantic attachment marks directly
+        run: python .github/render-file-marks.py
+      - name: Validate changes
+        run: git diff --check
+      - name: Commit changes and remove temporary helpers
+        run: |
+          rm .github/workflows/_temporary-render-file-marks.yml .github/render-file-marks.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Render attachment marks directly in submission cards"
+          git push origin HEAD:fix/dark-card-readability-balance
