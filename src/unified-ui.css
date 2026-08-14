@@ -18,9 +18,9 @@
 }
 
 [data-theme="dark"] {
-  --ui-glass: rgba(30, 39, 50, .82);
-  --ui-glass-strong: rgba(32, 42, 54, .92);
-  --ui-glass-soft: rgba(38, 49, 62, .68);
+  --ui-glass: rgba(39, 51, 64, .84);
+  --ui-glass-strong: rgba(42, 54, 68, .93);
+  --ui-glass-soft: rgba(48, 62, 77, .70);
   --ui-border: rgba(183, 199, 216, .16);
   --ui-border-hover: rgba(105, 184, 207, .30);
   --ui-shadow: 0 10px 28px rgba(4, 10, 16, .17);
@@ -54,7 +54,7 @@ body {
   background:
     radial-gradient(circle at 10% -5%, rgba(86, 145, 181, .075), transparent 31%),
     radial-gradient(circle at 92% 0%, rgba(139, 116, 177, .05), transparent 29%),
-    linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%) !important;
+    linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%) !important;
 }
 
 h1, h2, h3, h4, h5,
@@ -148,7 +148,7 @@ p, small, .card-subtitle, .chart-subtitle { line-height: 1.58; }
   backdrop-filter: blur(20px) saturate(145%);
 }
 
-[data-theme="dark"] .app-header { background: rgba(28, 37, 47, .92) !important; border-bottom-color: rgba(183, 199, 216, .13) !important; box-shadow: 0 8px 24px rgba(4, 10, 16, .16) !important; }
+[data-theme="dark"] .app-header { background: rgba(40, 51, 64, .93) !important; border-bottom-color: rgba(183, 199, 216, .13) !important; box-shadow: 0 8px 24px rgba(4, 10, 16, .16) !important; }
 
 .header-tabs button {
   font-weight: 560 !important;

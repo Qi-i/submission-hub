@@ -14,7 +14,7 @@ html[data-ui='luminous-x'][data-theme='dark'] body {
   background:
     radial-gradient(circle at 12% -8%, rgba(114, 200, 223, .055), transparent 27%),
     radial-gradient(circle at 96% 0%, rgba(213, 139, 171, .035), transparent 25%),
-    linear-gradient(180deg, #171e27 0%, #1a222c 52%, #171d25 100%) !important;
+    linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%) !important;
 }
 
 html[data-ui='luminous-x'][data-theme='light'] .paper-grid .paper-card-v3,
@@ -27,7 +27,7 @@ html[data-ui='luminous-x'][data-theme='light'] .lx-journal-group-grid .paper-car
 html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3,
 html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
 html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
-  background-color: #1e2935 !important;
+  background-color: #273340 !important;
   background-image: none !important;
 }
 

@@ -77,10 +77,10 @@
 
 /* ── Dark Theme ── */
 [data-theme="dark"] {
-  --bg-base: #171d24;
+  --bg-base: #1e2630;
   --bg-surface: rgba(29,38,48,0.90);
-  --bg-card: rgba(32,42,53,0.92);
-  --bg-elevated: rgba(39,50,63,0.92);
+  --bg-card: rgba(39,51,64,0.92);
+  --bg-elevated: rgba(48,62,77,0.90);
   --bg-input: rgba(25,33,42,0.95);
   --bg-hover: rgba(43,55,69,0.94);
   --bg-glass: rgba(30,39,50,0.72);
@@ -128,7 +128,7 @@
   --gradient-accent: linear-gradient(135deg, #69b8cf, #9b8dd0);
   --gradient-warm: linear-gradient(135deg, #e7ad55, #dc7d83);
   --gradient-cool: linear-gradient(135deg, #72c2d7, #7ba9d8);
-  --gradient-page: radial-gradient(circle at 9% -4%, rgba(86,145,181,0.07), transparent 31%), radial-gradient(circle at 92% 0%, rgba(139,116,177,0.05), transparent 28%), linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%);
+  --gradient-page: radial-gradient(circle at 9% -4%, rgba(86,145,181,0.07), transparent 31%), radial-gradient(circle at 92% 0%, rgba(139,116,177,0.05), transparent 28%), linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%);
 
   --status-preparing: #9098e5;
   --status-submitted: #6bb9df;

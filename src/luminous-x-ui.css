@@ -70,10 +70,10 @@ html[data-ui="luminous-x"][data-theme="light"] {
 }
 
 html[data-ui="luminous-x"][data-theme="dark"] {
-  --bg-base: #171e27;
-  --bg-surface: rgba(28, 38, 50, 0.90);
-  --bg-card: rgba(30, 41, 53, 0.92);
-  --bg-elevated: rgba(39, 52, 66, 0.92);
+  --bg-base: #1e2630;
+  --bg-surface: rgba(36, 47, 60, 0.92);
+  --bg-card: rgba(39, 51, 64, 0.92);
+  --bg-elevated: rgba(48, 62, 77, 0.90);
   --bg-input: rgba(24, 33, 43, 0.95);
   --bg-hover: rgba(43, 57, 72, 0.94);
   --bg-glass: rgba(29, 39, 51, 0.76);
@@ -98,9 +98,9 @@ html[data-ui="luminous-x"][data-theme="dark"] {
   --lx-stage-bg:
     radial-gradient(circle at 8% 2%, rgba(114, 200, 223, 0.055), transparent 30%),
     radial-gradient(circle at 92% 2%, rgba(213, 139, 171, 0.035), transparent 28%),
-    linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%);
-  --lx-panel: rgba(30, 41, 53, 0.84);
-  --lx-panel-solid: rgba(32, 43, 55, 0.94);
+    linear-gradient(180deg, #1e2630 0%, #222c36 50%, #1c242d 100%);
+  --lx-panel: rgba(39, 51, 64, 0.86);
+  --lx-panel-solid: rgba(42, 54, 68, 0.95);
   --lx-panel-deep: rgba(38, 50, 64, 0.92);
   --lx-line: rgba(184, 207, 228, 0.14);
   --lx-grid: rgba(143, 169, 194, 0.04);
