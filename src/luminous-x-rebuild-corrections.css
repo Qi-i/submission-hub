@@ -27,7 +27,7 @@ html[data-ui='luminous-x'][data-theme='light'] .lx-journal-group-grid .paper-car
 html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3,
 html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
 html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
-  background-color: #273340 !important;
+  background-color: #25313c !important;
   background-image: none !important;
 }
 

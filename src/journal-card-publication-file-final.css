@@ -133,15 +133,21 @@ html[data-theme='dark'] .paper-status-area .paper-publication-compact {
 }
 
 .paper-grid .file-dot {
-  width: 35px !important;
-  min-width: 35px !important;
-  height: 25px !important;
-  min-height: 25px !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 27px !important;
+  min-height: 27px !important;
+  border: 1px solid var(--border-subtle) !important;
+  background: var(--bg-elevated) !important;
 }
 
 .paper-grid .file-dot::before {
-  font-size: 8px !important;
+  min-width: 0;
+  max-width: 34px;
+  overflow: hidden;
+  font-size: 9px !important;
   line-height: 1 !important;
+  text-overflow: ellipsis;
 }
 
 :is(.compact-file-row, .paper-grid .file-dot)[data-file-kind='retrieval'] .compact-file-status-icon,
