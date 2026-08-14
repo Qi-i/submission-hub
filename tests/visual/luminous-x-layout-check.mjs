@@ -55,9 +55,12 @@ async function inspectDesktop(page, name) {
     }
 
     if (root.dataset.ui !== 'luminous-x') failures.push(`${name}: Luminous X mode is not active`)
-    if (rootStyle.getPropertyValue('--lx-cyan').trim().toLowerCase() !== '#3cf5ff') failures.push(`${name}: cyan token is incorrect`)
-    if (rootStyle.getPropertyValue('--lx-magenta').trim().toLowerCase() !== '#ff4f9f') failures.push(`${name}: magenta token is incorrect`)
-    if (rootStyle.getPropertyValue('--lx-purple').trim().toLowerCase() !== '#8b5cf6') failures.push(`${name}: purple token is incorrect`)
+    const expectedTokens = root.dataset.theme === 'dark'
+      ? { cyan: '#72c8df', magenta: '#d58bab', purple: '#9e91d4' }
+      : { cyan: '#3cf5ff', magenta: '#ff4f9f', purple: '#8b5cf6' }
+    if (rootStyle.getPropertyValue('--lx-cyan').trim().toLowerCase() !== expectedTokens.cyan) failures.push(`${name}: cyan token is incorrect`)
+    if (rootStyle.getPropertyValue('--lx-magenta').trim().toLowerCase() !== expectedTokens.magenta) failures.push(`${name}: magenta token is incorrect`)
+    if (rootStyle.getPropertyValue('--lx-purple').trim().toLowerCase() !== expectedTokens.purple) failures.push(`${name}: purple token is incorrect`)
     if (document.documentElement.scrollWidth > viewportWidth + 2) failures.push(`${name}: horizontal overflow exists`)
 
     if (!app || !header || !status || !controlsHost || !statusCount || !utility || !switcher) {

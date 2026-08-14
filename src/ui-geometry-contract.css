@@ -356,29 +356,29 @@ html[data-ui] body :is(.app-header, .lx-status-bar, .prep-dashboard, .action-cen
 
 /* Dark mode is a production workspace, not a dim decorative theme. */
 html[data-theme='dark'][data-ui] {
-  --text-primary: #f8fafc;
-  --text-secondary: #d7e0ec;
-  --text-muted: #aebdd0;
-  --text-tertiary: #94a3b8;
-  --bg-page: #07101c;
-  --bg-card: rgba(15, 23, 42, .90);
-  --bg-elevated: rgba(30, 41, 59, .86);
-  --border-default: rgba(148, 163, 184, .34);
-  --border-subtle: rgba(148, 163, 184, .22);
-  --space-glass-border: rgba(148, 163, 184, .30);
-  --space-glass-highlight: rgba(226, 232, 240, .09);
-  --space-glass-shadow: 0 16px 38px rgba(2, 6, 23, .32);
+  --text-primary: #eef4f9;
+  --text-secondary: #bcc7d3;
+  --text-muted: #8e9cac;
+  --text-tertiary: #7f8d9d;
+  --bg-page: #1e2630;
+  --bg-card: rgba(39, 51, 64, .92);
+  --bg-elevated: rgba(48, 62, 77, .90);
+  --border-default: rgba(183, 199, 216, .19);
+  --border-subtle: rgba(183, 199, 216, .12);
+  --space-glass-border: rgba(183, 199, 216, .16);
+  --space-glass-highlight: rgba(238, 244, 249, .055);
+  --space-glass-shadow: 0 14px 34px rgba(4, 10, 16, .18);
   color-scheme: dark;
 }
 
 html[data-theme='dark'][data-ui] body {
-  color: #e8eef7 !important;
-  background-color: #07101c !important;
+  color: #e8eef5 !important;
+  background-color: #1e2630 !important;
   background-image:
-    radial-gradient(ellipse at 10% 4%, rgba(14, 165, 233, .17), transparent 40%),
-    radial-gradient(ellipse at 88% 16%, rgba(124, 58, 237, .14), transparent 42%),
-    radial-gradient(ellipse at 52% 94%, rgba(13, 148, 136, .11), transparent 46%),
-    linear-gradient(135deg, #07101c 0%, #0a1422 52%, #09111e 100%) !important;
+    radial-gradient(ellipse at 10% 4%, rgba(82, 145, 177, .075), transparent 42%),
+    radial-gradient(ellipse at 88% 16%, rgba(139, 116, 177, .055), transparent 44%),
+    radial-gradient(ellipse at 52% 94%, rgba(79, 139, 133, .035), transparent 48%),
+    linear-gradient(135deg, #1e2630 0%, #222c36 52%, #1c242d 100%) !important;
 }
 
 html[data-theme='dark'][data-ui] body :is(
@@ -395,9 +395,9 @@ html[data-theme='dark'][data-ui] body :is(
   .compact-form-modal,
   .journal-form-modal
 ) {
-  background: linear-gradient(145deg, rgba(20, 31, 49, .93), rgba(11, 23, 38, .86)) !important;
-  border-color: rgba(148, 163, 184, .30) !important;
-  box-shadow: inset 0 1px 0 rgba(226, 232, 240, .08), 0 18px 42px rgba(2, 6, 23, .34) !important;
+  background: linear-gradient(145deg, rgba(42, 54, 68, .94), rgba(34, 45, 57, .91)) !important;
+  border-color: rgba(183, 199, 216, .17) !important;
+  box-shadow: inset 0 1px 0 rgba(238, 244, 249, .05), 0 15px 34px rgba(4, 10, 16, .20) !important;
 }
 
 html[data-theme='dark'][data-ui] body :is(
@@ -413,9 +413,9 @@ html[data-theme='dark'][data-ui] body :is(
   .lx-board-column,
   .lx-journal-group
 ) {
-  background: rgba(15, 23, 42, .88) !important;
-  border-color: rgba(148, 163, 184, .25) !important;
-  box-shadow: inset 0 1px 0 rgba(226, 232, 240, .07), 0 12px 28px rgba(2, 6, 23, .28) !important;
+  background: rgba(39, 51, 64, .90) !important;
+  border-color: rgba(183, 199, 216, .14) !important;
+  box-shadow: inset 0 1px 0 rgba(238, 244, 249, .045), 0 10px 24px rgba(4, 10, 16, .17) !important;
 }
 
 html[data-theme='dark'][data-ui] body :is(
@@ -470,7 +470,7 @@ html[data-theme='dark'][data-ui] body :is(
 ) {
   color: #f8fafc !important;
   caret-color: #67e8f9;
-  background: rgba(7, 16, 28, .88) !important;
+  background: rgba(30, 39, 49, .94) !important;
   border-color: rgba(148, 163, 184, .34) !important;
 }
 
@@ -490,7 +490,7 @@ html[data-theme='dark'][data-ui] body :is(
 ) {
   color: #dbe7f3 !important;
   border-color: rgba(148, 163, 184, .30) !important;
-  background: rgba(30, 41, 59, .72) !important;
+  background: rgba(48, 62, 77, .76) !important;
 }
 
 html[data-theme='dark'][data-ui] body :is(
@@ -504,7 +504,7 @@ html[data-theme='dark'][data-ui] body :is(
 ):hover {
   color: #f8fafc !important;
   border-color: rgba(103, 232, 249, .48) !important;
-  background: rgba(14, 116, 144, .30) !important;
+  background: rgba(75, 125, 146, .25) !important;
 }
 
 @keyframes submission-hub-background-breathe {

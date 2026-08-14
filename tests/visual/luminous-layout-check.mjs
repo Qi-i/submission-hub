@@ -23,9 +23,11 @@ async function inspectPage(page, name, expectedUi = 'luminous') {
     const viewportWidth = window.innerWidth
 
     if (root.dataset.ui !== expectedUi) failures.push(`${name}: expected data-ui=${expectedUi}, received ${root.dataset.ui || 'unset'}`)
-    if (expectedUi === 'luminous' && rootStyle.getPropertyValue('--luminous-cyan').trim().toLowerCase() !== '#3cf5ff') {
-      failures.push(`${name}: luminous cyan design token is missing`)
-    }
+    if (expectedUi === 'luminous') {
+    const luminousCyan = rootStyle.getPropertyValue('--luminous-cyan').trim().toLowerCase()
+    const expectedCyan = root.dataset.theme === 'dark' ? '#72c8df' : '#3cf5ff'
+    if (luminousCyan !== expectedCyan) failures.push(`${name}: luminous cyan design token is unexpected (${luminousCyan || 'missing'})`)
+  }
     if (document.documentElement.scrollWidth > viewportWidth + 2) failures.push(`${name}: page has horizontal overflow`)
 
     if (!switcher) {

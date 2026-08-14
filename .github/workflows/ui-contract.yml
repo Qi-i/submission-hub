@@ -11,6 +11,7 @@ on:
       - 'tests/visual/header-action-coherence-check.mjs'
       - 'tests/visual/responsive-workspace-density-check.mjs'
       - 'tests/visual/submission-grid-parity-check.mjs'
+      - 'tests/visual/dark-theme-contract-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -21,6 +22,7 @@ on:
       - 'tests/visual/header-action-coherence-check.mjs'
       - 'tests/visual/responsive-workspace-density-check.mjs'
       - 'tests/visual/submission-grid-parity-check.mjs'
+      - 'tests/visual/dark-theme-contract-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -66,3 +68,5 @@ jobs:
         run: node tests/visual/responsive-workspace-density-check.mjs
       - name: Verify submission grid parity across Luminous and Luminous X
         run: node tests/visual/submission-grid-parity-check.mjs
+      - name: Verify dark theme blue-gray palette and readability
+        run: node tests/visual/dark-theme-contract-check.mjs
