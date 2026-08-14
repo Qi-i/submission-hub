@@ -129,7 +129,7 @@ for (const ui of interfaces) {
       const values = card.imageColors.map(color => color.average)
       if (card.backgroundColor.average !== null && card.backgroundColor.rgb?.some(channel => channel > 0)) values.push(card.backgroundColor.average)
       if (values.length && Math.min(...values) < 35) {
-        fail(`${ui}/${card.status}: card contains a near-black surface (minimum average ${Math.min(...values).toFixed(1)})`)
+        fail(`${ui}/${card.status}: card contains a near-black surface (minimum average ${Math.min(...values).toFixed(1)}; backgroundColor=${card.backgroundColor.value}; backgroundImage=${card.backgroundImage})`)
       }
     }
 
