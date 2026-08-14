@@ -75,10 +75,14 @@ for (const ui of interfaces) {
         }
       }
 
-      const statusCards = cards.map(card => ({
-        status: card.querySelector('.paper-status-area')?.getAttribute('data-status') || 'unknown',
-        ...surfaceFor(card),
-      }))
+      const statusCards = cards.map(card => {
+        const style = getComputedStyle(card)
+        return {
+          status: card.querySelector('.paper-status-area')?.getAttribute('data-status') || 'unknown',
+          cardStart: style.getPropertyValue('--paper-card-start').trim(),
+          ...surfaceFor(card),
+        }
+      })
 
       return {
         ui: root.dataset.ui,
@@ -147,6 +151,11 @@ for (const ui of interfaces) {
       if (!file.text.rgb || file.text.average < 120) fail(`${ui}: attachment mark is too dim (${file.text.value})`)
       const fileBg = file.surface.backgroundColor.average
       if (fileBg === null || fileBg < 30 || fileBg > 110) fail(`${ui}: attachment surface is not a readable dark control (${file.surface.backgroundColor.value})`)
+    }
+
+    if (ui === 'luminous-x') {
+      const xCardStarts = [...new Set(result.statusCards.map(card => card.cardStart).filter(Boolean))]
+      if (xCardStarts.length > 1) fail(`${ui}: dark card interiors still vary by status (${xCardStarts.join(', ')})`)
     }
 
     for (const card of result.statusCards) {
