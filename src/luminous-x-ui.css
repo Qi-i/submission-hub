@@ -70,55 +70,45 @@ html[data-ui="luminous-x"][data-theme="light"] {
 }
 
 html[data-ui="luminous-x"][data-theme="dark"] {
-  --bg-base: #0b1021;
-  --bg-surface: rgba(10, 16, 34, 0.78);
-  --bg-card: rgba(11, 18, 39, 0.84);
-  --bg-elevated: rgba(18, 28, 55, 0.88);
-  --bg-input: rgba(8, 14, 30, 0.92);
-  --bg-hover: rgba(26, 39, 73, 0.92);
-  --bg-glass: rgba(10, 16, 34, 0.64);
-  --bg-glass-strong: rgba(9, 15, 32, 0.88);
-  --border-subtle: rgba(184, 214, 255, 0.07);
-  --border-default: rgba(184, 214, 255, 0.13);
-  --border-strong: rgba(191, 219, 255, 0.22);
-  --border-focus: #3cf5ff;
-  --border-glass: rgba(185, 216, 255, 0.12);
-  --text-primary: #f2f7ff;
-  --text-secondary: #acb9d2;
-  --text-muted: #71809f;
-  --text-inverse: #07101f;
-  --accent: #3cf5ff;
-  --accent-hover: #9bfbff;
-  --accent-bg: rgba(60, 245, 255, 0.11);
-  --accent-border: rgba(60, 245, 255, 0.34);
-  --accent-glow: rgba(60, 245, 255, 0.46);
-  --purple: #a788ff;
-  --purple-bg: rgba(139, 92, 246, 0.13);
-  --purple-glow: rgba(139, 92, 246, 0.4);
+  --bg-base: #171e27;
+  --bg-surface: rgba(28, 38, 50, 0.90);
+  --bg-card: rgba(30, 41, 53, 0.92);
+  --bg-elevated: rgba(39, 52, 66, 0.92);
+  --bg-input: rgba(24, 33, 43, 0.95);
+  --bg-hover: rgba(43, 57, 72, 0.94);
+  --bg-glass: rgba(29, 39, 51, 0.76);
+  --bg-glass-strong: rgba(30, 40, 52, 0.92);
+  --border-subtle: rgba(184, 207, 228, 0.08);
+  --border-default: rgba(184, 207, 228, 0.13);
+  --border-strong: rgba(192, 214, 234, 0.20);
+  --border-focus: #72c8df;
+  --border-glass: rgba(184, 207, 228, 0.12);
+  --text-primary: #eef4f9;
+  --text-secondary: #b7c3d0;
+  --text-muted: #8795a7;
+  --text-inverse: #17202a;
+  --accent: #72c8df;
+  --accent-hover: #91d7e8;
+  --accent-bg: rgba(114, 200, 223, 0.10);
+  --accent-border: rgba(114, 200, 223, 0.24);
+  --accent-glow: rgba(114, 200, 223, 0.14);
+  --purple: #a89bd7;
+  --purple-bg: rgba(168, 155, 215, 0.10);
+  --purple-glow: rgba(168, 155, 215, 0.14);
   --lx-stage-bg:
-    radial-gradient(circle at 7% 8%, rgba(60, 245, 255, 0.18), transparent 24%),
-    radial-gradient(circle at 93% 8%, rgba(255, 79, 159, 0.15), transparent 24%),
-    radial-gradient(circle at 68% 100%, rgba(139, 92, 246, 0.2), transparent 33%),
-    linear-gradient(145deg, #0b1021 0%, #070d1d 50%, #110a22 100%);
-  --lx-panel: rgba(10, 17, 36, 0.74);
-  --lx-panel-solid: rgba(10, 17, 36, 0.94);
-  --lx-panel-deep: rgba(15, 24, 49, 0.92);
-  --lx-line: rgba(180, 211, 255, 0.13);
-  --lx-grid: rgba(120, 163, 225, 0.055);
-  --lx-shadow:
-    0 22px 60px rgba(0, 0, 0, 0.42),
-    0 0 0 1px rgba(180, 211, 255, 0.08),
-    0 0 30px rgba(60, 245, 255, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    inset 0 0 32px rgba(60, 245, 255, 0.025);
-  --lx-shadow-hover:
-    0 28px 80px rgba(0, 0, 0, 0.52),
-    0 0 30px rgba(60, 245, 255, 0.28),
-    0 0 56px rgba(139, 92, 246, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  --gradient-accent: linear-gradient(120deg, #3cf5ff 0%, #8b5cf6 52%, #ff4f9f 100%);
-  --gradient-cool: linear-gradient(135deg, #3cf5ff, #8b5cf6);
-  --gradient-warm: linear-gradient(135deg, #ff4f9f, #8b5cf6);
+    radial-gradient(circle at 8% 2%, rgba(114, 200, 223, 0.055), transparent 30%),
+    radial-gradient(circle at 92% 2%, rgba(213, 139, 171, 0.035), transparent 28%),
+    linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%);
+  --lx-panel: rgba(30, 41, 53, 0.84);
+  --lx-panel-solid: rgba(32, 43, 55, 0.94);
+  --lx-panel-deep: rgba(38, 50, 64, 0.92);
+  --lx-line: rgba(184, 207, 228, 0.14);
+  --lx-grid: rgba(143, 169, 194, 0.04);
+  --lx-shadow: 0 14px 36px rgba(4, 10, 16, 0.20), 0 0 0 1px rgba(184, 207, 228, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --lx-shadow-hover: 0 20px 48px rgba(4, 10, 16, 0.25), 0 0 20px rgba(114, 200, 223, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  --gradient-accent: linear-gradient(120deg, #72c8df 0%, #9e91d4 55%, #d58bab 100%);
+  --gradient-cool: linear-gradient(135deg, #72c8df, #7ca9d2);
+  --gradient-warm: linear-gradient(135deg, #d58bab, #9e91d4);
   color-scheme: dark;
 }
 
