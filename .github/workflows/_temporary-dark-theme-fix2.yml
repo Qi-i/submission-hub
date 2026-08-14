@@ -22,21 +22,16 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
 
-          def patch(path, replacements):
+          def replace(path, old, new, label):
               p = Path(path)
               text = p.read_text(encoding='utf-8')
-              for old, new in replacements:
-                  if old not in text:
-                      raise SystemExit(f'{path}: source fragment not found: {old[:90]!r}')
-                  text = text.replace(old, new, 1)
-              p.write_text(text, encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'{label}: source fragment not found')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
 
-          # Highest-priority dark material contract: this was overriding every earlier theme with near-black values.
-          p = Path('src/ui-geometry-contract.css')
-          text = p.read_text(encoding='utf-8')
-          old = '''html[data-theme='dark'][data-ui] {
+          # Final dark material contract: the actual late-loaded source that was forcing near-black surfaces.
+          replace('src/ui-geometry-contract.css', """html[data-theme='dark'][data-ui] {
             --text-primary: #f8fafc;
             --text-secondary: #d7e0ec;
             --text-muted: #aebdd0;
@@ -50,8 +45,7 @@ jobs:
             --space-glass-highlight: rgba(226, 232, 240, .09);
             --space-glass-shadow: 0 16px 38px rgba(2, 6, 23, .32);
             color-scheme: dark;
-          }'''
-          new = '''html[data-theme='dark'][data-ui] {
+          }""", """html[data-theme='dark'][data-ui] {
             --text-primary: #eef4f9;
             --text-secondary: #bcc7d3;
             --text-muted: #8e9cac;
@@ -65,11 +59,9 @@ jobs:
             --space-glass-highlight: rgba(238, 244, 249, .055);
             --space-glass-shadow: 0 14px 34px rgba(4, 10, 16, .18);
             color-scheme: dark;
-          }'''
-          if old not in text: raise SystemExit('ui-geometry dark variable contract not found')
-          text = text.replace(old, new, 1)
+          }""", 'dark variable contract')
 
-          old = '''html[data-theme='dark'][data-ui] body {
+          replace('src/ui-geometry-contract.css', """html[data-theme='dark'][data-ui] body {
             color: #e8eef7 !important;
             background-color: #07101c !important;
             background-image:
@@ -77,8 +69,7 @@ jobs:
               radial-gradient(ellipse at 88% 16%, rgba(124, 58, 237, .14), transparent 42%),
               radial-gradient(ellipse at 52% 94%, rgba(13, 148, 136, .11), transparent 46%),
               linear-gradient(135deg, #07101c 0%, #0a1422 52%, #09111e 100%) !important;
-          }'''
-          new = '''html[data-theme='dark'][data-ui] body {
+          }""", """html[data-theme='dark'][data-ui] body {
             color: #e8eef5 !important;
             background-color: #1e2630 !important;
             background-image:
@@ -86,85 +77,84 @@ jobs:
               radial-gradient(ellipse at 88% 16%, rgba(139, 116, 177, .055), transparent 44%),
               radial-gradient(ellipse at 52% 94%, rgba(79, 139, 133, .035), transparent 48%),
               linear-gradient(135deg, #1e2630 0%, #222c36 52%, #1c242d 100%) !important;
-          }'''
-          if old not in text: raise SystemExit('ui-geometry dark body not found')
-          text = text.replace(old, new, 1)
+          }""", 'dark body contract')
 
-          old = '''  background: linear-gradient(145deg, rgba(20, 31, 49, .93), rgba(11, 23, 38, .86)) !important;
+          replace('src/ui-geometry-contract.css', """  background: linear-gradient(145deg, rgba(20, 31, 49, .93), rgba(11, 23, 38, .86)) !important;
             border-color: rgba(148, 163, 184, .30) !important;
-            box-shadow: inset 0 1px 0 rgba(226, 232, 240, .08), 0 18px 42px rgba(2, 6, 23, .34) !important;'''
-          new = '''  background: linear-gradient(145deg, rgba(42, 54, 68, .94), rgba(34, 45, 57, .91)) !important;
+            box-shadow: inset 0 1px 0 rgba(226, 232, 240, .08), 0 18px 42px rgba(2, 6, 23, .34) !important;""", """  background: linear-gradient(145deg, rgba(42, 54, 68, .94), rgba(34, 45, 57, .91)) !important;
             border-color: rgba(183, 199, 216, .17) !important;
-            box-shadow: inset 0 1px 0 rgba(238, 244, 249, .05), 0 15px 34px rgba(4, 10, 16, .20) !important;'''
-          if old not in text: raise SystemExit('ui-geometry dark panel surface not found')
-          text = text.replace(old, new, 1)
+            box-shadow: inset 0 1px 0 rgba(238, 244, 249, .05), 0 15px 34px rgba(4, 10, 16, .20) !important;""", 'dark panel surface')
 
-          old = '''  background: rgba(15, 23, 42, .88) !important;
+          replace('src/ui-geometry-contract.css', """  background: rgba(15, 23, 42, .88) !important;
             border-color: rgba(148, 163, 184, .25) !important;
-            box-shadow: inset 0 1px 0 rgba(226, 232, 240, .07), 0 12px 28px rgba(2, 6, 23, .28) !important;'''
-          new = '''  background: rgba(39, 51, 64, .90) !important;
+            box-shadow: inset 0 1px 0 rgba(226, 232, 240, .07), 0 12px 28px rgba(2, 6, 23, .28) !important;""", """  background: rgba(39, 51, 64, .90) !important;
             border-color: rgba(183, 199, 216, .14) !important;
-            box-shadow: inset 0 1px 0 rgba(238, 244, 249, .045), 0 10px 24px rgba(4, 10, 16, .17) !important;'''
-          if old not in text: raise SystemExit('ui-geometry dark card surface not found')
-          text = text.replace(old, new, 1)
+            box-shadow: inset 0 1px 0 rgba(238, 244, 249, .045), 0 10px 24px rgba(4, 10, 16, .17) !important;""", 'dark card surface')
 
-          text = text.replace("  background: rgba(7, 16, 28, .88) !important;", "  background: rgba(30, 39, 49, .94) !important;", 1)
-          text = text.replace("  background: rgba(30, 41, 59, .72) !important;", "  background: rgba(48, 62, 77, .76) !important;", 1)
-          text = text.replace("  background: rgba(14, 116, 144, .30) !important;", "  background: rgba(75, 125, 146, .25) !important;", 1)
+          p = Path('src/ui-geometry-contract.css')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('background: rgba(7, 16, 28, .88) !important;', 'background: rgba(30, 39, 49, .94) !important;', 1)
+          text = text.replace('background: rgba(30, 41, 59, .72) !important;', 'background: rgba(48, 62, 77, .76) !important;', 1)
+          text = text.replace('background: rgba(14, 116, 144, .30) !important;', 'background: rgba(75, 125, 146, .25) !important;', 1)
           p.write_text(text, encoding='utf-8')
 
-          # Align the earlier design tokens with the final material contract so components outside that contract do not fall back to near-black.
-          patch('src/index.css', [
-            ('--bg-base: #171d24;', '--bg-base: #1e2630;'),
-            ('--bg-card: rgba(32,42,53,0.92);', '--bg-card: rgba(39,51,64,0.92);'),
-            ('--bg-elevated: rgba(39,50,63,0.92);', '--bg-elevated: rgba(48,62,77,0.90);'),
-            ('linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%)'),
-          ])
-          patch('src/unified-ui.css', [
-            ('rgba(30,39,50,.82)', 'rgba(39,51,64,.84)'),
-            ('rgba(32,42,54,.92)', 'rgba(42,54,68,.93)'),
-            ('rgba(38,49,62,.68)', 'rgba(48,62,77,.70)'),
-            ('linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%)'),
-            ('rgba(28, 37, 47, .92)', 'rgba(40, 51, 64, .93)'),
-          ])
-          patch('src/luminous-ui.css', [
-            ('--bg-base: #171e27;', '--bg-base: #1e2630;'),
-            ('--bg-surface: rgba(28, 38, 50, 0.88);', '--bg-surface: rgba(36, 47, 60, 0.90);'),
-            ('--bg-card: rgba(30, 41, 53, 0.92);', '--bg-card: rgba(39, 51, 64, 0.92);'),
-            ('--bg-elevated: rgba(39, 52, 66, 0.92);', '--bg-elevated: rgba(48, 62, 77, 0.90);'),
-            ('linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 50%, #1c242d 100%)'),
-            ('--luminous-panel: rgba(30, 41, 53, 0.84);', '--luminous-panel: rgba(39, 51, 64, 0.86);'),
-            ('--luminous-panel-strong: rgba(32, 43, 55, 0.93);', '--luminous-panel-strong: rgba(42, 54, 68, 0.94);'),
-            ('background: rgba(30, 40, 52, 0.92);', 'background: rgba(40, 51, 64, 0.93);'),
-            ('background: rgba(30, 41, 53, 0.86);', 'background: rgba(39, 51, 64, 0.88);'),
-          ])
-          patch('src/luminous-x-ui.css', [
-            ('--bg-base: #171e27;', '--bg-base: #1e2630;'),
-            ('--bg-surface: rgba(28, 38, 50, 0.90);', '--bg-surface: rgba(36, 47, 60, 0.92);'),
-            ('--bg-card: rgba(30, 41, 53, 0.92);', '--bg-card: rgba(39, 51, 64, 0.92);'),
-            ('--bg-elevated: rgba(39, 52, 66, 0.92);', '--bg-elevated: rgba(48, 62, 77, 0.90);'),
-            ('linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 50%, #1c242d 100%)'),
-            ('--lx-panel: rgba(30, 41, 53, 0.84);', '--lx-panel: rgba(39, 51, 64, 0.86);'),
-            ('--lx-panel-solid: rgba(32, 43, 55, 0.94);', '--lx-panel-solid: rgba(42, 54, 68, 0.95);'),
-          ])
-          patch('src/luminous-x-rebuild.css', [
-            ('--bg-base: #171e27;', '--bg-base: #1e2630;'),
-            ('--bg-surface: #1d2834;', '--bg-surface: #24303c;'),
-            ('--bg-card: #1e2935;', '--bg-card: #273340;'),
-            ('--bg-elevated: #273542;', '--bg-elevated: #303e4d;'),
-            ('--lx-canvas: #171e27;', '--lx-canvas: #1e2630;'),
-            ('--lx-sidebar-surface: #1b2631;', '--lx-sidebar-surface: #25303c;'),
-            ('--lx-surface: #1e2935;', '--lx-surface: #273340;'),
-            ('--lx-surface-soft: #24313e;', '--lx-surface-soft: #2d3a47;'),
-            ('--lx-surface-strong: #293744;', '--lx-surface-strong: #32414f;'),
-          ])
-          patch('src/luminous-x-rebuild-corrections.css', [
-            ('linear-gradient(180deg, #171e27 0%, #1a222c 52%, #171d25 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%)'),
-            ('background-color: #1e2935 !important;', 'background-color: #273340 !important;'),
-          ])
-          patch('src/visual-refresh.css', [
-            ('linear-gradient(180deg, #090b12 0%, #0d1019 52%, #090b12 100%);', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%);'),
-          ])
+          # Align earlier theme sources to the same blue-gray family; no tail override is introduced.
+          pairs = {
+            'src/index.css': [
+              ('--bg-base: #171d24;', '--bg-base: #1e2630;'),
+              ('--bg-card: rgba(32,42,53,0.92);', '--bg-card: rgba(39,51,64,0.92);'),
+              ('--bg-elevated: rgba(39,50,63,0.92);', '--bg-elevated: rgba(48,62,77,0.90);'),
+              ('linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%)'),
+            ],
+            'src/unified-ui.css': [
+              ('rgba(30, 39, 50, .82)', 'rgba(39, 51, 64, .84)'),
+              ('rgba(32, 42, 54, .92)', 'rgba(42, 54, 68, .93)'),
+              ('rgba(38, 49, 62, .68)', 'rgba(48, 62, 77, .70)'),
+              ('linear-gradient(180deg, #171d24 0%, #1a222c 52%, #151b22 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%)'),
+              ('rgba(28, 37, 47, .92)', 'rgba(40, 51, 64, .93)'),
+            ],
+            'src/luminous-ui.css': [
+              ('--bg-base: #171e27;', '--bg-base: #1e2630;'),
+              ('--bg-surface: rgba(28, 38, 50, 0.88);', '--bg-surface: rgba(36, 47, 60, 0.90);'),
+              ('--bg-card: rgba(30, 41, 53, 0.92);', '--bg-card: rgba(39, 51, 64, 0.92);'),
+              ('--bg-elevated: rgba(39, 52, 66, 0.92);', '--bg-elevated: rgba(48, 62, 77, 0.90);'),
+              ('linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 50%, #1c242d 100%)'),
+              ('--luminous-panel: rgba(30, 41, 53, 0.84);', '--luminous-panel: rgba(39, 51, 64, 0.86);'),
+              ('--luminous-panel-strong: rgba(32, 43, 55, 0.93);', '--luminous-panel-strong: rgba(42, 54, 68, 0.94);'),
+              ('background: rgba(30, 40, 52, 0.92);', 'background: rgba(40, 51, 64, 0.93);'),
+              ('background: rgba(30, 41, 53, 0.86);', 'background: rgba(39, 51, 64, 0.88);'),
+            ],
+            'src/luminous-x-ui.css': [
+              ('--bg-base: #171e27;', '--bg-base: #1e2630;'),
+              ('--bg-surface: rgba(28, 38, 50, 0.90);', '--bg-surface: rgba(36, 47, 60, 0.92);'),
+              ('--bg-card: rgba(30, 41, 53, 0.92);', '--bg-card: rgba(39, 51, 64, 0.92);'),
+              ('--bg-elevated: rgba(39, 52, 66, 0.92);', '--bg-elevated: rgba(48, 62, 77, 0.90);'),
+              ('linear-gradient(180deg, #171e27 0%, #1a222c 50%, #171d25 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 50%, #1c242d 100%)'),
+              ('--lx-panel: rgba(30, 41, 53, 0.84);', '--lx-panel: rgba(39, 51, 64, 0.86);'),
+              ('--lx-panel-solid: rgba(32, 43, 55, 0.94);', '--lx-panel-solid: rgba(42, 54, 68, 0.95);'),
+            ],
+            'src/luminous-x-rebuild.css': [
+              ('--bg-base: #171e27;', '--bg-base: #1e2630;'),
+              ('--bg-surface: #1d2834;', '--bg-surface: #24303c;'),
+              ('--bg-card: #1e2935;', '--bg-card: #273340;'),
+              ('--bg-elevated: #273542;', '--bg-elevated: #303e4d;'),
+              ('--lx-canvas: #171e27;', '--lx-canvas: #1e2630;'),
+              ('--lx-sidebar-surface: #1b2631;', '--lx-sidebar-surface: #25303c;'),
+              ('--lx-surface: #1e2935;', '--lx-surface: #273340;'),
+              ('--lx-surface-soft: #24313e;', '--lx-surface-soft: #2d3a47;'),
+              ('--lx-surface-strong: #293744;', '--lx-surface-strong: #32414f;'),
+            ],
+            'src/luminous-x-rebuild-corrections.css': [
+              ('linear-gradient(180deg, #171e27 0%, #1a222c 52%, #171d25 100%)', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%)'),
+              ('background-color: #1e2935 !important;', 'background-color: #273340 !important;'),
+            ],
+            'src/visual-refresh.css': [
+              ('linear-gradient(180deg, #090b12 0%, #0d1019 52%, #090b12 100%);', 'linear-gradient(180deg, #1e2630 0%, #222c36 52%, #1c242d 100%);'),
+            ],
+          }
+          for path, replacements in pairs.items():
+              for i, (old, new) in enumerate(replacements):
+                  replace(path, old, new, f'{path} replacement {i + 1}')
           PY
           git diff --check
       - name: Commit second-pass CSS fixes
