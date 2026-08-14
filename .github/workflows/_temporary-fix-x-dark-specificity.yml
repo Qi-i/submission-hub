@@ -1,0 +1,32 @@
+name: Temporary fix X dark specificity
+
+on:
+  push:
+    branches:
+      - fix/dark-card-readability-balance
+    paths:
+      - .github/workflows/_temporary-fix-x-dark-specificity.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/dark-card-readability-balance
+          fetch-depth: 0
+      - name: Fix X dark card selector specificity
+        run: python .github/fix-x-dark-specificity.py
+      - name: Validate changes
+        run: git diff --check
+      - name: Commit changes and remove temporary helpers
+        run: |
+          rm .github/workflows/_temporary-fix-x-dark-specificity.yml .github/fix-x-dark-specificity.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix Luminous X dark card specificity"
+          git push origin HEAD:fix/dark-card-readability-balance
