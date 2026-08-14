@@ -24,6 +24,8 @@ for (const ui of interfaces) {
       const rootStyle = getComputedStyle(root)
       const header = document.querySelector('.app-header')
       const cards = Array.from(document.querySelectorAll('.paper-card-v3'))
+      const history = document.querySelector('.paper-history')
+      const fileDots = Array.from(document.querySelectorAll('.paper-grid .file-dot'))
 
       function parseColor(value) {
         const probe = document.createElement('span')
@@ -73,10 +75,14 @@ for (const ui of interfaces) {
         }
       }
 
-      const statusCards = cards.map(card => ({
-        status: card.querySelector('.paper-status-area')?.getAttribute('data-status') || 'unknown',
-        ...surfaceFor(card),
-      }))
+      const statusCards = cards.map(card => {
+        const style = getComputedStyle(card)
+        return {
+          status: card.querySelector('.paper-status-area')?.getAttribute('data-status') || 'unknown',
+          cardStart: style.getPropertyValue('--paper-card-start').trim(),
+          ...surfaceFor(card),
+        }
+      })
 
       return {
         ui: root.dataset.ui,
@@ -87,6 +93,14 @@ for (const ui of interfaces) {
         textPrimary: describe(rootStyle.getPropertyValue('--text-primary')),
         lxCanvas: describe(rootStyle.getPropertyValue('--lx-canvas')),
         headerSurface: surfaceFor(header),
+        history: history ? { surface: surfaceFor(history), text: describe(getComputedStyle(history).color) } : null,
+        fileDots: fileDots.map(file => ({
+          mark: file.dataset.fileMark || '',
+          kind: file.dataset.fileKind || '',
+          before: getComputedStyle(file, '::before').content,
+          text: describe(getComputedStyle(file).color),
+          surface: surfaceFor(file),
+        })),
         statusCards,
         pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       }
@@ -124,6 +138,27 @@ for (const ui of interfaces) {
     else if (Math.min(...headerValues) < 32) fail(`${ui}: header still contains a near-black surface (minimum average ${Math.min(...headerValues).toFixed(1)})`)
 
     if (result.pageOverflow > 2) fail(`${ui}: dark dashboard has horizontal overflow of ${result.pageOverflow}px`)
+
+    if (result.history) {
+      const historyBg = result.history.surface.backgroundColor.average
+      if (historyBg === null || historyBg > 105) fail(`${ui}: version chain still uses a light surface (${result.history.surface.backgroundColor.value})`)
+      if (!result.history.text.rgb || result.history.text.average < 150) fail(`${ui}: version chain text is too dim (${result.history.text.value})`)
+    }
+
+    for (const file of result.fileDots) {
+      if (!file.mark || !file.kind) fail(`${ui}: attachment control is missing semantic file mark/kind`)
+      if (!file.before || file.before === 'none' || file.before === 'normal' || file.before === '""') fail(`${ui}: attachment control has no visible pseudo-label (${file.kind || 'unknown'})`)
+      if (!file.text.rgb || file.text.average < 120) fail(`${ui}: attachment mark is too dim (${file.text.value})`)
+      const fileBg = file.surface.backgroundColor.average
+      if (fileBg === null || fileBg < 30 || fileBg > 110) fail(`${ui}: attachment surface is not a readable dark control (${file.surface.backgroundColor.value})`)
+    }
+
+    if (ui === 'luminous-x') {
+      const xCardStarts = [...new Set(result.statusCards.map(card => card.cardStart).filter(Boolean))]
+      if (xCardStarts.length > 1) fail(`${ui}: dark card interiors still vary by status (${xCardStarts.join(', ')})`)
+      const glowingCards = result.statusCards.filter(card => card.backgroundImage.includes('radial-gradient'))
+      if (glowingCards.length) fail(`${ui}: ${glowingCards.length} dark cards still use decorative status glow fields`)
+    }
 
     for (const card of result.statusCards) {
       const values = card.imageColors.map(color => color.average)

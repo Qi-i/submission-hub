@@ -27,7 +27,7 @@ html[data-ui='luminous-x'][data-theme='light'] .lx-journal-group-grid .paper-car
 html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3,
 html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
 html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
-  background-color: #273340 !important;
+  background-color: #25313c !important;
   background-image: none !important;
 }
 
@@ -690,38 +690,38 @@ html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-
 }
 
 html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='preparing']) {
-  --paper-card-start: #2b3041;
-  --paper-card-end: #273340;
+  --paper-card-start: #25313c;
+  --paper-card-end: #222d37;
   --paper-card-border: #4c5570;
 }
 html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='submitted']) {
-  --paper-card-start: #243b47;
-  --paper-card-end: #273340;
+  --paper-card-start: #25313c;
+  --paper-card-end: #222d37;
   --paper-card-border: #3f6675;
 }
 html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='under_review']) {
-  --paper-card-start: #3a3529;
-  --paper-card-end: #273340;
+  --paper-card-start: #25313c;
+  --paper-card-end: #222d37;
   --paper-card-border: #66583a;
 }
 html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='revision']) {
-  --paper-card-start: #342e3d;
-  --paper-card-end: #273340;
+  --paper-card-start: #25313c;
+  --paper-card-end: #222d37;
   --paper-card-border: #604f69;
 }
 html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='accepted']) {
-  --paper-card-start: #283a36;
-  --paper-card-end: #273340;
+  --paper-card-start: #25313c;
+  --paper-card-end: #222d37;
   --paper-card-border: #466657;
 }
 html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='rejected']) {
-  --paper-card-start: #3a2d31;
-  --paper-card-end: #273340;
+  --paper-card-start: #25313c;
+  --paper-card-end: #222d37;
   --paper-card-border: #6b4d53;
 }
 html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status='withdrawn']) {
-  --paper-card-start: #2f3944;
-  --paper-card-end: #273340;
+  --paper-card-start: #25313c;
+  --paper-card-end: #222d37;
   --paper-card-border: #4d5d6c;
 }
 
@@ -834,4 +834,15 @@ html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .pre
   html[data-ui='luminous-x'] .preparation-workspace[data-section='overview'] > .prep-topbar {
     display: flex !important;
   }
+}
+
+/* Dark cards stay materially neutral; semantic color belongs to status controls and a restrained edge. */
+html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
+  --paper-card-start: #25313c !important;
+  --paper-card-end: #222d37 !important;
+  --paper-card-border: color-mix(in srgb, var(--paper-status-color) 20%, #455463) !important;
+  background-color: var(--paper-card-end) !important;
+  background-image: linear-gradient(var(--paper-card-angle), var(--paper-card-start), var(--paper-card-end)) !important;
 }
