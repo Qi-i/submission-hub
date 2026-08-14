@@ -835,3 +835,14 @@ html[data-ui='luminous-x'] .preparation-workspace .prep-overview-draft-list .pre
     display: flex !important;
   }
 }
+
+/* Dark cards stay materially neutral; semantic color belongs to status controls and a restrained edge. */
+html[data-ui='luminous-x'][data-theme='dark'] .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3,
+html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3 {
+  --paper-card-start: #25313c !important;
+  --paper-card-end: #222d37 !important;
+  --paper-card-border: color-mix(in srgb, var(--paper-status-color) 20%, #455463) !important;
+  background-color: var(--paper-card-end) !important;
+  background-image: linear-gradient(var(--paper-card-angle), var(--paper-card-start), var(--paper-card-end)) !important;
+}

@@ -156,6 +156,8 @@ for (const ui of interfaces) {
     if (ui === 'luminous-x') {
       const xCardStarts = [...new Set(result.statusCards.map(card => card.cardStart).filter(Boolean))]
       if (xCardStarts.length > 1) fail(`${ui}: dark card interiors still vary by status (${xCardStarts.join(', ')})`)
+      const glowingCards = result.statusCards.filter(card => card.backgroundImage.includes('radial-gradient'))
+      if (glowingCards.length) fail(`${ui}: ${glowingCards.length} dark cards still use decorative status glow fields`)
     }
 
     for (const card of result.statusCards) {
