@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ArrowRight, BookOpen, CheckCircle2, CircleAlert, Clock3, ExternalLink,
-  FilePenLine, LayoutDashboard, Lightbulb, Plus, Scale, Search, Star, Target,
+  FilePenLine, LayoutDashboard, Lightbulb, LoaderCircle, Plus, Scale, Search, Star, Target,
 } from 'lucide-react'
 import type { JournalRankLookupResult } from '../lib/journal-rank'
 import { journalPrimaryRankItems, journalRankTone, type RankedJournalProfile } from '../lib/journal-display'
@@ -14,6 +14,7 @@ import {
 import { daysUntilDate } from '../lib/types'
 import { DraftForm, TopicForm } from './PreparationForms'
 import JournalFormEnhanced from './JournalFormEnhanced'
+import CurrencyCny from './CurrencyCny'
 import JournalComparison from './JournalComparison'
 import { useTheme } from '../lib/theme'
 
@@ -238,7 +239,12 @@ export default function PreparationWorkspace({
     }
   }
 
-  if (loading) return <div className="prep-loading"><div className="spinner" /> 加载投稿准备数据...</div>
+  if (loading) return <div className="prep-loading" role="status" aria-live="polite">
+    <div className="prep-loading-shell">
+      <LoaderCircle className="prep-loading-icon" size={22} aria-hidden="true" />
+      <div className="prep-loading-copy"><strong>正在加载投稿准备数据</strong><span>同步期刊、选题与草稿…</span></div>
+    </div>
+  </div>
 
   return <div className="preparation-workspace" data-section={section}>
     <div className="prep-topbar">
@@ -563,7 +569,7 @@ function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: ()
     </div>
     <RankBlocks journal={journal} limit={6} />
     <div className="prep-overview-journal-meta">
-      <span data-tone="fit">{journalFitSummary(journal)}</span>
+      <span data-tone="fit">{journalFitSummary(journal)}{journal.apc_amount != null && journal.apc_amount > 0 && !['CNY', 'RMB', 'CNH'].includes((journal.apc_currency || '').trim().toUpperCase()) && <CurrencyCny amount={journal.apc_amount} currency={journal.apc_currency || 'USD'} showOriginal={false} compact className="prep-overview-apc-cny" />}</span>
       <span data-tone="oa">{oa}</span>
       <span data-tone="speed">首轮 {journal.first_decision_days ?? '—'} 天</span>
       <span data-tone="index">{indexing}</span>
@@ -594,7 +600,7 @@ function JournalCard({ journal, onClick }: { journal: JournalProfile; onClick: (
         <div><b>{journal.first_decision_days ?? '—'}</b><small>首轮决定/天</small></div>
         <div><b>{journal.total_review_days ?? '—'}</b><small>总审稿/天</small></div>
         <div><b>{journal.acceptance_rate != null ? `${journal.acceptance_rate}%` : '—'}</b><small>接收率</small></div>
-        <div><b>{journal.apc_amount != null ? journal.apc_amount : '—'}</b><small>{journal.apc_currency || 'APC'}</small></div>
+        <div className="prep-journal-apc-metric"><b>{journal.apc_amount != null ? journal.apc_amount : '—'}</b><small>{journal.apc_currency || 'APC'}</small>{journal.apc_amount != null && journal.apc_amount > 0 && !['CNY', 'RMB', 'CNH'].includes((journal.apc_currency || '').trim().toUpperCase()) && <CurrencyCny amount={journal.apc_amount} currency={journal.apc_currency || 'USD'} showOriginal={false} compact className="prep-journal-apc-cny" />}</div>
       </div>
     </button>
     <div className="prep-journal-links">

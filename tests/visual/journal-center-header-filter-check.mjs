@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
 
 const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
@@ -5,6 +6,13 @@ const browser = await chromium.launch({ headless: true })
 const failures = []
 const details = []
 const fail = message => failures.push(message)
+
+const preparationSource = readFileSync(new URL('../../src/components/PreparationWorkspace.tsx', import.meta.url), 'utf8')
+const onlinePreparationSource = readFileSync(new URL('../../src/components/OnlinePreparationWorkspace.tsx', import.meta.url), 'utf8')
+if (preparationSource.includes('className="spinner"')) fail('投稿准备加载态仍复用全局 spinner 类')
+if (!preparationSource.includes('prep-loading-icon')) fail('投稿准备缺少独立加载图标契约')
+if (!preparationSource.includes('prep-journal-apc-cny') || !preparationSource.includes('prep-overview-apc-cny')) fail('期刊 APC 人民币参考价未由 React 直接渲染')
+if ((onlinePreparationSource.match(/await load\(false\)/g) || []).length < 6) fail('保存/删除后仍会触发全屏投稿准备 loading')
 
 async function openPage(ui, view, viewport = { width: 1680, height: 1050 }) {
   const page = await browser.newPage({ viewport })
@@ -69,6 +77,22 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (placement.navDisplay !== 'none') fail(`${ui}: 期刊中心仍显示投稿准备菜单行`)
     if (placement.legacyRow) fail(`${ui}: 期刊中心仍显示旧筛选说明行`)
     if (placement.overflow > 2) fail(`${ui}: 顶部筛选溢出 ${placement.overflow}px`)
+
+    const apc = await page.evaluate(() => {
+      const cards = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"] .prep-journal-card'))
+      const priced = cards.filter(card => {
+        const cell = card.querySelector('.prep-journal-apc-metric')
+        const value = cell?.querySelector('b')?.textContent?.trim() || ''
+        return value && value !== '—' && value !== '--'
+      })
+      return {
+        priced: priced.length,
+        declarativeCny: priced.filter(card => !!card.querySelector('.prep-journal-apc-cny')).length,
+        legacyInjected: document.querySelectorAll('.prep-journal-card .journal-card-cny').length,
+      }
+    })
+    if (apc.priced > 0 && apc.declarativeCny !== apc.priced) fail(`${ui}: 有 ${apc.priced} 个 APC 金额，但仅 ${apc.declarativeCny} 个直接渲染人民币参考价`)
+    if (apc.legacyInjected > 0) fail(`${ui}: 仍由后置 DOM 增强器注入 ${apc.legacyInjected} 个 APC 人民币节点`)
 
     for (const filter of ['all', 'focus', 'submission-history', 'manual']) {
       await page.locator(`.journal-catalog-filter[data-filter="${filter}"]`).first().click()
