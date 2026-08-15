@@ -106,6 +106,27 @@
   background: transparent;
 }
 
+/* APC reference text must not make sparse journals inherit a taller neighbour's card height. */
+.preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+  align-items: start !important;
+  align-content: start !important;
+  grid-auto-rows: max-content !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card {
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: start !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main {
+  flex: 0 0 auto !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-links {
+  margin-top: 0 !important;
+}
+
 html[data-theme='dark'] .prep-loading-shell {
   box-shadow: 0 12px 34px rgba(0, 0, 0, .18);
 }
