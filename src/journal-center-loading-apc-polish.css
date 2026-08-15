@@ -124,7 +124,7 @@
 }
 
 .preparation-workspace[data-section='journals'] .prep-journal-links {
-  margin-top: 0 !important;
+  margin-top: auto !important;
 }
 
 html[data-theme='dark'] .prep-loading-shell {
