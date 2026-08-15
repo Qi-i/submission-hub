@@ -143,6 +143,7 @@ function enhanceJournalCards() {
     compactJournalMetrics(card)
 
     const feeCell = card.querySelector<HTMLElement>('[data-metric="apc"]')
+    if (feeCell?.querySelector('.prep-journal-apc-cny')) return
     const amountNode = feeCell?.querySelector<HTMLElement>('b')
     const raw = amountNode?.textContent?.trim() || ''
     const amount = numericText(raw.match(/[\d,.]+/)?.[0])
@@ -161,6 +162,7 @@ function enhanceJournalCards() {
 
 function enhanceOverviewCards() {
   document.querySelectorAll<HTMLElement>('.prep-journal-overview-card').forEach(card => {
+    if (card.querySelector('.prep-overview-apc-cny')) return
     const fit = card.querySelector<HTMLElement>('.prep-overview-journal-meta [data-tone="fit"]')
     if (!fit) return
     const raw = fit.dataset.rawText || fit.childNodes[0]?.textContent || fit.textContent || ''

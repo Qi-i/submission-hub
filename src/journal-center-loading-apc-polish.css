@@ -1,0 +1,156 @@
+/* Final journal-center loading and APC currency contract. */
+.prep-loading {
+  min-height: clamp(190px, 34vh, 320px) !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 28px !important;
+  color: var(--text-secondary);
+}
+
+.prep-loading-shell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: min(330px, calc(100vw - 48px));
+  padding: 13px 16px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-card) 96%, transparent);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .08);
+  backdrop-filter: blur(10px);
+}
+
+.prep-loading-icon {
+  flex: 0 0 auto;
+  color: var(--accent);
+  animation: prep-loading-spin .78s linear infinite;
+}
+
+.prep-loading-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.prep-loading-copy strong {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.prep-loading-copy span {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+@keyframes prep-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+.prep-journal-apc-cny {
+  width: 100%;
+  display: flex !important;
+  justify-content: center;
+  margin-top: 2px;
+  font-size: 9px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.prep-journal-apc-cny .currency-estimate,
+.prep-overview-apc-cny .currency-estimate {
+  color: #047857;
+  font-weight: 760;
+}
+
+.prep-journal-apc-cny .currency-loading,
+.prep-journal-apc-cny .currency-unavailable {
+  font-size: 8.5px;
+  white-space: normal;
+}
+
+.prep-journal-facts .prep-journal-apc-metric .prep-journal-apc-cny,
+.prep-journal-facts .prep-journal-apc-metric .prep-journal-apc-cny span {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.prep-journal-facts .prep-journal-apc-metric .prep-journal-apc-cny {
+  width: auto;
+  display: inline-flex !important;
+  margin: 0 0 0 5px;
+  vertical-align: middle;
+}
+
+.prep-overview-apc-cny {
+  display: inline-flex !important;
+  align-items: center;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(5, 150, 105, .22);
+  font-size: 9.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.prep-overview-journal-meta [data-tone='fit'] .prep-overview-apc-cny,
+.prep-overview-journal-meta [data-tone='fit'] .prep-overview-apc-cny span {
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* APC reference text must not make sparse journals inherit a taller neighbour's card height. */
+.preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+  align-items: start !important;
+  align-content: start !important;
+  grid-auto-rows: max-content !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card {
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: start !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-card-main {
+  flex: 0 0 auto !important;
+}
+
+.preparation-workspace[data-section='journals'] .prep-journal-links {
+  margin-top: auto !important;
+}
+
+html[data-theme='dark'] .prep-loading-shell {
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .18);
+}
+
+html[data-theme='dark'] .prep-journal-apc-cny .currency-estimate,
+html[data-theme='dark'] .prep-overview-apc-cny .currency-estimate {
+  color: #6ee7b7;
+}
+
+@media (max-width: 720px) {
+  .prep-loading {
+    padding: 18px !important;
+  }
+
+  .prep-loading-shell {
+    min-width: 0;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .prep-overview-apc-cny {
+    flex-basis: 100%;
+    margin: 3px 0 0;
+    padding: 0;
+    border-left: 0;
+  }
+}

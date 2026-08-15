@@ -58,9 +58,9 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
   const [error, setError] = useState('')
   const loadVersion = useRef(0)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading = true) => {
     const version = ++loadVersion.current
-    setLoading(true)
+    if (showLoading) setLoading(true)
     setError('')
 
     try {
@@ -128,7 +128,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       console.error('Load preparation workspace failed:', caught)
       setError(readableError(caught, '投稿准备数据加载失败'))
     } finally {
-      if (version === loadVersion.current) setLoading(false)
+      if (version === loadVersion.current && showLoading) setLoading(false)
     }
   }, [userId])
 
@@ -160,7 +160,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       if (error) throw error
     }
     invalidateOnlineJournalProfileCache()
-    await load()
+    await load(false)
   }
 
   const deleteJournal = async (journalId: string) => {
@@ -177,7 +177,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     const { error } = await (supabase.from('journal_profiles') as any).delete().eq('id', journalId)
     if (error) throw error
     invalidateOnlineJournalProfileCache()
-    await load()
+    await load(false)
   }
 
   const saveTopic = async (data: Partial<ResearchTopic> & Pick<ResearchTopic, 'title'>) => {
@@ -189,13 +189,13 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       const { error } = await (supabase.from('research_topics') as any).insert({ ...cleanPayload(data), id: crypto.randomUUID(), user_id: userId, created_at: now, updated_at: now })
       if (error) throw error
     }
-    await load()
+    await load(false)
   }
 
   const deleteTopic = async (topicId: string) => {
     const { error } = await (supabase.from('research_topics') as any).delete().eq('id', topicId)
     if (error) throw error
-    await load()
+    await load(false)
   }
 
   const saveDraft = async (data: Partial<ManuscriptDraft> & Pick<ManuscriptDraft, 'title'>) => {
@@ -214,13 +214,13 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       const { error } = await (supabase.from('manuscript_drafts') as any).insert({ ...payload, id: crypto.randomUUID(), user_id: userId, created_at: now })
       if (error) throw error
     }
-    await load()
+    await load(false)
   }
 
   const deleteDraft = async (draftId: string) => {
     const { error } = await (supabase.from('manuscript_drafts') as any).delete().eq('id', draftId)
     if (error) throw error
-    await load()
+    await load(false)
   }
 
   const promoteDraft = async (draft: ManuscriptDraft) => {
@@ -286,7 +286,7 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
       throw new Error('该草稿已被转入投稿管理，请刷新后查看。')
     }
 
-    await load()
+    await load(false)
     onPaperCreated?.()
   }
 
