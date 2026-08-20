@@ -1,0 +1,42 @@
+name: Apply Figure Studio Compatibility Fix
+
+on:
+  push:
+    branches: ['feat/online-figure-studio']
+    paths: ['.github/workflows/figure-studio-compat-fix.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/online-figure-studio
+      - name: Replace ES2021-only string helpers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/components/FigureStudio.tsx')
+          text = path.read_text(encoding='utf-8')
+          old1 = ".replaceAll('&', '&amp;').replaceAll('\\\"', '&quot;')"
+          new1 = ".replace(/&/g, '&amp;').replace(/\\\"/g, '&quot;')"
+          old2 = ".replaceAll('&', '&amp;').replaceAll('<', '&lt;')"
+          new2 = ".replace(/&/g, '&amp;').replace(/</g, '&lt;')"
+          if old1 not in text or old2 not in text:
+              raise SystemExit('Expected replaceAll expressions were not found')
+          path.write_text(text.replace(old1, new1).replace(old2, new2), encoding='utf-8')
+          PY
+      - name: Verify typecheck
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+      - name: Commit compatibility fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/FigureStudio.tsx
+          git commit -m "fix: support existing TypeScript target in figure studio"
+          git push origin HEAD:feat/online-figure-studio
