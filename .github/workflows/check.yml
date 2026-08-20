@@ -7,29 +7,17 @@ on:
     branches: [main, submission-workflow-enhancements, 'release/**']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: npm
-      - name: Apply one-shot Figure Composer integration
-        if: github.event_name == 'pull_request' && github.head_ref == 'feat/online-figure-studio'
-        run: |
-          node scripts/apply-figure-composer-integration-patch.mjs
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git diff --cached --check
-          git commit -m "feat: integrate Figure Composer into Preparation"
-          git push origin HEAD:feat/online-figure-studio
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Run complete verification

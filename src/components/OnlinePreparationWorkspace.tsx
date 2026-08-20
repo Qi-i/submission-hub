@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, Images } from 'lucide-react'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
 import { deriveAutomaticJournalProfiles } from '../lib/journal-auto-catalog'
@@ -8,7 +8,7 @@ import type { JournalProfile, ManuscriptDraft, PreparationSnapshot, ResearchTopi
 import { createDefaultChecklist } from '../lib/preparation'
 import { invalidateOnlineJournalProfileCache } from './OnlinePaperCard'
 import PreparationWorkspaceSuite from './PreparationWorkspaceSuite'
-import FigureStudio from './FigureStudio'
+const FigureComposer = lazy(() => import('./figure-composer/FigureComposer'))
 
 interface Props {
   userId: string
@@ -226,6 +226,13 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     await load(false)
   }
 
+  const syncDraftFigureCount = useCallback(async (draftId: string, count: number) => {
+    const updatedAt = new Date().toISOString()
+    const { error: figureCountError } = await (supabase.from('manuscript_drafts') as any).update({ figure_count: Math.max(0, count), updated_at: updatedAt }).eq('id', draftId)
+    if (figureCountError) throw figureCountError
+    setSnapshot(current => ({ ...current, drafts: current.drafts.map(draft => draft.id === draftId ? { ...draft, figure_count: Math.max(0, count), updated_at: updatedAt } : draft) }))
+  }, [])
+
   const promoteDraft = async (draft: ManuscriptDraft) => {
     if (draft.submitted_paper_id) return
     const journal = snapshot.journals.find(item => item.id === draft.primary_journal_id)
@@ -308,9 +315,9 @@ export default function OnlinePreparationWorkspace({ userId, onPaperCreated }: P
     </div>
 
     {workspaceMode === 'figures'
-      ? <FigureStudio onBack={() => setWorkspaceMode('preparation')} />
+      ? <Suspense fallback={<div className="prep-loading"><div className="prep-loading-shell"><div className="prep-loading-copy"><strong>正在加载科研组图</strong><span>正在初始化本地图片工作区…</span></div></div></div>}><FigureComposer drafts={snapshot.drafts} onDraftFigureCountChange={syncDraftFigureCount} onBack={() => setWorkspaceMode('preparation')} /></Suspense>
       : error
         ? <div className="prep-load-error"><h3>投稿准备数据暂时无法加载</h3><p>请检查网络连接后重试；科研组图不依赖投稿数据，可直接使用上方入口。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
-        : <PreparationWorkspaceSuite snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} />}
+        : <PreparationWorkspaceSuite snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} onDraftFigureCountChange={syncDraftFigureCount} />}
   </div>
 }
