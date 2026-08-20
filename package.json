@@ -31,7 +31,8 @@
     "check:journal-selection": "node scripts/check-journal-selection-metadata.mjs",
     "check:journal-rank-display": "node scripts/check-journal-rank-display.mjs",
     "check:figure-studio": "node tests/figure-studio-contract.mjs",
-    "verify": "npm run check:release && npm run check:privacy && npm run check:figure-studio && node tests/journal-auto-catalog-check.mjs && npm run check:journal-selection && npm run check:journal-rank-display && node tests/visual/document-storage-check.mjs && npm run build && npm run build:offline && npm run check:offline",
+    "check:online-only": "node tests/online-only-contract.mjs",
+    "verify": "npm run check:release && npm run check:privacy && npm run check:figure-studio && npm run check:online-only && node tests/journal-auto-catalog-check.mjs && npm run check:journal-selection && npm run check:journal-rank-display && node tests/visual/document-storage-check.mjs && npm run build && npm run build:offline && npm run check:offline",
     "preview": "vite preview"
   },
   "dependencies": {
