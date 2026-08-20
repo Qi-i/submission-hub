@@ -29,6 +29,12 @@ async function openFirstJournalPopover(page, ui) {
   return { card, journalButton, journalPopover, journalName }
 }
 
+async function waitForJournalCenter(page) {
+  const grid = page.locator(".preparation-workspace[data-section='journals'] .journal-grid, .preparation-workspace[data-section='match'] .journal-grid").first()
+  await grid.waitFor({ state: 'visible', timeout: 8000 })
+  return grid
+}
+
 for (const ui of ['luminous', 'luminous-x']) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   const label = ui
@@ -158,14 +164,14 @@ for (const ui of ['luminous', 'luminous-x']) {
 
     const viewRun = await openFirstJournalPopover(page, ui)
     await viewRun.journalPopover.locator('.journal-quick-library-action.is-view').click({ force: true })
-    await page.locator('.preparation-workspace .journal-grid').waitFor({ state: 'visible', timeout: 5000 })
-    const activeJournalTab = page.locator('.preparation-workspace > .prep-nav button.active').filter({ hasText: '期刊库' })
-    if (await activeJournalTab.count() !== 1) fail(`${label}: “在期刊库查看” does not switch to the journal library`)
-    if (await page.locator('.prep-journal-card.journal-library-focus').count() !== 1) fail(`${label}: journal library target is not focused after navigation`)
+    await waitForJournalCenter(page)
+    const journalCenterActive = page.locator("button[data-main-nav-key='journals']:visible").first()
+    if (await journalCenterActive.count() !== 1) fail(`${label}: “在期刊库查看” does not switch to the first-class Journal Center`)
+    await page.locator('.prep-journal-card.journal-library-focus').waitFor({ state: 'attached', timeout: 5000 })
 
     const editRun = await openFirstJournalPopover(page, ui)
     await editRun.journalPopover.locator('.journal-quick-library-action.is-edit').click({ force: true })
-    await page.locator('.preparation-workspace .journal-grid').waitFor({ state: 'visible', timeout: 5000 })
+    await waitForJournalCenter(page)
     await page.locator('.journal-form-modal').waitFor({ state: 'visible', timeout: 5000 })
     const editorJournalName = await page.locator('.journal-form-modal .prep-field').evaluateAll(fields => {
       const field = fields.find(item => Array.from(item.children).some(child => child.matches('span') && child.textContent?.trim() === '英文期刊名'))
