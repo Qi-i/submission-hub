@@ -6,12 +6,18 @@ on:
     paths:
       - '.github/workflows/freeze-offline-final.yml'
       - 'tests/offline-final-freeze-contract.mjs'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/freeze-offline-final.yml'
+      - 'tests/offline-final-freeze-contract.mjs'
 
 permissions:
   contents: write
 
 jobs:
   freeze:
+    if: github.event_name == 'push' || github.head_ref == 'release/offline-final-20260820'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +43,7 @@ jobs:
           mkdir -p release
           cp dist-offline/offline.html release/submission-hub-offline.html
           sha256sum release/submission-hub-offline.html > release/SHA256SUMS.txt
-      - name: Create immutable final offline release
+      - name: Create or verify immutable final offline release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: v2.0.1-offline-final
@@ -45,9 +51,20 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Release $TAG_NAME already exists; refusing to overwrite frozen offline artifact." >&2
-            exit 1
+            echo "Release $TAG_NAME already exists; verifying immutable artifact."
+            target="$(gh release view "$TAG_NAME" --json targetCommitish --jq '.targetCommitish')"
+            test "$target" = "$TARGET_SHA"
+            mkdir -p release/verify
+            gh release download "$TAG_NAME" \
+              -p submission-hub-offline.html \
+              -p SHA256SUMS.txt \
+              -D release/verify
+            cd release/verify
+            sha256sum -c SHA256SUMS.txt
+            test -s submission-hub-offline.html
+            exit 0
           fi
+
           cat > release/notes.md <<'EOF'
           # Submission Hub v2.0.1 — Final Offline Edition
 
