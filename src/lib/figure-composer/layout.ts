@@ -1,24 +1,64 @@
 import type { FigurePanel, FigureProject } from './types'
 
-function gridDimensions(count: number, requestedColumns: number, requestedRows: number) {
-  if (requestedColumns > 0 && requestedRows > 0) return { columns: requestedColumns, rows: requestedRows }
-  const columns = Math.max(1, Math.ceil(Math.sqrt(Math.max(1, count))))
-  return { columns, rows: Math.max(1, Math.ceil(count / columns)) }
+interface GridPlacement {
+  row: number
+  column: number
+  rowSpan: number
+  colSpan: number
 }
 
-function fitInBox(panel: FigurePanel, x: number, y: number, boxWidth: number, boxHeight: number) {
-  const ratio = panel.originalAspectRatio > 0 ? panel.originalAspectRatio : panel.width / Math.max(1, panel.height)
-  if (!panel.lockAspectRatio) return { ...panel, x, y, width: boxWidth, height: boxHeight }
-  const boxRatio = boxWidth / Math.max(1, boxHeight)
-  const width = ratio >= boxRatio ? boxWidth : boxHeight * ratio
-  const height = width / Math.max(0.0001, ratio)
-  return {
-    ...panel,
-    x: x + (boxWidth - width) / 2,
-    y: y + (boxHeight - height) / 2,
-    width,
-    height,
+function gridDimensions(count: number, requestedColumns: number) {
+  const columns = requestedColumns > 0
+    ? requestedColumns
+    : Math.max(1, Math.ceil(Math.sqrt(Math.max(1, count))))
+  return { columns }
+}
+
+function normalizedSpan(value: number, max: number) {
+  return Math.max(1, Math.min(max, Math.round(Number(value) || 1)))
+}
+
+/**
+ * Pack panels into the first available grid cells while respecting rowSpan/colSpan.
+ * This mirrors the proven local FigMergeStudio behavior without retaining DOM state.
+ */
+export function buildGridPlacements(panels: FigurePanel[], columns: number): { placements: GridPlacement[]; rows: number } {
+  const occupied: boolean[][] = []
+  const placements: GridPlacement[] = []
+  const ensureRows = (count: number) => {
+    while (occupied.length < count) occupied.push(Array(columns).fill(false))
   }
+
+  panels.forEach((panel, index) => {
+    const colSpan = normalizedSpan(panel.colSpan, columns)
+    const rowSpan = normalizedSpan(panel.rowSpan, 5)
+    let placed = false
+
+    for (let row = 0; !placed; row += 1) {
+      ensureRows(row + rowSpan)
+      for (let column = 0; column <= columns - colSpan; column += 1) {
+        let free = true
+        for (let r = row; r < row + rowSpan && free; r += 1) {
+          for (let c = column; c < column + colSpan; c += 1) {
+            if (occupied[r][c]) {
+              free = false
+              break
+            }
+          }
+        }
+        if (!free) continue
+
+        for (let r = row; r < row + rowSpan; r += 1) {
+          for (let c = column; c < column + colSpan; c += 1) occupied[r][c] = true
+        }
+        placements[index] = { row, column, rowSpan, colSpan }
+        placed = true
+        break
+      }
+    }
+  })
+
+  return { placements, rows: Math.max(1, occupied.length) }
 }
 
 export function applyHeroRightStack(panels: FigurePanel[]) {
@@ -31,56 +71,106 @@ export function applyHeroRightStack(panels: FigurePanel[]) {
   })
 }
 
-function normalizeUniformPlacements(panels: FigurePanel[], columns: number) {
-  return panels.map((panel, index) => ({
-    ...panel,
-    gridRow: Math.floor(index / columns),
-    gridColumn: index % columns,
-    rowSpan: 1,
-    colSpan: 1,
+function explicitHeroPlacements(panels: FigurePanel[]): { placements: GridPlacement[]; rows: number } {
+  const placements = panels.map(panel => ({
+    row: panel.gridRow,
+    column: panel.gridColumn,
+    rowSpan: Math.max(1, panel.rowSpan),
+    colSpan: Math.max(1, panel.colSpan),
   }))
+  const rows = Math.max(1, ...placements.map(item => item.row + item.rowSpan))
+  return { placements, rows }
 }
 
-function occupiedRows(panels: FigurePanel[]) {
-  return Math.max(1, ...panels.map(panel => panel.gridRow + Math.max(1, panel.rowSpan)))
+function desiredPanelHeight(panel: FigurePanel, width: number) {
+  if (!panel.lockAspectRatio) return Math.max(20, panel.height)
+  const ratio = panel.originalAspectRatio > 0
+    ? panel.originalAspectRatio
+    : panel.width / Math.max(1, panel.height)
+  return width / Math.max(0.0001, ratio)
 }
 
 export function applyGridLayout(project: FigureProject, preset = project.canvas.layoutPreset): FigureProject {
   if (!project.panels.length) return project
-  const requested = gridDimensions(project.panels.length, project.canvas.gridColumns, project.canvas.gridRows)
-  let columns = requested.columns
-  let placed = project.panels
 
-  if (preset === 'hero-right-stack') {
-    columns = 2
-    placed = applyHeroRightStack(placed)
-  } else if (preset === 'uniform' || preset === 'auto') {
-    columns = preset === 'auto' ? Math.max(1, Math.ceil(Math.sqrt(project.panels.length))) : columns
-    placed = normalizeUniformPlacements(placed, columns)
-  }
+  let columns = preset === 'hero-right-stack'
+    ? 2
+    : gridDimensions(project.panels.length, preset === 'auto' ? 0 : project.canvas.gridColumns).columns
+  columns = Math.max(1, Math.min(5, columns))
 
-  const rows = occupiedRows(placed)
+  const sourcePanels = preset === 'hero-right-stack'
+    ? applyHeroRightStack(project.panels)
+    : project.panels.map(panel => ({
+      ...panel,
+      rowSpan: normalizedSpan(panel.rowSpan, 5),
+      colSpan: normalizedSpan(panel.colSpan, columns),
+    }))
+
+  const packed = preset === 'hero-right-stack'
+    ? explicitHeroPlacements(sourcePanels)
+    : buildGridPlacements(sourcePanels, columns)
+  const { placements, rows } = packed
+
   const margin = Math.max(0, project.canvas.margin)
   const gap = Math.max(0, project.canvas.gap)
   const usableWidth = Math.max(1, project.canvas.width - margin * 2 - gap * (columns - 1))
-  const usableHeight = Math.max(1, project.canvas.height - margin * 2 - gap * (rows - 1))
   const cellWidth = usableWidth / columns
-  const cellHeight = usableHeight / rows
 
-  const panels = placed.map(panel => {
-    const rowSpan = Math.max(1, Math.min(rows - panel.gridRow, panel.rowSpan || 1))
-    const colSpan = Math.max(1, Math.min(columns - panel.gridColumn, panel.colSpan || 1))
-    const x = margin + panel.gridColumn * (cellWidth + gap)
-    const y = margin + panel.gridRow * (cellHeight + gap)
-    const width = cellWidth * colSpan + gap * (colSpan - 1)
-    const height = cellHeight * rowSpan + gap * (rowSpan - 1)
-    return fitInBox({ ...panel, rowSpan, colSpan }, x, y, width, height)
+  const panelWidths = placements.map(place => cellWidth * place.colSpan + gap * (place.colSpan - 1))
+  const panelHeights = sourcePanels.map((panel, index) => desiredPanelHeight(panel, panelWidths[index]))
+  const rowHeights = Array(rows).fill(0) as number[]
+
+  // One-row panels establish the natural row height first.
+  placements.forEach((place, index) => {
+    if (place.rowSpan === 1) rowHeights[place.row] = Math.max(rowHeights[place.row], panelHeights[index])
   })
 
+  // Multi-row panels may require additional height; distribute only the deficit.
+  placements.forEach((place, index) => {
+    if (place.rowSpan <= 1) return
+    const current = rowHeights
+      .slice(place.row, place.row + place.rowSpan)
+      .reduce((sum, height) => sum + height, 0) + gap * (place.rowSpan - 1)
+    const deficit = panelHeights[index] - current
+    if (deficit <= 0) return
+    const extra = deficit / place.rowSpan
+    for (let row = place.row; row < place.row + place.rowSpan; row += 1) rowHeights[row] += extra
+  })
+
+  // A row occupied only by a spanning/free-form panel must still have a usable height.
+  const fallbackHeight = Math.max(20, cellWidth * 0.72)
+  for (let row = 0; row < rowHeights.length; row += 1) {
+    if (rowHeights[row] <= 0) rowHeights[row] = fallbackHeight
+  }
+
+  const rowTops: number[] = []
+  let cursorY = margin
+  rowHeights.forEach((height, row) => {
+    rowTops[row] = cursorY
+    cursorY += height + gap
+  })
+
+  const panels = sourcePanels.map((panel, index) => {
+    const place = placements[index]
+    return {
+      ...panel,
+      gridRow: place.row,
+      gridColumn: place.column,
+      rowSpan: place.rowSpan,
+      colSpan: place.colSpan,
+      x: margin + place.column * (cellWidth + gap),
+      y: rowTops[place.row],
+      width: panelWidths[index],
+      height: panelHeights[index],
+    }
+  })
+
+  const contentHeight = rowHeights.reduce((sum, height) => sum + height, 0) + gap * Math.max(0, rows - 1)
   return {
     ...project,
     canvas: {
       ...project.canvas,
+      height: contentHeight + margin * 2,
       layoutMode: 'grid',
       layoutPreset: preset,
       gridColumns: columns,
@@ -94,9 +184,12 @@ export function applyGridLayout(project: FigureProject, preset = project.canvas.
 export function autoWrapProject(project: FigureProject): FigureProject {
   if (!project.panels.length && !project.texts.length) return project
   const margin = Math.max(0, project.canvas.margin)
-  const panelBounds = project.panels.flatMap(panel => [
-    { left: panel.x, top: panel.y, right: panel.x + panel.width, bottom: panel.y + panel.height },
-  ])
+  const panelBounds = project.panels.map(panel => ({
+    left: panel.x,
+    top: panel.y,
+    right: panel.x + panel.width,
+    bottom: panel.y + panel.height,
+  }))
   const textBounds = project.texts.map(text => ({
     left: text.x,
     top: text.y,
