@@ -32,6 +32,7 @@ function VisualJournalCenterBridge() {
           .find(item => item !== button && item.textContent?.includes('投稿准备'))
         preparation?.click()
 
+        let returnedToOverview = false
         const openJournalSection = (attempt = 0) => {
           const pipelineButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.prep-pipeline button'))
             .find(item => item.querySelector('span')?.textContent?.trim() === '期刊')
@@ -39,6 +40,19 @@ function VisualJournalCenterBridge() {
             pipelineButton.click()
             return
           }
+
+          // The test bridge may be invoked while a first-class workspace such as
+          // Figure Composer is active. Return to overview so the legacy visual
+          // fixture's Journal Center pipeline control is mounted before clicking it.
+          if (!returnedToOverview) {
+            const overview = Array.from(document.querySelectorAll<HTMLButtonElement>('.lx-page-proxy-controls button, .prep-nav-primary button'))
+              .find(item => item.textContent?.replace(/\s+/g, '').includes('总览'))
+            if (overview) {
+              returnedToOverview = true
+              overview.click()
+            }
+          }
+
           if (attempt < 80) window.setTimeout(() => openJournalSection(attempt + 1), 25)
         }
         window.setTimeout(() => openJournalSection(), 0)
