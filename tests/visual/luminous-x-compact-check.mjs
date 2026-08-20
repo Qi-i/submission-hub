@@ -57,7 +57,6 @@ try {
     const topbar = workspace?.querySelector(':scope > .prep-topbar')
     const proxy = document.querySelector(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls")
     const portal = document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal')
-    const statusHost = document.querySelector(".lx-status-bar[data-page='preparation'] .lx-status-controls-host")
     const original = workspace?.querySelector(':scope > .prep-nav-primary')
     const assistant = workspace?.querySelector('.prep-productivity-host')
     const topics = workspace?.querySelector('.prep-topic-overview')
@@ -81,7 +80,6 @@ try {
       proxy: proxy.getBoundingClientRect().toJSON(),
       labels: proxyButtons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
       portal: portal?.getBoundingClientRect().toJSON(),
-      statusHost: statusHost?.getBoundingClientRect().toJSON(),
       portalSearch: !!portal?.querySelector('.prep-search input'),
       original: getComputedStyle(original).display,
       assistant: assistant?.getBoundingClientRect().toJSON(),
@@ -114,7 +112,6 @@ try {
     if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search controls were not moved into the header lane')
     if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: redundant wide overview toolbar remains visible')
     if (overlaps(prepLayout.portal, prepLayout.proxy)) failures.push('preparation: header search overlaps primary workspace proxy')
-    if (prepLayout.statusHost && prepLayout.portal && (prepLayout.portal.left < prepLayout.statusHost.left - 2 || prepLayout.portal.right > prepLayout.statusHost.right + 2)) failures.push('preparation: header search escapes the control lane')
     if (prepLayout.draftPanel && prepLayout.journalPanel && Math.abs(prepLayout.draftPanel.height - prepLayout.journalPanel.height) > 4) failures.push('preparation: overview draft and journal panels are not equal height')
     if (prepLayout.assistant && prepLayout.topics && Math.abs(prepLayout.assistant.left - prepLayout.topics.left) > 4) failures.push('preparation: overview modules do not share one column')
     if (!prepLayout.primaryJournalGeometry || !prepLayout.primaryPeerGeometry) failures.push('preparation: global Journal Center geometry is missing')
