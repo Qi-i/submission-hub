@@ -7,6 +7,7 @@ import OfflineDashboard from '../../src/components/OfflineDashboard'
 import ApcAutoConverter from '../../src/components/ApcAutoConverter'
 import NavigationMemory from '../../src/components/NavigationMemory'
 import ProjectFeedback from '../../src/components/ProjectFeedback'
+import { OfflineFirstRunGuideGate } from '../../src/components/FirstRunGuide'
 
 function VisualJournalCenterBridge() {
   useEffect(() => {
@@ -60,6 +61,7 @@ function VisualJournalCenterBridge() {
 
 // Test-only compatibility shell for the existing Luminous regression suite.
 // It deliberately lives under tests/ and is not an offline product entry or build target.
+// The guide gate is mounted only so forced ?guide=1 browser regression remains meaningful.
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
@@ -68,6 +70,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <VisualJournalCenterBridge />
       <OfflineDashboard />
       <ProjectFeedback />
+      <OfflineFirstRunGuideGate />
     </ThemeProvider>
   </React.StrictMode>,
 )
