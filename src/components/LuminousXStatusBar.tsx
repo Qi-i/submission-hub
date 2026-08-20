@@ -27,9 +27,11 @@ const VIEW_OPTIONS: Array<{ key: LuminousXLayoutMode; label: string; icon: typeo
 
 const PREPARATION_OPTIONS: ProxyOption[] = [
   { label: '总览', match: '总览' },
-  { label: '选题池', match: '选题池' },
-  { label: '草稿准备', match: '草稿准备' },
-  { label: '期刊比较', match: '期刊比较' },
+  { label: '论文准备', match: '论文准备' },
+  { label: '科研组图', match: '科研组图' },
+  { label: '投稿材料', match: '投稿材料' },
+  { label: '期刊匹配', match: '期刊匹配' },
+  { label: '投稿前检查', match: '投稿前检查' },
 ]
 
 const STATS_OPTIONS: ProxyOption[] = [
@@ -56,7 +58,7 @@ function findControlButton(containerSelector: string, match: string) {
 function ProxyControls({ page }: { page: 'preparation' | 'stats' }) {
   const options = page === 'preparation' ? PREPARATION_OPTIONS : STATS_OPTIONS
   const sourceSelector = page === 'preparation'
-    ? '.preparation-workspace > .prep-nav'
+    ? '.preparation-workspace > .prep-nav-primary'
     : '.stats-panel > .stats-module-controls'
   const [active, setActive] = useState<string[]>([])
 
