@@ -34,7 +34,7 @@ for (const ui of ['luminous', 'luminous-x']) {
       const workspace = document.querySelector('.preparation-workspace[data-section="overview"]')
       const nav = currentUi === 'luminous-x'
         ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
-        : workspace?.querySelector(':scope > .prep-nav')
+        : workspace?.querySelector(':scope > .prep-nav-primary')
       const buttons = Array.from(nav?.querySelectorAll(':scope > button') || []).filter(visible)
       return {
         labels: buttons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
@@ -44,12 +44,15 @@ for (const ui of ['luminous', 'luminous-x']) {
       }
     }, ui)
 
-    for (const label of ['总览', '选题池', '草稿准备', '期刊比较']) {
+    const requiredRoutes = ['总览', '论文准备', '科研组图', '投稿材料', '期刊匹配', '投稿前检查']
+    for (const label of requiredRoutes) {
       if (!preparation.labels.some(item => item.includes(label))) fail(`${ui}: 投稿准备缺少“${label}”`)
     }
-    if (preparation.labels.length !== 4) fail(`${ui}: 投稿准备可见菜单不是 4 个（${preparation.labels.join(' / ')}）`)
-    if (preparation.labels.some(item => item.includes('期刊库'))) fail(`${ui}: 投稿准备仍显示重复期刊库入口`)
-    if (ui === 'luminous' && preparation.columns !== 4) fail(`${ui}: 投稿准备不是四列（${preparation.columns}）`)
+    if (preparation.labels.length !== 6) fail(`${ui}: 投稿准备可见菜单不是 6 个（${preparation.labels.join(' / ')}）`)
+    if (preparation.labels.some(item => ['选题池', '草稿准备', '期刊库', '期刊比较'].some(legacy => item.includes(legacy)))) {
+      fail(`${ui}: 投稿准备一级导航仍混入旧二级入口（${preparation.labels.join(' / ')}）`)
+    }
+    if (ui === 'luminous' && preparation.columns !== 6) fail(`${ui}: 投稿准备不是六列（${preparation.columns}）`)
 
     const journalEntry = page.locator("button[data-main-nav-key='journals']:visible").first()
     await journalEntry.waitFor({ state: 'visible', timeout: 15000 })
