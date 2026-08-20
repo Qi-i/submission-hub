@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { automaticPanelLabel, type FigurePanel, type FigureProject, type FigureSnapGuide, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
 
 type DragState = {
+  kind: 'panel' | 'text'
   id: string
   dx: number
   dy: number
@@ -13,8 +14,10 @@ interface Props {
   zoom: number
   guides: FigureSnapGuide[]
   onSelectPanel: (id: string, mode: 'replace' | 'toggle' | 'range') => void
+  onSelectText: (id: string) => void
   onClearSelection: () => void
   onMovePanel: (id: string, x: number, y: number) => void
+  onMoveText: (id: string, x: number, y: number) => void
   onFinishMove: () => void
 }
 
@@ -30,7 +33,7 @@ function hitPanel(panels: FigurePanel[], x: number, y: number) {
   return [...panels].reverse().find(panel => x >= panel.x && x <= panel.x + panel.width && y >= panel.y && y <= panel.y + panel.height) || null
 }
 
-export default function FigureCanvas({ project, assets, zoom, guides, onSelectPanel, onClearSelection, onMovePanel, onFinishMove }: Props) {
+export default function FigureCanvas({ project, assets, zoom, guides, onSelectPanel, onSelectText, onClearSelection, onMovePanel, onMoveText, onFinishMove }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dragRef = useRef<DragState>(null)
   const [imageVersion, setImageVersion] = useState(0)
@@ -138,6 +141,13 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
       context.font = `${text.fontWeight} ${text.fontSize}px "${text.fontFamily}", sans-serif`
       context.textBaseline = 'top'
       context.fillText(text.text, text.x, text.y)
+      if (project.selectedTextId === text.id) {
+        const width = Math.max(text.fontSize, context.measureText(text.text).width)
+        context.strokeStyle = '#7c3aed'
+        context.lineWidth = 1.5
+        context.setLineDash([5, 4])
+        context.strokeRect(text.x - 3, text.y - 3, width + 6, text.fontSize * 1.25 + 6)
+      }
       context.restore()
     })
 
@@ -161,6 +171,21 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const point = pointFor(event, project)
+    const context = canvasRef.current?.getContext('2d')
+    if (context) {
+      const text = [...project.texts].reverse().find(item => {
+        context.font = `${item.fontWeight} ${item.fontSize}px "${item.fontFamily}", sans-serif`
+        const width = Math.max(item.fontSize, context.measureText(item.text).width)
+        return point.x >= item.x && point.x <= item.x + width && point.y >= item.y && point.y <= item.y + item.fontSize * 1.25
+      })
+      if (text) {
+        onSelectText(text.id)
+        dragRef.current = { kind: 'text', id: text.id, dx: point.x - text.x, dy: point.y - text.y }
+        event.currentTarget.setPointerCapture(event.pointerId)
+        return
+      }
+    }
+
     const panel = hitPanel(project.panels, point.x, point.y)
     if (!panel) {
       onClearSelection()
@@ -168,7 +193,7 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
     }
     const mode = event.shiftKey ? 'range' : event.ctrlKey || event.metaKey ? 'toggle' : 'replace'
     onSelectPanel(panel.id, mode)
-    dragRef.current = { id: panel.id, dx: point.x - panel.x, dy: point.y - panel.y }
+    dragRef.current = { kind: 'panel', id: panel.id, dx: point.x - panel.x, dy: point.y - panel.y }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
@@ -176,7 +201,8 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
     const drag = dragRef.current
     if (!drag) return
     const point = pointFor(event, project)
-    onMovePanel(drag.id, point.x - drag.dx, point.y - drag.dy)
+    if (drag.kind === 'text') onMoveText(drag.id, point.x - drag.dx, point.y - drag.dy)
+    else onMovePanel(drag.id, point.x - drag.dx, point.y - drag.dy)
   }
 
   const finish = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -187,10 +213,7 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
   }
 
   return <div className="figure-composer__canvas-viewport" data-testid="figure-canvas-viewport">
-    <div
-      className="figure-composer__canvas-scale"
-      style={{ width: project.canvas.width * zoom, height: project.canvas.height * zoom }}
-    >
+    <div className="figure-composer__canvas-scale" style={{ width: project.canvas.width * zoom, height: project.canvas.height * zoom }}>
       <canvas
         ref={canvasRef}
         className="figure-composer__canvas"
