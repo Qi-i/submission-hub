@@ -5,6 +5,7 @@ on:
     branches: ['release/offline-final-20260820']
     paths:
       - '.github/workflows/freeze-offline-final.yml'
+      - 'tests/offline-final-freeze-contract.mjs'
 
 permissions:
   contents: write
@@ -14,23 +15,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: release/offline-final-20260820
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
-      - name: Verify current online and offline source
+      - name: Verify frozen offline source contract
+        run: node tests/offline-final-freeze-contract.mjs
+      - name: Run complete pre-migration verification
         run: npm run verify
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: offline-freeze-build-key
+          VITE_ADMIN_ID: offline-freeze-admin
       - name: Prepare final offline asset
         run: |
+          set -euo pipefail
           mkdir -p release
-          cp dist-offline/offline.html release/submission-hub-offline-final-v2.0.0.html
-          sha256sum release/submission-hub-offline-final-v2.0.0.html > release/SHA256SUMS.txt
+          cp dist-offline/offline.html release/submission-hub-offline.html
+          sha256sum release/submission-hub-offline.html > release/SHA256SUMS.txt
       - name: Create immutable final offline release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: offline-final-v2.0.0
+          TAG_NAME: v2.0.1-offline-final
           TARGET_SHA: 830cd645ee74f33ab41fd28e4bbafcd1fee31841
         run: |
           set -euo pipefail
@@ -39,27 +49,32 @@ jobs:
             exit 1
           fi
           cat > release/notes.md <<'EOF'
-          # Submission Hub — Final Offline Edition
+          # Submission Hub v2.0.1 — Final Offline Edition
 
-          This is the final maintained single-HTML offline build of Submission Hub.
+          这是 Submission Hub 最后一版受维护的单 HTML 离线版本。此后新增功能只进入在线版。
 
-          - Frozen source: `830cd645ee74f33ab41fd28e4bbafcd1fee31841`
-          - Data storage: browser local storage only
-          - Supabase: not required
-          - Network-independent core workflow: retained
-          - Future development: online edition only
+          - 冻结源码：`830cd645ee74f33ab41fd28e4bbafcd1fee31841`
+          - 离线数据：浏览器 localStorage
+          - Supabase：离线运行不依赖
+          - 原有投稿管理、投稿准备、期刊与备份数据结构：保持兼容
+          - 主题：保留亮色 / 暗色 / 跟随系统
+          - 隐私：发布门禁继续执行示例数据隐私检查
+          - 资产：`submission-hub-offline.html`
 
-          The offline artifact is frozen and will not receive features introduced after this release.
+          ## 维护策略
+
+          `v2.0.1-offline-final` 是最终离线冻结点。后续版本不再维护 `offline.html`、`Offline*` 镜像组件、`build:offline` 或单 HTML Release；历史离线 Release 保留供旧用户下载。
           EOF
           gh release create "$TAG_NAME" \
-            release/submission-hub-offline-final-v2.0.0.html \
+            release/submission-hub-offline.html \
             release/SHA256SUMS.txt \
             --target "$TARGET_SHA" \
-            --title "Submission Hub Final Offline Edition" \
+            --title "Submission Hub v2.0.1 Final Offline" \
             --notes-file release/notes.md
       - name: Summary
         run: |
           echo '## Final offline edition frozen' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Release: `v2.0.1-offline-final`' >> "$GITHUB_STEP_SUMMARY"
           echo '- Source SHA: `830cd645ee74f33ab41fd28e4bbafcd1fee31841`' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Release: `offline-final-v2.0.0`' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Future builds: online edition only' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Asset: `submission-hub-offline.html`' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Future development: online edition only' >> "$GITHUB_STEP_SUMMARY"
