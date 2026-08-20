@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://qi-i.github.io/submission-hub/">🌐 在线使用</a> ·
-  <a href="https://github.com/Qi-i/submission-hub/releases/tag/offline-final-v2.0.0">📦 最终离线版</a> ·
+  <a href="https://github.com/Qi-i/submission-hub/releases/tag/v2.0.1-offline-final">📦 最终离线版</a> ·
   <a href="docs/releases/v2.1.0.md">📋 v2.1.0 更新说明</a> ·
   <a href="https://github.com/Qi-i/submission-hub/issues/new/choose">🐛 问题与建议</a>
 </p>
@@ -32,7 +32,7 @@
 
 Submission Hub 是面向科研论文全流程的投稿管理工具，覆盖：
 
-**研究选题 → 草稿准备 → 期刊筛选 → 科研组图 → 投稿材料检查 → 正式投稿 → 审稿与修回 → 改投 → 录用与成果归档**
+**研究选题 → 论文准备 → 期刊匹配 → 科研组图 → 投稿材料检查 → 正式投稿 → 审稿与修回 → 改投 → 录用与成果归档**
 
 在线版使用 Supabase 进行账户、投稿、期刊、选题、草稿和附件数据同步，并通过 GitHub Pages 持续发布。
 
@@ -40,30 +40,40 @@ Submission Hub 是面向科研论文全流程的投稿管理工具，覆盖：
 
 **投稿管理 → 期刊中心 → 投稿准备 → 个人统计 → 后台管理**
 
-`v2.1.0` 起，项目进入在线专用维护阶段。`offline-final-v2.0.0` 已冻结为最后一个单 HTML 离线版本；后续版本仅维护在线版，不再继续构建或更新离线 HTML。
+`v2.1.0` 起，项目进入在线专用维护阶段。`v2.0.1-offline-final` 已冻结为最后一个单 HTML 离线版本；后续版本仅维护在线版，不再继续构建或更新离线 HTML。
 
 ## v2.1.0 重点
 
+### 投稿准备重构
+
+“投稿准备”调整为六个一级工作区：
+
+**总览 → 论文准备 → 科研组图 → 投稿材料 → 期刊匹配 → 投稿前检查**
+
+原有选题、草稿、期刊库和期刊比较能力继续保留，并归入相应一级工作区；科研组图不再作为边缘小卡片，而是直接进入独立专业工作区。
+
 ### 科研组图
 
-投稿准备新增一级工具入口“科研组图”，在不改变既有五个投稿准备业务入口的前提下提供独立全宽工作区：
+FigMergeStudio 的核心工作流已重构为 Submission Hub 原生 React + TypeScript Figure Composer：
 
 - 导入 PNG、JPG、WEBP、SVG、TIFF 和 PDF；
-- 自动网格与自由拖拽两种排版方式；
-- 图片完整显示或填满图框；
-- 图层顺序、缩放、拖动、对齐吸附与删除；
-- 自动子图标签，默认 `(a), (b), (c)`；
-- 标签字体可选，默认 Times New Roman；
-- 自由文本、字号和颜色控制；
-- 150–1200 DPI 渲染；
-- 导出 PNG、JPG、WEBP、TIFF、PDF 和 SVG；
-- 图像编辑默认在当前浏览器内完成。
+- 自动网格、4×4 等量化网格、自由拖拽和 A 大图 + B/C 非均匀布局；
+- 每张图保留原始尺寸与宽高比，可锁定原比例或自由设置 X / Y / W / H；
+- 支持 rowSpan / colSpan、图层顺序、多选、对齐、分布和拖拽吸附参考线；
+- 自动子图标签，默认 `(a), (b), (c)` 与 Times New Roman；
+- 标签字体、字号、字重、位置、颜色和偏移可调；
+- 自由文本与移动；
+- 出版尺寸预设以及 mm / cm / inch 与 DPI 换算；
+- 导出 PNG、JPG、WEBP、TIFF、PDF 和 SVG，SVG 保持明确的比例语义；
+- 组图工程可关联 Manuscript Draft，并同步 `figure_count`；
+- 投稿前检查覆盖低分辨率、越界、重叠、非法拉伸和缺少图题/图注等问题；
+- 图片本体默认保存在当前浏览器 IndexedDB，不自动上传 Supabase。
 
 科研组图能力基于 MIT 许可的 `eliauk-hcy/figmerge-studio` 工作流重新实现，许可与归属见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ### 在线专用发布链
 
-- 最终离线版本单独冻结，不再覆盖既有 `v2.0.0` 标签；
+- 最终离线版本单独冻结，不覆盖既有 `v2.0.0` 标签；
 - 移除持续离线构建、离线隔离检查和离线 Release 工作流；
 - `npm run verify` 只验证当前在线应用；
 - GitHub Release 发布在线构建快照；
@@ -75,8 +85,8 @@ Submission Hub 是面向科研论文全流程的投稿管理工具，覆盖：
 
 | 模块 | 主要能力 |
 |---|---|
-| 投稿准备 | 总览、选题池、草稿准备、期刊库、期刊比较；准备助手与选题推进可排序 |
-| 科研组图 | 多图排版、子图标签、自由文本、图层操作、投稿级多格式导出 |
+| 投稿准备 | 总览、论文准备、科研组图、投稿材料、期刊匹配、投稿前检查 |
+| 科研组图 | 非均匀多图排版、原比例/自由尺寸、对齐分布、标签、文本、出版尺寸、预检与多格式导出 |
 | 期刊中心 | 双语期刊资料、分区、收录、OA/APC、审稿信息、标签、备注和来源 |
 | 期刊比较 | 并列比较质量、费用、速度、OA、收录和风险信息 |
 | 投稿管理 | 工作流、看板和按期刊视图；主状态、后台原文、时间线和下一步 |
@@ -121,16 +131,16 @@ Submission Hub 保留两套使用同一数据与业务逻辑的界面：
 
 1. 打开 <https://qi-i.github.io/submission-hub/>。
 2. 使用 GitHub 或邮箱登录。
-3. 在投稿准备中管理选题、草稿、期刊和期刊比较。
-4. 需要论文组图时，点击投稿准备顶部“科研组图”进入独立工作区。
+3. 在投稿准备中管理论文准备、科研组图、投稿材料、期刊匹配和投稿前检查。
+4. 点击一级“科研组图”，或投稿准备顶部快捷入口，进入 Figure Composer 专业工作区。
 5. 正式投出后将稿件转入投稿管理，并持续维护后台原始状态、时间线、截止日期和附件。
 6. 录用后补充 DOI、见刊链接、卷期页码和引用格式并完成成果归档。
 
 ## 最终离线版
 
-最终离线版冻结在：[`offline-final-v2.0.0`](https://github.com/Qi-i/submission-hub/releases/tag/offline-final-v2.0.0)。
+最终离线版冻结在：[`v2.0.1-offline-final`](https://github.com/Qi-i/submission-hub/releases/tag/v2.0.1-offline-final)。
 
-该版本保留最后一次冻结时的单 HTML、本地存储和离线核心工作流。它不会获得 `v2.1.0` 及之后的新功能，也不会与在线版同步更新。
+冻结源码为 `830cd645ee74f33ab41fd28e4bbafcd1fee31841`。Release 中的 `submission-hub-offline.html` 为最终受维护单 HTML，保留 localStorage、本地备份和离线核心工作流；它不会获得 `v2.1.0` 及之后的新功能。
 
 ## 本地开发
 
@@ -145,7 +155,7 @@ npm run dev
 npm run verify
 ```
 
-当前 `verify` 包括发布元数据一致性、示例数据隐私、科研组图迁移契约、在线专用维护契约、自动期刊档案、期刊字段与外显规则、附件生命周期、TypeScript 和在线生产构建。
+当前 `verify` 包括发布元数据一致性、示例数据隐私、Figure Composer 迁移契约、在线专用维护契约、自动期刊档案、期刊字段与外显规则、附件生命周期、TypeScript 和在线生产构建。
 
 ## 在线部署
 
@@ -160,7 +170,7 @@ npm run verify
 - EasyScholar 等服务密钥不得写入前端、README、测试、日志或示例数据；
 - 示例数据与截图必须完全虚构；
 - 每次发布必须通过隐私检查；
-- 图像组图默认在浏览器中处理；PDF/TIFF 兼容组件仅在需要时加载。
+- Figure Composer 图片本体默认只保存在当前浏览器；PDF/TIFF 兼容组件仅在需要时按需加载。
 
 ## License
 
