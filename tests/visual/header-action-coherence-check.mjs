@@ -140,10 +140,10 @@ try {
 
 const preparationLuminous = await openPage('luminous', 'preparation')
 try {
-  const secondaryGeometry = await preparationLuminous.evaluate(() => {
-    const tones = ['overview', 'topic', 'draft', 'compare']
+  const primaryGeometry = await preparationLuminous.evaluate(() => {
+    const tones = ['overview', 'paper', 'figures', 'materials', 'match', 'check']
     const buttons = tones.map(tone => {
-      const element = document.querySelector(`.preparation-workspace > .prep-nav > button[data-tone='${tone}']`)
+      const element = document.querySelector(`.preparation-workspace > .prep-nav-primary > button[data-tone='${tone}']`)
       if (!element) return null
       const style = getComputedStyle(element)
       const rect = element.getBoundingClientRect()
@@ -158,31 +158,41 @@ try {
         height: rect.height,
       }
     }).filter(Boolean)
-    const nav = document.querySelector('.preparation-workspace > .prep-nav')?.getBoundingClientRect()
+    const nav = document.querySelector('.preparation-workspace > .prep-nav-primary')?.getBoundingClientRect()
     return { buttons, nav: nav?.toJSON() || null }
   })
 
-  if (secondaryGeometry.buttons.length !== 4) {
-    fail(`luminous/preparation: 二级菜单可见按钮数量错误（${secondaryGeometry.buttons.length}）`)
+  if (primaryGeometry.buttons.length !== 6) {
+    fail(`luminous/preparation: 一级工作区可见按钮数量错误（${primaryGeometry.buttons.length}）`)
   } else {
-    const tops = secondaryGeometry.buttons.map(item => item.top)
-    const widths = secondaryGeometry.buttons.map(item => item.width)
-    if (Math.max(...tops) - Math.min(...tops) > 1) fail('luminous/preparation: 四个二级菜单未处于同一行')
-    if (Math.max(...widths) - Math.min(...widths) > 2) fail('luminous/preparation: 四个二级菜单宽度不一致')
-    for (const item of secondaryGeometry.buttons) {
+    const tops = primaryGeometry.buttons.map(item => item.top)
+    const widths = primaryGeometry.buttons.map(item => item.width)
+    if (Math.max(...tops) - Math.min(...tops) > 1) fail('luminous/preparation: 六个一级工作区未处于同一行')
+    if (Math.max(...widths) - Math.min(...widths) > 2) fail('luminous/preparation: 六个一级工作区宽度不一致')
+    for (const item of primaryGeometry.buttons) {
       if (item.display === 'none' || item.visibility === 'hidden' || item.pointerEvents === 'none') {
-        fail(`luminous/preparation: ${item.tone} 二级菜单不可交互`)
+        fail(`luminous/preparation: ${item.tone} 一级工作区不可交互`)
       }
     }
   }
-  if (!secondaryGeometry.nav || secondaryGeometry.nav.height > 60) {
-    fail(`luminous/preparation: 二级菜单容器高度异常（${secondaryGeometry.nav?.height ?? 'missing'}）`)
+  if (!primaryGeometry.nav || primaryGeometry.nav.height > 60) {
+    fail(`luminous/preparation: 一级工作区导航容器高度异常（${primaryGeometry.nav?.height ?? 'missing'}）`)
   }
 
-  for (const [tone, section] of [['topic', 'topics'], ['draft', 'drafts'], ['compare', 'compare']]) {
-    await preparationLuminous.locator(`.preparation-workspace > .prep-nav > button[data-tone='${tone}']`).click()
+  const routes = [
+    ['paper', 'paper'],
+    ['figures', 'figures'],
+    ['materials', 'materials'],
+    ['match', 'match'],
+    ['check', 'check'],
+  ]
+  for (const [tone, section] of routes) {
+    await preparationLuminous.locator(`.preparation-workspace > .prep-nav-primary > button[data-tone='${tone}']`).click()
     await preparationLuminous.locator(`.preparation-workspace[data-section='${section}']`).waitFor({ state: 'visible', timeout: 10000 })
-    await preparationLuminous.locator(".preparation-workspace > .prep-nav > button[data-tone='overview']").click()
+    if (tone === 'figures') {
+      await preparationLuminous.locator('.figure-composer').waitFor({ state: 'visible', timeout: 10000 })
+    }
+    await preparationLuminous.locator(".preparation-workspace > .prep-nav-primary > button[data-tone='overview']").click()
     await preparationLuminous.locator(".preparation-workspace[data-section='overview']").waitFor({ state: 'visible', timeout: 10000 })
   }
 
@@ -203,7 +213,7 @@ try {
   compareStyles('luminous active navigation', journalActive, preparationActive, [
     'color', 'backgroundColor', 'backgroundImage', 'borderColor', 'borderRadius', 'boxShadow', 'height',
   ])
-  details.push(`luminous secondary routes remain clickable; journal gap=${journalGap?.toFixed(1) ?? 'missing'}px`)
+  details.push(`luminous six primary workspaces remain clickable; journal gap=${journalGap?.toFixed(1) ?? 'missing'}px`)
 } catch (error) {
   fail(`luminous/preparation: ${error instanceof Error ? error.message : String(error)}`)
 } finally {
