@@ -54,13 +54,29 @@ function matchingJournalCard(journalName: string) {
 }
 
 async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edit') {
-  findButton(MAIN_NAV_SELECTOR, '投稿准备')?.click()
+  // v2.1+: Journal Center is a first-class global route. Prefer it so card actions
+  // remain valid regardless of the currently active Preparation workspace.
+  const journalCenter = findButton(MAIN_NAV_SELECTOR, '期刊中心')
+  if (journalCenter) {
+    journalCenter.click()
+  } else {
+    // Compatibility fallback for older shells and historical visual fixtures.
+    findButton(MAIN_NAV_SELECTOR, '投稿准备')?.click()
+    const workspace = await waitForElement(() => document.querySelector<HTMLElement>('.preparation-workspace'))
+    if (!workspace) return
+    const route = findButton(
+      '.preparation-workspace > .prep-nav-primary button, .preparation-workspace > .prep-nav button, .lx-status-bar[data-page="preparation"] .lx-page-proxy-controls button',
+      '期刊匹配',
+    ) || findButton(
+      '.preparation-workspace > .prep-nav button, .lx-status-bar[data-page="preparation"] .lx-page-proxy-controls button',
+      '期刊库',
+    )
+    route?.click()
+  }
 
-  const workspace = await waitForElement(() => document.querySelector<HTMLElement>('.preparation-workspace'))
-  if (!workspace) return
-
-  findButton('.preparation-workspace > .prep-nav button, .lx-status-bar[data-page="preparation"] .lx-page-proxy-controls button', '期刊库')?.click()
-  await waitForElement(() => document.querySelector<HTMLElement>('.preparation-workspace[data-section="journals"], .preparation-workspace .journal-grid'))
+  await waitForElement(() => document.querySelector<HTMLElement>(
+    '.preparation-workspace[data-section="journals"] .journal-grid, .preparation-workspace[data-section="match"] .journal-grid, .preparation-workspace .journal-grid',
+  ))
 
   const search = document.querySelector<HTMLInputElement>('.preparation-workspace .prep-search input')
   if (search) setControlledInputValue(search, journalName)
@@ -150,7 +166,7 @@ function addLibraryActions(overlay: HTMLElement) {
   view.type = 'button'
   view.className = 'journal-quick-library-action is-view'
   view.textContent = '在期刊库查看'
-  view.title = '进入期刊库，查看完整期刊档案和全部链接'
+  view.title = '进入期刊中心，查看完整期刊档案和全部链接'
   view.addEventListener('click', event => {
     event.stopPropagation()
     void navigateToJournalLibrary(journalName, 'view')
@@ -160,7 +176,7 @@ function addLibraryActions(overlay: HTMLElement) {
   edit.type = 'button'
   edit.className = 'journal-quick-library-action is-edit'
   edit.textContent = '编辑期刊信息'
-  edit.title = '进入期刊库并直接打开该期刊编辑器'
+  edit.title = '进入期刊中心并直接打开该期刊编辑器'
   edit.addEventListener('click', event => {
     event.stopPropagation()
     void navigateToJournalLibrary(journalName, 'edit')
