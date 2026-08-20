@@ -17,7 +17,8 @@ assert(!exists('vite.config.offline.ts'), 'offline Vite configuration must be re
 assert(!exists('offline.html'), 'offline HTML entry must be removed from the maintained source')
 assert(!exists('src/offline.tsx'), 'offline React entry must be removed from the maintained source')
 assert(!quality.includes('Build offline app') && !quality.includes('check:offline'), 'quality workflow must not rebuild the frozen offline edition')
-assert(readme.includes('offline-final-v2.0.0'), 'README must point to the immutable final offline release')
+assert(readme.includes('v2.0.1-offline-final'), 'README must point to the immutable v2.0.1 final offline release')
+assert(!readme.includes('offline-final-v2.0.0'), 'README must not reference the superseded offline release name')
 assert(readme.includes('后续版本仅维护在线版'), 'README must state the online-only maintenance policy')
 
 if (failures.length) {
