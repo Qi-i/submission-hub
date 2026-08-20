@@ -1,0 +1,30 @@
+name: Sync v2.1.0 Package Metadata
+
+on:
+  push:
+    branches: ['feat/online-figure-studio']
+    paths: ['.github/workflows/sync-v2.1.0-metadata.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/online-figure-studio
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Synchronize package and lock versions
+        run: npm version 2.1.0 --no-git-tag-version
+      - name: Commit synchronized metadata
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package.json package-lock.json
+          git commit -m "release: prepare v2.1.0 online edition"
+          git push origin HEAD:feat/online-figure-studio
