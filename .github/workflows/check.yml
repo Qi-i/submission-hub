@@ -7,61 +7,17 @@ on:
     branches: [main, submission-workflow-enhancements, 'release/**']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: npm
-      - name: Apply v2.1 visual navigation contract
-        if: github.event_name == 'pull_request' && github.head_ref == 'feat/online-figure-studio'
-        run: |
-          set -euo pipefail
-          node scripts/patch-v21-visual-navigation-contract.mjs
-          rm scripts/patch-v21-visual-navigation-contract.mjs
-          cat > .github/workflows/check.yml <<'EOF'
-          name: Check
-
-          on:
-            pull_request:
-              branches: [main]
-            push:
-              branches: [main, submission-workflow-enhancements, 'release/**']
-
-          permissions:
-            contents: read
-
-          jobs:
-            build:
-              runs-on: ubuntu-latest
-              steps:
-                - uses: actions/checkout@v4
-                - uses: actions/setup-node@v4
-                  with:
-                    node-version: 20
-                    cache: npm
-                - name: Install locked dependencies
-                  run: npm ci --no-audit --no-fund
-                - name: Run complete verification
-                  run: npm run verify
-                  env:
-                    VITE_SUPABASE_URL: https://example.supabase.co
-                    VITE_SUPABASE_ANON_KEY: build-verification-key
-                    VITE_ADMIN_ID: build-verification-admin
-          EOF
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git diff --cached --check
-          git commit -m "test: update Preparation geometry contract for v2.1"
-          git push origin HEAD:feat/online-figure-studio
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Run complete verification
