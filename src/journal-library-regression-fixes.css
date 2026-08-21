@@ -1,15 +1,15 @@
 /* Authoritative regression fixes for journal cards and metric lookup controls. */
 
 /* Hidden means hidden even when earlier density layers use display: flex !important. */
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-numbers[hidden],
-.preparation-workspace[data-section='journals'] .prep-journal-numbers > div[hidden],
+.preparation-workspace[data-section='match'] .prep-journal-card-main > .prep-journal-numbers[hidden],
+.preparation-workspace[data-section='match'] .prep-journal-numbers > div[hidden],
 .preparation-workspace .prep-overview-journal-meta > span[hidden],
-.preparation-workspace[data-section='journals'] .prep-journal-links[hidden],
-.preparation-workspace[data-section='journals'] .prep-journal-links > a[hidden] {
+.preparation-workspace[data-section='match'] .prep-journal-links[hidden],
+.preparation-workspace[data-section='match'] .prep-journal-links > a[hidden] {
   display: none !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-numbers[data-empty] {
+.preparation-workspace[data-section='match'] .prep-journal-numbers[data-empty] {
   width: 0 !important;
   height: 0 !important;
   min-height: 0 !important;
@@ -18,7 +18,7 @@
   overflow: hidden !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main:has(> .prep-journal-local-identity):has(> .prep-journal-numbers[hidden]) {
+.preparation-workspace[data-section='match'] .prep-journal-card-main:has(> .prep-journal-local-identity):has(> .prep-journal-numbers[hidden]) {
   grid-template-areas:
     'title flags'
     'identity identity'
@@ -27,7 +27,7 @@
     'facts facts' !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main:not(:has(> .prep-journal-local-identity)):has(> .prep-journal-numbers[hidden]) {
+.preparation-workspace[data-section='match'] .prep-journal-card-main:not(:has(> .prep-journal-local-identity)):has(> .prep-journal-numbers[hidden]) {
   grid-template-areas:
     'title flags'
     'publisher publisher'
@@ -36,26 +36,26 @@
 }
 
 /* Long journal names shrink before wrapping; all remain limited to two readable lines. */
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > h3.title-long {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > h3.title-long {
   font-size: 12.6px !important;
   letter-spacing: -.012em !important;
   line-height: 1.24 !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > h3.title-xlong {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > h3.title-xlong {
   font-size: 11.7px !important;
   letter-spacing: -.018em !important;
   line-height: 1.22 !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > h3.title-xxlong {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > h3.title-xxlong {
   font-size: 10.9px !important;
   letter-spacing: -.022em !important;
   line-height: 1.2 !important;
 }
 
 /* A single long rank item must wrap inside the card instead of being clipped by overflow:hidden. */
-.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks > span[data-long='true'] {
+.preparation-workspace[data-section='match'] .prep-journal-rank-blocks > span[data-long='true'] {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
@@ -69,8 +69,8 @@
   word-break: break-word !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks > span[data-long='true'] b,
-.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks > span[data-long='true'] em {
+.preparation-workspace[data-section='match'] .prep-journal-rank-blocks > span[data-long='true'] b,
+.preparation-workspace[data-section='match'] .prep-journal-rank-blocks > span[data-long='true'] em {
   max-width: 100% !important;
   white-space: normal !important;
   line-height: 1.22 !important;
@@ -78,13 +78,13 @@
 }
 
 /* Journal cards are equal-height within each content-driven row; rows never stretch to fill the viewport. */
-.preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+.preparation-workspace[data-section='match'] .prep-card-grid.journal-grid {
   align-items: stretch !important;
   align-content: start !important;
   grid-auto-rows: auto !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card {
+.preparation-workspace[data-section='match'] .prep-journal-card {
   height: 100% !important;
   min-height: 0 !important;
   align-self: stretch !important;
@@ -92,12 +92,12 @@
   flex-direction: column !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main {
+.preparation-workspace[data-section='match'] .prep-journal-card-main {
   flex: 1 1 auto !important;
   align-content: start !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-links {
+.preparation-workspace[data-section='match'] .prep-journal-links {
   flex: 0 0 40px !important;
   width: 100% !important;
   height: 40px !important;
@@ -112,7 +112,7 @@
   scrollbar-width: none;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-links::-webkit-scrollbar {
+.preparation-workspace[data-section='match'] .prep-journal-links::-webkit-scrollbar {
   display: none;
 }
 
