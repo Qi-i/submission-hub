@@ -61,7 +61,7 @@ for (const file of [
 ]) expect(exists(file), `Missing unified preparation style file: ${file}`)
 expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css"), 'app-styles.ts must load the unified preparation style system.')
 expect(shellCss.includes('.app-layout > .online-preparation-shell') && shellCss.includes('max-width: var(--ui-shell-max)'), 'Online Preparation shell must use the global centered content lane.')
-expect(prepTokens.includes('--ui-shell-max: var(--ui-page-width, 1500px)') && prepTokens.includes('--ui-shell-gutter: var(--ui-page-gutter, 18px)'), 'Header and Preparation must resolve through the same wide-screen page width/gutter tokens.')
+expect(prepTokens.includes('--ui-page-width: 2400px') && prepTokens.includes('--ui-page-gutter: clamp(8px, .7vw, 18px)') && prepTokens.includes('--ui-shell-max: var(--ui-page-width)') && prepTokens.includes('--ui-shell-gutter: var(--ui-page-gutter)'), 'Header, dashboard and Preparation must share the same resolution-aware wide-screen page width/gutter tokens.')
 
 // P0: Journal Center is a real top-level React page, never a Preparation redirect.
 expect(dashboardSource.includes("type Tab = 'preparation' | 'journals' | 'dashboard'"), 'Dashboard Tab union must contain a first-class journals page.')
