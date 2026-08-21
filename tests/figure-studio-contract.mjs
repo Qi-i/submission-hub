@@ -35,9 +35,13 @@ const preparation = read('src/components/PreparationWorkspace.tsx')
 for (const key of ["'overview'", "'paper'", "'figures'", "'materials'", "'match'", "'check'"]) {
   assert(preparation.includes(key), `Preparation section missing: ${key}`)
 }
-for (const label of ['总览', '论文准备', '科研组图', '投稿材料', '期刊匹配', '投稿前检查']) {
-  assert(preparation.includes(label), `Preparation navigation label missing: ${label}`)
+for (const label of ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']) {
+  assert(preparation.includes(label), `Preparation primary navigation label missing: ${label}`)
 }
+assert(!preparation.includes('data-tone="figures"'), '科研组图 must not occupy a primary preparation navigation slot')
+assert(preparation.includes('prep-figure-tool-entry'), '投稿准备 heading must expose a dedicated 科研组图 tool entry')
+assert(preparation.includes("setSection('figures')"), '科研组图 tool entry must open the internal figures workspace')
+assert(preparation.includes('<Images') && preparation.includes('科研组图'), '科研组图 tool entry must use a visible Images icon and label')
 assert(preparation.includes('lazy(') && preparation.includes('FigureComposer'), 'Figure Composer must be lazy-loaded from Preparation')
 
 const types = read('src/lib/figure-composer/types.ts')
@@ -93,6 +97,9 @@ assert(exporter.includes('preserveAspectRatio'), 'SVG export must preserve expli
 
 const online = read('src/components/OnlinePreparationWorkspace.tsx')
 assert(online.includes('figure_count'), 'online draft integration must synchronize figure_count')
+assert(!online.includes('online-preparation-toolstrip'), 'online shell must not render a duplicate top-level Figure Composer strip')
+assert(!online.includes('workspaceMode'), 'online shell must not maintain a second Figure Composer navigation state')
+assert(!online.includes("import('./figure-composer/FigureComposer')"), 'Figure Composer must be owned only by the integrated Preparation workspace')
 
 if (failures.length) {
   console.error('Figure Composer migration contract failed:')

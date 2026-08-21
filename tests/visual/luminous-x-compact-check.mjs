@@ -103,11 +103,11 @@ try {
 
   if (!prepLayout) failures.push('preparation: required elements missing')
   else {
-    const required = ['总览', '论文准备', '科研组图', '投稿材料', '期刊匹配', '投稿前检查']
+    const required = ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']
     required.forEach(label => {
       if (!prepLayout.labels.some(item => item.includes(label))) failures.push(`preparation: proxy route missing ${label}`)
     })
-    if (prepLayout.labels.length !== 6) failures.push(`preparation: expected six proxy routes, got ${prepLayout.labels.join(' / ')}`)
+    if (prepLayout.labels.length !== 5) failures.push(`preparation: expected five proxy routes, got ${prepLayout.labels.join(' / ')}`)
     if (prepLayout.original !== 'none') failures.push('preparation: duplicate in-page primary navigation is visible')
     if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search controls were not moved into the header lane')
     if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: redundant wide overview toolbar remains visible')
@@ -128,7 +128,11 @@ try {
   const paperPanels = await prep.locator(".preparation-workspace[data-section='paper'] .prep-primary-section-grid > section").count()
   if (paperPanels < 2) failures.push(`preparation: paper workspace expected topic + draft panels, got ${paperPanels}`)
 
-  await prepProxy.getByRole('button', { name: /科研组图/ }).click()
+  const figureEntry = prep.locator('.prep-figure-tool-entry:visible').first()
+  await figureEntry.waitFor({ state: 'visible', timeout: 5000 })
+  const entryIcon = await figureEntry.locator('.prep-figure-tool-entry__icon svg').evaluate(element => element.getBoundingClientRect().toJSON())
+  if (entryIcon.width < 18 || entryIcon.height < 18) failures.push(`preparation: Figure Composer entry icon is not prominent (${entryIcon.width}×${entryIcon.height}px)`)
+  await figureEntry.click()
   await prep.locator(".preparation-workspace[data-section='figures'] .figure-composer").waitFor({ state: 'visible', timeout: 10000 })
   const composerGeometry = await prep.locator('.figure-composer').evaluate(element => {
     const rect = element.getBoundingClientRect()
@@ -156,7 +160,7 @@ try {
   })
   if (!narrow) failures.push('preparation narrow: proxy navigation missing')
   else {
-    if (narrow.labels.length !== 6) failures.push(`preparation narrow: expected six routes, got ${narrow.labels.join(' / ')}`)
+    if (narrow.labels.length !== 5) failures.push(`preparation narrow: expected five routes, got ${narrow.labels.join(' / ')}`)
     if (narrow.overflow > 2) failures.push(`preparation narrow: proxy navigation overflows by ${narrow.overflow}px`)
   }
   await narrowPrep.close()

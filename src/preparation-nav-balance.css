@@ -1,7 +1,7 @@
-/* Six first-class preparation workspaces form one stable row in standard Luminous. */
+/* Five business preparation workspaces form one stable row in standard Luminous. */
 html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
   display: grid !important;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   grid-auto-flow: row !important;
 }
 

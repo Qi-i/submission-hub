@@ -161,12 +161,10 @@ for (const ui of ['luminous', 'luminous-x']) {
           if (report.journal.radius !== report.preparationRoute.radius) fail(`${ui}: Journal Center radius differs from its sidebar peers`)
           if (report.journal.justifyContent !== report.preparationRoute.justifyContent) fail(`${ui}: Journal Center alignment differs from its sidebar peers`)
         }
-        const required = ['总览', '论文准备', '科研组图', '投稿材料', '期刊匹配', '投稿前检查']
-        if (report.prepLabels.length !== 6) fail(`${ui}: Preparation does not expose exactly six core routes (${report.prepLabels.join(' / ')} )`)
+        const required = ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']
+        if (report.prepLabels.length !== 5) fail(`${ui}: Preparation does not expose exactly five business routes (${report.prepLabels.join(' / ')} )`)
         for (const label of required) if (!report.prepLabels.some(item => item.includes(label))) fail(`${ui}: Preparation route ${label} is missing`)
         if (report.prepLabels.some(item => ['选题池', '草稿准备', '期刊库', '期刊比较'].some(legacy => item.includes(legacy)))) fail(`${ui}: legacy secondary Preparation routes remain in the primary navigation`)
-        const figureRoute = report.prepLabels.findIndex(item => item.includes('科研组图'))
-        if (figureRoute !== 2) fail(`${ui}: Figure Composer is not the third first-class Preparation route`)
         if (!report.overviewJournalPanel) fail(`${ui}: journal overview panel was removed from Preparation overview`)
         if (/收藏期刊/.test(report.visibleText)) fail(`${ui}: legacy favorite-only wording remains visible`)
       }
