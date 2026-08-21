@@ -101,7 +101,7 @@ assert(exporter.includes('preserveAspectRatio'), 'SVG export must preserve expli
 const online = read('src/components/OnlinePreparationWorkspace.tsx')
 assert(online.includes('figure_count'), 'online draft integration must synchronize figure_count')
 assert(!online.includes('online-preparation-toolstrip'), 'online shell must not render a duplicate top-level Figure Composer strip')
-assert(!online.includes('workspaceMode'), 'online shell must not maintain a second Figure Composer navigation state')
+assert(!online.includes('setWorkspaceMode') && !online.includes("useState<'preparation' | 'figures'>") && !online.includes('workspaceMode === \'figures\''), 'online shell must not maintain a second Figure Composer navigation state')
 assert(!online.includes("import('./figure-composer/FigureComposer')"), 'Figure Composer must be owned only by the integrated Preparation workspace')
 
 if (failures.length) {
