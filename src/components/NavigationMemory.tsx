@@ -1,6 +1,6 @@
 import { useLayoutEffect } from 'react'
 
-type MainPage = 'preparation' | 'dashboard' | 'stats' | 'admin'
+type MainPage = 'preparation' | 'journals' | 'dashboard' | 'stats' | 'admin'
 type PreparationSection = 'overview' | 'paper' | 'materials' | 'match' | 'check'
 type LegacyPreparationSection = 'topics' | 'drafts' | 'journals' | 'compare'
 type LayoutMode = 'workflow' | 'board' | 'journal'
@@ -18,6 +18,7 @@ interface Props {
 
 const MAIN_LABELS: Record<MainPage, string> = {
   preparation: '投稿准备',
+  journals: '期刊中心',
   dashboard: '投稿管理',
   stats: '个人统计',
   admin: '后台管理',

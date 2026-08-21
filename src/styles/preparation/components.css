@@ -204,3 +204,50 @@
   width: 100% !important;
   margin: 0 !important;
 }
+
+
+/* P0 navigation visibility contract: idle routes must be distinguishable before hover. */
+.preparation-workspace:not([data-section='figures']) > .prep-business-nav {
+  min-height: 0 !important;
+  height: auto !important;
+  grid-template-columns: repeat(5,minmax(0,1fr)) !important;
+  grid-auto-flow: column !important;
+  align-items: stretch !important;
+  overflow: visible !important;
+}
+.preparation-workspace:not([data-section='figures']) > .prep-business-nav > .prep-nav-item {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  justify-self: stretch !important;
+  box-sizing: border-box !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb,var(--prep-nav-tone) 20%,var(--prep-surface-elevated)),
+    color-mix(in srgb,var(--prep-nav-tone) 11%,var(--prep-surface-elevated))) !important;
+  border-color: color-mix(in srgb,var(--prep-nav-tone) 34%,var(--prep-border-strong)) !important;
+}
+.preparation-workspace:not([data-section='figures']) > .prep-business-nav > .prep-nav-item .prep-nav-item__icon {
+  background: color-mix(in srgb,var(--prep-nav-tone) 20%,transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--prep-nav-tone) 18%,transparent);
+}
+.preparation-workspace:not([data-section='figures']) > .prep-business-nav > .prep-nav-item.active {
+  background: linear-gradient(135deg,
+    color-mix(in srgb,var(--prep-nav-tone) 31%,var(--prep-surface-elevated)),
+    color-mix(in srgb,var(--prep-nav-tone) 18%,var(--prep-surface-elevated))) !important;
+  border-color: color-mix(in srgb,var(--prep-nav-tone) 58%,var(--prep-border-strong)) !important;
+}
+
+/* Journal cards are content-height items; one dense card must not stretch peers. */
+.preparation-workspace[data-section='match'] .journal-grid,
+.journal-center-workspace .journal-grid {
+  align-items: start !important;
+  grid-auto-rows: auto !important;
+}
+.preparation-workspace[data-section='match'] .journal-grid > .prep-journal-card,
+.journal-center-workspace .journal-grid > .prep-journal-card {
+  align-self: start !important;
+  height: auto !important;
+  min-height: 0 !important;
+}

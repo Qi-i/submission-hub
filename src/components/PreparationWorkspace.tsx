@@ -44,6 +44,7 @@ interface Props {
   onDraftFigureCountChange?: (draftId: string, count: number) => Promise<void> | void
   section?: PreparationSection
   onSectionChange?: (section: PreparationSection) => void
+  workspaceMode?: 'preparation' | 'journal-center'
 }
 
 const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 }
@@ -61,9 +62,10 @@ export default function PreparationWorkspace({
   onSaveTopic, onDeleteTopic,
   onSaveDraft, onDeleteDraft,
   onPromoteDraft, onLookupJournalRanks, onDraftFigureCountChange,
-  section: controlledSection, onSectionChange,
+  section: controlledSection, onSectionChange, workspaceMode = 'preparation',
 }: Props) {
-  const [section, setInternalSection] = useState<SectionKey>(controlledSection || 'overview')
+  const standaloneJournalCenter = workspaceMode === 'journal-center'
+  const [section, setInternalSection] = useState<SectionKey>(controlledSection || (standaloneJournalCenter ? 'match' : 'overview'))
   const lastBusinessSection = useRef<Exclude<PreparationSection, 'figures'>>(controlledSection && controlledSection !== 'figures' ? controlledSection : 'overview')
   const primarySection = primarySectionFor(section)
   const setSection = (next: SectionKey) => {
@@ -285,19 +287,19 @@ export default function PreparationWorkspace({
     </div>
   </div>
 
-  return <div className="preparation-workspace" data-section={primarySection}>
+  return <div className={`preparation-workspace${standaloneJournalCenter ? ' journal-center-workspace' : ''}`} data-section={primarySection} data-workspace-mode={workspaceMode}>
     {section !== 'figures' && <div className="prep-topbar">
       <div className="prep-heading">
-        <span className="prep-eyebrow">PRE-SUBMISSION WORKSPACE</span>
-        <h1>投稿准备</h1>
-        <p>把选题、草稿与目标期刊组织成一条清晰的投稿前流程。</p>
+        <span className="prep-eyebrow">{standaloneJournalCenter ? 'JOURNAL INTELLIGENCE CENTER' : 'PRE-SUBMISSION WORKSPACE'}</span>
+        <h1>{standaloneJournalCenter ? '期刊中心' : '投稿准备'}</h1>
+        <p>{standaloneJournalCenter ? '集中管理期刊档案、投稿入口、评价指标、费用与横向比较。' : '把选题、草稿与目标期刊组织成一条清晰的投稿前流程。'}</p>
       </div>
       {(uiMode === 'luminous-x' && canPortalActions && luminousXActionSlot ? createPortal(
         <div className="prep-top-actions prep-top-actions-portal">
-          {figureToolEntry}
+          {!standaloneJournalCenter && figureToolEntry}
           <div className="prep-search">
             <Search size={15} />
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder={standaloneJournalCenter ? '搜索期刊名称、缩写、出版商或标签...' : '搜索选题、草稿或期刊...'} />
           </div>
           <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}>
             <Star size={14} /> 收藏期刊
@@ -309,10 +311,10 @@ export default function PreparationWorkspace({
         luminousXActionSlot,
       ) :
         <div className="prep-top-actions">
-          {figureToolEntry}
+          {!standaloneJournalCenter && figureToolEntry}
           <div className="prep-search">
             <Search size={15} />
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder={standaloneJournalCenter ? '搜索期刊名称、缩写、出版商或标签...' : '搜索选题、草稿或期刊...'} />
           </div>
           <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}>
             <Star size={14} /> 收藏期刊
@@ -323,7 +325,7 @@ export default function PreparationWorkspace({
         </div>)}
     </div>}
 
-    {section !== 'figures' && <PreparationNavigation section={primarySection} draftCount={normalized.drafts.length} journalCount={normalized.journals.length} onChange={next => setSection(next)} />}
+    {!standaloneJournalCenter && section !== 'figures' && <PreparationNavigation section={primarySection} draftCount={normalized.drafts.length} journalCount={normalized.journals.length} onChange={next => setSection(next)} />}
 
     {section === 'overview' && <>
       <section className="prep-dashboard">
@@ -442,7 +444,7 @@ export default function PreparationWorkspace({
 
     {section === 'materials' && <><div className="prep-primary-section-head"><div><h2>投稿材料</h2><p>围绕每篇 Manuscript Draft 集中核对主文、图表、Cover Letter、Highlights、补充材料和文件命名。</p></div><button className="btn btn-primary btn-sm" onClick={() => setEditor({ type: 'draft', value: 'new' })}><Plus size={13} /> 新建草稿</button></div><div className="prep-draft-list">{orderedDrafts.map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} />)}{!orderedDrafts.length && <Empty text="尚无可整理投稿材料的草稿" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</div></>}
 
-    {section === 'match' && <><div className="prep-primary-section-head"><div><h2>期刊匹配</h2><p>把收藏期刊、关键分区、费用、审稿周期和横向比较放在同一工作区。</p></div><button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}><Star size={13} /> 收藏期刊</button></div><div className="prep-card-grid journal-grid">{orderedJournals.map(journal => <JournalCard key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}{!orderedJournals.length && <Empty text={query ? '没有匹配的期刊' : '尚未收藏期刊'} action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}</div>{!!orderedJournals.length && <JournalComparison journals={orderedJournals} onEdit={journal => setEditor({ type: 'journal', value: journal })} />}</>}
+    {section === 'match' && <><div className="prep-primary-section-head"><div><h2>{standaloneJournalCenter ? '期刊库' : '期刊匹配'}</h2><p>{standaloneJournalCenter ? '检索、筛选并维护期刊档案；投稿准备中的期刊匹配直接复用这里的数据。' : '把收藏期刊、关键分区、费用、审稿周期和横向比较放在同一工作区。'}</p></div><button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}><Star size={13} /> 收藏期刊</button></div><div className="prep-card-grid journal-grid">{orderedJournals.map(journal => <JournalCard key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}{!orderedJournals.length && <Empty text={query ? '没有匹配的期刊' : '尚未收藏期刊'} action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}</div>{!!orderedJournals.length && <JournalComparison journals={orderedJournals} onEdit={journal => setEditor({ type: 'journal', value: journal })} />}</>}
 
     {section === 'check' && <><div className="prep-primary-section-head"><div><h2>投稿前检查</h2><p>集中暴露草稿缺失项；分辨率、越界、重叠、拉伸和图注检查在“科研组图”内完成。</p></div><button className="btn btn-ghost btn-sm" onClick={() => setSection('figures')}><Images size={13} /> 检查科研图件</button></div><div className="prep-check-grid">{orderedDrafts.map(draft => { const readiness = draftReadiness(draft); return <article key={draft.id} className="prep-check-card"><h3>{draft.title}</h3><b>{readiness.score}%</b><p>必需项完成度 {checklistProgress(draft.checklist)}%</p><p>{readiness.blockers[0] || readiness.warnings[0] || '未发现阻碍投稿的必需项。'}</p><button className="btn btn-ghost btn-sm" onClick={() => setEditor({ type: 'draft', value: draft })}>打开草稿检查</button></article> })}{!orderedDrafts.length && <Empty text="尚无可检查的论文草稿" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</div></>}
 

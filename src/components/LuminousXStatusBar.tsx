@@ -4,7 +4,7 @@ import LuminousXStatsProxy from './LuminousXStatsProxy'
 
 export type LuminousXLayoutMode = 'workflow' | 'board' | 'journal'
 
-type PageKey = 'preparation' | 'dashboard' | 'stats' | 'admin'
+type PageKey = 'preparation' | 'journals' | 'dashboard' | 'stats' | 'admin'
 
 interface Props {
   modeLabel: string
@@ -22,6 +22,7 @@ const VIEW_OPTIONS: Array<{ key: LuminousXLayoutMode; label: string; icon: typeo
 ]
 
 function pageMeta(modeLabel: string): { key: PageKey; label: string } {
+  if (modeLabel.includes('期刊')) return { key: 'journals', label: '期刊中心' }
   if (modeLabel.includes('准备')) return { key: 'preparation', label: '投稿准备' }
   if (modeLabel.includes('统计')) return { key: 'stats', label: '个人统计' }
   if (modeLabel.includes('后台')) return { key: 'admin', label: '后台管理' }
@@ -37,6 +38,8 @@ export default function LuminousXStatusBar({
   preparationSection = 'overview',
 }: Props) {
   const page = pageMeta(modeLabel)
+  const countLabel = page.key === 'journals' ? '期刊档案' : '记录总数'
+  const countUnit = page.key === 'journals' ? '本' : '篇'
 
   return (
     <section
@@ -79,8 +82,8 @@ export default function LuminousXStatusBar({
       </div>
 
       <div className="lx-status-count">
-        <small>记录总数</small>
-        <span><b>{recordCount}</b><em>篇</em></span>
+        <small>{countLabel}</small>
+        <span><b>{recordCount}</b><em>{countUnit}</em></span>
       </div>
     </section>
   )

@@ -145,3 +145,30 @@
 .preparation-workspace[data-section='figures'] .prep-figure-secondary-workspace {
   min-width: 0;
 }
+
+
+/* OnlinePreparationWorkspace is the actual direct child of .app-layout online. */
+html[data-ui='luminous'] body .app-layout > .online-preparation-shell {
+  width: calc(100% - (var(--ui-shell-gutter) * 2)) !important;
+  max-width: var(--ui-shell-max) !important;
+  margin: var(--ui-gap-page) auto 0 !important;
+  box-sizing: border-box !important;
+}
+html[data-ui='luminous'] body .online-preparation-shell > .preparation-suite,
+html[data-ui='luminous'] body .online-preparation-shell .preparation-workspace {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 981px) {
+  html[data-ui='luminous-x'] body .app-layout > .online-preparation-shell {
+    width: 100% !important;
+    max-width: none !important;
+    margin: var(--ui-gap-page) 0 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+.journal-center-workspace > .prep-business-nav { display: none !important; }

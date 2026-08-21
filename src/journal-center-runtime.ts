@@ -110,7 +110,8 @@ function applyJournalFilter(workspace: HTMLElement, filter: JournalFilter) {
 
 function desiredCatalogHost(workspace: HTMLElement) {
   if (document.documentElement.dataset.ui === 'luminous-x') {
-    const statusHost = document.querySelector<HTMLElement>('.lx-status-bar[data-page="preparation"] .lx-status-controls-host')
+    const statusPage = workspace.classList.contains('journal-center-workspace') ? 'journals' : 'preparation'
+    const statusHost = document.querySelector<HTMLElement>(`.lx-status-bar[data-page="${statusPage}"] .lx-status-controls-host`)
     if (statusHost) return statusHost
   }
   return workspace.querySelector<HTMLElement>(':scope > .prep-topbar')
@@ -122,7 +123,8 @@ function removeLegacyCatalogRows(workspace: HTMLElement) {
 
 function ensureCatalogFilters(workspace: HTMLElement) {
   const activeSection = workspace.dataset.section === 'match'
-  const statusBar = document.querySelector<HTMLElement>('.lx-status-bar[data-page="preparation"]')
+  const statusPage = workspace.classList.contains('journal-center-workspace') ? 'journals' : 'preparation'
+  const statusBar = document.querySelector<HTMLElement>(`.lx-status-bar[data-page="${statusPage}"]`)
   statusBar?.toggleAttribute('data-journal-center-active', activeSection)
 
   if (!activeSection) {

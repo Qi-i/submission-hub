@@ -14,6 +14,7 @@ interface Props {
   section: PreparationSection
   onSectionChange: (section: PreparationSection) => void
   onPaperCreated?: () => void
+  workspaceMode?: 'preparation' | 'journal-center'
 }
 
 const emptySnapshot: PreparationSnapshot = { journals: [], topics: [], drafts: [] }
@@ -55,7 +56,7 @@ function normalizeJournal(journal: JournalProfile): JournalProfile {
   }
 }
 
-export default function OnlinePreparationWorkspace({ userId, section, onSectionChange, onPaperCreated }: Props) {
+export default function OnlinePreparationWorkspace({ userId, section, onSectionChange, onPaperCreated, workspaceMode = 'preparation' }: Props) {
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -303,6 +304,6 @@ export default function OnlinePreparationWorkspace({ userId, section, onSectionC
   return <div className="online-preparation-shell">
     {error
       ? <div className="prep-load-error"><h3>投稿准备数据暂时无法加载</h3><p>请检查网络连接后重试。</p><button className="btn btn-primary btn-sm" onClick={() => void load()}>重新加载</button></div>
-      : <PreparationWorkspaceSuite section={section} onSectionChange={onSectionChange} snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} onDraftFigureCountChange={syncDraftFigureCount} />}
+      : <PreparationWorkspaceSuite section={section} onSectionChange={onSectionChange} workspaceMode={workspaceMode} snapshot={snapshot} loading={loading} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} onLookupJournalRanks={lookupJournalRanks} onDraftFigureCountChange={syncDraftFigureCount} />}
   </div>
 }

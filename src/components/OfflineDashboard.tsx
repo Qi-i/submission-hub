@@ -11,20 +11,22 @@ import PaperForm from './OfflinePaperForm'
 import ActionCenter from './ActionCenter'
 import OfflinePreparationWorkspace from './OfflinePreparationWorkspace'
 import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
-import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb, Settings, HardDrive } from 'lucide-react'
+import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb, Settings, HardDrive, BookOpen } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 
 type ViewFilter = 'all' | 'me' | 'author'
-type Tab = 'preparation' | 'dashboard' | 'stats'
+type Tab = 'preparation' | 'journals' | 'dashboard' | 'stats'
 
 const TAB_LABELS: Record<Tab, string> = {
   preparation: '投稿准备工作区',
+  journals: '期刊中心',
   dashboard: '投稿管理控制台',
   stats: '个人统计分析舱',
 }
 
 const TAB_SUBTITLES: Record<Tab, string> = {
   preparation: '在本地组织选题、草稿和目标期刊，所有数据仅保存在当前浏览器。',
+  journals: '集中管理期刊档案、投稿入口、评价指标、费用与横向比较。',
   dashboard: '离线集中管理投稿状态、作者、期刊、版本链和备份文件。',
   stats: '从投稿状态、周期、期刊与作者维度审视本地成果进展。',
 }
@@ -261,6 +263,7 @@ export default function OfflineDashboard() {
 
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'preparation' ? 'active' : ''}`} onClick={() => { setTab('preparation'); setShowTools(false) }}><Lightbulb size={14} /> 投稿准备</button>
+        <button className={`tab-btn ${tab === 'journals' ? 'active' : ''}`} onClick={() => { setTab('journals'); setShowTools(false) }}><BookOpen size={14} /> 期刊中心</button>
         <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}><FileText size={14} /> 投稿管理</button>
         <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => { setTab('stats'); setShowTools(false) }}><BarChart3 size={14} /> 个人统计</button>
       </div>
@@ -268,12 +271,14 @@ export default function OfflineDashboard() {
       {uiMode === 'luminous-x' && <LuminousXStatusBar
         modeLabel={TAB_LABELS[tab]}
         subtitle={TAB_SUBTITLES[tab]}
-        recordCount={papers.length}
+        recordCount={tab === 'journals' ? prepStore.getPreparationSnapshot().journals.length : papers.length}
         layoutMode={layoutMode}
         onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
       />}
 
       {tab === 'preparation' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} onPaperCreated={refreshPapers} />}
+
+      {tab === 'journals' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} section="match" onSectionChange={() => {}} workspaceMode="journal-center" onPaperCreated={refreshPapers} />}
 
       {tab === 'dashboard' && (
         <>

@@ -54,14 +54,14 @@ for (const ui of ['luminous', 'luminous-x']) {
     await journalEntry.waitFor({ state: 'visible', timeout: 15000 })
     await journalEntry.evaluate(element => element.click())
     await page.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
-    await page.locator('.preparation-workspace[data-section="match"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
+    await page.locator('.journal-center-workspace[data-section="match"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
     await page.waitForTimeout(250)
 
     const placement = await page.evaluate(currentUi => {
-      const workspace = document.querySelector('.preparation-workspace[data-section="match"]')
+      const workspace = document.querySelector('.journal-center-workspace[data-section="match"]')
       const filters = document.querySelector('.journal-catalog-top-filters')
       const expectedHost = currentUi === 'luminous-x'
-        ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-status-controls-host')
+        ? document.querySelector('.lx-status-bar[data-page="journals"] .lx-status-controls-host')
         : workspace?.querySelector(':scope > .prep-topbar')
       const nav = workspace?.querySelector(':scope > .prep-nav')
       return {
@@ -73,12 +73,12 @@ for (const ui of ['luminous', 'luminous-x']) {
     }, ui)
 
     if (!placement.correctHost) fail(`${ui}: 筛选未进入顶部控制区`)
-    if (placement.navDisplay === 'none' || placement.navDisplay === 'missing') fail(`${ui}: 期刊中心缺少统一投稿准备菜单行`)
+    if (placement.navDisplay !== 'missing') fail(`${ui}: 独立期刊中心不应显示投稿准备五业务条`)
     if (placement.legacyRow) fail(`${ui}: 期刊中心仍显示旧筛选说明行`)
     if (placement.overflow > 2) fail(`${ui}: 顶部筛选溢出 ${placement.overflow}px`)
 
     const apc = await page.evaluate(() => {
-      const cards = Array.from(document.querySelectorAll('.preparation-workspace[data-section="match"] .prep-journal-card'))
+      const cards = Array.from(document.querySelectorAll('.journal-center-workspace[data-section="match"] .prep-journal-card'))
       const priced = cards.filter(card => {
         const cell = card.querySelector('.prep-journal-apc-metric')
         const value = cell?.querySelector('b')?.textContent?.trim() || ''
@@ -102,7 +102,7 @@ for (const ui of ['luminous', 'luminous-x']) {
           const rect = element.getBoundingClientRect()
           return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
         }
-        const workspace = document.querySelector('.preparation-workspace[data-section="match"]')
+        const workspace = document.querySelector('.journal-center-workspace[data-section="match"]')
         const button = document.querySelector(`.journal-catalog-filter[data-filter="${activeFilter}"]`)
         const expected = Number((button?.textContent || '').match(/(\d+)\s*$/)?.[1] || -1)
         const cards = Array.from(workspace?.querySelectorAll('.prep-journal-card') || [])
