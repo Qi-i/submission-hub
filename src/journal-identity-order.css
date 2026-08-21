@@ -1,6 +1,6 @@
 /* Journal identity hierarchy: English name -> emphasized Chinese name -> concise abbreviation. */
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main {
+.preparation-workspace[data-section='match'] .prep-journal-card-main {
   grid-template-areas:
     'title flags'
     'identity identity'
@@ -10,7 +10,7 @@
     'metrics metrics' !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main:not(:has(> .prep-journal-local-identity)):not(:has(> .prep-journal-numbers[hidden])) {
+.preparation-workspace[data-section='match'] .prep-journal-card-main:not(:has(> .prep-journal-local-identity)):not(:has(> .prep-journal-numbers[hidden])) {
   grid-template-areas:
     'title flags'
     'publisher publisher'
@@ -19,7 +19,7 @@
     'metrics metrics' !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-local-identity {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > .prep-journal-local-identity {
   grid-area: identity !important;
   order: 0 !important;
   width: fit-content;
