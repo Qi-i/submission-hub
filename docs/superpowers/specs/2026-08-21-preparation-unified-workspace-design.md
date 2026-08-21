@@ -4,7 +4,7 @@
 
 ## 1. 目标
 
-本轮重构的目标不是继续为“投稿准备”或“科研组图”追加局部 CSS，而是从第一性原则重新定义投稿准备工作区的页面骨架、导航状态、组件边界、视觉语言与两套界面适配方式，使总览、论文准备、投稿材料、期刊匹配、投稿前检查、科研组图看起来并运行得像同一套程序。
+本轮重构不再为“投稿准备”或“科研组图”追加局部 CSS，而是从第一性原则重新定义投稿准备工作区的页面骨架、导航状态、组件边界、视觉语言与两套界面适配方式，使总览、论文准备、投稿材料、期刊匹配、投稿前检查、科研组图在功能、状态和视觉上属于同一套程序。
 
 核心原则：
 
@@ -12,17 +12,17 @@
 2. 同一层级只有一种视觉语义。
 3. Luminous 与 Luminous X 只能有布局差异，不能有功能、状态和交互逻辑差异。
 4. 科研组图是通用工具，不属于任何一篇论文，也不能默认泄露或展示真实论文题名。
-5. 数据合同冻结：现有 Supabase 投稿准备数据、投稿转入流程、Figure Composer 本地 IndexedDB 资源、导出能力均保留。
+5. 数据合同冻结：现有 Supabase 投稿准备数据、投稿转入流程、Figure Composer 本地 IndexedDB 资源、布局与导出能力均保留。
 
 ## 2. 当前问题与根因
 
 ### 2.1 投稿准备内部存在多套 UI 语言
 
-当前总览、论文准备、投稿材料、期刊匹配、投稿前检查分别由不同阶段追加的样式文件塑形，科研组图又维护独立 `--fc-*` 变量、按钮、输入框、面板、圆角与色彩。最终外观由多层 CSS 级联覆盖决定，而不是由一套明确设计合同决定。
+当前总览、论文准备、投稿材料、期刊匹配、投稿前检查分别由不同时期样式塑形；科研组图又维护独立 `--fc-*` 变量、按钮、输入框、面板、圆角与色彩。最终外观由多层 CSS 级联覆盖决定，而不是由一套明确设计合同决定。
 
 ### 2.2 Luminous X 使用 DOM 代理而非共享状态
 
-当前 Luminous X 的投稿准备控制条通过查找真实按钮、MutationObserver 和模拟 click 同步状态。这会导致两个视图在导航、激活态、响应式和新增功能时逐步漂移。
+当前 Luminous X 投稿准备控制条通过查找真实按钮、MutationObserver 和模拟 click 同步状态。这会导致两个视图在导航、激活态、响应式和新增功能时逐步漂移。
 
 ### 2.3 PreparationWorkspace 责任过重
 
@@ -30,7 +30,7 @@
 
 ### 2.4 科研组图被错误地绑定到真实草稿
 
-当前 Figure Composer 以 `initialDraftId || drafts[0]?.id || null` 初始化，导致没有用户操作时也会自动关联第一篇真实草稿。工作台因此出现真实论文题名，破坏了通用工具的基本边界。
+当前 Figure Composer 以 `initialDraftId || drafts[0]?.id || null` 初始化，导致没有用户操作时也会自动关联第一篇真实草稿。工作台因此出现真实论文题名，破坏了通用工具边界。
 
 ### 2.5 `Figure 1` 被错误地当作工程身份
 
@@ -40,29 +40,31 @@
 
 以下约束必须写入自动化测试，任何一条失败均不得合并。
 
-### 3.1 科研组图必须通用化
+### 3.1 科研组图必须彻底通用化
 
 - 新建组图默认 `draftId = null`。
 - 禁止自动选择 `drafts[0]` 或任何真实草稿。
 - 工作台主标题、面包屑、状态栏、默认工程信息中禁止出现真实论文题名。
 - “关联草稿”只能由用户主动选择。
-- 关联成功后，论文题名只允许出现在明确的关联选择控件/管理列表中；不得作为工作台主标题或长期悬挂副标题。
-- 草稿关联只用于工程管理、figure_count 统计与回到投稿准备时的上下文，不得决定组图 UI 身份。
+- 关联成功后，论文题名只允许出现在明确的关联选择控件或管理列表中；不得作为工作台主标题或长期悬挂副标题。
+- 草稿关联只用于工程管理、`figure_count` 统计与回到投稿准备时的上下文，不得决定组图 UI 身份。
 
-### 3.2 工程身份与出版编号分离
+### 3.2 工程身份与出版编号必须分离
 
-- 新工程名称默认：`未命名组图`。
+- 新工程 `name` 默认：`未命名组图`。
 - 主标题默认显示：`未命名组图`。
 - 禁止新工程默认显示 `Figure 1`、`Supplementary Figure S1`。
-- `Figure 1` / `Supplementary Figure S1` 仅作为可选“出版编号/导出编号”存在，必须由用户主动启用或编辑。
-- 现有已保存工程若名称为 Figure N，不强制改名，保证兼容；仅改变新工程默认行为。
-- 后续数据模型中将 `projectName` 与 `publicationLabel` 分离。若暂时保留旧字段，则 UI 层也必须表现为两个不同概念。
+- FigureProject 持久化模型继续保留现有 `name` 字段，明确把它定义为“工程名称”，避免破坏现有 IndexedDB 工程。
+- FigureProject v2 新增可空 `publicationLabel: string | null`，用于 `Figure 1`、`Supplementary Figure S1` 等出版编号。
+- 现有 `role` / `sequence` 保留为出版元数据，但不得再驱动新工程默认 `name`。
+- `publicationLabel` 默认 `null`，必须由用户主动启用、选择或编辑。
+- 旧 v1 工程若 `name = Figure N`，保持原名，不强制改写；加载时可从旧 `role/sequence` 推断 publicationLabel，但默认不把它提升为工作台身份。
 
 ### 3.3 进入科研组图后隐藏五个业务工作条
 
 - `section === figures` 时，不渲染五个业务导航条。
-- 工作台只保留 Submission Hub 的全局主导航，以及组图内部统一上下文头：`投稿准备 / 科研组图`、返回入口、工程级操作。
-- 返回后恢复之前所在的投稿准备业务页，而不是强制总览。
+- 工作台只保留 Submission Hub 全局主导航，以及组图内部统一上下文头：`投稿准备 / 科研组图`、返回入口、工程级操作。
+- 进入 figures 前记录 `returnSection`；返回时恢复原业务页，而不是强制总览。
 
 ### 3.4 五个业务工作条统一布局与初始底色
 
@@ -74,23 +76,23 @@
 4. 期刊匹配
 5. 投稿前检查
 
-每个按钮必须使用同一内部网格：
+每个按钮必须使用相同的三槽内部网格：
 
 - 左槽：固定宽度图标区域。
 - 中槽：固定居中的文字标签。
 - 右槽：固定宽度计数/状态区域，即使无计数也保留占位。
 
-这样禁止因“论文准备 2”“期刊匹配 12”而把文字挤偏。
+因此“论文准备 2”“期刊匹配 12”不能把文字中心线挤偏。
 
-非激活态也必须有低饱和度初始底色，不允许五个按钮全部白色。建议语义色限定在主 UI 调色板内：
+非激活态也必须有稳定、低饱和度初始底色，不允许五个按钮全部白色：
 
 - 总览：sky/cyan soft
 - 论文准备：blue soft
 - 投稿材料：violet soft
 - 期刊匹配：magenta soft
-- 投稿前检查：amber soft（仅低饱和度，用于检查语义）
+- 投稿前检查：amber soft
 
-激活态统一提升边框、亮度和局部光晕，而不是把结构、字号或对齐方式改掉。
+激活态统一提升边框、亮度和局部光晕，不改变结构、字号、按钮高度或文字对齐。
 
 ## 4. 信息架构
 
@@ -98,7 +100,7 @@
 
 `overview | paper | materials | match | check | figures`
 
-历史内部 `topics | drafts | journals | compare` 不再作为一级页面路由；应转为对应业务页内部的局部状态、抽屉或二级内容。
+历史内部 `topics | drafts | journals | compare` 不再作为一级工作区路由；应转为对应业务页内部局部状态、抽屉或二级内容。
 
 层级：
 
@@ -115,7 +117,7 @@
 
 ### 5.1 PreparationShell
 
-所有投稿准备业务页共享同一骨架：
+所有普通业务页共享：
 
 1. Workspace Header
    - 标题“投稿准备”
@@ -137,7 +139,7 @@
 
 进入科研组图后：
 
-- 隐藏 Workspace Header 中与普通业务页重复的搜索/新建草稿等操作。
+- 隐藏普通 Workspace Header 中的搜索、收藏期刊、新建草稿等业务操作。
 - 隐藏五个 Business Navigation 工作条。
 - 使用统一工作台 Header：
   - 面包屑：`投稿准备 / 科研组图`
@@ -147,13 +149,13 @@
 - 不显示真实论文题名。
 - 不显示默认 Figure 1。
 
-中央科学画布保持中性灰工作环境和白色 paper，这是功能性工作区，不强制做成玻璃卡片；外围左栏、右栏、toolbar、input、select、badge、预检、按钮全部使用 Submission Hub 统一视觉 token。
+中央科学画布保持中性灰工作环境和白色 paper，这是功能性工作区；外围左栏、右栏、toolbar、input、select、badge、预检、按钮全部使用 Submission Hub 统一视觉 token。
 
 ## 6. 统一视觉系统
 
-### 6.1 取消独立品牌色系统
+### 6.1 取消 Figure Composer 独立品牌色系统
 
-Figure Composer 不再自建一套独立品牌变量。所有外围 UI 映射到统一 Preparation token：
+Figure Composer 不再自建平行品牌体系。外围 UI 映射到统一 Preparation token：
 
 - `--prep-surface`
 - `--prep-surface-elevated`
@@ -176,7 +178,7 @@ Figure Composer 不再自建一套独立品牌变量。所有外围 UI 映射到
 
 - 不追求全白或全灰。
 - 不通过大面积强渐变制造“另一套软件”。
-- 导航、主要操作、选中态、预检状态、图层选中、导入区域允许使用主 UI 的 cyan → blue → violet → magenta 体系。
+- 导航、主要操作、选中态、预检状态、图层选中、导入区域使用主 UI 的 cyan → blue → violet → magenta 体系。
 - 画布本体继续保持白色；外围工作区使用冷灰/蓝灰与低饱和品牌色。
 - Luminous X 可增加更明显的边缘光、透明度和空间层次，但组件语义和尺寸不改变。
 
@@ -202,9 +204,9 @@ Figure Composer 不再自建一套独立品牌变量。所有外围 UI 映射到
 目标组件树：
 
 - `PreparationWorkspaceController`
-  - 负责数据、筛选、路由、编辑器状态
+  - 数据、筛选、唯一 route state、编辑器状态、returnSection
 - `PreparationShell`
-  - 负责统一页面框架
+  - 统一页面框架
 - `PreparationNavigation`
   - 五个业务工作条，唯一真实导航
 - `PreparationHeaderActions`
@@ -243,7 +245,7 @@ Figure Composer 不再自建一套独立品牌变量。所有外围 UI 映射到
 
 保留左侧主控制轨和 X 的空间语言，但投稿准备内部直接消费同一个 React route state，不再通过 querySelector / MutationObserver / 模拟 click 代理真实按钮。
 
-Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们必须是同一个 React 组件/同一组 props，而不是 DOM portal 找按钮再点击。
+Luminous X 可以把 Preparation Header Actions 放到 X status 区，但必须是同一个 React 组件/同一组 props，而不是 DOM portal 找按钮再点击。
 
 ### 8.3 功能一致性
 
@@ -258,7 +260,7 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 - 同一导出
 - 同一返回逻辑
 
-只允许：位置、宽度、背景层次、边缘光和响应式排列不同。
+只允许位置、宽度、背景层次、边缘光和响应式排列不同。
 
 ## 9. PreparationWorkspaceSuite 清理
 
@@ -269,36 +271,43 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 - 顺序状态仍可保存在 localStorage。
 - 拖动仍可保留。
 - 折叠仍可保留。
-- 但不再动态创建 DOM 按钮和 host。
+- 不再动态创建 DOM 按钮和 host。
 
 ## 10. 科研组图数据边界与兼容
 
 ### 10.1 新工程
 
+FigureProject v2 新工程：
+
 - `draftId = null`
-- `projectName = 未命名组图`
+- `name = '未命名组图'`
 - `publicationLabel = null`
 - `title = ''`
 - `caption = ''`
+- `role = 'main'` 可作为隐式出版元数据保留，但不得显示为默认 Figure 编号。
+- `sequence = 1` 可保留内部数值，但不得自动生成可见工程名。
 
 ### 10.2 主动关联草稿
 
-用户可在“工程信息”或“关联”区域主动选择草稿。
+用户可在“工程信息 > 关联”区域主动选择草稿。
 
 关联后：
 
 - 更新 `draftId`
 - 保存时同步 figure_count
-- 可在管理区显示“已关联草稿”
-- 只有用户展开关联选择器时显示具体题名
-- 主标题仍显示工程名称，不显示论文题名
+- 管理区可显示“已关联草稿”状态
+- 只有用户展开关联选择器或工程管理列表时显示具体题名
+- 主标题始终显示工程名称，不显示论文题名
+
+解除关联后 `draftId = null`，不影响工程内容。
 
 ### 10.3 旧工程迁移
 
 - IndexedDB v1 工程继续可加载。
-- `name = Figure N` 的旧工程保持原名。
-- 缺少 `publicationLabel` 时按旧 role/sequence 推断，但不强制显示。
-- 新建工程从 v2 规则开始。
+- v1 `name = Figure N` 的旧工程保持原名。
+- v1 缺少 `publicationLabel` 时，可从旧 role/sequence 推断 publicationLabel，但默认不把它提升为工作台标题。
+- 保存为 v2 后补齐 `publicationLabel` 字段。
+- 不删除旧工程资源，不改变图片 blob。
 
 ## 11. CSS 收口
 
@@ -333,7 +342,7 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 - 科研组图工作台进入后五个工作条不可见。
 - 三栏工作台优先保证中间画布空间。
 - 右栏可在窄视口下转为底部 inspector，但不能遮挡画布。
-- 无横向页面级 overflow。
+- 无页面级横向 overflow。
 
 ## 13. 自动化测试门禁
 
@@ -345,6 +354,7 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 - 不出现默认 `Figure 1`。
 - 显示 `未命名组图`。
 - `draftId === null`。
+- `publicationLabel === null`。
 
 ### 13.2 导航合同
 
@@ -359,16 +369,7 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 
 ### 13.3 UI 几何
 
-检查：
-
-- Header 高度
-- nav 高度
-- button 高度
-- border-radius
-- gap
-- panel padding
-- 表单高度
-- overflow
+检查：Header 高度、nav 高度、button 高度、border-radius、gap、panel padding、表单高度、overflow。
 
 ### 13.4 科研组图交互
 
@@ -395,7 +396,7 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 
 至少五轮：
 
-1. 架构与状态：单一实现、无 DOM 代理。
+1. 架构与状态：单一实现、无投稿准备 DOM 代理。
 2. 视觉系统：两视图、五子页、工作台统一。
 3. 交互：导航、编辑、组图、返回、保存、导出。
 4. 响应式与暗色：1280/1440/1707/1920/2560，light/dark。
@@ -407,7 +408,7 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 
 - 重构投稿管理核心数据结构。
 - 重构期刊中心数据库。
-- 改写 Figure Composer 的科学布局算法，除非为 UI 状态解耦所必需。
+- 改写 Figure Composer 科学布局算法，除非为 UI 状态解耦所必需。
 - 删除已冻结 v2.0.1 offline release。
 - 恢复任何新的 offline 构建链。
 
@@ -417,7 +418,7 @@ Luminous X 可以把 Preparation Header Actions 放到 X status 区，但它们�
 
 1. 投稿准备五个业务子页使用统一页面骨架与视觉 primitive。
 2. 科研组图默认完全通用，不显示真实论文题名，不默认 Figure 1。
-3. 科研组图进入后五个业务工作条隐藏。
+3. 科研组图进入后五个业务工作条隐藏，返回恢复原业务页。
 4. 五个工作条非激活态有低饱和度区分色，所有文字/图标/计数几何一致。
 5. Figure Composer 外围 UI 使用 Submission Hub token，与两个视图各自风格一致；中央画布保持专业中性环境。
 6. Luminous 与 Luminous X 共享同一 React 状态和功能实现，不再使用 DOM proxy 同步投稿准备导航。
