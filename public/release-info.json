@@ -1,19 +1,18 @@
 {
-  "release": "v2.0.0",
-  "published_via": "version-driven-github-release-workflow",
-  "date": "2026-08-02",
-  "documentation": "v2-major-release-and-dual-interface-screenshots",
+  "release": "v2.1.0",
+  "published_via": "online-only-github-release-and-pages-workflow",
+  "date": "2026-08-20",
+  "documentation": "figure-studio-migration-and-final-offline-freeze",
   "features": [
-    "journal-center-as-primary-catalog",
-    "luminous-and-luminous-x-navigation-coherence",
-    "responsive-research-workspace-density",
-    "preparation-secondary-navigation-stability",
-    "journal-filtering-and-high-density-cards",
-    "review-round-and-custom-interval-analysis",
-    "direct-submission-backend-actions",
-    "anchored-journal-preview-and-editing",
-    "restrained-spatial-glass-interface",
-    "private-document-storage-and-preview",
-    "version-consistent-online-offline-release-pipeline"
+    "scientific-figure-studio",
+    "times-new-roman-parenthesized-panel-labels",
+    "browser-side-multi-format-figure-export",
+    "online-only-maintenance-contract",
+    "immutable-final-offline-release",
+    "online-release-snapshot",
+    "five-entry-preparation-navigation-preserved",
+    "responsive-figure-workspace",
+    "third-party-license-attribution",
+    "pages-sha-verification-gate"
   ]
 }

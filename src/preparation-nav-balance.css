@@ -1,19 +1,25 @@
-/* Four visible preparation routes form one stable row in standard Luminous. */
-html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav {
+/* Six first-class preparation workspaces form one stable row in standard Luminous. */
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
   display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   grid-auto-flow: row !important;
 }
 
-html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav > button:not([data-journal-center-internal='true']) {
+html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary > button:not([data-journal-center-internal='true']) {
   width: 100% !important;
   min-width: 0 !important;
   grid-column: auto !important;
   grid-row: auto !important;
 }
 
+@media (max-width: 1080px) {
+  html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
 @media (max-width: 720px) {
-  html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav {
+  html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }

@@ -1,4 +1,4 @@
-name: Verify Online and Offline Builds
+name: Verify Online Build
 
 on:
   workflow_dispatch:
@@ -14,13 +14,12 @@ on:
       - 'README.md'
       - 'public/release-info.json'
       - 'index.html'
-      - 'offline.html'
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig*.json'
       - 'vite.config.*'
       - '.github/workflows/quality.yml'
-      - '.github/workflows/release-offline.yml'
+      - '.github/workflows/release-online.yml'
       - '.github/workflows/update-doc-screenshots.yml'
 
 permissions:
@@ -45,6 +44,10 @@ jobs:
         run: npm run check:release
       - name: Verify privacy-safe samples
         run: npm run check:privacy
+      - name: Verify Figure Studio migration contract
+        run: npm run check:figure-studio
+      - name: Verify online-only maintenance contract
+        run: npm run check:online-only
       - name: Verify automatic journal catalog
         run: node tests/journal-auto-catalog-check.mjs
       - name: Verify journal selection metadata
@@ -59,7 +62,3 @@ jobs:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_ANON_KEY: build-verification-key
           VITE_ADMIN_ID: build-verification-admin
-      - name: Build offline app
-        run: npm run build:offline
-      - name: Verify offline isolation
-        run: npm run check:offline

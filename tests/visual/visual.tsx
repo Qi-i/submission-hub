@@ -200,7 +200,7 @@ localStorage.setItem('sh-prefs', JSON.stringify({ mode: theme }))
 localStorage.setItem('submission-hub-stats-modules', JSON.stringify({ overview: true, process: true, trend: true, charts: true }))
 document.documentElement.dataset.visualTest = 'true'
 
-void import('../../src/offline').then(() => {
+void import('./visual-app').then(() => {
   const target = view === 'stats' ? '个人统计' : view === 'preparation' ? '投稿准备' : '投稿管理'
   const switchTab = (attempt = 0) => {
     const button = Array.from(document.querySelectorAll<HTMLButtonElement>('.tab-btn')).find(item => item.textContent?.includes(target))
