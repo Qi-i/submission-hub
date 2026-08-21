@@ -2,7 +2,7 @@ import { FileImage, FolderOpen, Layers3, Plus, Save, Trash2, Upload } from 'luci
 import { useRef } from 'react'
 import type { ManuscriptDraft } from '../../lib/preparation'
 import { FIGURE_ACCEPT } from '../../lib/figure-composer/image-import'
-import { automaticPanelLabel, type FigureProject, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
+import { automaticPanelLabel, figureDisplayName, type FigureProject, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
 
 interface Props {
   project: FigureProject
@@ -10,7 +10,7 @@ interface Props {
   drafts: ManuscriptDraft[]
   assets: Map<string, RuntimeFigureAsset>
   busy: boolean
-  onProjectField: (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'title' | 'caption'>>) => void
+  onProjectField: (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'publicationLabel' | 'title' | 'caption'>>) => void
   onNewProject: () => void
   onOpenProject: (id: string) => void
   onSaveProject: () => void
@@ -26,17 +26,24 @@ export default function FigureSidebar({ project, projects, drafts, assets, busy,
   return <aside className="figure-composer__left" aria-label="组图工程与图片">
     <section className="figure-composer__section">
       <div className="figure-composer__section-title"><FolderOpen size={14} /><strong>组图工程</strong></div>
-      <label>关联草稿
+      <label>工程名称<input value={project.name} placeholder="未命名组图" onChange={event => onProjectField({ name: event.target.value || '未命名组图' })} /></label>
+      <label>关联草稿（可选）
         <select value={project.draftId || ''} onChange={event => onProjectField({ draftId: event.target.value || null })}>
           <option value="">未关联草稿</option>
           {drafts.map(draft => <option key={draft.id} value={draft.id}>{draft.title}</option>)}
         </select>
       </label>
+      <div className="figure-composer__subhead">出版信息（可选，不影响工程名称）</div>
       <div className="figure-composer__field-grid two">
         <label>类型<select value={project.role} onChange={event => onProjectField({ role: event.target.value as FigureProject['role'] })}><option value="main">Figure</option><option value="supplementary">Supplementary</option></select></label>
-        <label>编号<input type="number" min="1" value={project.sequence} onChange={event => onProjectField({ sequence: Math.max(1, Number(event.target.value) || 1) })} /></label>
+        <label>序号<input type="number" min="1" value={project.sequence} onChange={event => onProjectField({ sequence: Math.max(1, Number(event.target.value) || 1) })} /></label>
       </div>
-      <label>工程名称<input value={project.name} onChange={event => onProjectField({ name: event.target.value })} /></label>
+      <label>出版编号
+        <div className="figure-composer__inline-add">
+          <input value={project.publicationLabel || ''} placeholder="留空；需要时再填写" onChange={event => onProjectField({ publicationLabel: event.target.value.trim() || null })} />
+          <button type="button" onClick={() => onProjectField({ publicationLabel: figureDisplayName(project.role, project.sequence) })}>生成</button>
+        </div>
+      </label>
       <div className="figure-composer__button-row">
         <button type="button" onClick={onNewProject}><Plus size={13} /> 新建</button>
         <button type="button" className="primary" disabled={busy} onClick={onSaveProject}><Save size={13} /> 保存</button>
@@ -44,9 +51,9 @@ export default function FigureSidebar({ project, projects, drafts, assets, busy,
       </div>
       <div className="figure-composer__project-list">
         {projects.map(item => <button key={item.id} type="button" className={item.id === project.id ? 'active' : ''} onClick={() => onOpenProject(item.id)}>
-          <span>{item.name}</span><small>{item.panels.length} 子图</small>
+          <span>{item.name}</span><small>{item.publicationLabel ? `${item.publicationLabel} · ` : ''}{item.panels.length} 子图</small>
         </button>)}
-        {!projects.length && <p className="figure-composer__empty">当前草稿还没有已保存组图。</p>}
+        {!projects.length && <p className="figure-composer__empty">当前浏览器还没有已保存组图工程。</p>}
       </div>
     </section>
 
@@ -74,7 +81,7 @@ export default function FigureSidebar({ project, projects, drafts, assets, busy,
 
     <section className="figure-composer__section figure-composer__caption-section">
       <div className="figure-composer__section-title"><Layers3 size={14} /><strong>图题与图注</strong></div>
-      <label>图题<input value={project.title} placeholder="Figure title" onChange={event => onProjectField({ title: event.target.value })} /></label>
+      <label>图题<input value={project.title} placeholder="图题（可选）" onChange={event => onProjectField({ title: event.target.value })} /></label>
       <label>图注<textarea rows={4} value={project.caption} placeholder="完整图注与子图说明" onChange={event => onProjectField({ caption: event.target.value })} /></label>
     </section>
   </aside>

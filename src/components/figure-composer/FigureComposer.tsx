@@ -13,7 +13,6 @@ import {
   DEFAULT_BORDER_SETTINGS,
   DEFAULT_LABEL_SETTINGS,
   createEmptyFigureProject,
-  figureDisplayName,
   type AlignMode,
   type DistributionAxis,
   type FigurePanel,
@@ -83,8 +82,7 @@ function scaleProjectToWidth(project: FigureProject, width: number) {
 }
 
 export default function FigureComposer({ drafts, initialDraftId = null, onDraftFigureCountChange, onBack }: Props) {
-  const firstDraftId = initialDraftId || drafts[0]?.id || null
-  const [project, dispatch] = useReducer(reducer, createEmptyFigureProject(firstDraftId))
+  const [project, dispatch] = useReducer(reducer, createEmptyFigureProject(initialDraftId))
   const [projects, setProjects] = useState<FigureProject[]>([])
   const [assets, setAssets] = useState<Map<string, RuntimeFigureAsset>>(new Map())
   const assetsRef = useRef(assets)
@@ -126,11 +124,10 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
 
   const newProject = () => {
     clearRuntimeAssets()
-    const draftId = project.draftId || firstDraftId
-    const sameDraft = projects.filter(item => item.draftId === draftId && item.role === project.role)
-    replace(createEmptyFigureProject(draftId, Math.max(0, ...sameDraft.map(item => item.sequence)) + 1, project.role))
+    const nextSequence = Math.max(0, ...projects.map(item => item.sequence)) + 1
+    replace(createEmptyFigureProject(null, nextSequence, project.role))
     setGuides([])
-    setStatus('已建立新的本地组图工程。')
+    setStatus('已建立新的未命名组图；需要时可主动关联草稿或设置出版编号。')
   }
 
   const openProject = async (projectId: string) => {
@@ -171,7 +168,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     try {
       await deleteFigureProject(project.id)
       clearRuntimeAssets()
-      const next = createEmptyFigureProject(oldDraftId || firstDraftId)
+      const next = createEmptyFigureProject(null)
       replace(next)
       await refreshProjects()
       await syncDraftCount(oldDraftId)
@@ -183,12 +180,8 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     }
   }
 
-  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'title' | 'caption'>>) => {
-    let next = { ...project, ...patch }
-    if ((patch.role || patch.sequence) && (/^Figure \d+$/i.test(project.name) || /^Supplementary Figure S\d+$/i.test(project.name))) {
-      next = { ...next, name: figureDisplayName(next.role, next.sequence) }
-    }
-    replace(next)
+  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'publicationLabel' | 'title' | 'caption'>>) => {
+    replace({ ...project, ...patch })
   }
 
   const handleImport = async (files: FileList | File[]) => {
@@ -355,7 +348,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     <header className="figure-composer__header">
       <div className="figure-composer__header-main">
         {onBack && <button className="figure-composer__icon-button" type="button" onClick={onBack}><ArrowLeft size={16} /><span>返回投稿准备</span></button>}
-        <div><small>FIGURE COMPOSER</small><h2>{project.name}</h2><p>{project.draftId ? drafts.find(draft => draft.id === project.draftId)?.title || '已关联草稿' : '未关联 Manuscript Draft'}</p></div>
+        <div className="figure-composer__identity"><small><span>投稿准备</span><i>/</i><span>科研组图</span></small><h2>{project.name}</h2><p>{project.publicationLabel ? `出版编号：${project.publicationLabel}` : '通用科研组图工作台 · 默认不关联任何论文'}</p></div>
       </div>
       <div className="figure-composer__header-actions">
         <button type="button" onClick={newProject}><Plus size={14} /> 新建</button>

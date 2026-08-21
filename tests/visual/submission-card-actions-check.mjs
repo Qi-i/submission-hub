@@ -30,7 +30,7 @@ async function openFirstJournalPopover(page, ui) {
 }
 
 async function waitForJournalCenter(page) {
-  const grid = page.locator(".preparation-workspace[data-section='journals'] .journal-grid, .preparation-workspace[data-section='match'] .journal-grid").first()
+  const grid = page.locator(".journal-center-workspace[data-section='match'] .journal-grid").first()
   await grid.waitFor({ state: 'visible', timeout: 8000 })
   return grid
 }

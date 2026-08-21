@@ -1,14 +1,14 @@
 /* Dedicated high-density journal library geometry shared by Luminous and Luminous X.
    The journal library is a reference catalogue, not a manuscript workflow card grid. */
 
-.preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+.preparation-workspace[data-section='match'] .prep-card-grid.journal-grid {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(min(296px, 100%), 1fr)) !important;
   align-items: start !important;
   gap: 10px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card {
+.preparation-workspace[data-section='match'] .prep-journal-card {
   height: auto !important;
   min-height: 0 !important;
   align-self: start !important;
@@ -17,12 +17,12 @@
   box-shadow: 0 5px 16px rgba(15, 23, 42, .055) !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card:hover {
+.preparation-workspace[data-section='match'] .prep-journal-card:hover {
   transform: translateY(-1px) !important;
   box-shadow: 0 8px 20px rgba(15, 23, 42, .085) !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main {
+.preparation-workspace[data-section='match'] .prep-journal-card-main {
   width: 100% !important;
   min-width: 0 !important;
   display: grid !important;
@@ -38,7 +38,7 @@
   padding: 10px 11px 8px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-card-top {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > .prep-card-top {
   grid-area: flags !important;
   align-self: start !important;
   justify-content: flex-end !important;
@@ -46,7 +46,7 @@
   min-width: max-content !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > h3 {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > h3 {
   grid-area: title !important;
   min-width: 0 !important;
   display: -webkit-box !important;
@@ -63,7 +63,7 @@
   -webkit-line-clamp: 2 !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > p {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > p {
   grid-area: publisher !important;
   display: block !important;
   min-width: 0 !important;
@@ -77,7 +77,7 @@
   white-space: nowrap !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-rank-blocks {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > .prep-journal-rank-blocks {
   grid-area: ranks !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -85,7 +85,7 @@
   gap: 4px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks > span {
+.preparation-workspace[data-section='match'] .prep-journal-rank-blocks > span {
   min-height: 23px !important;
   height: 23px !important;
   gap: 4px !important;
@@ -96,7 +96,7 @@
   white-space: nowrap !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-rank-blocks.empty {
+.preparation-workspace[data-section='match'] .prep-journal-rank-blocks.empty {
   min-height: 23px !important;
   margin: 0 !important;
   padding: 5px 7px !important;
@@ -105,7 +105,7 @@
   line-height: 1.3 !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-facts {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > .prep-journal-facts {
   grid-area: facts !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -113,8 +113,8 @@
   gap: 4px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-facts > span,
-.preparation-workspace[data-section='journals'] .prep-journal-facts > .prep-journal-apc-fact {
+.preparation-workspace[data-section='match'] .prep-journal-facts > span,
+.preparation-workspace[data-section='match'] .prep-journal-facts > .prep-journal-apc-fact {
   min-height: 23px !important;
   height: 23px !important;
   padding: 0 6px !important;
@@ -122,19 +122,19 @@
   font-size: 9.3px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-facts > .prep-journal-apc-fact::before {
+.preparation-workspace[data-section='match'] .prep-journal-facts > .prep-journal-apc-fact::before {
   font-size: 8.3px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-facts > .prep-journal-apc-fact > b {
+.preparation-workspace[data-section='match'] .prep-journal-facts > .prep-journal-apc-fact > b {
   font-size: 9.5px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-facts > .prep-journal-apc-fact > small {
+.preparation-workspace[data-section='match'] .prep-journal-facts > .prep-journal-apc-fact > small {
   font-size: 7.8px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-card-main > .prep-journal-numbers {
+.preparation-workspace[data-section='match'] .prep-journal-card-main > .prep-journal-numbers {
   grid-area: metrics !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -145,7 +145,7 @@
   margin: 0 !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-numbers > div {
+.preparation-workspace[data-section='match'] .prep-journal-numbers > div {
   width: auto !important;
   min-width: 0 !important;
   min-height: 23px !important;
@@ -158,20 +158,20 @@
   text-align: left !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-numbers b {
+.preparation-workspace[data-section='match'] .prep-journal-numbers b {
   max-width: 94px !important;
   font-size: 10px !important;
   line-height: 1 !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-numbers small {
+.preparation-workspace[data-section='match'] .prep-journal-numbers small {
   font-size: 7.8px !important;
   line-height: 1 !important;
   white-space: nowrap !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-priority,
-.preparation-workspace[data-section='journals'] .prep-risk {
+.preparation-workspace[data-section='match'] .prep-priority,
+.preparation-workspace[data-section='match'] .prep-risk {
   min-height: 21px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -183,18 +183,18 @@
   white-space: nowrap !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-priority svg {
+.preparation-workspace[data-section='match'] .prep-priority svg {
   width: 11px !important;
   height: 11px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-links {
+.preparation-workspace[data-section='match'] .prep-journal-links {
   min-height: 31px !important;
   gap: 4px !important;
   padding: 5px 9px !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-links a {
+.preparation-workspace[data-section='match'] .prep-journal-links a {
   min-height: 21px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -208,31 +208,31 @@
   white-space: nowrap !important;
 }
 
-.preparation-workspace[data-section='journals'] .prep-journal-links a:hover {
+.preparation-workspace[data-section='match'] .prep-journal-links a:hover {
   background: var(--accent-bg) !important;
 }
 
-html[data-theme='dark'] .preparation-workspace[data-section='journals'] .prep-journal-card {
+html[data-theme='dark'] .preparation-workspace[data-section='match'] .prep-journal-card {
   box-shadow: 0 6px 18px rgba(0, 0, 0, .22) !important;
 }
 
 @media (max-width: 1040px) {
-  .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+  .preparation-workspace[data-section='match'] .prep-card-grid.journal-grid {
     grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)) !important;
   }
 }
 
 @media (max-width: 520px) {
-  .preparation-workspace[data-section='journals'] .prep-card-grid.journal-grid {
+  .preparation-workspace[data-section='match'] .prep-card-grid.journal-grid {
     grid-template-columns: minmax(0, 1fr) !important;
     gap: 8px !important;
   }
 
-  .preparation-workspace[data-section='journals'] .prep-journal-card-main {
+  .preparation-workspace[data-section='match'] .prep-journal-card-main {
     padding: 9px 10px 7px !important;
   }
 
-  .preparation-workspace[data-section='journals'] .prep-journal-card-main > h3 {
+  .preparation-workspace[data-section='match'] .prep-journal-card-main > h3 {
     font-size: 13.2px !important;
   }
 }

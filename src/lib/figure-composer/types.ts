@@ -103,6 +103,7 @@ export interface FigureProject {
   role: FigureRole
   sequence: number
   name: string
+  publicationLabel: string | null
   title: string
   caption: string
   canvas: FigureCanvasSettings
@@ -206,7 +207,8 @@ export function createEmptyFigureProject(draftId: string | null = null, sequence
     draftId,
     role,
     sequence,
-    name: figureDisplayName(role, sequence),
+    name: '未命名组图',
+    publicationLabel: null,
     title: '',
     caption: '',
     canvas: {

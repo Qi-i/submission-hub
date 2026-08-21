@@ -101,12 +101,22 @@ async function inspectDesktop(page, name) {
     }
 
     if (name.includes('preparation')) {
-      const prepNav = document.querySelector('.prep-nav')
+      const prepNav = document.querySelector('.preparation-workspace > .prep-nav-primary')
       if (!prepNav) failures.push(`${name}: preparation navigation is missing`)
       else {
         const rect = prepNav.getBoundingClientRect()
-        if (rect.top < statusRect.top - 2 || rect.bottom > statusRect.bottom + 2) failures.push(`${name}: preparation navigation was not moved into the top row`)
-        if (rect.right > countRect.left + 2) failures.push(`${name}: preparation navigation overlaps record count`)
+        const visibleButtons = Array.from(prepNav.querySelectorAll(':scope > button')).filter(button => {
+          const style = getComputedStyle(button)
+          const buttonRect = button.getBoundingClientRect()
+          return style.display !== 'none' && style.visibility !== 'hidden' && buttonRect.width > 0 && buttonRect.height > 0
+        })
+        // Unified-workspace architecture keeps the five business routes in the
+        // content lane. They must sit below—not be proxied into—the Luminous X
+        // status bar. The status bar's own controls/count non-overlap is checked
+        // independently above.
+        if (rect.top < statusRect.bottom + 6) failures.push(`${name}: preparation navigation intrudes into the top status row`)
+        if (Math.abs(rect.left - statusRect.left) > 4 || Math.abs(rect.right - statusRect.right) > 4) failures.push(`${name}: preparation navigation does not align with the content lane`)
+        if (visibleButtons.length !== 5) failures.push(`${name}: preparation navigation should expose exactly five business routes`)
       }
     }
 

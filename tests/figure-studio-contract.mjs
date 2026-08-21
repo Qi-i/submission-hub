@@ -28,17 +28,18 @@ const libraries = [
 
 for (const path of [...components, ...libraries]) assert(exists(path), `missing Figure Composer module: ${path}`)
 assert(!exists('src/components/FigureStudio.tsx'), 'temporary monolithic FigureStudio.tsx must be removed')
-assert(exists('src/figure-composer.css'), 'Figure Composer must use one scoped integrated stylesheet')
+assert(exists('src/figure-composer.css'), 'Figure Composer structural stylesheet must remain available during unified-workspace migration')
 assert(!exists('src/figure-studio.css'), 'temporary Figure Studio stylesheet must be retired')
 
 const preparation = read('src/components/PreparationWorkspace.tsx')
+const preparationNav = read('src/components/preparation/PreparationNavigation.tsx')
 for (const key of ["'overview'", "'paper'", "'figures'", "'materials'", "'match'", "'check'"]) {
-  assert(preparation.includes(key), `Preparation section missing: ${key}`)
+  assert(preparation.includes(key) || preparationNav.includes(key), `Preparation section missing: ${key}`)
 }
 for (const label of ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']) {
-  assert(preparation.includes(label), `Preparation primary navigation label missing: ${label}`)
+  assert(preparationNav.includes(label), `Preparation primary navigation label missing: ${label}`)
 }
-assert(!preparation.includes('data-tone="figures"'), '科研组图 must not occupy a primary preparation navigation slot')
+assert(!preparationNav.includes('data-tone="figures"'), '科研组图 must not occupy a primary preparation navigation slot')
 assert(preparation.includes('prep-figure-tool-entry'), '投稿准备 heading must expose a dedicated 科研组图 tool entry')
 assert(preparation.includes("setSection('figures')"), '科研组图 tool entry must open the internal figures workspace')
 assert(preparation.includes('<Images') && preparation.includes('科研组图'), '科研组图 tool entry must use a visible Images icon and label')
@@ -49,7 +50,8 @@ for (const field of ['naturalWidth', 'naturalHeight', 'originalAspectRatio', 'lo
   assert(types.includes(field), `typed panel model missing ${field}`)
 }
 assert(types.includes("'main'") && types.includes("'supplementary'"), 'figure project role must distinguish main and supplementary figures')
-assert(types.includes('draftId'), 'figure project must support Manuscript Draft association')
+assert(types.includes('draftId'), 'figure project must support optional Manuscript Draft association')
+assert(types.includes('publicationLabel'), 'figure project identity must separate optional publication numbering')
 
 const layout = read('src/lib/figure-composer/layout.ts')
 assert(layout.includes('hero-right-stack'), 'non-uniform A|B/C preset is missing')
@@ -65,6 +67,7 @@ const composer = read('src/components/figure-composer/FigureComposer.tsx')
 assert(composer.includes('useReducer'), 'Figure Composer must use reducer-owned project state')
 assert(composer.includes('Times New Roman'), 'default label font must be Times New Roman')
 assert(composer.includes('(a)') || read('src/lib/figure-composer/types.ts').includes('parena'), 'default labels must be (a), (b), (c)')
+assert(!composer.includes('drafts[0]'), 'generic Figure Composer must not bind the first manuscript implicitly')
 
 const canvas = read('src/components/figure-composer/FigureCanvas.tsx')
 assert(canvas.includes('ctrlKey') || canvas.includes('metaKey'), 'canvas selection must support Ctrl/Cmd multi-select')
@@ -98,7 +101,7 @@ assert(exporter.includes('preserveAspectRatio'), 'SVG export must preserve expli
 const online = read('src/components/OnlinePreparationWorkspace.tsx')
 assert(online.includes('figure_count'), 'online draft integration must synchronize figure_count')
 assert(!online.includes('online-preparation-toolstrip'), 'online shell must not render a duplicate top-level Figure Composer strip')
-assert(!online.includes('workspaceMode'), 'online shell must not maintain a second Figure Composer navigation state')
+assert(!online.includes('setWorkspaceMode') && !online.includes("useState<'preparation' | 'figures'>") && !online.includes('workspaceMode === \'figures\''), 'online shell must not maintain a second Figure Composer navigation state')
 assert(!online.includes("import('./figure-composer/FigureComposer')"), 'Figure Composer must be owned only by the integrated Preparation workspace')
 
 if (failures.length) {

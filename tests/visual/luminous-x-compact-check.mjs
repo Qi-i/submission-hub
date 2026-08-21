@@ -49,24 +49,23 @@ try {
   await dashboard.close()
 
   const prep = await open('preparation')
-  await prep.locator('.prep-productivity-host').waitFor({ state: 'attached' })
+  await prep.locator('.prep-productivity').waitFor({ state: 'visible' })
   await prep.screenshot({ path: 'focused-review/luminous-x-preparation-compact.png', fullPage: true })
 
   const prepLayout = await prep.evaluate(() => {
     const workspace = document.querySelector('.preparation-workspace')
     const topbar = workspace?.querySelector(':scope > .prep-topbar')
-    const proxy = document.querySelector(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls")
+    const nav = workspace?.querySelector(':scope > .prep-nav-primary')
     const portal = document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal')
-    const original = workspace?.querySelector(':scope > .prep-nav-primary')
-    const assistant = workspace?.querySelector('.prep-productivity-host')
+    const assistant = workspace?.querySelector('.prep-productivity')
     const topics = workspace?.querySelector('.prep-topic-overview')
     const draftPanel = workspace?.querySelector('.prep-overview-drafts')
     const journalPanel = workspace?.querySelector('.prep-overview-journals')
     const primaryJournal = document.querySelector("button[data-main-nav-key='journals']")
     const primaryPeer = document.querySelector("button[data-main-nav-key='preparation']")
-    if (!workspace || !topbar || !proxy || !original) return null
+    if (!workspace || !topbar || !nav) return null
 
-    const proxyButtons = Array.from(proxy.querySelectorAll('button')).filter(button => {
+    const buttons = Array.from(nav.querySelectorAll(':scope > button')).filter(button => {
       const style = getComputedStyle(button)
       const rect = button.getBoundingClientRect()
       return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
@@ -77,11 +76,11 @@ try {
     return {
       workspace: workspace.getBoundingClientRect().toJSON(),
       topbarDisplay: getComputedStyle(topbar).display,
-      proxy: proxy.getBoundingClientRect().toJSON(),
-      labels: proxyButtons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
+      nav: nav.getBoundingClientRect().toJSON(),
+      labels: buttons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
+      navOverflow: nav.scrollWidth - nav.clientWidth,
       portal: portal?.getBoundingClientRect().toJSON(),
       portalSearch: !!portal?.querySelector('.prep-search input'),
-      original: getComputedStyle(original).display,
       assistant: assistant?.getBoundingClientRect().toJSON(),
       topics: topics?.getBoundingClientRect().toJSON(),
       draftPanel: draftPanel?.getBoundingClientRect().toJSON(),
@@ -105,13 +104,12 @@ try {
   else {
     const required = ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']
     required.forEach(label => {
-      if (!prepLayout.labels.some(item => item.includes(label))) failures.push(`preparation: proxy route missing ${label}`)
+      if (!prepLayout.labels.some(item => item.includes(label))) failures.push(`preparation: route missing ${label}`)
     })
-    if (prepLayout.labels.length !== 5) failures.push(`preparation: expected five proxy routes, got ${prepLayout.labels.join(' / ')}`)
-    if (prepLayout.original !== 'none') failures.push('preparation: duplicate in-page primary navigation is visible')
+    if (prepLayout.labels.length !== 5) failures.push(`preparation: expected five routes, got ${prepLayout.labels.join(' / ')}`)
     if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search controls were not moved into the header lane')
     if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: redundant wide overview toolbar remains visible')
-    if (overlaps(prepLayout.portal, prepLayout.proxy)) failures.push('preparation: header search overlaps primary workspace proxy')
+    if (prepLayout.navOverflow > 2) failures.push(`preparation: canonical navigation overflows by ${prepLayout.navOverflow}px`)
     if (prepLayout.draftPanel && prepLayout.journalPanel && Math.abs(prepLayout.draftPanel.height - prepLayout.journalPanel.height) > 4) failures.push('preparation: overview draft and journal panels are not equal height')
     if (prepLayout.assistant && prepLayout.topics && Math.abs(prepLayout.assistant.left - prepLayout.topics.left) > 4) failures.push('preparation: overview modules do not share one column')
     if (!prepLayout.primaryJournalGeometry || !prepLayout.primaryPeerGeometry) failures.push('preparation: global Journal Center geometry is missing')
@@ -122,8 +120,8 @@ try {
     }
   }
 
-  const prepProxy = prep.locator(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls")
-  await prepProxy.getByRole('button', { name: /论文准备/ }).click()
+  const prepNav = prep.locator('.preparation-workspace > .prep-nav-primary')
+  await prepNav.getByRole('button', { name: /论文准备/ }).click()
   await prep.locator(".preparation-workspace[data-section='paper']").waitFor({ state: 'visible', timeout: 5000 })
   const paperPanels = await prep.locator(".preparation-workspace[data-section='paper'] .prep-primary-section-grid > section").count()
   if (paperPanels < 2) failures.push(`preparation: paper workspace expected topic + draft panels, got ${paperPanels}`)
@@ -134,6 +132,7 @@ try {
   if (entryIcon.width < 18 || entryIcon.height < 18) failures.push(`preparation: Figure Composer entry icon is not prominent (${entryIcon.width}×${entryIcon.height}px)`)
   await figureEntry.click()
   await prep.locator(".preparation-workspace[data-section='figures'] .figure-composer").waitFor({ state: 'visible', timeout: 10000 })
+  if (await prep.locator(".preparation-workspace[data-section='figures'] > .prep-nav-primary").count()) failures.push('preparation: business navigation remains mounted in Figure Composer mode')
   const composerGeometry = await prep.locator('.figure-composer').evaluate(element => {
     const rect = element.getBoundingClientRect()
     return { width: rect.width, overflow: element.scrollWidth - element.clientWidth }
@@ -142,26 +141,28 @@ try {
   if (composerGeometry.overflow > 2) failures.push(`preparation: Figure Composer root horizontally overflows by ${composerGeometry.overflow}px`)
   await prep.screenshot({ path: 'focused-review/luminous-x-figure-composer.png', fullPage: true })
 
+  await prep.getByRole('button', { name: /返回投稿准备/ }).click()
+  await prep.locator('.preparation-workspace > .prep-nav-primary').waitFor({ state: 'visible', timeout: 5000 })
   const journalCenter = prep.locator("button[data-main-nav-key='journals']:visible").first()
   await journalCenter.click()
-  await prep.locator(".preparation-workspace[data-section='journals']").waitFor({ state: 'visible', timeout: 5000 })
+  await prep.locator(".preparation-workspace[data-section='match'] .journal-grid").waitFor({ state: 'visible', timeout: 5000 })
   await prep.close()
 
   const narrowPrep = await open('preparation', 1280, 1000)
   const narrow = await narrowPrep.evaluate(() => {
-    const proxy = document.querySelector(".lx-status-bar[data-page='preparation'] .lx-page-proxy-controls")
-    if (!proxy) return null
-    const rect = proxy.getBoundingClientRect()
-    const labels = Array.from(proxy.querySelectorAll('button')).filter(button => {
+    const nav = document.querySelector('.preparation-workspace > .prep-nav-primary')
+    if (!nav) return null
+    const rect = nav.getBoundingClientRect()
+    const labels = Array.from(nav.querySelectorAll(':scope > button')).filter(button => {
       const style = getComputedStyle(button)
       return style.display !== 'none' && style.visibility !== 'hidden'
     }).map(button => (button.textContent || '').replace(/\s+/g, ' ').trim())
-    return { labels, overflow: proxy.scrollWidth - proxy.clientWidth, rect: rect.toJSON() }
+    return { labels, overflow: nav.scrollWidth - nav.clientWidth, rect: rect.toJSON() }
   })
-  if (!narrow) failures.push('preparation narrow: proxy navigation missing')
+  if (!narrow) failures.push('preparation narrow: canonical navigation missing')
   else {
     if (narrow.labels.length !== 5) failures.push(`preparation narrow: expected five routes, got ${narrow.labels.join(' / ')}`)
-    if (narrow.overflow > 2) failures.push(`preparation narrow: proxy navigation overflows by ${narrow.overflow}px`)
+    if (narrow.overflow > 2) failures.push(`preparation narrow: navigation overflows by ${narrow.overflow}px`)
   }
   await narrowPrep.close()
 

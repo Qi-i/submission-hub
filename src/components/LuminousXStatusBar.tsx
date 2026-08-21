@@ -1,15 +1,10 @@
-import { useEffect, useState } from 'react'
 import { ArrowUpDown, BookOpen, LayoutGrid } from 'lucide-react'
+import type { PreparationSection } from './preparation/PreparationNavigation'
+import LuminousXStatsProxy from './LuminousXStatsProxy'
 
 export type LuminousXLayoutMode = 'workflow' | 'board' | 'journal'
 
-type PageKey = 'preparation' | 'dashboard' | 'stats' | 'admin'
-
-type ProxyOption = {
-  label: string
-  match: string
-  reset?: boolean
-}
+type PageKey = 'preparation' | 'journals' | 'dashboard' | 'stats' | 'admin'
 
 interface Props {
   modeLabel: string
@@ -17,6 +12,7 @@ interface Props {
   subtitle: string
   layoutMode?: LuminousXLayoutMode
   onLayoutModeChange?: (mode: LuminousXLayoutMode) => void
+  preparationSection?: PreparationSection
 }
 
 const VIEW_OPTIONS: Array<{ key: LuminousXLayoutMode; label: string; icon: typeof ArrowUpDown }> = [
@@ -25,88 +21,12 @@ const VIEW_OPTIONS: Array<{ key: LuminousXLayoutMode; label: string; icon: typeo
   { key: 'journal', label: '按期刊视图', icon: BookOpen },
 ]
 
-const PREPARATION_OPTIONS: ProxyOption[] = [
-  { label: '总览', match: '总览' },
-  { label: '论文准备', match: '论文准备' },
-  { label: '投稿材料', match: '投稿材料' },
-  { label: '期刊匹配', match: '期刊匹配' },
-  { label: '投稿前检查', match: '投稿前检查' },
-]
-
-const STATS_OPTIONS: ProxyOption[] = [
-  { label: '核心概览', match: '核心概览' },
-  { label: '过程指标', match: '过程指标' },
-  { label: '趋势图', match: '趋势图' },
-  { label: '分布概览', match: '分布概览' },
-  { label: '恢复默认', match: '恢复默认', reset: true },
-]
-
 function pageMeta(modeLabel: string): { key: PageKey; label: string } {
+  if (modeLabel.includes('期刊')) return { key: 'journals', label: '期刊中心' }
   if (modeLabel.includes('准备')) return { key: 'preparation', label: '投稿准备' }
   if (modeLabel.includes('统计')) return { key: 'stats', label: '个人统计' }
   if (modeLabel.includes('后台')) return { key: 'admin', label: '后台管理' }
   return { key: 'dashboard', label: '投稿管理' }
-}
-
-function findControlButton(containerSelector: string, match: string) {
-  const container = document.querySelector(containerSelector)
-  return Array.from(container?.querySelectorAll<HTMLButtonElement>('button') || [])
-    .find(button => button.textContent?.replace(/\s+/g, '').includes(match.replace(/\s+/g, '')))
-}
-
-function ProxyControls({ page }: { page: 'preparation' | 'stats' }) {
-  const options = page === 'preparation' ? PREPARATION_OPTIONS : STATS_OPTIONS
-  const sourceSelector = page === 'preparation'
-    ? '.preparation-workspace > .prep-nav-primary'
-    : '.stats-panel > .stats-module-controls'
-  const [active, setActive] = useState<string[]>([])
-
-  useEffect(() => {
-    let previous = ''
-    const sync = () => {
-      const next = options
-        .filter(option => !option.reset && findControlButton(sourceSelector, option.match)?.classList.contains('active'))
-        .map(option => option.match)
-      const signature = next.join('|')
-      if (signature !== previous) {
-        previous = signature
-        setActive(next)
-      }
-    }
-
-    sync()
-    const observer = new MutationObserver(sync)
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [page, sourceSelector])
-
-  const className = page === 'preparation'
-    ? 'prep-nav lx-page-proxy-controls'
-    : 'stats-module-controls lx-page-proxy-controls'
-
-  return (
-    <div className={className} role="group" aria-label={page === 'preparation' ? '投稿准备模块' : '个人统计模块'}>
-      {options.map(option => (
-        <button
-          key={option.match}
-          type="button"
-          className={!option.reset && active.includes(option.match) ? 'active' : option.reset ? 'lx-control-reset' : ''}
-          aria-pressed={option.reset ? undefined : active.includes(option.match)}
-          onClick={() => {
-            findControlButton(sourceSelector, option.match)?.click()
-            window.requestAnimationFrame(() => {
-              const next = options
-                .filter(item => !item.reset && findControlButton(sourceSelector, item.match)?.classList.contains('active'))
-                .map(item => item.match)
-              setActive(next)
-            })
-          }}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  )
 }
 
 export default function LuminousXStatusBar({
@@ -115,11 +35,19 @@ export default function LuminousXStatusBar({
   subtitle,
   layoutMode = 'workflow',
   onLayoutModeChange,
+  preparationSection = 'overview',
 }: Props) {
   const page = pageMeta(modeLabel)
+  const countLabel = page.key === 'journals' ? '期刊档案' : '记录总数'
+  const countUnit = page.key === 'journals' ? '本' : '篇'
 
   return (
-    <section className="lx-status-bar" data-page={page.key} aria-label={`${page.label}页面控制栏`}>
+    <section
+      className="lx-status-bar"
+      data-page={page.key}
+      data-preparation-section={page.key === 'preparation' ? preparationSection : undefined}
+      aria-label={`${page.label}页面控制栏`}
+    >
       <div className="lx-status-core">
         <span className="lx-status-beacon" aria-hidden="true" />
         <div>
@@ -130,7 +58,7 @@ export default function LuminousXStatusBar({
       </div>
 
       <div className="lx-status-controls-host" aria-label={`${page.label}页面操作`}>
-        {page.key === 'preparation' && <div id="lx-preparation-actions-slot" className="lx-preparation-actions-slot" />}
+        {page.key === 'preparation' && preparationSection !== 'figures' && <div id="lx-preparation-actions-slot" className="lx-preparation-actions-slot" />}
         {onLayoutModeChange && (
           <div className="lx-view-switch" role="group" aria-label="投稿记录视图">
             {VIEW_OPTIONS.map(option => {
@@ -150,13 +78,12 @@ export default function LuminousXStatusBar({
             })}
           </div>
         )}
-        {page.key === 'preparation' && <ProxyControls page="preparation" />}
-        {page.key === 'stats' && <ProxyControls page="stats" />}
+        {page.key === 'stats' && <LuminousXStatsProxy />}
       </div>
 
       <div className="lx-status-count">
-        <small>记录总数</small>
-        <span><b>{recordCount}</b><em>篇</em></span>
+        <small>{countLabel}</small>
+        <span><b>{recordCount}</b><em>{countUnit}</em></span>
       </div>
     </section>
   )

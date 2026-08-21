@@ -14,18 +14,20 @@ import PaperForm from './PaperForm'
 import MetricCard from './MetricCard'
 import ActionCenter from './ActionCenter'
 import OnlinePreparationWorkspace from './OnlinePreparationWorkspace'
+import type { PreparationSection } from './preparation/PreparationNavigation'
 import AccountSettingsModal from './AccountSettingsModal'
 import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
-import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb } from 'lucide-react'
+import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb, BookOpen } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
 
 type ViewFilter = 'all' | 'me' | 'author'
-type Tab = 'preparation' | 'dashboard' | 'stats' | 'admin'
+type Tab = 'preparation' | 'journals' | 'dashboard' | 'stats' | 'admin'
 type StatusFilter = 'all' | string
 
 const TAB_LABELS: Record<Tab, string> = {
   preparation: '投稿准备工作区',
+  journals: '期刊中心',
   dashboard: '投稿管理控制台',
   stats: '个人统计分析舱',
   admin: '后台管理中心',
@@ -33,6 +35,7 @@ const TAB_LABELS: Record<Tab, string> = {
 
 const TAB_SUBTITLES: Record<Tab, string> = {
   preparation: '组织选题、论文草稿和目标期刊，形成清晰的投稿前流程。',
+  journals: '集中管理期刊档案、投稿入口、评价指标、费用与横向比较。',
   dashboard: '集中管理与跟踪学术投稿的状态、作者、期刊和版本链。',
   stats: '从投稿状态、周期、期刊与作者维度审视个人成果进展。',
   admin: '管理系统账户、权限和后台配置。',
@@ -75,6 +78,7 @@ export default function Dashboard() {
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
   const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
+  const [preparationSection, setPreparationSection] = useState<PreparationSection>('overview')
   const [showSettings, setShowSettings] = useState(false)
   const [transferring, setTransferring] = useState(false)
 
@@ -83,7 +87,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (tab === 'admin' && !canAccessAdmin) setTab('dashboard')
-    if (tab === 'preparation' && isDemo) setTab('dashboard')
+    if ((tab === 'preparation' || tab === 'journals') && isDemo) setTab('dashboard')
   }, [tab, canAccessAdmin, isDemo])
 
   const closeTools = () => {
@@ -310,6 +314,7 @@ export default function Dashboard() {
           <div className="header-brand"><div className="header-logo">SH</div><div><div className="header-title">Submission Hub</div><div className="header-subtitle">学术投稿与成果管理</div></div></div>
           <nav className="header-tabs" aria-label="主导航">
             {!isDemo && <button className={tab === 'preparation' ? 'active' : ''} onClick={() => changeTab('preparation')}><Lightbulb size={14} /> 投稿准备</button>}
+            {!isDemo && <button className={tab === 'journals' ? 'active' : ''} onClick={() => changeTab('journals')}><BookOpen size={14} /> 期刊中心</button>}
             <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => changeTab('dashboard')}><FileText size={14} /> 投稿管理</button>
             <button className={tab === 'stats' ? 'active' : ''} onClick={() => changeTab('stats')}><BarChart3 size={14} /> 个人统计</button>
             {canAccessAdmin && <button className={tab === 'admin' ? 'active' : ''} onClick={() => changeTab('admin')}><Shield size={14} /> 后台管理</button>}
@@ -336,12 +341,15 @@ export default function Dashboard() {
       {uiMode === 'luminous-x' && <LuminousXStatusBar
         modeLabel={TAB_LABELS[tab]}
         subtitle={TAB_SUBTITLES[tab]}
-        recordCount={papers.length}
+        recordCount={tab === 'journals' ? journalProfiles.length : papers.length}
         layoutMode={layoutMode}
         onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
+        preparationSection={preparationSection}
       />}
 
-      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
+      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} section={preparationSection} onSectionChange={setPreparationSection} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
+
+      {tab === 'journals' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} section="match" onSectionChange={() => {}} workspaceMode="journal-center" onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
 
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>

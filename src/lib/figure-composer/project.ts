@@ -5,6 +5,18 @@ const DB_VERSION = 1
 const PROJECT_STORE = 'projects'
 const ASSET_STORE = 'assets'
 
+type LegacyFigureProject = Omit<FigureProject, 'publicationLabel'> & { publicationLabel?: string | null }
+
+function normalizeFigureProject(project: LegacyFigureProject): FigureProject {
+  const legacyPublicationLabel = /^(?:Figure \d+|Supplementary Figure S\d+)$/i.test(project.name)
+    ? project.name
+    : null
+  return {
+    ...project,
+    publicationLabel: project.publicationLabel ?? legacyPublicationLabel,
+  }
+}
+
 function requestValue<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result)
@@ -73,9 +85,11 @@ export async function listFigureProjects(draftId?: string | null): Promise<Figur
     const transaction = db.transaction(PROJECT_STORE, 'readonly')
     const store = transaction.objectStore(PROJECT_STORE)
     const projects = draftId === undefined
-      ? await requestValue(store.getAll()) as FigureProject[]
-      : await requestValue(store.index('draftId').getAll(draftId)) as FigureProject[]
-    return projects.sort((a, b) => a.role.localeCompare(b.role) || a.sequence - b.sequence || b.updatedAt.localeCompare(a.updatedAt))
+      ? await requestValue(store.getAll()) as LegacyFigureProject[]
+      : await requestValue(store.index('draftId').getAll(draftId)) as LegacyFigureProject[]
+    return projects
+      .map(normalizeFigureProject)
+      .sort((a, b) => a.role.localeCompare(b.role) || a.sequence - b.sequence || b.updatedAt.localeCompare(a.updatedAt))
   } finally {
     db.close()
   }
@@ -95,8 +109,9 @@ export async function loadFigureProject(projectId: string): Promise<{ project: F
   const db = await openFigureProjectDatabase()
   try {
     const transaction = db.transaction([PROJECT_STORE, ASSET_STORE], 'readonly')
-    const project = await requestValue(transaction.objectStore(PROJECT_STORE).get(projectId)) as FigureProject | undefined
-    if (!project) return null
+    const storedProject = await requestValue(transaction.objectStore(PROJECT_STORE).get(projectId)) as LegacyFigureProject | undefined
+    if (!storedProject) return null
+    const project = normalizeFigureProject(storedProject)
     const stored = await requestValue(transaction.objectStore(ASSET_STORE).index('projectId').getAll(projectId)) as StoredFigureAsset[]
     const assets = new Map<string, RuntimeFigureAsset>()
     for (const asset of stored) {
@@ -134,8 +149,9 @@ export async function deleteFigureAsset(projectId: string, assetId: string) {
     const transaction = db.transaction([PROJECT_STORE, ASSET_STORE], 'readwrite')
     transaction.objectStore(ASSET_STORE).delete(assetId)
     const projectStore = transaction.objectStore(PROJECT_STORE)
-    const project = await requestValue(projectStore.get(projectId)) as FigureProject | undefined
-    if (project) {
+    const storedProject = await requestValue(projectStore.get(projectId)) as LegacyFigureProject | undefined
+    if (storedProject) {
+      const project = normalizeFigureProject(storedProject)
       projectStore.put({
         ...project,
         panels: project.panels.filter(panel => panel.assetId !== assetId),

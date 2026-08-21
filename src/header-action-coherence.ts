@@ -76,7 +76,7 @@ function preparationPrimaryAction(): PrimaryAction | null {
     || document.querySelector<HTMLElement>('.prep-top-actions-portal')
   if (!actionHost) return null
 
-  if (section === 'journals' || section === 'compare') {
+  if (section === 'journals' || section === 'compare' || section === 'match') {
     const source = actionHost.querySelector<HTMLButtonElement>('.btn-journal-primary')
     return source ? { source, label: '新增期刊', title: '新增期刊档案' } : null
   }

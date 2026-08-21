@@ -1,0 +1,56 @@
+/* Luminous X adapter: shared Preparation semantics with X spatial treatment. */
+html[data-ui='luminous-x'] .preparation-workspace {
+  --prep-surface: var(--lx-panel,rgba(248,251,255,.78));
+  --prep-surface-elevated: var(--lx-panel-solid,rgba(248,251,255,.94));
+  --prep-surface-soft: color-mix(in srgb,var(--lx-panel-deep,rgba(228,239,255,.92)) 78%,transparent);
+  --prep-border: var(--lx-line,rgba(48,65,105,.15));
+  --prep-border-strong: var(--border-strong,rgba(38,56,99,.22));
+  --prep-text: var(--text-primary,#10162d);
+  --prep-text-muted: var(--text-secondary,#3f4c6b);
+}
+
+html[data-ui='luminous-x'] .prep-topbar,
+html[data-ui='luminous-x'] .prep-business-nav,
+html[data-ui='luminous-x'] .prep-panel,
+html[data-ui='luminous-x'] .prep-dashboard,
+html[data-ui='luminous-x'] .prep-productivity,
+html[data-ui='luminous-x'] .figure-composer {
+  box-shadow: var(--lx-shadow,var(--prep-shadow-card)) !important;
+  backdrop-filter: blur(20px) saturate(150%);
+}
+
+/* The same canonical five-route business navigation is rendered in both interfaces.
+   Historical Luminous X layers hid .prep-nav because an old proxy nav existed in the
+   status bar; the proxy has been retired, so the canonical React navigation owns the lane. */
+html[data-ui='luminous-x'] .preparation-workspace:not([data-section='figures']) > .prep-business-nav {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(5,minmax(0,1fr)) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace:not([data-section='figures']) > .prep-business-nav > .prep-nav-item {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  border-radius: 11px !important;
+}
+
+html[data-ui='luminous-x'] .prep-business-nav .prep-nav-item.active {
+  box-shadow: 0 10px 24px color-mix(in srgb,var(--prep-nav-tone) 13%,transparent), inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+html[data-ui='luminous-x'] .figure-composer {
+  border-color: color-mix(in srgb,var(--prep-violet) 18%,var(--prep-border)) !important;
+}
+html[data-ui='luminous-x'] .figure-composer__header {
+  background:
+    radial-gradient(circle at 0% 0%,rgba(35,191,211,.07),transparent 28%),
+    radial-gradient(circle at 100% 0%,rgba(198,91,199,.07),transparent 28%),
+    color-mix(in srgb,var(--prep-surface-elevated) 94%,transparent) !important;
+}
+
+html[data-ui='luminous-x'] .lx-preparation-actions-slot:empty { display: none; }

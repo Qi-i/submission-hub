@@ -35,7 +35,7 @@ function setExactText(element: Element | null, from: string, to: string) {
 }
 
 function journalTotal(workspace: HTMLElement) {
-  const value = workspace.querySelector<HTMLSpanElement>('.prep-nav button[data-tone="journal"] span')?.textContent
+  const value = workspace.querySelector<HTMLSpanElement>('.prep-nav button[data-tone="match"] .prep-nav-item__meta')?.textContent
   const parsed = Number(value)
   if (Number.isFinite(parsed)) return parsed
   return workspace.querySelectorAll('.prep-journal-card').length
@@ -110,7 +110,8 @@ function applyJournalFilter(workspace: HTMLElement, filter: JournalFilter) {
 
 function desiredCatalogHost(workspace: HTMLElement) {
   if (document.documentElement.dataset.ui === 'luminous-x') {
-    const statusHost = document.querySelector<HTMLElement>('.lx-status-bar[data-page="preparation"] .lx-status-controls-host')
+    const statusPage = workspace.classList.contains('journal-center-workspace') ? 'journals' : 'preparation'
+    const statusHost = document.querySelector<HTMLElement>(`.lx-status-bar[data-page="${statusPage}"] .lx-status-controls-host`)
     if (statusHost) return statusHost
   }
   return workspace.querySelector<HTMLElement>(':scope > .prep-topbar')
@@ -121,8 +122,9 @@ function removeLegacyCatalogRows(workspace: HTMLElement) {
 }
 
 function ensureCatalogFilters(workspace: HTMLElement) {
-  const activeSection = workspace.dataset.section === 'journals'
-  const statusBar = document.querySelector<HTMLElement>('.lx-status-bar[data-page="preparation"]')
+  const activeSection = workspace.dataset.section === 'match'
+  const statusPage = workspace.classList.contains('journal-center-workspace') ? 'journals' : 'preparation'
+  const statusBar = document.querySelector<HTMLElement>(`.lx-status-bar[data-page="${statusPage}"]`)
   statusBar?.toggleAttribute('data-journal-center-active', activeSection)
 
   if (!activeSection) {

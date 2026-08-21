@@ -1,7 +1,7 @@
-/* Highest-priority production contracts. Keep this file as the final legacy contract layer. */
+/* Highest-priority legacy contracts retained only where they still match the unified architecture. */
 
-html[data-ui] body .preparation-workspace[data-section='journals'] .journal-grid > .prep-journal-card.is-catalog-filtered-out,
-html[data-ui] body .preparation-workspace[data-section='journals'] .prep-journal-card.is-catalog-filtered-out {
+html[data-ui] body .preparation-workspace[data-section='match'] .journal-grid > .prep-journal-card.is-catalog-filtered-out,
+html[data-ui] body .preparation-workspace[data-section='match'] .prep-journal-card.is-catalog-filtered-out {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
@@ -26,13 +26,14 @@ html[data-ui='luminous'] body .preparation-workspace[data-section='overview'] > 
   .prep-dashboard,
   .prep-metrics,
   .prep-overview-grid,
-  .prep-topic-overview
+  .prep-topic-overview,
+  .prep-overview-modules
 ) {
   grid-column: 1 !important;
   grid-row: auto !important;
 }
 
-html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary {
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   grid-template-rows: minmax(0, 1fr) !important;
@@ -53,21 +54,20 @@ html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals
   pointer-events: auto !important;
 }
 
-html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary::before,
-html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary::after {
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary::before,
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary::after {
   content: none !important;
   display: none !important;
   pointer-events: none !important;
 }
 
-html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary > button {
-  display: inline-flex !important;
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button {
+  display: grid !important;
   width: 100% !important;
   min-width: 0 !important;
   height: 36px !important;
   min-height: 36px !important;
   max-height: 36px !important;
-  padding: 0 9px !important;
   grid-column: auto !important;
   grid-row: auto !important;
   align-self: stretch !important;
@@ -85,26 +85,8 @@ html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > butto
 html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='match'] { order: 4 !important; }
 html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='check'] { order: 5 !important; }
 
-/* Journal Center is a separate global route. Its information bar and card grid must have
-   a deliberate panel gap instead of visually touching at their borders. */
-html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
-  grid-auto-flow: row !important;
-  grid-auto-rows: max-content !important;
-  column-gap: 0 !important;
-  row-gap: 14px !important;
-  align-items: start !important;
-}
-
-html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] > .prep-topbar,
-html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] > .prep-card-grid.journal-grid {
-  grid-column: 1 !important;
-  margin: 0 !important;
-}
-
 @media (max-width: 1080px) {
-  html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
+  html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
     height: auto !important;
@@ -114,7 +96,7 @@ html[data-ui='luminous'] body .preparation-workspace[data-section='journals'] > 
 }
 
 @media (max-width: 720px) {
-  html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
+  html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
     min-height: 132px !important;

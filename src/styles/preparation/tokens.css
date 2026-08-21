@@ -1,0 +1,61 @@
+/* Unified Submission Hub Preparation design tokens. */
+:root {
+  /* One resolution-aware horizontal datum for the whole Luminous application.
+     Keep normal desktops compact, but allow 2K/ultrawide screens to use the
+     available workspace instead of freezing all pages at the old 1500px cap. */
+  --ui-page-width: 2400px;
+  --ui-page-gutter: clamp(8px, .7vw, 18px);
+  --ui-shell-max: var(--ui-page-width);
+  --ui-shell-gutter: var(--ui-page-gutter);
+
+  --prep-surface: rgba(255,255,255,.86);
+  --prep-surface-elevated: rgba(255,255,255,.96);
+  --prep-surface-soft: rgba(245,248,253,.88);
+  --prep-surface-muted: rgba(235,241,249,.78);
+  --prep-border: rgba(74,96,132,.14);
+  --prep-border-strong: rgba(63,86,126,.24);
+  --prep-text: #142038;
+  --prep-text-muted: #64718a;
+  --prep-cyan: #23bfd3;
+  --prep-sky: #3299ef;
+  --prep-blue: #4f71e8;
+  --prep-violet: #7d5ce7;
+  --prep-magenta: #c65bc7;
+  --prep-amber: #d99a32;
+  --prep-danger: #d95b67;
+  --prep-ok: #2aa879;
+  --prep-radius-xs: 8px;
+  --prep-radius-sm: 10px;
+  --prep-radius-md: 14px;
+  --prep-radius-lg: 18px;
+  --prep-control-h: 36px;
+  --prep-gap-xs: 6px;
+  --prep-gap-sm: 10px;
+  --prep-gap-md: 14px;
+  --prep-gap-lg: 18px;
+  --prep-shadow-soft: 0 8px 26px rgba(28,48,82,.07);
+  --prep-shadow-card: 0 16px 42px rgba(28,48,82,.10);
+  --prep-focus: 0 0 0 3px rgba(50,153,239,.13);
+}
+
+[data-theme='dark'] {
+  --prep-surface: rgba(37,48,61,.90);
+  --prep-surface-elevated: rgba(43,55,69,.96);
+  --prep-surface-soft: rgba(31,42,54,.92);
+  --prep-surface-muted: rgba(52,65,80,.76);
+  --prep-border: rgba(184,207,228,.12);
+  --prep-border-strong: rgba(192,214,234,.20);
+  --prep-text: #edf3f9;
+  --prep-text-muted: #9eacbc;
+  --prep-cyan: #72c8df;
+  --prep-sky: #75b7e8;
+  --prep-blue: #87a5e4;
+  --prep-violet: #a89bd7;
+  --prep-magenta: #d58bab;
+  --prep-amber: #d8b16b;
+  --prep-danger: #dc8b92;
+  --prep-ok: #68bca0;
+  --prep-shadow-soft: 0 8px 24px rgba(4,10,16,.16);
+  --prep-shadow-card: 0 16px 40px rgba(4,10,16,.24);
+  --prep-focus: 0 0 0 3px rgba(114,200,223,.12);
+}

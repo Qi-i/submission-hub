@@ -15,7 +15,7 @@ async function openJournalLibrary(page, ui, theme) {
   const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
   await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
   await journalCenter.evaluate(element => element.click())
-  await page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
+  await page.locator('.preparation-workspace[data-section="match"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(260)
 }
 
@@ -50,7 +50,7 @@ async function inspectDesktop(ui, theme) {
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
       }
-      const grid = document.querySelector('.preparation-workspace[data-section="journals"]:not([hidden]) .journal-grid')
+      const grid = document.querySelector('.preparation-workspace[data-section="match"]:not([hidden]) .journal-grid')
       const cards = grid ? Array.from(grid.querySelectorAll('.prep-journal-card')) : []
       if (!grid || !cards.length) return { failures: ['journal library fixture is incomplete'], details: {} }
 
@@ -148,7 +148,7 @@ async function inspectMobile(ui) {
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
       }
-      const grid = document.querySelector('.preparation-workspace[data-section="journals"] .journal-grid')
+      const grid = document.querySelector('.preparation-workspace[data-section="match"] .journal-grid')
       const cards = grid ? Array.from(grid.querySelectorAll('.prep-journal-card')) : []
       if (!grid || !cards.length) return ['mobile journal library fixture is incomplete']
       const localFailures = []
