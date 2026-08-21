@@ -1,0 +1,42 @@
+/* Unified Preparation responsive contract. */
+@media (max-width: 1707px) {
+  .prep-topbar { grid-template-columns: minmax(240px,.8fr) minmax(560px,1.2fr); }
+  .prep-search { min-width: 210px; }
+  .figure-composer__workspace { grid-template-columns: 228px minmax(500px,1fr) 286px !important; }
+}
+
+@media (max-width: 1440px) {
+  .prep-topbar { grid-template-columns: 1fr; align-items: start; }
+  .prep-top-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+  .prep-search { flex: 1 1 260px; }
+  .figure-composer__workspace { grid-template-columns: 218px minmax(470px,1fr) 278px !important; }
+}
+
+@media (max-width: 1180px) {
+  .prep-business-nav { overflow-x: auto; grid-template-columns: repeat(5,minmax(150px,1fr)) !important; }
+  .figure-composer__workspace { grid-template-columns: 208px minmax(430px,1fr) !important; height: auto !important; }
+  .figure-composer__right {
+    grid-column: 1/-1;
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    border-left: 0 !important;
+    border-top: 1px solid var(--prep-border);
+  }
+}
+
+@media (max-width: 820px) {
+  .prep-topbar { padding: 12px; border-radius: var(--prep-radius-md); }
+  .prep-business-nav { grid-template-columns: repeat(5,142px) !important; }
+  .prep-primary-section-grid,
+  .prep-overview-grid,
+  .prep-check-grid { grid-template-columns: 1fr !important; }
+  .figure-composer { min-height: auto !important; border-radius: var(--prep-radius-md) !important; }
+  .figure-composer__header { align-items: flex-start !important; flex-direction: column !important; }
+  .figure-composer__header-actions { width: 100%; justify-content: flex-start !important; }
+  .figure-composer__workspace { display: block !important; min-height: 0 !important; }
+  .figure-composer__left,
+  .figure-composer__right { border: 0 !important; border-bottom: 1px solid var(--prep-border) !important; }
+  .figure-composer__right { display: block; }
+  .figure-composer__center { min-height: 520px; }
+  .figure-composer__canvas-viewport { min-height: 420px; padding: 18px !important; }
+}
