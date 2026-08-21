@@ -1,13 +1,13 @@
 /* Journal selection metadata shared by Luminous and Luminous X. */
 
-.preparation-workspace[data-section='journals'] .prep-journal-facts > span[data-tone='selection'] {
+.preparation-workspace[data-section='match'] .prep-journal-facts > span[data-tone='selection'] {
   border-color: rgba(124, 58, 237, .16) !important;
   background: rgba(124, 58, 237, .075) !important;
   color: #6d28d9 !important;
   font-weight: 760 !important;
 }
 
-html[data-theme='dark'] .preparation-workspace[data-section='journals'] .prep-journal-facts > span[data-tone='selection'] {
+html[data-theme='dark'] .preparation-workspace[data-section='match'] .prep-journal-facts > span[data-tone='selection'] {
   border-color: rgba(196, 181, 253, .2) !important;
   background: rgba(139, 92, 246, .12) !important;
   color: #c4b5fd !important;
