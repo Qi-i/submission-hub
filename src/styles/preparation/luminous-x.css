@@ -36,6 +36,7 @@ html[data-ui='luminous-x'] .preparation-workspace:not([data-section='figures']) 
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+  border-radius: 11px !important;
 }
 
 html[data-ui='luminous-x'] .prep-business-nav .prep-nav-item.active {
