@@ -123,7 +123,7 @@ try {
 
   const preparationActive = await activeStyle(preparationX, 'preparation')
   await preparationX.locator("button[data-main-nav-key='journals']").click()
-  await preparationX.locator('.preparation-workspace[data-section="journals"]').waitFor({ state: 'visible', timeout: 15000 })
+  await preparationX.locator('.preparation-workspace[data-section="match"]').waitFor({ state: 'visible', timeout: 15000 })
   await preparationX.waitForTimeout(300)
   const journalLabel = (await primary.textContent() || '').replace(/\s+/g, '')
   if (!journalLabel.includes('新增期刊')) fail(`luminous-x/journals: 主操作未切换为新增期刊（${journalLabel}）`)
@@ -201,12 +201,12 @@ try {
 
   const preparationActive = await activeStyle(preparationLuminous, 'preparation')
   await preparationLuminous.locator("button[data-main-nav-key='journals']").click()
-  await preparationLuminous.locator('.preparation-workspace[data-section="journals"]').waitFor({ state: 'visible', timeout: 15000 })
+  await preparationLuminous.locator('.preparation-workspace[data-section="match"]').waitFor({ state: 'visible', timeout: 15000 })
   await preparationLuminous.waitForTimeout(300)
 
   const journalGap = await preparationLuminous.evaluate(() => {
-    const topbar = document.querySelector('.preparation-workspace[data-section="journals"] > .prep-topbar')?.getBoundingClientRect()
-    const grid = document.querySelector('.preparation-workspace[data-section="journals"] > .prep-card-grid.journal-grid')?.getBoundingClientRect()
+    const topbar = document.querySelector('.preparation-workspace[data-section="match"] > .prep-topbar')?.getBoundingClientRect()
+    const grid = document.querySelector('.preparation-workspace[data-section="match"] > .prep-card-grid.journal-grid')?.getBoundingClientRect()
     return topbar && grid ? grid.top - topbar.bottom : null
   })
   if (journalGap === null) fail('luminous/journals: 无法读取顶栏与期刊卡片网格位置')

@@ -21,7 +21,7 @@ try {
 
   await page.goto(`${base}?scope=${scope}`)
   await page.locator('main[data-current-page="preparation"]').waitFor()
-  await page.locator('.preparation-workspace[data-section="journals"]').waitFor()
+  await page.locator('.preparation-workspace[data-section="match"]').waitFor()
 
   await page.getByRole('button', { name: '投稿管理' }).click()
   await page.locator('main[data-current-page="dashboard"]').waitFor()
@@ -31,7 +31,7 @@ try {
   await page.locator('main[data-current-page="dashboard"][data-current-layout="board"]').waitFor()
 
   await page.getByRole('button', { name: '投稿准备' }).click()
-  await page.locator('.preparation-workspace[data-section="journals"]').waitFor()
+  await page.locator('.preparation-workspace[data-section="match"]').waitFor()
   await page.getByRole('button', { name: '草稿准备' }).first().click()
   await page.locator('.preparation-workspace[data-section="drafts"]').waitFor()
   await page.getByRole('button', { name: '个人统计' }).click()

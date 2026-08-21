@@ -28,7 +28,7 @@ async function openJournalLibrary(page) {
   const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
   await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
   await journalCenter.evaluate(element => element.click())
-  await page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
+  await page.locator('.preparation-workspace[data-section="match"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(300)
 }
 
@@ -119,7 +119,7 @@ async function inspect(ui, viewport) {
     await ensureBilingualFixture(page)
 
     const library = await page.evaluate(() => {
-      const visibleRoot = Array.from(document.querySelectorAll('.preparation-workspace[data-section="journals"]')).find(element => {
+      const visibleRoot = Array.from(document.querySelectorAll('.preparation-workspace[data-section="match"]')).find(element => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0

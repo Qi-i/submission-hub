@@ -34,7 +34,3 @@ html[data-ui='luminous-x'] .figure-composer__header {
 }
 
 html[data-ui='luminous-x'] .lx-preparation-actions-slot:empty { display: none; }
-html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'][data-preparation-section='figures'] .lx-page-proxy-controls,
-html[data-ui='luminous-x'] .lx-status-bar[data-page='preparation'][data-preparation-section='figures'] .prep-business-nav {
-  display: none !important;
-}

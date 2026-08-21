@@ -36,7 +36,8 @@ expect(prepNav.includes('prep-nav-item__icon') && prepNav.includes('prep-nav-ite
 for (const forbidden of ['findControlButton', 'document.querySelector', 'MutationObserver']) {
   expect(!lx.includes(forbidden), `Luminous X preparation controls must not use ${forbidden}.`)
 }
-expect(lx.includes('preparationSection') && lx.includes('onPreparationSectionChange'), 'Luminous X must consume the shared preparation section state directly.')
+expect(lx.includes('preparationSection'), 'Luminous X must consume shared preparation section context.')
+expect(!lx.includes('PREPARATION_OPTIONS') && !lx.includes('PreparationControls') && !lx.includes('onPreparationSectionChange'), 'Luminous X must not implement a second Preparation business navigation.')
 
 // P0: no dynamic DOM injection for overview modules.
 for (const forbidden of ['MutationObserver', 'document.createElement', 'appendChild', 'createPortal']) {

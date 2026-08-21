@@ -342,7 +342,6 @@ export default function Dashboard() {
         layoutMode={layoutMode}
         onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
         preparationSection={preparationSection}
-        onPreparationSectionChange={tab === 'preparation' ? setPreparationSection : undefined}
       />}
 
       {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} section={preparationSection} onSectionChange={setPreparationSection} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}

@@ -41,7 +41,7 @@ async function openJournalLibrary(page, ui) {
   await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
   await journalCenter.evaluate(element => element.click())
 
-  await page.locator('.preparation-workspace[data-section="journals"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
+  await page.locator('.preparation-workspace[data-section="match"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.waitForTimeout(300)
 }

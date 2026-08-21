@@ -195,3 +195,12 @@
 }
 .prep-module-order-control:active { cursor: grabbing; }
 .prep-reorder-topic.is-collapsed .prep-overview-module-toolbar { margin-bottom: 0; }
+
+
+/* React-owned overview modules align exactly with the Preparation content lane. */
+.prep-overview-modules,
+.prep-overview-module { width: 100%; min-width: 0; }
+.prep-overview-module > .prep-productivity {
+  width: 100% !important;
+  margin: 0 !important;
+}

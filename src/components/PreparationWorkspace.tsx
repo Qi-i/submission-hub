@@ -302,7 +302,7 @@ export default function PreparationWorkspace({
           <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}>
             <Star size={14} /> 收藏期刊
           </button>
-          {!['journals', 'compare'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}>
+          {!['journals', 'compare', 'match'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}>
             <Plus size={14} /> {section === 'topics' ? '新增选题' : '新建草稿'}
           </button>}
         </div>,
@@ -317,7 +317,7 @@ export default function PreparationWorkspace({
           <button className="btn btn-journal-primary btn-sm" onClick={() => setEditor({ type: 'journal', value: 'new' })}>
             <Star size={14} /> 收藏期刊
           </button>
-          {!['journals', 'compare'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}>
+          {!['journals', 'compare', 'match'].includes(section) && <button className="btn btn-context-new btn-sm" onClick={openContextNew}>
             <Plus size={14} /> {section === 'topics' ? '新增选题' : '新建草稿'}
           </button>}
         </div>)}

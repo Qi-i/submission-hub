@@ -35,7 +35,7 @@ function setExactText(element: Element | null, from: string, to: string) {
 }
 
 function journalTotal(workspace: HTMLElement) {
-  const value = workspace.querySelector<HTMLSpanElement>('.prep-nav button[data-tone="journal"] span')?.textContent
+  const value = workspace.querySelector<HTMLSpanElement>('.prep-nav button[data-tone="match"] .prep-nav-item__meta')?.textContent
   const parsed = Number(value)
   if (Number.isFinite(parsed)) return parsed
   return workspace.querySelectorAll('.prep-journal-card').length
@@ -121,7 +121,7 @@ function removeLegacyCatalogRows(workspace: HTMLElement) {
 }
 
 function ensureCatalogFilters(workspace: HTMLElement) {
-  const activeSection = workspace.dataset.section === 'journals'
+  const activeSection = workspace.dataset.section === 'match'
   const statusBar = document.querySelector<HTMLElement>('.lx-status-bar[data-page="preparation"]')
   statusBar?.toggleAttribute('data-journal-center-active', activeSection)
 

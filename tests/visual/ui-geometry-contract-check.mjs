@@ -20,7 +20,7 @@ for (const token of [
   if (!materialCss.includes(token)) fail(`material contract source is missing: ${token}`)
 }
 for (const token of [
-  "preparation-workspace[data-section='journals'] > .prep-nav",
+  "preparation-workspace[data-section='match'] > .prep-nav",
   '.prep-journal-card.is-catalog-filtered-out',
   "grid-template-columns: repeat(4, minmax(0, 1fr))",
   "html[data-ui='luminous'] body .paper-grid",
@@ -179,14 +179,14 @@ for (const ui of ['luminous', 'luminous-x']) {
     const entry = catalogPage.locator(".header-tabs > button[data-main-nav-key='journals']:visible, .tab-bar > button[data-main-nav-key='journals']:visible").first()
     await entry.evaluate(element => element.click())
     await catalogPage.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
-    await catalogPage.locator('.preparation-workspace[data-section="journals"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
+    await catalogPage.locator('.preparation-workspace[data-section="match"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
     const catalog = await catalogPage.evaluate(currentUi => {
       const visible = element => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
       }
-      const workspace = document.querySelector('.preparation-workspace[data-section="journals"]')
+      const workspace = document.querySelector('.preparation-workspace[data-section="match"]')
       const filters = document.querySelector('.journal-catalog-top-filters')
       const expectedHost = currentUi === 'luminous-x'
         ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-status-controls-host')
@@ -210,7 +210,7 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (catalog.active !== 'all') fail(`${ui}/catalog: default filter is not all`)
     if (catalog.cards !== catalog.visibleCards) fail(`${ui}/catalog: default view hides records (${catalog.visibleCards}/${catalog.cards})`)
     if (!catalog.ordinary) fail(`${ui}/catalog: non-favorite records are missing`)
-    if (catalog.navDisplay !== 'none') fail(`${ui}/catalog: lower Preparation navigation row remains visible`)
+    if (catalog.navDisplay === 'none' || catalog.navDisplay === 'missing') fail(`${ui}/catalog: canonical Preparation navigation is missing`)
     if (catalog.overflow > 2) fail(`${ui}/catalog: top filters overflow by ${catalog.overflow}px`)
     details.push(`${ui}/catalog: ${catalog.labels.join('|')}; records=${catalog.visibleCards}/${catalog.cards}`)
   } finally {

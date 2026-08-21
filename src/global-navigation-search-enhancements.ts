@@ -7,7 +7,7 @@ const SEARCH_INPUT_SELECTOR = [
   'input[placeholder*="检索"]',
 ].join(', ')
 
-type PreparationSection = 'overview' | 'journals'
+type PreparationSection = 'overview' | 'match'
 
 let frame = 0
 let openingJournalCenter = false
@@ -80,28 +80,8 @@ function enhanceSearchInput(input: HTMLInputElement) {
   sync()
 }
 
-function markInternalJournalRoute(button: HTMLButtonElement | null) {
-  if (!button) return
-  button.dataset.journalCenterInternal = 'true'
-  button.hidden = true
-  button.setAttribute('aria-hidden', 'true')
-  button.tabIndex = -1
-}
-
-function markJournalButtonsInside(root: ParentNode | null) {
-  if (!root) return
-  root.querySelectorAll<HTMLButtonElement>('button').forEach(button => {
-    if (compactText(button.textContent).includes('期刊库')) markInternalJournalRoute(button)
-  })
-}
-
-function hideDuplicateJournalEntries() {
-  document.querySelectorAll<HTMLElement>('.preparation-workspace > .prep-nav').forEach(markJournalButtonsInside)
-  document.querySelectorAll<HTMLElement>('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls').forEach(markJournalButtonsInside)
-}
-
 function clickPreparationSection(section: PreparationSection) {
-  const targetLabel = section === 'journals' ? '期刊库' : '总览'
+  const targetLabel = section === 'match' ? '期刊匹配' : '总览'
   let attempts = 0
 
   const apply = () => {
@@ -110,9 +90,7 @@ function clickPreparationSection(section: PreparationSection) {
     const nav = workspace?.querySelector<HTMLElement>(':scope > .prep-nav')
     const button = nav ? buttonByLabel(nav, targetLabel) : null
     if (workspace && button) {
-      button.hidden = false
       if (!button.classList.contains('active')) button.click()
-      markInternalJournalRoute(button)
       scheduleEnhance()
       if (workspace.dataset.section === section || attempts >= 12) return
     }
@@ -150,7 +128,7 @@ function ensureJournalCenterButton(nav: HTMLElement) {
       openingJournalCenter = true
       preparation.click()
       openingJournalCenter = false
-      clickPreparationSection('journals')
+      clickPreparationSection('match')
     })
     nav.appendChild(journal)
   }
@@ -170,7 +148,7 @@ function syncNavigationState(nav: HTMLElement) {
   if (!preparation || !journal) return
 
   const workspace = document.querySelector<HTMLElement>('.preparation-workspace')
-  const journalSection = !!workspace && workspace.dataset.section === 'journals'
+  const journalSection = !!workspace && workspace.dataset.section === 'match'
 
   if (workspace) {
     preparation.classList.toggle('active', !journalSection)
@@ -215,7 +193,6 @@ function enhance() {
     ensureJournalCenterButton(nav)
     syncNavigationState(nav)
   })
-  hideDuplicateJournalEntries()
   document.querySelectorAll<HTMLInputElement>(SEARCH_INPUT_SELECTOR).forEach(enhanceSearchInput)
 }
 
