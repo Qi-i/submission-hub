@@ -15,6 +15,9 @@ const prepNav = read('src/components/preparation/PreparationNavigation.tsx')
 const suite = read('src/components/PreparationWorkspaceSuite.tsx')
 const lx = read('src/components/LuminousXStatusBar.tsx')
 const styles = read('src/app-styles.ts')
+const shellCss = read('src/styles/preparation/shell.css')
+const dashboardSource = read('src/components/Dashboard.tsx')
+const globalNavigationSource = read('src/global-navigation-search-enhancements.ts')
 
 // P0: universal Figure Composer identity.
 expect(!composer.includes('drafts[0]'), 'Figure Composer must never implicitly bind drafts[0].')
@@ -55,6 +58,9 @@ for (const file of [
   'src/styles/preparation/responsive.css',
 ]) expect(exists(file), `Missing unified preparation style file: ${file}`)
 expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css"), 'app-styles.ts must load the unified preparation style system.')
+expect(shellCss.includes('.app-layout > .online-preparation-shell') && shellCss.includes('max-width: var(--ui-shell-max)'), 'Online Preparation shell must use the global centered content lane.')
+expect(dashboardSource.includes("'journals'") && dashboardSource.includes('期刊中心') && dashboardSource.includes('workspaceMode="journal-center"'), 'Journal Center must remain a first-class global React route.')
+expect(!globalNavigationSource.includes('createJournalCenterButton') && !globalNavigationSource.includes("clickPreparationSection('match')"), 'Global navigation must never fake Journal Center by redirecting to Preparation match.')
 
 if (failures.length) {
   console.error(`Unified Preparation contract failed (${failures.length}):`)

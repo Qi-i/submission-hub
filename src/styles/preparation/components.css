@@ -251,3 +251,60 @@
   height: auto !important;
   min-height: 0 !important;
 }
+
+
+/* Canonical overview flow: unified navigation is always one full-width five-column row. */
+@media (min-width: 1080px) {
+  html[data-ui] body .preparation-workspace[data-section='overview'] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: none !important;
+    grid-auto-rows: auto !important;
+    align-items: stretch !important;
+    column-gap: 0 !important;
+    row-gap: var(--prep-gap-md) !important;
+  }
+
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-topbar,
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-business-nav,
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-dashboard,
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-overview-grid,
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-overview-modules,
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-topic-overview,
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-productivity {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    align-self: stretch !important;
+  }
+
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-business-nav {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-rows: 44px !important;
+    grid-auto-flow: row !important;
+    align-content: stretch !important;
+    margin: 0 !important;
+    padding: 7px !important;
+  }
+
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-business-nav > .prep-nav-item,
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-business-nav > .prep-nav-item:nth-child(n) {
+    grid-column: auto !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    margin: 0 !important;
+    transform: none;
+  }
+
+  html[data-ui] body .preparation-workspace[data-section='overview'] > .prep-dashboard {
+    margin: 0 !important;
+  }
+}

@@ -78,7 +78,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         const selectors = currentView === 'dashboard'
           ? ['.app-layout > .metric-grid', '.app-layout > .action-center', '.app-layout > .paper-grid, .app-layout > .lx-board-view, .app-layout > .lx-journal-view']
           : currentView === 'preparation'
-            ? ['.app-layout > .preparation-suite']
+            ? ['.app-layout > .online-preparation-shell, .app-layout > .preparation-suite']
             : ['.app-layout > .stats-panel']
         const surfaces = selectors.map(selector => Array.from(document.querySelectorAll(selector)).find(visible)).filter(Boolean)
         const menuGroups = Array.from(document.querySelectorAll('.header-tabs, .prep-nav-primary, .stats-module-controls'))
@@ -99,9 +99,12 @@ for (const ui of ['luminous', 'luminous-x']) {
         const journalStyle = journalCenter ? getComputedStyle(journalCenter) : null
         const preparationStyle = preparationButton ? getComputedStyle(preparationButton) : null
         const prepNav = document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav-primary')
-        const prepLabels = prepNav
-          ? Array.from(prepNav.querySelectorAll(':scope > button')).filter(visible).map(button => (button.textContent || '').replace(/\s+/g, ' ').trim())
-          : []
+        const prepButtons = prepNav ? Array.from(prepNav.querySelectorAll(':scope > button')).filter(visible) : []
+        const prepLabels = prepButtons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim())
+        const prepToneSignatures = prepButtons.map(button => {
+          const style = getComputedStyle(button)
+          return `${style.backgroundColor}|${style.backgroundImage}|${style.borderColor}`
+        })
         return {
           header: rect(header),
           shell: rect(shell),
@@ -126,6 +129,7 @@ for (const ui of ['luminous', 'luminous-x']) {
             justifyContent: preparationStyle.justifyContent,
           } : null,
           prepLabels,
+          prepToneSignatures,
           overviewJournalPanel: !!Array.from(document.querySelectorAll('.prep-overview-journals')).find(visible),
           visibleText: Array.from(document.querySelectorAll('.preparation-workspace button, .preparation-workspace h2, .preparation-workspace .prep-empty')).filter(visible).map(element => element.textContent || '').join(' '),
         }
@@ -172,6 +176,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         if (report.prepLabels.length !== 5) fail(`${ui}: Preparation does not expose exactly five business routes (${report.prepLabels.join(' / ')} )`)
         for (const label of required) if (!report.prepLabels.some(item => item.includes(label))) fail(`${ui}: Preparation route ${label} is missing`)
         if (report.prepLabels.some(item => ['选题池', '草稿准备', '期刊库', '期刊比较'].some(legacy => item.includes(legacy)))) fail(`${ui}: legacy secondary Preparation routes remain in the primary navigation`)
+        if (new Set(report.prepToneSignatures).size < 4) fail(`${ui}: idle Preparation routes are not visually distinguishable`)
         if (!report.overviewJournalPanel) fail(`${ui}: journal overview panel was removed from Preparation overview`)
         if (/收藏期刊/.test(report.visibleText)) fail(`${ui}: legacy favorite-only wording remains visible`)
       }
@@ -186,17 +191,21 @@ for (const ui of ['luminous', 'luminous-x']) {
     const entry = catalogPage.locator(".header-tabs > button[data-main-nav-key='journals']:visible, .tab-bar > button[data-main-nav-key='journals']:visible").first()
     await entry.evaluate(element => element.click())
     await catalogPage.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
-    await catalogPage.locator('.preparation-workspace[data-section="match"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
+    await catalogPage.locator('.journal-center-workspace[data-section="match"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
+    const journalRouteActive = await entry.evaluate(element => element.classList.contains('active'))
+    const preparationRouteActive = await catalogPage.locator("button[data-main-nav-key='preparation']:visible").first().evaluate(element => element.classList.contains('active'))
+    if (!journalRouteActive) fail(`${ui}/catalog: Journal Center main route is not active after navigation`)
+    if (preparationRouteActive) fail(`${ui}/catalog: Preparation remains active while Journal Center is open`)
     const catalog = await catalogPage.evaluate(currentUi => {
       const visible = element => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
       }
-      const workspace = document.querySelector('.preparation-workspace[data-section="match"]')
+      const workspace = document.querySelector('.journal-center-workspace[data-section="match"]')
       const filters = document.querySelector('.journal-catalog-top-filters')
       const expectedHost = currentUi === 'luminous-x'
-        ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-status-controls-host')
+        ? document.querySelector('.lx-status-bar[data-page="journals"] .lx-status-controls-host')
         : workspace?.querySelector(':scope > .prep-topbar')
       const buttons = Array.from(filters?.querySelectorAll('.journal-catalog-filter') || [])
       const cards = Array.from(workspace?.querySelectorAll('.prep-journal-card') || [])
@@ -217,7 +226,7 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (catalog.active !== 'all') fail(`${ui}/catalog: default filter is not all`)
     if (catalog.cards !== catalog.visibleCards) fail(`${ui}/catalog: default view hides records (${catalog.visibleCards}/${catalog.cards})`)
     if (!catalog.ordinary) fail(`${ui}/catalog: non-favorite records are missing`)
-    if (catalog.navDisplay === 'none' || catalog.navDisplay === 'missing') fail(`${ui}/catalog: canonical Preparation navigation is missing`)
+    if (catalog.navDisplay !== 'none' && catalog.navDisplay !== 'missing') fail(`${ui}/catalog: standalone Journal Center must not render Preparation business navigation`)
     if (catalog.overflow > 2) fail(`${ui}/catalog: top filters overflow by ${catalog.overflow}px`)
     details.push(`${ui}/catalog: ${catalog.labels.join('|')}; records=${catalog.visibleCards}/${catalog.cards}`)
   } finally {

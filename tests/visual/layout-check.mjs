@@ -221,17 +221,19 @@ try {
     await page.waitForTimeout(120)
     const journalTabGeometry = await page.evaluate((tol) => {
       const failures = []
-      const panel = document.querySelector('.preparation-workspace')
-      const nav = document.querySelector('.prep-nav')
-      const grid = document.querySelector('.prep-card-grid.journal-grid')
-      if (!panel || !nav || !grid) return { failures: ['journal tab geometry is incomplete'] }
+      const panel = document.querySelector('.journal-center-workspace[data-section="match"]')
+      const topbar = panel?.querySelector(':scope > .prep-topbar')
+      const nav = panel?.querySelector(':scope > .prep-nav-primary')
+      const grid = panel?.querySelector('.prep-card-grid.journal-grid')
+      if (!panel || !topbar || !grid) return { failures: ['journal tab geometry is incomplete'] }
       const panelRect = panel.getBoundingClientRect()
-      const navRect = nav.getBoundingClientRect()
+      const topbarRect = topbar.getBoundingClientRect()
       const gridRect = grid.getBoundingClientRect()
-      if (navRect.bottom > gridRect.top + tol) failures.push('workbench overlaps journal library after tab switch')
-      if (Math.abs(panelRect.left - gridRect.left) > tol || Math.abs(panelRect.right - gridRect.right) > tol) failures.push('journal library edges differ from preparation page')
+      if (topbarRect.bottom > gridRect.top + tol) failures.push('Journal Center topbar overlaps journal library')
+      if (nav && getComputedStyle(nav).display !== 'none') failures.push('standalone Journal Center renders Preparation navigation')
+      if (Math.abs(panelRect.left - gridRect.left) > tol || Math.abs(panelRect.right - gridRect.right) > tol) failures.push('journal library edges differ from Journal Center page')
 
-      document.querySelectorAll('.prep-journal-card').forEach((card, index) => {
+      panel.querySelectorAll('.prep-journal-card').forEach((card, index) => {
         const facts = card.querySelector('.prep-journal-facts')
         const apc = card.querySelector('[data-metric="apc"]')
         const metrics = card.querySelector('.prep-journal-numbers')
