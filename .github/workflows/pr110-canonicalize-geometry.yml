@@ -1,0 +1,34 @@
+name: PR110 Canonicalize Geometry
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.event.pull_request.head.ref == 'refactor/preparation-unified-workspace'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/preparation-unified-workspace
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: python scripts/pr110_canonicalize_geometry.py
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: node --check tests/visual/layout-check.mjs
+      - run: node --check tests/visual/ui-geometry-contract-check.mjs
+      - run: npm run check:figure-studio
+      - name: Commit and remove temporary runner
+        run: |
+          rm -f scripts/pr110_canonicalize_geometry.py .github/workflows/pr110-canonicalize-geometry.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m "Canonicalize Preparation and Journal Center geometry"
+          git push origin HEAD:refactor/preparation-unified-workspace
