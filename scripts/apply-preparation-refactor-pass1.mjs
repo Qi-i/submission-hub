@@ -28,8 +28,8 @@ replaceExact(file,
 `  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'title' | 'caption'>>) => {\n    let next = { ...project, ...patch }\n    if ((patch.role || patch.sequence) && (/^Figure \\d+$/i.test(project.name) || /^Supplementary Figure S\\d+$/i.test(project.name))) {\n      next = { ...next, name: figureDisplayName(next.role, next.sequence) }\n    }\n    replace(next)\n  }`,
 `  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'publicationLabel' | 'title' | 'caption'>>) => {\n    replace({ ...project, ...patch })\n  }`)
 
-replaceExact(file,
-`        <div><small>FIGURE COMPOSER</small><h2>{project.name}</h2><p>{project.draftId ? drafts.find(draft => draft.id === project.draftId)?.title || '已关联草稿' : '未关联 Manuscript Draft'}</p></div>`,
-`        <div className="figure-composer__identity"><small><span>投稿准备</span><i>/</i><span>科研组图</span></small><h2>{project.name}</h2><p>{project.publicationLabel ? `出版编号：${project.publicationLabel}` : '通用科研组图工作台 · 默认不关联任何论文'}</p></div>`)
+const headerBefore = `        <div><small>FIGURE COMPOSER</small><h2>{project.name}</h2><p>{project.draftId ? drafts.find(draft => draft.id === project.draftId)?.title || '已关联草稿' : '未关联 Manuscript Draft'}</p></div>`
+const headerAfter = "        <div className=\"figure-composer__identity\"><small><span>投稿准备</span><i>/</i><span>科研组图</span></small><h2>{project.name}</h2><p>{project.publicationLabel ? `出版编号：${project.publicationLabel}` : '通用科研组图工作台 · 默认不关联任何论文'}</p></div>"
+replaceExact(file, headerBefore, headerAfter)
 
 console.log('Applied Figure Composer neutral identity refactor.')
