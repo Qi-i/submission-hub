@@ -10,6 +10,7 @@ const closeEnough = (a, b, tolerance = 2) => Math.abs(a - b) <= tolerance
 
 const materialCss = readFileSync(new URL('../../src/ui-geometry-contract.css', import.meta.url), 'utf8')
 const finalCss = readFileSync(new URL('../../src/final-layout-navigation-fixes.css', import.meta.url), 'utf8')
+const preparationCss = readFileSync(new URL('../../src/styles/preparation/components.css', import.meta.url), 'utf8')
 for (const token of [
   'submission-hub-background-breathe 24s',
   'submission-hub-panel-breathe 16s',
@@ -20,12 +21,20 @@ for (const token of [
   if (!materialCss.includes(token)) fail(`material contract source is missing: ${token}`)
 }
 for (const token of [
-  "preparation-workspace[data-section='match'] > .prep-nav",
   '.prep-journal-card.is-catalog-filtered-out',
   "grid-template-columns: repeat(4, minmax(0, 1fr))",
   "html[data-ui='luminous'] body .paper-grid",
 ]) {
   if (!finalCss.includes(token)) fail(`final layout contract source is missing: ${token}`)
+}
+for (const token of [
+  '.prep-business-nav',
+  'grid-template-columns: repeat(5, minmax(0,1fr))',
+  '.prep-nav-item__icon',
+  '.prep-nav-item__label',
+  '.prep-nav-item__meta',
+]) {
+  if (!preparationCss.includes(token)) fail(`Preparation navigation contract source is missing: ${token}`)
 }
 
 function luminance(rgb = '') {
@@ -72,7 +81,7 @@ for (const ui of ['luminous', 'luminous-x']) {
             ? ['.app-layout > .preparation-suite']
             : ['.app-layout > .stats-panel']
         const surfaces = selectors.map(selector => Array.from(document.querySelectorAll(selector)).find(visible)).filter(Boolean)
-        const menuGroups = Array.from(document.querySelectorAll('.header-tabs, .prep-nav, .lx-page-proxy-controls, .stats-module-controls'))
+        const menuGroups = Array.from(document.querySelectorAll('.header-tabs, .prep-nav-primary, .stats-module-controls'))
           .filter(visible)
           .map(root => {
             const buttons = Array.from(root.querySelectorAll(':scope > button')).filter(visible)
@@ -89,9 +98,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         const preparationButton = mainNavButtons.find(button => button.dataset.mainNavKey === 'preparation')
         const journalStyle = journalCenter ? getComputedStyle(journalCenter) : null
         const preparationStyle = preparationButton ? getComputedStyle(preparationButton) : null
-        const prepNav = document.documentElement.dataset.ui === 'luminous-x'
-          ? document.querySelector('.lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
-          : document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav')
+        const prepNav = document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav-primary')
         const prepLabels = prepNav
           ? Array.from(prepNav.querySelectorAll(':scope > button')).filter(visible).map(button => (button.textContent || '').replace(/\s+/g, ' ').trim())
           : []
@@ -193,7 +200,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         : workspace?.querySelector(':scope > .prep-topbar')
       const buttons = Array.from(filters?.querySelectorAll('.journal-catalog-filter') || [])
       const cards = Array.from(workspace?.querySelectorAll('.prep-journal-card') || [])
-      const nav = workspace?.querySelector(':scope > .prep-nav')
+      const nav = workspace?.querySelector(':scope > .prep-nav-primary')
       return {
         correctHost: !!filters && filters.parentElement === expectedHost,
         labels: buttons.map(button => button.textContent?.trim() || ''),
