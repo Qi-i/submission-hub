@@ -5,7 +5,10 @@
   .figure-composer__workspace { grid-template-columns: 228px minmax(500px,1fr) 286px !important; }
 }
 
-@media (max-width: 1440px) {
+/* A 1440px desktop still has enough room for one-line Preparation chrome.
+ * Collapse the heading/actions only on genuinely narrower workspaces; the old
+ * 1440px breakpoint inflated the banner to ~106px and broke cross-page density. */
+@media (max-width: 1280px) {
   .prep-topbar { grid-template-columns: 1fr; align-items: start; }
   .prep-top-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
   .prep-search { flex: 1 1 260px; }
