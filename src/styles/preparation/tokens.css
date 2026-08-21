@@ -1,5 +1,11 @@
 /* Unified Submission Hub Preparation design tokens. */
 :root {
+  /* One horizontal datum for the whole Luminous application. Legacy layers used
+     1440px for the header and 1500px for page content, which diverged on wide
+     viewports. Resolve both contracts through the canonical page width/gutter. */
+  --ui-shell-max: var(--ui-page-width, 1500px);
+  --ui-shell-gutter: var(--ui-page-gutter, 18px);
+
   --prep-surface: rgba(255,255,255,.86);
   --prep-surface-elevated: rgba(255,255,255,.96);
   --prep-surface-soft: rgba(245,248,253,.88);
