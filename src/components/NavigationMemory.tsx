@@ -1,12 +1,13 @@
 import { useLayoutEffect } from 'react'
 
 type MainPage = 'preparation' | 'dashboard' | 'stats' | 'admin'
-type PreparationSection = 'overview' | 'topics' | 'drafts' | 'journals' | 'compare'
+type PreparationSection = 'overview' | 'paper' | 'materials' | 'match' | 'check'
+type LegacyPreparationSection = 'topics' | 'drafts' | 'journals' | 'compare'
 type LayoutMode = 'workflow' | 'board' | 'journal'
 
 interface NavigationState {
   page?: MainPage
-  preparationSection?: PreparationSection
+  preparationSection?: PreparationSection | LegacyPreparationSection
   layoutMode?: LayoutMode
 }
 
@@ -24,10 +25,10 @@ const MAIN_LABELS: Record<MainPage, string> = {
 
 const PREPARATION_LABELS: Record<PreparationSection, string> = {
   overview: '总览',
-  topics: '选题池',
-  drafts: '草稿准备',
-  journals: '期刊库',
-  compare: '期刊比较',
+  paper: '论文准备',
+  materials: '投稿材料',
+  match: '期刊匹配',
+  check: '投稿前检查',
 }
 
 const LAYOUT_LABELS: Record<LayoutMode, string> = {
@@ -42,10 +43,20 @@ function keyFor(scope: string) {
   return `submission-hub:navigation:${scope}`
 }
 
+function normalizePreparationSection(value: NavigationState['preparationSection']): PreparationSection | undefined {
+  if (!value) return undefined
+  if (value === 'topics' || value === 'drafts') return 'paper'
+  if (value === 'journals' || value === 'compare') return 'match'
+  return value
+}
+
 function readState(scope: string): NavigationState {
   try {
     const parsed = JSON.parse(localStorage.getItem(keyFor(scope)) || '{}')
-    return parsed && typeof parsed === 'object' ? parsed as NavigationState : {}
+    if (!parsed || typeof parsed !== 'object') return {}
+    const state = parsed as NavigationState
+    const preparationSection = normalizePreparationSection(state.preparationSection)
+    return { ...state, preparationSection }
   } catch {
     return {}
   }
@@ -53,7 +64,9 @@ function readState(scope: string): NavigationState {
 
 function writeState(scope: string, patch: Partial<NavigationState>) {
   try {
-    localStorage.setItem(keyFor(scope), JSON.stringify({ ...readState(scope), ...patch }))
+    const next = { ...readState(scope), ...patch }
+    if (next.preparationSection) next.preparationSection = normalizePreparationSection(next.preparationSection)
+    localStorage.setItem(keyFor(scope), JSON.stringify(next))
   } catch {
     // Navigation memory is optional when local storage is unavailable.
   }
@@ -105,10 +118,11 @@ export default function NavigationMemory({ scope, disabled = false }: Props) {
 
       const workspace = document.querySelector('.preparation-workspace')
       if (workspace && workspace !== lastPreparationWorkspace) {
-        if (!state.preparationSection || state.preparationSection === 'overview') {
+        const section = normalizePreparationSection(state.preparationSection)
+        if (!section || section === 'overview') {
           lastPreparationWorkspace = workspace
         } else {
-          const sectionButton = findButton('.preparation-workspace > .prep-nav button', PREPARATION_LABELS[state.preparationSection])
+          const sectionButton = findButton('.preparation-workspace > .prep-nav-primary button', PREPARATION_LABELS[section])
           if (sectionButton) {
             lastPreparationWorkspace = workspace
             sectionButton.click()
@@ -155,8 +169,7 @@ export default function NavigationMemory({ scope, disabled = false }: Props) {
         return
       }
 
-      const preparationControl = button.closest('.preparation-workspace > .prep-nav, .lx-status-bar[data-page="preparation"] .lx-page-proxy-controls')
-      if (preparationControl) {
+      if (button.closest('.preparation-workspace > .prep-nav-primary')) {
         const preparationSection = preparationSectionFromButton(button)
         if (preparationSection) writeState(scope, { preparationSection })
       }
