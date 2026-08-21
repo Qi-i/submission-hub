@@ -1,0 +1,44 @@
+name: Apply Preparation Refactor Pass 1
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'refactor/preparation-unified-workspace'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply neutral Figure Composer identity refactor
+        run: node scripts/apply-preparation-refactor-pass1.mjs
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify figure composer contracts and types
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: build-verification-key
+          VITE_ADMIN_ID: build-verification-admin
+        run: |
+          node tests/figure-studio-contract.mjs
+          npm run typecheck
+      - name: Remove temporary executor
+        run: rm scripts/apply-preparation-refactor-pass1.mjs .github/workflows/apply-preparation-refactor-pass1.yml
+      - name: Commit refactor
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "refactor: neutralize figure composer project identity"
+          git push origin HEAD:${{ github.head_ref }}
