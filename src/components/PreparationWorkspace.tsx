@@ -242,6 +242,18 @@ export default function PreparationWorkspace({
     }
   }
 
+  const figureToolEntry = <button
+    type="button"
+    className={`prep-figure-tool-entry${section === 'figures' ? ' active' : ''}`}
+    onClick={() => setSection('figures')}
+    aria-label="打开科研组图工作区"
+    aria-pressed={section === 'figures'}
+  >
+    <span className="prep-figure-tool-entry__icon" aria-hidden="true"><Images size={19} strokeWidth={2.4} /></span>
+    <span className="prep-figure-tool-entry__label">科研组图</span>
+    <ArrowRight className="prep-figure-tool-entry__arrow" size={13} strokeWidth={2.2} />
+  </button>
+
   if (loading) return <div className="prep-loading" role="status" aria-live="polite">
     <div className="prep-loading-shell">
       <LoaderCircle className="prep-loading-icon" size={22} aria-hidden="true" />
@@ -258,6 +270,7 @@ export default function PreparationWorkspace({
       </div>
       {(uiMode === 'luminous-x' && canPortalActions && luminousXActionSlot ? createPortal(
         <div className="prep-top-actions prep-top-actions-portal">
+          {figureToolEntry}
           <div className="prep-search">
             <Search size={15} />
             <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." />
@@ -272,6 +285,7 @@ export default function PreparationWorkspace({
         luminousXActionSlot,
       ) :
         <div className="prep-top-actions">
+          {figureToolEntry}
           <div className="prep-search">
             <Search size={15} />
             <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索选题、草稿或期刊..." />
@@ -288,7 +302,6 @@ export default function PreparationWorkspace({
     <div className="prep-nav prep-nav-primary" aria-label="投稿准备核心工作区">
       <button data-tone="overview" className={section === 'overview' ? 'active' : ''} onClick={() => setSection('overview')}><LayoutDashboard size={14} /> 总览</button>
       <button data-tone="paper" className={['paper', 'topics', 'drafts'].includes(section) ? 'active' : ''} onClick={() => setSection('paper')}><FilePenLine size={14} /> 论文准备 <span>{normalized.drafts.length}</span></button>
-      <button data-tone="figures" className={section === 'figures' ? 'active' : ''} onClick={() => setSection('figures')}><Images size={14} /> 科研组图</button>
       <button data-tone="materials" className={section === 'materials' ? 'active' : ''} onClick={() => setSection('materials')}><PackageCheck size={14} /> 投稿材料</button>
       <button data-tone="match" className={['match', 'journals', 'compare'].includes(section) ? 'active' : ''} onClick={() => setSection('match')}><Target size={14} /> 期刊匹配 <span>{normalized.journals.length}</span></button>
       <button data-tone="check" className={section === 'check' ? 'active' : ''} onClick={() => setSection('check')}><ClipboardCheck size={14} /> 投稿前检查</button>
@@ -404,7 +417,7 @@ export default function PreparationWorkspace({
       <section className="prep-panel prep-panel-draft"><PanelHead title="论文草稿" subtitle="正文、图表、作者、清单与目标期刊统一推进" onClick={() => setSection('drafts')} /><div className="prep-overview-draft-list">{orderedDrafts.slice(0, 5).map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} compact />)}{!orderedDrafts.length && <Empty text="尚无论文草稿" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</div></section>
     </div>}
 
-    {section === 'figures' && <div className="prep-figure-bridge"><Suspense fallback={<div className="prep-loading"><div className="prep-loading-shell"><LoaderCircle className="prep-loading-icon" size={22} /><div className="prep-loading-copy"><strong>正在加载科研组图工作区</strong><span>图像处理仍在当前浏览器完成。</span></div></div></div>}><FigureComposer drafts={normalized.drafts} onDraftFigureCountChange={onDraftFigureCountChange} /></Suspense></div>}
+    {section === 'figures' && <div className="prep-figure-bridge prep-figure-secondary-workspace"><Suspense fallback={<div className="prep-loading"><div className="prep-loading-shell"><LoaderCircle className="prep-loading-icon" size={22} /><div className="prep-loading-copy"><strong>正在加载科研组图工作区</strong><span>图像处理仍在当前浏览器完成。</span></div></div></div>}><FigureComposer drafts={normalized.drafts} onDraftFigureCountChange={onDraftFigureCountChange} onBack={() => setSection('overview')} /></Suspense></div>}
 
     {section === 'materials' && <><div className="prep-primary-section-head"><div><h2>投稿材料</h2><p>围绕每篇 Manuscript Draft 集中核对主文、图表、Cover Letter、Highlights、补充材料和文件命名。</p></div><button className="btn btn-primary btn-sm" onClick={() => setEditor({ type: 'draft', value: 'new' })}><Plus size={13} /> 新建草稿</button></div><div className="prep-draft-list">{orderedDrafts.map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} />)}{!orderedDrafts.length && <Empty text="尚无可整理投稿材料的草稿" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</div></>}
 

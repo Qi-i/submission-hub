@@ -34,7 +34,7 @@ html[data-ui='luminous'] body .preparation-workspace[data-section='overview'] > 
 
 html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals']) > .prep-nav-primary {
   display: grid !important;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   grid-template-rows: minmax(0, 1fr) !important;
   grid-auto-columns: minmax(0, 1fr) !important;
   grid-auto-flow: row !important;
@@ -81,10 +81,9 @@ html[data-ui='luminous'] body .preparation-workspace:not([data-section='journals
 
 html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='overview'] { order: 1 !important; }
 html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='paper'] { order: 2 !important; }
-html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='figures'] { order: 3 !important; }
-html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='materials'] { order: 4 !important; }
-html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='match'] { order: 5 !important; }
-html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='check'] { order: 6 !important; }
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='materials'] { order: 3 !important; }
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='match'] { order: 4 !important; }
+html[data-ui='luminous'] body .preparation-workspace > .prep-nav-primary > button[data-tone='check'] { order: 5 !important; }
 
 /* Journal Center is a separate global route. Its information bar and card grid must have
    a deliberate panel gap instead of visually touching at their borders. */

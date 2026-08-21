@@ -44,15 +44,15 @@ for (const ui of ['luminous', 'luminous-x']) {
       }
     }, ui)
 
-    const requiredRoutes = ['总览', '论文准备', '科研组图', '投稿材料', '期刊匹配', '投稿前检查']
+    const requiredRoutes = ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']
     for (const label of requiredRoutes) {
       if (!preparation.labels.some(item => item.includes(label))) fail(`${ui}: 投稿准备缺少“${label}”`)
     }
-    if (preparation.labels.length !== 6) fail(`${ui}: 投稿准备可见菜单不是 6 个（${preparation.labels.join(' / ')}）`)
+    if (preparation.labels.length !== 5) fail(`${ui}: 投稿准备可见菜单不是 5 个（${preparation.labels.join(' / ')}）`)
     if (preparation.labels.some(item => ['选题池', '草稿准备', '期刊库', '期刊比较'].some(legacy => item.includes(legacy)))) {
       fail(`${ui}: 投稿准备一级导航仍混入旧二级入口（${preparation.labels.join(' / ')}）`)
     }
-    if (ui === 'luminous' && preparation.columns !== 6) fail(`${ui}: 投稿准备不是六列（${preparation.columns}）`)
+    if (ui === 'luminous' && preparation.columns !== 5) fail(`${ui}: 投稿准备不是五列（${preparation.columns}）`)
 
     const journalEntry = page.locator("button[data-main-nav-key='journals']:visible").first()
     await journalEntry.waitFor({ state: 'visible', timeout: 15000 })

@@ -141,7 +141,7 @@ try {
 const preparationLuminous = await openPage('luminous', 'preparation')
 try {
   const primaryGeometry = await preparationLuminous.evaluate(() => {
-    const tones = ['overview', 'paper', 'figures', 'materials', 'match', 'check']
+    const tones = ['overview', 'paper', 'materials', 'match', 'check']
     const buttons = tones.map(tone => {
       const element = document.querySelector(`.preparation-workspace > .prep-nav-primary > button[data-tone='${tone}']`)
       if (!element) return null
@@ -162,13 +162,13 @@ try {
     return { buttons, nav: nav?.toJSON() || null }
   })
 
-  if (primaryGeometry.buttons.length !== 6) {
+  if (primaryGeometry.buttons.length !== 5) {
     fail(`luminous/preparation: 一级工作区可见按钮数量错误（${primaryGeometry.buttons.length}）`)
   } else {
     const tops = primaryGeometry.buttons.map(item => item.top)
     const widths = primaryGeometry.buttons.map(item => item.width)
-    if (Math.max(...tops) - Math.min(...tops) > 1) fail('luminous/preparation: 六个一级工作区未处于同一行')
-    if (Math.max(...widths) - Math.min(...widths) > 2) fail('luminous/preparation: 六个一级工作区宽度不一致')
+    if (Math.max(...tops) - Math.min(...tops) > 1) fail('luminous/preparation: 五个一级工作区未处于同一行')
+    if (Math.max(...widths) - Math.min(...widths) > 2) fail('luminous/preparation: 五个一级工作区宽度不一致')
     for (const item of primaryGeometry.buttons) {
       if (item.display === 'none' || item.visibility === 'hidden' || item.pointerEvents === 'none') {
         fail(`luminous/preparation: ${item.tone} 一级工作区不可交互`)
@@ -181,7 +181,6 @@ try {
 
   const routes = [
     ['paper', 'paper'],
-    ['figures', 'figures'],
     ['materials', 'materials'],
     ['match', 'match'],
     ['check', 'check'],
@@ -189,12 +188,16 @@ try {
   for (const [tone, section] of routes) {
     await preparationLuminous.locator(`.preparation-workspace > .prep-nav-primary > button[data-tone='${tone}']`).click()
     await preparationLuminous.locator(`.preparation-workspace[data-section='${section}']`).waitFor({ state: 'visible', timeout: 10000 })
-    if (tone === 'figures') {
-      await preparationLuminous.locator('.figure-composer').waitFor({ state: 'visible', timeout: 10000 })
-    }
     await preparationLuminous.locator(".preparation-workspace > .prep-nav-primary > button[data-tone='overview']").click()
     await preparationLuminous.locator(".preparation-workspace[data-section='overview']").waitFor({ state: 'visible', timeout: 10000 })
   }
+
+  const figureEntry = preparationLuminous.locator('.prep-figure-tool-entry:visible').first()
+  await figureEntry.waitFor({ state: 'visible', timeout: 10000 })
+  await figureEntry.click()
+  await preparationLuminous.locator('.figure-composer').waitFor({ state: 'visible', timeout: 10000 })
+  await preparationLuminous.getByRole('button', { name: /返回投稿准备/ }).click()
+  await preparationLuminous.locator(".preparation-workspace[data-section='overview']").waitFor({ state: 'visible', timeout: 10000 })
 
   const preparationActive = await activeStyle(preparationLuminous, 'preparation')
   await preparationLuminous.locator("button[data-main-nav-key='journals']").click()
@@ -213,7 +216,7 @@ try {
   compareStyles('luminous active navigation', journalActive, preparationActive, [
     'color', 'backgroundColor', 'backgroundImage', 'borderColor', 'borderRadius', 'boxShadow', 'height',
   ])
-  details.push(`luminous six primary workspaces remain clickable; journal gap=${journalGap?.toFixed(1) ?? 'missing'}px`)
+  details.push(`luminous five business workspaces and secondary Figure Composer entry remain clickable; journal gap=${journalGap?.toFixed(1) ?? 'missing'}px`)
 } catch (error) {
   fail(`luminous/preparation: ${error instanceof Error ? error.message : String(error)}`)
 } finally {
