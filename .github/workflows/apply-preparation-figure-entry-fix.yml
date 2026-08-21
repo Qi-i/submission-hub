@@ -1,0 +1,44 @@
+name: Apply Preparation Figure Entry Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-preparation-figure-entry-fix.yml'
+      - '.github/scripts/apply-preparation-figure-entry-fix.py'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/preparation-figure-tool-entry'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply implementation
+        run: python .github/scripts/apply-preparation-figure-entry-fix.py
+      - name: Verify focused contract
+        run: |
+          npm ci --no-audit --no-fund
+          npm run check:figure-studio
+          npm run typecheck
+          git diff --check
+      - name: Commit implementation and remove temporary runner
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          rm .github/scripts/apply-preparation-figure-entry-fix.py
+          rm .github/workflows/apply-preparation-figure-entry-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: integrate Figure Composer into Preparation heading"
+          git push origin HEAD:"$BRANCH"
