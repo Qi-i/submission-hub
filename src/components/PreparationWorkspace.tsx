@@ -18,6 +18,8 @@ import CurrencyCny from './CurrencyCny'
 import JournalComparison from './JournalComparison'
 import { useTheme } from '../lib/theme'
 import PreparationNavigation, { type PreparationSection } from './preparation/PreparationNavigation'
+import PreparationOverviewModules from './preparation/PreparationOverviewModules'
+import PreparationProductivityPanel from './PreparationProductivityPanel'
 
 const FigureComposer = lazy(() => import('./figure-composer/FigureComposer'))
 
@@ -412,20 +414,23 @@ export default function PreparationWorkspace({
         </section>
       </div>
 
-      <section className="prep-panel prep-panel-topic prep-topic-overview">
-        <PanelHead title="选题推进" subtitle="综合创新性、数据、方法、可行性与时间条件" onClick={() => setSection('topics')} />
-        <div className="prep-topic-strip">
-          {orderedTopics.slice(0, 5).map(topic => <TopicCard
-            key={topic.id}
-            topic={topic}
-            onClick={() => setEditor({ type: 'topic', value: topic })}
-            onCreateDraft={() => void createDraftFromTopic(topic)}
-            creating={creatingTopicId === topic.id}
-            compact
-          />)}
-          {!orderedTopics.length && <Empty text="尚无研究选题" action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}
-        </div>
-      </section>
+      <PreparationOverviewModules
+        assistant={<PreparationProductivityPanel snapshot={normalized} loading={loading} onSaveDraft={onSaveDraft} />}
+        topics={<section className="prep-panel prep-panel-topic prep-topic-overview">
+          <PanelHead title="选题推进" subtitle="综合创新性、数据、方法、可行性与时间条件" onClick={() => setSection('topics')} />
+          <div className="prep-topic-strip">
+            {orderedTopics.slice(0, 5).map(topic => <TopicCard
+              key={topic.id}
+              topic={topic}
+              onClick={() => setEditor({ type: 'topic', value: topic })}
+              onCreateDraft={() => void createDraftFromTopic(topic)}
+              creating={creatingTopicId === topic.id}
+              compact
+            />)}
+            {!orderedTopics.length && <Empty text="尚无研究选题" action="新增选题" onClick={() => setEditor({ type: 'topic', value: 'new' })} />}
+          </div>
+        </section>}
+      />
     </>}
 
     {section === 'paper' && <div className="prep-primary-section-grid">
