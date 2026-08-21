@@ -16,7 +16,9 @@ const suite = read('src/components/PreparationWorkspaceSuite.tsx')
 const lx = read('src/components/LuminousXStatusBar.tsx')
 const styles = read('src/app-styles.ts')
 const shellCss = read('src/styles/preparation/shell.css')
+const prepTokens = read('src/styles/preparation/tokens.css')
 const dashboardSource = read('src/components/Dashboard.tsx')
+const navigationMemory = read('src/components/NavigationMemory.tsx')
 const globalNavigationSource = read('src/global-navigation-search-enhancements.ts')
 
 // P0: universal Figure Composer identity.
@@ -59,7 +61,13 @@ for (const file of [
 ]) expect(exists(file), `Missing unified preparation style file: ${file}`)
 expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css"), 'app-styles.ts must load the unified preparation style system.')
 expect(shellCss.includes('.app-layout > .online-preparation-shell') && shellCss.includes('max-width: var(--ui-shell-max)'), 'Online Preparation shell must use the global centered content lane.')
-expect(dashboardSource.includes("'journals'") && dashboardSource.includes('期刊中心') && dashboardSource.includes('workspaceMode="journal-center"'), 'Journal Center must remain a first-class global React route.')
+expect(prepTokens.includes('--ui-shell-max: var(--ui-page-width, 1500px)') && prepTokens.includes('--ui-shell-gutter: var(--ui-page-gutter, 18px)'), 'Header and Preparation must resolve through the same wide-screen page width/gutter tokens.')
+
+// P0: Journal Center is a real top-level React page, never a Preparation redirect.
+expect(dashboardSource.includes("type Tab = 'preparation' | 'journals' | 'dashboard'"), 'Dashboard Tab union must contain a first-class journals page.')
+expect(dashboardSource.includes("onClick={() => changeTab('journals')}") && dashboardSource.includes("tab === 'journals' ? 'active'"), 'Journal Center top navigation must directly mutate and reflect the journals tab state.')
+expect(dashboardSource.includes("tab === 'journals'") && dashboardSource.includes('workspaceMode="journal-center"') && dashboardSource.includes('section="match"'), 'The journals tab must render the standalone Journal Center workspace.')
+expect(navigationMemory.includes("journals: '期刊中心'") && navigationMemory.includes("'preparation' | 'journals' | 'dashboard'"), 'Navigation memory must understand Journal Center as a top-level page.')
 expect(!globalNavigationSource.includes('createJournalCenterButton') && !globalNavigationSource.includes("clickPreparationSection('match')"), 'Global navigation must never fake Journal Center by redirecting to Preparation match.')
 
 if (failures.length) {
