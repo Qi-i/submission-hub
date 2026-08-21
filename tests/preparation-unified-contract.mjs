@@ -11,6 +11,7 @@ const composer = read('src/components/figure-composer/FigureComposer.tsx')
 const sidebar = read('src/components/figure-composer/FigureSidebar.tsx')
 const types = read('src/lib/figure-composer/types.ts')
 const prep = read('src/components/PreparationWorkspace.tsx')
+const prepNav = read('src/components/preparation/PreparationNavigation.tsx')
 const suite = read('src/components/PreparationWorkspaceSuite.tsx')
 const lx = read('src/components/LuminousXStatusBar.tsx')
 const styles = read('src/app-styles.ts')
@@ -26,12 +27,12 @@ expect(composer.includes('投稿准备') && composer.includes('科研组图'), '
 
 // P0: five business routes only; figures is a tool workspace.
 for (const label of ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']) {
-  expect(prep.includes(label), `Preparation business navigation must include ${label}.`)
+  expect(prepNav.includes(label), `Preparation business navigation must include ${label}.`)
 }
 expect(prep.includes("section !== 'figures'"), 'Business navigation/header chrome must be conditionally hidden in figures mode.')
-expect(prep.includes('prep-nav-item__icon') && prep.includes('prep-nav-item__label') && prep.includes('prep-nav-item__meta'), 'All five business navigation buttons must use icon/label/meta slots.')
+expect(prepNav.includes('prep-nav-item__icon') && prepNav.includes('prep-nav-item__label') && prepNav.includes('prep-nav-item__meta'), 'All five business navigation buttons must use icon/label/meta slots.')
 
-// P0: shared state; no DOM-proxy navigation in Luminous X.
+// P0: shared state; no DOM-proxy navigation in Luminous X preparation controls.
 for (const forbidden of ['findControlButton', 'document.querySelector', 'MutationObserver']) {
   expect(!lx.includes(forbidden), `Luminous X preparation controls must not use ${forbidden}.`)
 }
