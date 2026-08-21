@@ -19,6 +19,25 @@ html[data-ui='luminous-x'] .figure-composer {
   backdrop-filter: blur(20px) saturate(150%);
 }
 
+/* The same canonical five-route business navigation is rendered in both interfaces.
+   Historical Luminous X layers hid .prep-nav because an old proxy nav existed in the
+   status bar; the proxy has been retired, so the canonical React navigation owns the lane. */
+html[data-ui='luminous-x'] .preparation-workspace:not([data-section='figures']) > .prep-business-nav {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(5,minmax(0,1fr)) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+html[data-ui='luminous-x'] .preparation-workspace:not([data-section='figures']) > .prep-business-nav > .prep-nav-item {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 html[data-ui='luminous-x'] .prep-business-nav .prep-nav-item.active {
   box-shadow: 0 10px 24px color-mix(in srgb,var(--prep-nav-tone) 13%,transparent), inset 0 1px 0 rgba(255,255,255,.16) !important;
 }
