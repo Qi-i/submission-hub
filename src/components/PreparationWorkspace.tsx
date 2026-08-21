@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ArrowRight, BookOpen, CheckCircle2, CircleAlert, Clock3, ExternalLink,
@@ -17,10 +17,11 @@ import JournalFormEnhanced from './JournalFormEnhanced'
 import CurrencyCny from './CurrencyCny'
 import JournalComparison from './JournalComparison'
 import { useTheme } from '../lib/theme'
+import PreparationNavigation, { type PreparationSection } from './preparation/PreparationNavigation'
 
 const FigureComposer = lazy(() => import('./figure-composer/FigureComposer'))
 
-type SectionKey = 'overview' | 'paper' | 'figures' | 'materials' | 'match' | 'check' | 'topics' | 'drafts' | 'journals' | 'compare'
+type SectionKey = PreparationSection | 'topics' | 'drafts' | 'journals' | 'compare'
 type Editor =
   | { type: 'journal'; value: JournalProfile | 'new' }
   | { type: 'topic'; value: ResearchTopic | 'new' }
@@ -39,10 +40,18 @@ interface Props {
   onPromoteDraft?: (draft: ManuscriptDraft) => Promise<void>
   onLookupJournalRanks?: (publicationName: string) => Promise<JournalRankLookupResult>
   onDraftFigureCountChange?: (draftId: string, count: number) => Promise<void> | void
+  section?: PreparationSection
+  onSectionChange?: (section: PreparationSection) => void
 }
 
 const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 }
 const safeUrl = (value?: string | null) => !!value && /^https?:\/\//i.test(value)
+
+function primarySectionFor(section: SectionKey): PreparationSection {
+  if (section === 'topics' || section === 'drafts') return 'paper'
+  if (section === 'journals' || section === 'compare') return 'match'
+  return section
+}
 
 export default function PreparationWorkspace({
   snapshot, loading,
@@ -50,8 +59,21 @@ export default function PreparationWorkspace({
   onSaveTopic, onDeleteTopic,
   onSaveDraft, onDeleteDraft,
   onPromoteDraft, onLookupJournalRanks, onDraftFigureCountChange,
+  section: controlledSection, onSectionChange,
 }: Props) {
-  const [section, setSection] = useState<SectionKey>('overview')
+  const [section, setInternalSection] = useState<SectionKey>(controlledSection || 'overview')
+  const lastBusinessSection = useRef<Exclude<PreparationSection, 'figures'>>(controlledSection && controlledSection !== 'figures' ? controlledSection : 'overview')
+  const primarySection = primarySectionFor(section)
+  const setSection = (next: SectionKey) => {
+    const nextPrimary = primarySectionFor(next)
+    setInternalSection(next)
+    if (nextPrimary !== 'figures') lastBusinessSection.current = nextPrimary
+    onSectionChange?.(nextPrimary)
+  }
+  useEffect(() => {
+    if (!controlledSection) return
+    if (controlledSection !== primarySectionFor(section)) setInternalSection(controlledSection)
+  }, [controlledSection, section])
   const [search, setSearch] = useState('')
   const [editor, setEditor] = useState<Editor>(null)
   const [promotingId, setPromotingId] = useState<string | null>(null)
@@ -261,8 +283,8 @@ export default function PreparationWorkspace({
     </div>
   </div>
 
-  return <div className="preparation-workspace" data-section={section}>
-    <div className="prep-topbar">
+  return <div className="preparation-workspace" data-section={primarySection}>
+    {section !== 'figures' && <div className="prep-topbar">
       <div className="prep-heading">
         <span className="prep-eyebrow">PRE-SUBMISSION WORKSPACE</span>
         <h1>投稿准备</h1>
@@ -297,15 +319,9 @@ export default function PreparationWorkspace({
             <Plus size={14} /> {section === 'topics' ? '新增选题' : '新建草稿'}
           </button>}
         </div>)}
-    </div>
+    </div>}
 
-    <div className="prep-nav prep-nav-primary" aria-label="投稿准备核心工作区">
-      <button data-tone="overview" className={section === 'overview' ? 'active' : ''} onClick={() => setSection('overview')}><LayoutDashboard size={14} /> 总览</button>
-      <button data-tone="paper" className={['paper', 'topics', 'drafts'].includes(section) ? 'active' : ''} onClick={() => setSection('paper')}><FilePenLine size={14} /> 论文准备 <span>{normalized.drafts.length}</span></button>
-      <button data-tone="materials" className={section === 'materials' ? 'active' : ''} onClick={() => setSection('materials')}><PackageCheck size={14} /> 投稿材料</button>
-      <button data-tone="match" className={['match', 'journals', 'compare'].includes(section) ? 'active' : ''} onClick={() => setSection('match')}><Target size={14} /> 期刊匹配 <span>{normalized.journals.length}</span></button>
-      <button data-tone="check" className={section === 'check' ? 'active' : ''} onClick={() => setSection('check')}><ClipboardCheck size={14} /> 投稿前检查</button>
-    </div>
+    {section !== 'figures' && <PreparationNavigation section={primarySection} draftCount={normalized.drafts.length} journalCount={normalized.journals.length} onChange={next => setSection(next)} />}
 
     {section === 'overview' && <>
       <section className="prep-dashboard">
@@ -417,7 +433,7 @@ export default function PreparationWorkspace({
       <section className="prep-panel prep-panel-draft"><PanelHead title="论文草稿" subtitle="正文、图表、作者、清单与目标期刊统一推进" onClick={() => setSection('drafts')} /><div className="prep-overview-draft-list">{orderedDrafts.slice(0, 5).map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} compact />)}{!orderedDrafts.length && <Empty text="尚无论文草稿" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</div></section>
     </div>}
 
-    {section === 'figures' && <div className="prep-figure-bridge prep-figure-secondary-workspace"><Suspense fallback={<div className="prep-loading"><div className="prep-loading-shell"><LoaderCircle className="prep-loading-icon" size={22} /><div className="prep-loading-copy"><strong>正在加载科研组图工作区</strong><span>图像处理仍在当前浏览器完成。</span></div></div></div>}><FigureComposer drafts={normalized.drafts} onDraftFigureCountChange={onDraftFigureCountChange} onBack={() => setSection('overview')} /></Suspense></div>}
+    {section === 'figures' && <div className="prep-figure-bridge prep-figure-secondary-workspace"><Suspense fallback={<div className="prep-loading"><div className="prep-loading-shell"><LoaderCircle className="prep-loading-icon" size={22} /><div className="prep-loading-copy"><strong>正在加载科研组图工作区</strong><span>图像处理仍在当前浏览器完成。</span></div></div></div>}><FigureComposer drafts={normalized.drafts} onDraftFigureCountChange={onDraftFigureCountChange} onBack={() => setSection(lastBusinessSection.current)} /></Suspense></div>}
 
     {section === 'materials' && <><div className="prep-primary-section-head"><div><h2>投稿材料</h2><p>围绕每篇 Manuscript Draft 集中核对主文、图表、Cover Letter、Highlights、补充材料和文件命名。</p></div><button className="btn btn-primary btn-sm" onClick={() => setEditor({ type: 'draft', value: 'new' })}><Plus size={13} /> 新建草稿</button></div><div className="prep-draft-list">{orderedDrafts.map(draft => <DraftCard key={draft.id} draft={draft} topic={draft.topic_id ? topicMap.get(draft.topic_id) : undefined} journals={draft.target_journal_ids.map(id => journalMap.get(id)).filter(Boolean) as JournalProfile[]} primaryJournal={draft.primary_journal_id ? journalMap.get(draft.primary_journal_id) : undefined} onEdit={() => setEditor({ type: 'draft', value: draft })} onPromote={onPromoteDraft ? () => promote(draft) : undefined} promoting={promotingId === draft.id} />)}{!orderedDrafts.length && <Empty text="尚无可整理投稿材料的草稿" action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}</div></>}
 

@@ -14,6 +14,7 @@ import PaperForm from './PaperForm'
 import MetricCard from './MetricCard'
 import ActionCenter from './ActionCenter'
 import OnlinePreparationWorkspace from './OnlinePreparationWorkspace'
+import type { PreparationSection } from './preparation/PreparationNavigation'
 import AccountSettingsModal from './AccountSettingsModal'
 import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
 import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb } from 'lucide-react'
@@ -75,6 +76,7 @@ export default function Dashboard() {
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
   const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
+  const [preparationSection, setPreparationSection] = useState<PreparationSection>('overview')
   const [showSettings, setShowSettings] = useState(false)
   const [transferring, setTransferring] = useState(false)
 
@@ -339,9 +341,11 @@ export default function Dashboard() {
         recordCount={papers.length}
         layoutMode={layoutMode}
         onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
+        preparationSection={preparationSection}
+        onPreparationSectionChange={tab === 'preparation' ? setPreparationSection : undefined}
       />}
 
-      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
+      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} section={preparationSection} onSectionChange={setPreparationSection} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
 
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
