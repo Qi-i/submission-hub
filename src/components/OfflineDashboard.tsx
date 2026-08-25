@@ -10,6 +10,7 @@ import PaperCard from './OfflinePaperCard'
 import PaperForm from './OfflinePaperForm'
 import ActionCenter from './ActionCenter'
 import OfflinePreparationWorkspace from './OfflinePreparationWorkspace'
+import OfflineJournalCenterWorkspace from './OfflineJournalCenterWorkspace'
 import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
 import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb, Settings, HardDrive, BookOpen } from 'lucide-react'
 import PersonalStats from './PersonalStats'
@@ -268,17 +269,17 @@ export default function OfflineDashboard() {
         <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => { setTab('stats'); setShowTools(false) }}><BarChart3 size={14} /> 个人统计</button>
       </div>
 
-      {uiMode === 'luminous-x' && <LuminousXStatusBar
+      {uiMode === 'luminous-x' && tab !== 'journals' && <LuminousXStatusBar
         modeLabel={TAB_LABELS[tab]}
         subtitle={TAB_SUBTITLES[tab]}
-        recordCount={tab === 'journals' ? prepStore.getPreparationSnapshot().journals.length : papers.length}
+        recordCount={papers.length}
         layoutMode={layoutMode}
         onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
       />}
 
       {tab === 'preparation' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} onPaperCreated={refreshPapers} />}
 
-      {tab === 'journals' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} section="match" onSectionChange={() => {}} workspaceMode="journal-center" onPaperCreated={refreshPapers} />}
+      {tab === 'journals' && <OfflineJournalCenterWorkspace refreshToken={prepRefresh} onChanged={() => setPrepRefresh(value => value + 1)} />}
 
       {tab === 'dashboard' && (
         <>

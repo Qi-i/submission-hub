@@ -1,5 +1,5 @@
 import { FileImage, FolderOpen, Layers3, Plus, Save, Trash2, Upload } from 'lucide-react'
-import { useRef } from 'react'
+import { type ReactNode, useRef } from 'react'
 import type { ManuscriptDraft } from '../../lib/preparation'
 import { FIGURE_ACCEPT } from '../../lib/figure-composer/image-import'
 import { automaticPanelLabel, figureDisplayName, type FigureProject, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
@@ -19,9 +19,10 @@ interface Props {
   onSelectPanel: (id: string, mode: 'replace' | 'toggle' | 'range') => void
   onMoveLayer: (id: string, direction: -1 | 1) => void
   onRemovePanel: (id: string) => void
+  globalControls?: ReactNode
 }
 
-export default function FigureSidebar({ project, projects, drafts, assets, busy, onProjectField, onNewProject, onOpenProject, onSaveProject, onDeleteProject, onImport, onSelectPanel, onMoveLayer, onRemovePanel }: Props) {
+export default function FigureSidebar({ project, projects, drafts, assets, busy, onProjectField, onNewProject, onOpenProject, onSaveProject, onDeleteProject, onImport, onSelectPanel, onMoveLayer, onRemovePanel, globalControls }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   return <aside className="figure-composer__left" aria-label="组图工程与图片">
     <section className="figure-composer__section">
@@ -56,6 +57,8 @@ export default function FigureSidebar({ project, projects, drafts, assets, busy,
         {!projects.length && <p className="figure-composer__empty">当前浏览器还没有已保存组图工程。</p>}
       </div>
     </section>
+
+    {globalControls}
 
     <section className="figure-composer__section">
       <div className="figure-composer__section-title"><FileImage size={14} /><strong>图片与图层</strong><span>{project.panels.length}</span></div>

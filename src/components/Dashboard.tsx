@@ -14,6 +14,7 @@ import PaperForm from './PaperForm'
 import MetricCard from './MetricCard'
 import ActionCenter from './ActionCenter'
 import OnlinePreparationWorkspace from './OnlinePreparationWorkspace'
+import JournalCenterWorkspace from './JournalCenterWorkspace'
 import type { PreparationSection } from './preparation/PreparationNavigation'
 import AccountSettingsModal from './AccountSettingsModal'
 import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
@@ -97,6 +98,7 @@ export default function Dashboard() {
 
   const changeTab = (next: Tab) => {
     closeTools()
+    if (next === 'preparation') setPreparationSection('overview')
     setTab(next)
   }
 
@@ -338,18 +340,18 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {uiMode === 'luminous-x' && <LuminousXStatusBar
+      {uiMode === 'luminous-x' && tab !== 'journals' && <LuminousXStatusBar
         modeLabel={TAB_LABELS[tab]}
         subtitle={TAB_SUBTITLES[tab]}
-        recordCount={tab === 'journals' ? journalProfiles.length : papers.length}
+        recordCount={papers.length}
         layoutMode={layoutMode}
         onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
         preparationSection={preparationSection}
       />}
 
-      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} section={preparationSection} onSectionChange={setPreparationSection} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
+      {tab === 'preparation' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} section={preparationSection} onSectionChange={setPreparationSection} onOpenJournalCenter={() => changeTab('journals')} onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
 
-      {tab === 'journals' && user && !isDemo && <OnlinePreparationWorkspace userId={user.id} section="match" onSectionChange={() => {}} workspaceMode="journal-center" onPaperCreated={() => { void loadPapers(); void loadJournalProfiles() }} />}
+      {tab === 'journals' && user && !isDemo && <JournalCenterWorkspace userId={user.id} onChanged={() => { void loadJournalProfiles() }} />}
 
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
