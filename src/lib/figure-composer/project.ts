@@ -1,11 +1,19 @@
-import type { FigureProject, RuntimeFigureAsset, StoredFigureAsset } from './types'
+import { DEFAULT_BORDER_SETTINGS, DEFAULT_LABEL_SETTINGS, type FigureProject, type RuntimeFigureAsset, type StoredFigureAsset } from './types'
 
 const DB_NAME = 'submission-hub-figure-composer'
 const DB_VERSION = 1
 const PROJECT_STORE = 'projects'
 const ASSET_STORE = 'assets'
 
-type LegacyFigureProject = Omit<FigureProject, 'publicationLabel'> & { publicationLabel?: string | null }
+type LegacyFigureProject = Omit<FigureProject, 'publicationLabel' | 'labelDefaults' | 'borderDefaults' | 'canvas'> & {
+  publicationLabel?: string | null
+  labelDefaults?: FigureProject['labelDefaults']
+  borderDefaults?: FigureProject['borderDefaults']
+  canvas: Omit<FigureProject['canvas'], 'panelWidth' | 'layoutScale'> & {
+    panelWidth?: number
+    layoutScale?: number
+  }
+}
 
 function normalizeFigureProject(project: LegacyFigureProject): FigureProject {
   const legacyPublicationLabel = /^(?:Figure \d+|Supplementary Figure S\d+)$/i.test(project.name)
@@ -14,6 +22,13 @@ function normalizeFigureProject(project: LegacyFigureProject): FigureProject {
   return {
     ...project,
     publicationLabel: project.publicationLabel ?? legacyPublicationLabel,
+    canvas: {
+      ...project.canvas,
+      panelWidth: Math.max(100, Number(project.canvas.panelWidth) || 560),
+      layoutScale: Math.max(25, Math.min(400, Number(project.canvas.layoutScale) || 100)),
+    },
+    labelDefaults: { ...DEFAULT_LABEL_SETTINGS, ...(project.labelDefaults || {}) },
+    borderDefaults: { ...DEFAULT_BORDER_SETTINGS, ...(project.borderDefaults || {}) },
   }
 }
 
