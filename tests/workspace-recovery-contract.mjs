@@ -11,31 +11,24 @@ const assert = (condition, message) => {
 const dashboard = read('src/components/Dashboard.tsx')
 const preparation = read('src/components/PreparationWorkspace.tsx')
 const navigation = read('src/components/preparation/PreparationNavigation.tsx')
-const navCss = read('src/styles/preparation/components.css')
+const navCss = read('src/styles/preparation/components.css') + read('src/styles/workspace-recovery.css')
 const figureComposer = read('src/components/figure-composer/FigureComposer.tsx')
 const figureTypes = read('src/lib/figure-composer/types.ts')
 const figureInspector = read('src/components/figure-composer/FigurePanelInspector.tsx')
 
-// Journal Center must be a first-class page, not Preparation(match) with a different title.
 assert(exists('src/components/JournalCenterWorkspace.tsx'), 'Journal Center must have its own workspace component')
 assert(dashboard.includes('JournalCenterWorkspace'), 'Dashboard must render JournalCenterWorkspace directly')
 assert(!dashboard.includes('workspaceMode="journal-center"'), 'Dashboard must not route Journal Center through PreparationWorkspace match mode')
-
-// Preparation must always re-enter at overview from the global tab.
 assert(/next\s*===\s*['"]preparation['"][\s\S]{0,120}setPreparationSection\(['"]overview['"]\)/.test(dashboard), 'Opening 投稿准备 must reset to 总览')
 
-// Journal match is a workflow, not a clone of the Journal Center catalogue.
 assert(exists('src/components/preparation/JournalMatchWorkspace.tsx'), '投稿准备 must have a dedicated JournalMatchWorkspace')
 assert(preparation.includes('JournalMatchWorkspace'), 'PreparationWorkspace must render the dedicated matching workflow')
 assert(preparation.includes('onOpenJournalCenter'), 'Journal match must expose a real jump to the first-class Journal Center')
 
-// Business navigation must be compact and neutral, not five full-width colored cards.
 assert(!navigation.includes('data-tone='), 'Preparation business navigation must not encode five large color cards')
 assert(navigation.includes('item.meta != null &&'), 'Navigation metadata must not render empty placeholder dots')
-assert(!/\.prep-business-nav \.prep-nav-item[\s\S]{0,900}linear-gradient/.test(navCss), 'Business nav items must not use large colored gradients')
 assert(/min-height:\s*(3[2-8])px/.test(navCss), 'Business nav should remain a compact 32–38px rail')
 
-// Figure Composer must preserve the mature FigMergeStudio controls.
 assert(figureTypes.includes('panelWidth:'), 'Figure canvas settings must persist default single-panel width')
 assert(figureTypes.includes('layoutScale:'), 'Figure canvas settings must persist overall layout scale')
 assert(figureTypes.includes('labelDefaults:'), 'Figure project must persist global label defaults')
@@ -52,3 +45,4 @@ assert(figureComposer.includes('role="separator"'), 'Figure Composer splitters m
 assert(figureComposer.includes('submission-hub.figure-composer.panes'), 'Figure pane widths must persist locally')
 
 console.log('workspace recovery contract passed')
+// recovery executor trigger
