@@ -21,6 +21,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Apply recovery preflight
+        run: node scripts/preflight-workspace-recovery.mjs
       - name: Apply recovery patch
         run: node scripts/apply-workspace-recovery.mjs
       - name: Verify recovery contract and types
@@ -35,6 +37,7 @@ jobs:
           npm run typecheck
       - name: Commit product changes and self-delete
         run: |
+          rm scripts/preflight-workspace-recovery.mjs
           rm scripts/apply-workspace-recovery.mjs
           rm .github/workflows/workspace-recovery-one-shot.yml
           git config user.name "github-actions[bot]"
