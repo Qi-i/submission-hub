@@ -71,6 +71,8 @@ export interface FigureCanvasSettings {
   height: number
   margin: number
   gap: number
+  panelWidth: number
+  layoutScale: number
   background: string
   layoutMode: FigureLayoutMode
   layoutPreset: FigureLayoutPreset
@@ -107,6 +109,8 @@ export interface FigureProject {
   title: string
   caption: string
   canvas: FigureCanvasSettings
+  labelDefaults: FigureLabelSettings
+  borderDefaults: FigureBorderSettings
   exportSettings: FigureExportSettings
   panels: FigurePanel[]
   texts: FigureText[]
@@ -215,7 +219,9 @@ export function createEmptyFigureProject(draftId: string | null = null, sequence
       width: 672,
       height: 480,
       margin: 16,
-      gap: 12,
+      gap: 32,
+      panelWidth: 560,
+      layoutScale: 100,
       background: '#ffffff',
       layoutMode: 'grid',
       layoutPreset: 'auto',
@@ -223,6 +229,8 @@ export function createEmptyFigureProject(draftId: string | null = null, sequence
       gridRows: 2,
       autoWrap: true,
     },
+    labelDefaults: { ...DEFAULT_LABEL_SETTINGS },
+    borderDefaults: { ...DEFAULT_BORDER_SETTINGS },
     exportSettings: {
       format: 'png',
       dpi: 300,
