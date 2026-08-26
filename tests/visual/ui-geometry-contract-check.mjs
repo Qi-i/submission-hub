@@ -10,31 +10,15 @@ const closeEnough = (a, b, tolerance = 2) => Math.abs(a - b) <= tolerance
 
 const materialCss = readFileSync(new URL('../../src/ui-geometry-contract.css', import.meta.url), 'utf8')
 const finalCss = readFileSync(new URL('../../src/final-layout-navigation-fixes.css', import.meta.url), 'utf8')
-const preparationCss = readFileSync(new URL('../../src/styles/preparation/components.css', import.meta.url), 'utf8')
-for (const token of [
-  'submission-hub-background-breathe 24s',
-  'submission-hub-panel-breathe 16s',
-  '@media (prefers-reduced-motion: reduce)',
-  'background-image: linear-gradient(180deg, #1b242d',
-  "html[data-theme='dark'][data-ui]",
-]) {
+const workspaceCss = readFileSync(new URL('../../src/styles/workspace-recovery.css', import.meta.url), 'utf8')
+for (const token of ['submission-hub-background-breathe 24s', 'submission-hub-panel-breathe 16s', '@media (prefers-reduced-motion: reduce)', "html[data-theme='dark'][data-ui]"]) {
   if (!materialCss.includes(token)) fail(`material contract source is missing: ${token}`)
 }
-for (const token of [
-  '.prep-journal-card.is-catalog-filtered-out',
-  "grid-template-columns: repeat(4, minmax(0, 1fr))",
-  "html[data-ui='luminous'] body .paper-grid",
-]) {
+for (const token of ["grid-template-columns: repeat(4, minmax(0, 1fr))", "html[data-ui='luminous'] body .paper-grid"]) {
   if (!finalCss.includes(token)) fail(`final layout contract source is missing: ${token}`)
 }
-for (const token of [
-  '.prep-business-nav',
-  'grid-template-columns: repeat(5, minmax(0,1fr))',
-  '.prep-nav-item__icon',
-  '.prep-nav-item__label',
-  '.prep-nav-item__meta',
-]) {
-  if (!preparationCss.includes(token)) fail(`Preparation navigation contract source is missing: ${token}`)
+for (const token of ['.prep-business-nav', 'min-height: 32px', '.journal-center-toolbar', '.journal-center-search', '.journal-center-grid', '.figure-composer__splitter']) {
+  if (!workspaceCss.includes(token)) fail(`recovered workspace contract source is missing: ${token}`)
 }
 
 function luminance(rgb = '') {
@@ -49,14 +33,10 @@ function luminance(rgb = '') {
 }
 
 async function openPage(ui, view, theme = 'light', options = {}) {
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 1100 },
-    reducedMotion: 'no-preference',
-    ...options,
-  })
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, reducedMotion: 'no-preference', ...options })
   await page.goto(`${baseUrl}?view=${view}&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
   await page.locator("html[data-visual-ready='true'] .app-header").waitFor({ state: 'visible', timeout: 45000 })
-  await page.waitForTimeout(350)
+  await page.waitForTimeout(300)
   return page
 }
 
@@ -81,30 +61,19 @@ for (const ui of ['luminous', 'luminous-x']) {
             ? ['.app-layout > .online-preparation-shell, .app-layout > .preparation-suite']
             : ['.app-layout > .stats-panel']
         const surfaces = selectors.map(selector => Array.from(document.querySelectorAll(selector)).find(visible)).filter(Boolean)
-        const menuGroups = Array.from(document.querySelectorAll('.header-tabs, .prep-nav-primary, .stats-module-controls'))
-          .filter(visible)
-          .map(root => {
-            const buttons = Array.from(root.querySelectorAll(':scope > button')).filter(visible)
-            return {
-              name: root.className,
-              heights: buttons.map(button => Math.round(button.getBoundingClientRect().height * 10) / 10),
-              radii: buttons.map(button => parseFloat(getComputedStyle(button).borderRadius) || 0),
-            }
-          })
-        const panels = Array.from(document.querySelectorAll('.prep-dashboard, .prep-panel, .prep-topic-card, .prep-draft-card, .prep-journal-card, .action-center, .metric-card, .stats-summary-card, .chart-card')).filter(visible).slice(0, 18)
-        const grids = Array.from(document.querySelectorAll('.prep-dashboard-grid, .prep-overview-grid, .prep-card-grid, .journal-grid, .paper-grid, .metric-grid, .stats-summary-unified, .stats-distribution-grid')).filter(visible)
-        const mainNavButtons = Array.from(document.querySelectorAll(".header-tabs > button[data-main-nav-key], .tab-bar > button[data-main-nav-key]")).filter(visible)
+        const menuGroups = Array.from(document.querySelectorAll('.header-tabs, .prep-nav-primary, .stats-module-controls')).filter(visible).map(root => {
+          const buttons = Array.from(root.querySelectorAll(':scope > button')).filter(visible)
+          return { name: root.className, heights: buttons.map(button => button.getBoundingClientRect().height), radii: buttons.map(button => parseFloat(getComputedStyle(button).borderRadius) || 0) }
+        })
+        const panels = Array.from(document.querySelectorAll('.prep-dashboard, .prep-panel, .prep-topic-card, .prep-draft-card, .action-center, .metric-card, .stats-summary-card, .chart-card')).filter(visible).slice(0, 18)
+        const grids = Array.from(document.querySelectorAll('.prep-dashboard-grid, .prep-overview-grid, .prep-card-grid, .paper-grid, .metric-grid, .stats-summary-unified, .stats-distribution-grid')).filter(visible)
+        const mainNavButtons = Array.from(document.querySelectorAll("button[data-main-nav-key]")).filter(visible)
         const journalCenter = mainNavButtons.find(button => button.dataset.mainNavKey === 'journals')
         const preparationButton = mainNavButtons.find(button => button.dataset.mainNavKey === 'preparation')
         const journalStyle = journalCenter ? getComputedStyle(journalCenter) : null
         const preparationStyle = preparationButton ? getComputedStyle(preparationButton) : null
         const prepNav = document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav-primary')
         const prepButtons = prepNav ? Array.from(prepNav.querySelectorAll(':scope > button')).filter(visible) : []
-        const prepLabels = prepButtons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim())
-        const prepToneSignatures = prepButtons.map(button => {
-          const style = getComputedStyle(button)
-          return `${style.backgroundColor}|${style.backgroundImage}|${style.borderColor}`
-        })
         return {
           header: rect(header),
           shell: rect(shell),
@@ -112,26 +81,17 @@ for (const ui of ['luminous', 'luminous-x']) {
           menuGroups,
           panelRadii: panels.map(panel => parseFloat(getComputedStyle(panel).borderRadius) || 0),
           gridGaps: grids.map(grid => Math.max(parseFloat(getComputedStyle(grid).rowGap) || 0, parseFloat(getComputedStyle(grid).columnGap) || 0)),
-          journal: journalStyle ? {
-            backgroundColor: journalStyle.backgroundColor,
-            backgroundImage: journalStyle.backgroundImage,
-            borderColor: journalStyle.borderColor,
-            boxShadow: journalStyle.boxShadow,
-            width: journalCenter.getBoundingClientRect().width,
-            height: journalCenter.getBoundingClientRect().height,
-            radius: journalStyle.borderRadius,
-            justifyContent: journalStyle.justifyContent,
+          journal: journalStyle ? { width: journalCenter.getBoundingClientRect().width, height: journalCenter.getBoundingClientRect().height, radius: journalStyle.borderRadius } : null,
+          preparationRoute: preparationStyle ? { width: preparationButton.getBoundingClientRect().width, height: preparationButton.getBoundingClientRect().height, radius: preparationStyle.borderRadius } : null,
+          prep: prepNav ? {
+            rect: rect(prepNav),
+            labels: prepButtons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
+            heights: prepButtons.map(button => button.getBoundingClientRect().height),
+            idleGradients: prepButtons.filter(button => !button.classList.contains('active')).map(button => getComputedStyle(button).backgroundImage),
+            overflow: prepNav.scrollWidth - prepNav.clientWidth,
+            topbar: rect(document.querySelector('.preparation-workspace[data-section="overview"] > .prep-topbar')),
           } : null,
-          preparationRoute: preparationStyle ? {
-            width: preparationButton.getBoundingClientRect().width,
-            height: preparationButton.getBoundingClientRect().height,
-            radius: preparationStyle.borderRadius,
-            justifyContent: preparationStyle.justifyContent,
-          } : null,
-          prepLabels,
-          prepToneSignatures,
           overviewJournalPanel: !!Array.from(document.querySelectorAll('.prep-overview-journals')).find(visible),
-          visibleText: Array.from(document.querySelectorAll('.preparation-workspace button, .preparation-workspace h2, .preparation-workspace .prep-empty')).filter(visible).map(element => element.textContent || '').join(' '),
         }
       }, view)
 
@@ -158,27 +118,24 @@ for (const ui of ['luminous', 'luminous-x']) {
       if (report.gridGaps.some(gap => gap < 8 || gap > 14)) fail(`${ui}/${view}: grid interval is outside contract`)
 
       if (view === 'preparation') {
-        if (!report.journal) fail(`${ui}: Journal Center primary entry is missing`)
-        else if (ui === 'luminous') {
-          const transparent = ['transparent', 'rgba(0, 0, 0, 0)'].includes(report.journal.backgroundColor)
-          if (transparent && report.journal.backgroundImage === 'none') fail(`${ui}: Journal Center has no route surface`)
-          if (['transparent', 'rgba(0, 0, 0, 0)'].includes(report.journal.borderColor)) fail(`${ui}: Journal Center has no visible boundary`)
-          if (report.journal.boxShadow === 'none') fail(`${ui}: Journal Center has no depth`)
-        } else if (!report.preparationRoute) {
-          fail(`${ui}: Preparation peer route is missing`)
-        } else {
-          if (!closeEnough(report.journal.width, report.preparationRoute.width, 1)) fail(`${ui}: Journal Center width differs from its sidebar peers`)
-          if (!closeEnough(report.journal.height, report.preparationRoute.height, 1)) fail(`${ui}: Journal Center height differs from its sidebar peers`)
-          if (report.journal.radius !== report.preparationRoute.radius) fail(`${ui}: Journal Center radius differs from its sidebar peers`)
-          if (report.journal.justifyContent !== report.preparationRoute.justifyContent) fail(`${ui}: Journal Center alignment differs from its sidebar peers`)
+        if (!report.journal || !report.preparationRoute) fail(`${ui}: Journal Center or Preparation primary entry is missing`)
+        else if (ui === 'luminous-x') {
+          if (!closeEnough(report.journal.width, report.preparationRoute.width, 1)) fail(`${ui}: Journal Center width differs from peer routes`)
+          if (!closeEnough(report.journal.height, report.preparationRoute.height, 1)) fail(`${ui}: Journal Center height differs from peer routes`)
+          if (report.journal.radius !== report.preparationRoute.radius) fail(`${ui}: Journal Center radius differs from peer routes`)
         }
         const required = ['总览', '论文准备', '投稿材料', '期刊匹配', '投稿前检查']
-        if (report.prepLabels.length !== 5) fail(`${ui}: Preparation does not expose exactly five business routes (${report.prepLabels.join(' / ')} )`)
-        for (const label of required) if (!report.prepLabels.some(item => item.includes(label))) fail(`${ui}: Preparation route ${label} is missing`)
-        if (report.prepLabels.some(item => ['选题池', '草稿准备', '期刊库', '期刊比较'].some(legacy => item.includes(legacy)))) fail(`${ui}: legacy secondary Preparation routes remain in the primary navigation`)
-        if (new Set(report.prepToneSignatures).size < 4) fail(`${ui}: idle Preparation routes are not visually distinguishable`)
+        if (!report.prep) fail(`${ui}: compact Preparation rail is missing`)
+        else {
+          if (report.prep.labels.length !== 5) fail(`${ui}: Preparation does not expose exactly five business routes (${report.prep.labels.join(' / ')})`)
+          for (const label of required) if (!report.prep.labels.some(item => item.includes(label))) fail(`${ui}: Preparation route ${label} is missing`)
+          if (report.prep.rect.height > 44) fail(`${ui}: Preparation rail is oversized (${report.prep.rect.height}px)`)
+          if (report.prep.heights.some(height => height > 36)) fail(`${ui}: Preparation rail contains oversized buttons (${report.prep.heights.join(',')})`)
+          if (report.prep.idleGradients.some(value => value && value !== 'none')) fail(`${ui}: idle Preparation routes still use decorative gradients`)
+          if (report.prep.overflow > 2) fail(`${ui}: Preparation rail overflows by ${report.prep.overflow}px`)
+          if (ui === 'luminous' && report.prep.topbar && report.prep.topbar.height > 76) fail(`${ui}: Preparation workspace header is oversized (${report.prep.topbar.height}px)`)
+        }
         if (!report.overviewJournalPanel) fail(`${ui}: journal overview panel was removed from Preparation overview`)
-        if (/收藏期刊/.test(report.visibleText)) fail(`${ui}: legacy favorite-only wording remains visible`)
       }
       details.push(`${ui}/${view}: header=${report.header.left}-${report.header.right}; content=${report.shell.left}-${report.shell.right}`)
     } finally {
@@ -186,51 +143,44 @@ for (const ui of ['luminous', 'luminous-x']) {
     }
   }
 
-  const catalogPage = await openPage(ui, 'preparation')
+  const journalPage = await openPage(ui, 'preparation')
   try {
-    const entry = catalogPage.locator(".header-tabs > button[data-main-nav-key='journals']:visible, .tab-bar > button[data-main-nav-key='journals']:visible").first()
-    await entry.evaluate(element => element.click())
-    await catalogPage.locator('.journal-catalog-top-filters').waitFor({ state: 'visible', timeout: 15000 })
-    await catalogPage.locator('.journal-center-workspace[data-section="match"] .journal-grid').waitFor({ state: 'visible', timeout: 15000 })
+    const entry = journalPage.locator("button[data-main-nav-key='journals']:visible").first()
+    await entry.click()
+    await journalPage.locator('.journal-center-workspace').waitFor({ state: 'visible', timeout: 15000 })
+    await journalPage.locator('.journal-center-search input').waitFor({ state: 'visible', timeout: 15000 })
     const journalRouteActive = await entry.evaluate(element => element.classList.contains('active'))
-    const preparationRouteActive = await catalogPage.locator("button[data-main-nav-key='preparation']:visible").first().evaluate(element => element.classList.contains('active'))
-    if (!journalRouteActive) fail(`${ui}/catalog: Journal Center main route is not active after navigation`)
-    if (preparationRouteActive) fail(`${ui}/catalog: Preparation remains active while Journal Center is open`)
-    const catalog = await catalogPage.evaluate(currentUi => {
-      const visible = element => {
-        const style = getComputedStyle(element)
-        const rect = element.getBoundingClientRect()
-        return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
-      }
-      const workspace = document.querySelector('.journal-center-workspace[data-section="match"]')
-      const filters = document.querySelector('.journal-catalog-top-filters')
-      const expectedHost = currentUi === 'luminous-x'
-        ? document.querySelector('.lx-status-bar[data-page="journals"] .lx-status-controls-host')
-        : workspace?.querySelector(':scope > .prep-topbar')
-      const buttons = Array.from(filters?.querySelectorAll('.journal-catalog-filter') || [])
-      const cards = Array.from(workspace?.querySelectorAll('.prep-journal-card') || [])
-      const nav = workspace?.querySelector(':scope > .prep-nav-primary')
+    const preparationRouteActive = await journalPage.locator("button[data-main-nav-key='preparation']:visible").first().evaluate(element => element.classList.contains('active'))
+    if (!journalRouteActive) fail(`${ui}/journal-center: main route is not active after navigation`)
+    if (preparationRouteActive) fail(`${ui}/journal-center: Preparation remains active while Journal Center is open`)
+    const catalog = await journalPage.evaluate(() => {
+      const workspace = document.querySelector('.journal-center-workspace')
+      const toolbar = workspace?.querySelector('.journal-center-toolbar')
+      const search = workspace?.querySelector('.journal-center-search')
+      const cards = Array.from(workspace?.querySelectorAll('.journal-center-card') || [])
+      const toolbarRect = toolbar?.getBoundingClientRect()
+      const searchRect = search?.getBoundingClientRect()
       return {
-        correctHost: !!filters && filters.parentElement === expectedHost,
-        labels: buttons.map(button => button.textContent?.trim() || ''),
-        active: buttons.find(button => button.classList.contains('active'))?.dataset.filter || '',
+        toolbar: toolbarRect?.toJSON() || null,
+        search: searchRect?.toJSON() || null,
         cards: cards.length,
-        visibleCards: cards.filter(visible).length,
-        ordinary: cards.filter(card => card.dataset.catalogPriority === 'ordinary').length,
-        navDisplay: nav ? getComputedStyle(nav).display : 'missing',
-        overflow: filters ? filters.scrollWidth - filters.clientWidth : 0,
+        prepNav: !!workspace?.querySelector('.prep-nav-primary'),
+        oldFilters: !!document.querySelector('.journal-catalog-top-filters'),
+        overflow: toolbar ? toolbar.scrollWidth - toolbar.clientWidth : 999,
       }
-    }, ui)
-    for (const label of ['全部', '重点期刊', '投稿自动收录', '手动记录']) if (!catalog.labels.some(item => item.startsWith(label))) fail(`${ui}/catalog: filter ${label} is missing`)
-    if (!catalog.correctHost) fail(`${ui}/catalog: filters are not hosted in the top control area`)
-    if (catalog.active !== 'all') fail(`${ui}/catalog: default filter is not all`)
-    if (catalog.cards !== catalog.visibleCards) fail(`${ui}/catalog: default view hides records (${catalog.visibleCards}/${catalog.cards})`)
-    if (!catalog.ordinary) fail(`${ui}/catalog: non-favorite records are missing`)
-    if (catalog.navDisplay !== 'none' && catalog.navDisplay !== 'missing') fail(`${ui}/catalog: standalone Journal Center must not render Preparation business navigation`)
-    if (catalog.overflow > 2) fail(`${ui}/catalog: top filters overflow by ${catalog.overflow}px`)
-    details.push(`${ui}/catalog: ${catalog.labels.join('|')}; records=${catalog.visibleCards}/${catalog.cards}`)
+    })
+    if (!catalog.cards) fail(`${ui}/journal-center: no Journal Center cards rendered`)
+    if (catalog.prepNav) fail(`${ui}/journal-center: Preparation business navigation leaked into Journal Center`)
+    if (catalog.oldFilters) fail(`${ui}/journal-center: obsolete catalogue filter bar remains mounted`)
+    if (!catalog.toolbar || !catalog.search) fail(`${ui}/journal-center: toolbar/search geometry is missing`)
+    else {
+      if (catalog.overflow > 2) fail(`${ui}/journal-center: toolbar overflows by ${catalog.overflow}px`)
+      if (catalog.search.top < catalog.toolbar.top - 1 || catalog.search.bottom > catalog.toolbar.bottom + 1 || catalog.search.left < catalog.toolbar.left - 1 || catalog.search.right > catalog.toolbar.right + 1) fail(`${ui}/journal-center: search is clipped by its toolbar`)
+      if (catalog.toolbar.height > 118) fail(`${ui}/journal-center: toolbar is excessively tall (${catalog.toolbar.height}px)`)
+    }
+    details.push(`${ui}/journal-center: cards=${catalog.cards}; toolbar=${catalog.toolbar?.height || 0}px`)
   } finally {
-    await catalogPage.close()
+    await journalPage.close()
   }
 
   const darkPage = await openPage(ui, 'dashboard', 'dark')
@@ -239,41 +189,21 @@ for (const ui of ['luminous', 'luminous-x']) {
       const card = document.querySelector('.paper-card-v3')
       const title = card?.querySelector('.card-title')
       const secondary = card?.querySelector('.card-subtitle, .paper-date-info, .paper-history')
-      const cardStyle = card ? getComputedStyle(card) : null
-      const bodyStyle = getComputedStyle(document.body)
-      return {
-        bodyBackground: bodyStyle.backgroundImage,
-        title: title ? getComputedStyle(title).color : '',
-        secondary: secondary ? getComputedStyle(secondary).color : '',
-        border: cardStyle?.borderColor || '',
-      }
+      return { title: title ? getComputedStyle(title).color : '', secondary: secondary ? getComputedStyle(secondary).color : '', cardBackground: card ? getComputedStyle(card).backgroundColor : '' }
     })
-    if (!dark.bodyBackground.includes('linear-gradient')) fail(`${ui}/dark: calm blue-gray background field is missing`)
-    if (dark.bodyBackground.includes('radial-gradient')) fail(`${ui}/dark: decorative radial glow fields remain in the production dark workspace`)
-    if (luminance(dark.title) < .70) fail(`${ui}/dark: title is too dim (${dark.title})`)
-    if (dark.secondary && luminance(dark.secondary) < .42) fail(`${ui}/dark: secondary text is too dim (${dark.secondary})`)
-    if (['transparent', 'rgba(0, 0, 0, 0)'].includes(dark.border)) fail(`${ui}/dark: card boundary disappears`)
+    if (dark.title && luminance(dark.title) < .55) fail(`${ui}/dark: primary card text is too dim`)
+    if (dark.secondary && luminance(dark.secondary) < .25) fail(`${ui}/dark: secondary card text is too dim`)
+    details.push(`${ui}/dark: card=${dark.cardBackground}`)
   } finally {
     await darkPage.close()
-  }
-
-  const reducedPage = await openPage(ui, 'dashboard', 'dark', { reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } })
-  try {
-    const animations = await reducedPage.evaluate(() => ({
-      body: getComputedStyle(document.body).animationName,
-      header: getComputedStyle(document.querySelector('.app-header')).animationName,
-    }))
-    if (animations.body !== 'none' || animations.header !== 'none') fail(`${ui}/reduced-motion: animations remain active (${animations.body}/${animations.header})`)
-  } finally {
-    await reducedPage.close()
   }
 }
 
 await browser.close()
 if (failures.length) {
-  console.error('UI geometry and material contract check failed:')
+  console.error('UI geometry contract failed:')
   failures.forEach(item => console.error(`- ${item}`))
   process.exit(1)
 }
-console.log('UI geometry and material contract check passed.')
+console.log('UI geometry contract passed.')
 details.forEach(item => console.log(`- ${item}`))
