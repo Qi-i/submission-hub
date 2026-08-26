@@ -11,14 +11,18 @@ const closeEnough = (a, b, tolerance = 2) => Math.abs(a - b) <= tolerance
 const materialCss = readFileSync(new URL('../../src/ui-geometry-contract.css', import.meta.url), 'utf8')
 const finalCss = readFileSync(new URL('../../src/final-layout-navigation-fixes.css', import.meta.url), 'utf8')
 const workspaceCss = readFileSync(new URL('../../src/styles/workspace-recovery.css', import.meta.url), 'utf8')
+const railCss = readFileSync(new URL('../../src/styles/preparation-business-rail.css', import.meta.url), 'utf8')
 for (const token of ['submission-hub-background-breathe 24s', 'submission-hub-panel-breathe 16s', '@media (prefers-reduced-motion: reduce)', "html[data-theme='dark'][data-ui]"]) {
   if (!materialCss.includes(token)) fail(`material contract source is missing: ${token}`)
 }
 for (const token of ["grid-template-columns: repeat(4, minmax(0, 1fr))", "html[data-ui='luminous'] body .paper-grid"]) {
   if (!finalCss.includes(token)) fail(`final layout contract source is missing: ${token}`)
 }
-for (const token of ['.prep-business-nav', 'min-height: 32px', '.journal-center-toolbar', '.journal-center-search', '.journal-center-grid', '.figure-composer__splitter']) {
+for (const token of ['.journal-center-toolbar', '.journal-center-search', '.journal-center-grid', '.figure-composer__splitter']) {
   if (!workspaceCss.includes(token)) fail(`recovered workspace contract source is missing: ${token}`)
+}
+for (const token of ['.preparation-business-rail', '.preparation-business-rail__item', 'height: 32px', 'background: transparent']) {
+  if (!railCss.includes(token)) fail(`Preparation rail source is missing: ${token}`)
 }
 
 function luminance(rgb = '') {
@@ -61,7 +65,7 @@ for (const ui of ['luminous', 'luminous-x']) {
             ? ['.app-layout > .online-preparation-shell, .app-layout > .preparation-suite']
             : ['.app-layout > .stats-panel']
         const surfaces = selectors.map(selector => Array.from(document.querySelectorAll(selector)).find(visible)).filter(Boolean)
-        const menuGroups = Array.from(document.querySelectorAll('.header-tabs, .prep-nav-primary, .stats-module-controls')).filter(visible).map(root => {
+        const menuGroups = Array.from(document.querySelectorAll('.header-tabs, .preparation-business-rail, .stats-module-controls')).filter(visible).map(root => {
           const buttons = Array.from(root.querySelectorAll(':scope > button')).filter(visible)
           return { name: root.className, heights: buttons.map(button => button.getBoundingClientRect().height), radii: buttons.map(button => parseFloat(getComputedStyle(button).borderRadius) || 0) }
         })
@@ -72,7 +76,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         const preparationButton = mainNavButtons.find(button => button.dataset.mainNavKey === 'preparation')
         const journalStyle = journalCenter ? getComputedStyle(journalCenter) : null
         const preparationStyle = preparationButton ? getComputedStyle(preparationButton) : null
-        const prepNav = document.querySelector('.preparation-workspace[data-section="overview"] > .prep-nav-primary')
+        const prepNav = document.querySelector('.preparation-workspace[data-section="overview"] > .preparation-business-rail')
         const prepButtons = prepNav ? Array.from(prepNav.querySelectorAll(':scope > button')).filter(visible) : []
         return {
           header: rect(header),
@@ -164,7 +168,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         toolbar: toolbarRect?.toJSON() || null,
         search: searchRect?.toJSON() || null,
         cards: cards.length,
-        prepNav: !!workspace?.querySelector('.prep-nav-primary'),
+        prepNav: !!workspace?.querySelector('.preparation-business-rail'),
         oldFilters: !!document.querySelector('.journal-catalog-top-filters'),
         overflow: toolbar ? toolbar.scrollWidth - toolbar.clientWidth : 999,
       }
