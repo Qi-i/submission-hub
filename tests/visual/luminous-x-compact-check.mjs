@@ -49,7 +49,7 @@ try {
   const prepLayout = await prep.evaluate(() => {
     const workspace = document.querySelector('.preparation-workspace')
     const topbar = workspace?.querySelector(':scope > .prep-topbar')
-    const nav = workspace?.querySelector(':scope > .prep-nav-primary')
+    const nav = workspace?.querySelector(':scope > .preparation-business-rail')
     const portal = document.querySelector('#lx-preparation-actions-slot .prep-top-actions-portal')
     const assistant = workspace?.querySelector('.prep-productivity')
     const topics = workspace?.querySelector('.prep-topic-overview')
@@ -113,7 +113,7 @@ try {
     }
   }
 
-  const prepNav = prep.locator('.preparation-workspace > .prep-nav-primary')
+  const prepNav = prep.locator('.preparation-workspace > .preparation-business-rail')
   await prepNav.getByRole('button', { name: /论文准备/ }).click()
   await prep.locator(".preparation-workspace[data-section='paper']").waitFor({ state: 'visible', timeout: 5000 })
   const paperPanels = await prep.locator(".preparation-workspace[data-section='paper'] .prep-primary-section-grid > section").count()
@@ -125,7 +125,7 @@ try {
   if (entryIcon.width < 18 || entryIcon.height < 18) failures.push(`preparation: Figure Composer entry icon is not prominent (${entryIcon.width}×${entryIcon.height}px)`)
   await figureEntry.click()
   await prep.locator(".preparation-workspace[data-section='figures'] .figure-composer").waitFor({ state: 'visible', timeout: 10000 })
-  if (await prep.locator(".preparation-workspace[data-section='figures'] > .prep-nav-primary").count()) failures.push('preparation: business navigation remains mounted in Figure Composer mode')
+  if (await prep.locator(".preparation-workspace[data-section='figures'] > .preparation-business-rail").count()) failures.push('preparation: business navigation remains mounted in Figure Composer mode')
   const composerGeometry = await prep.locator('.figure-composer').evaluate(element => {
     const rect = element.getBoundingClientRect()
     const splitters = Array.from(element.querySelectorAll('.figure-composer__splitter')).map(splitter => splitter.getBoundingClientRect().toJSON())
@@ -137,18 +137,18 @@ try {
   await prep.screenshot({ path: 'focused-review/luminous-x-figure-composer.png', fullPage: true })
 
   await prep.getByRole('button', { name: /返回投稿准备/ }).click()
-  await prep.locator('.preparation-workspace > .prep-nav-primary').waitFor({ state: 'visible', timeout: 5000 })
+  await prep.locator('.preparation-workspace > .preparation-business-rail').waitFor({ state: 'visible', timeout: 5000 })
   const journalCenter = prep.locator("button[data-main-nav-key='journals']:visible").first()
   await journalCenter.click()
   await prep.locator('.journal-center-workspace').waitFor({ state: 'visible', timeout: 10000 })
   await prep.locator('.journal-center-search input').waitFor({ state: 'visible', timeout: 5000 })
-  if (await prep.locator('.journal-center-workspace .prep-nav-primary').count()) failures.push('journal-center: Preparation business navigation leaked into first-class Journal Center')
+  if (await prep.locator('.journal-center-workspace .preparation-business-rail').count()) failures.push('journal-center: Preparation business navigation leaked into first-class Journal Center')
   if (await prep.locator(".preparation-workspace[data-section='match'] .journal-grid").count()) failures.push('journal-center: top-level Journal Center is still a Preparation match clone')
   await prep.close()
 
   const narrowPrep = await open('preparation', 1280, 1000)
   const narrow = await narrowPrep.evaluate(() => {
-    const nav = document.querySelector('.preparation-workspace > .prep-nav-primary')
+    const nav = document.querySelector('.preparation-workspace > .preparation-business-rail')
     if (!nav) return null
     const rect = nav.getBoundingClientRect()
     const labels = Array.from(nav.querySelectorAll(':scope > button')).filter(button => {
