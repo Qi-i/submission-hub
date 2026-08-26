@@ -35,7 +35,9 @@ for (const label of ['总览', '论文准备', '投稿材料', '期刊匹配', '
   expect(prepNav.includes(label), `Preparation business navigation must include ${label}.`)
 }
 expect(prep.includes("section !== 'figures'"), 'Business navigation/header chrome must be conditionally hidden in figures mode.')
-expect(prepNav.includes('prep-nav-item__icon') && prepNav.includes('prep-nav-item__label') && prepNav.includes('prep-nav-item__meta'), 'All five business navigation buttons must use icon/label/meta slots.')
+expect(prepNav.includes('preparation-business-rail__icon') && prepNav.includes('preparation-business-rail__label'), 'All five business navigation buttons must use icon and label slots.')
+expect(prepNav.includes('item.meta != null') && prepNav.includes('preparation-business-rail__meta'), 'Count badges must be rendered only when a real count exists; empty badge dots are forbidden.')
+expect(!prepNav.includes('prep-nav-item__meta'), 'Legacy always-present Preparation meta slots must not return.')
 
 // P0: shared state; no DOM-proxy navigation in Luminous X preparation controls.
 for (const forbidden of ['findControlButton', 'document.querySelector', 'MutationObserver']) {
@@ -58,8 +60,9 @@ for (const file of [
   'src/styles/preparation/luminous.css',
   'src/styles/preparation/luminous-x.css',
   'src/styles/preparation/responsive.css',
+  'src/styles/preparation-business-rail.css',
 ]) expect(exists(file), `Missing unified preparation style file: ${file}`)
-expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css"), 'app-styles.ts must load the unified preparation style system.')
+expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css") && styles.trim().endsWith("import './styles/preparation-business-rail.css'"), 'app-styles.ts must load the isolated Preparation rail as the terminal style layer.')
 expect(shellCss.includes('.app-layout > .online-preparation-shell') && shellCss.includes('max-width: var(--ui-shell-max)'), 'Online Preparation shell must use the global centered content lane.')
 expect(prepTokens.includes('--ui-page-width: 2400px') && prepTokens.includes('--ui-page-gutter: clamp(8px, .7vw, 18px)') && prepTokens.includes('--ui-shell-max: var(--ui-page-width)') && prepTokens.includes('--ui-shell-gutter: var(--ui-page-gutter)'), 'Header, dashboard and Preparation must share the same resolution-aware wide-screen page width/gutter tokens.')
 
