@@ -35,7 +35,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         return style.display !== 'none' && style.visibility !== 'hidden' && !element.hidden && rect.width > 0 && rect.height > 0
       }
       const workspace = document.querySelector('.preparation-workspace[data-section="overview"]')
-      const nav = workspace?.querySelector(':scope > .prep-nav-primary')
+      const nav = workspace?.querySelector(':scope > .preparation-business-rail')
       const buttons = Array.from(nav?.querySelectorAll(':scope > button') || []).filter(visible)
       const topbar = workspace?.querySelector(':scope > .prep-topbar')
       return {
@@ -56,7 +56,7 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (preparation.buttonHeights.some(height => height > 36)) fail(`${ui}: 投稿准备子菜单按钮过高（${preparation.buttonHeights.join(', ')}）`)
     if (ui === 'luminous' && preparation.topbarHeight > 76) fail(`${ui}: 投稿准备标题栏仍过高（${preparation.topbarHeight}px）`)
 
-    const matchButton = page.locator('.preparation-workspace > .prep-nav-primary').getByRole('button', { name: /期刊匹配/ })
+    const matchButton = page.locator('.preparation-workspace > .preparation-business-rail').getByRole('button', { name: /期刊匹配/ })
     await matchButton.click()
     await page.locator('.preparation-workspace[data-section="match"] .journal-match-workspace').waitFor({ state: 'visible', timeout: 10000 })
     if (await page.locator('.preparation-workspace[data-section="match"] .journal-grid').count()) fail(`${ui}: 期刊匹配仍复制期刊中心目录网格`)
@@ -80,7 +80,7 @@ for (const ui of ['luminous', 'luminous-x']) {
       const search = workspace?.querySelector('.journal-center-search')
       const actions = workspace?.querySelector('.journal-center-toolbar__actions')
       const title = workspace?.querySelector('.journal-center-toolbar__title')
-      const prepNav = workspace?.querySelector('.prep-nav-primary')
+      const prepNav = workspace?.querySelector('.preparation-business-rail')
       const oldFilters = document.querySelector('.journal-catalog-top-filters')
       const oldToolbar = workspace?.querySelector('.journal-catalog-toolbar')
       const toolbarRect = toolbar?.getBoundingClientRect()
@@ -131,7 +131,7 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (!routeState.journalActive) fail(`${ui}: 打开期刊中心后顶栏入口未激活`)
     if (routeState.prepActive) fail(`${ui}: 打开期刊中心后投稿准备仍保持激活`)
     if (ui === 'luminous-x' && routeState.widthDelta != null) {
-      if (routeState.widthDelta > 1 || routeState.heightDelta > 1) fail(`luminous-x: 期刊中心与同级主菜单几何不一致`)
+      if (routeState.widthDelta > 1 || routeState.heightDelta > 1) fail('luminous-x: 期刊中心与同级主菜单几何不一致')
       if (routeState.journalRadius !== routeState.prepRadius) fail('luminous-x: 期刊中心圆角与同级主菜单不一致')
     }
 
