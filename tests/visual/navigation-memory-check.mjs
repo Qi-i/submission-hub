@@ -33,7 +33,7 @@ try {
 
   await page.getByRole('button', { name: '投稿准备' }).click()
   await page.locator('.preparation-workspace[data-section="match"]').waitFor()
-  await page.locator('.preparation-workspace > .prep-nav-primary').getByRole('button', { name: /论文准备/ }).click()
+  await page.locator('.preparation-workspace > .preparation-business-rail').getByRole('button', { name: /论文准备/ }).click()
   await page.locator('.preparation-workspace[data-section="paper"]').waitFor()
   await page.getByRole('button', { name: '个人统计' }).click()
   await page.locator('main[data-current-page="stats"]').waitFor()
