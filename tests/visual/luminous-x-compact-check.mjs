@@ -14,12 +14,6 @@ async function open(view, width = 1440, height = 1100) {
   return page
 }
 
-function overlaps(left, right) {
-  if (!left || !right) return false
-  return Math.min(left.right, right.right) - Math.max(left.left, right.left) > 2
-    && Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top) > 2
-}
-
 try {
   const dashboard = await open('dashboard')
   const statusSurfaces = await dashboard.evaluate(() => Array.from(document.querySelectorAll('.paper-grid .paper-card-v3')).map(card => {
@@ -63,7 +57,7 @@ try {
     const journalPanel = workspace?.querySelector('.prep-overview-journals')
     const primaryJournal = document.querySelector("button[data-main-nav-key='journals']")
     const primaryPeer = document.querySelector("button[data-main-nav-key='preparation']")
-    if (!workspace || !topbar || !nav) return null
+    if (!workspace || !nav) return null
 
     const buttons = Array.from(nav.querySelectorAll(':scope > button')).filter(button => {
       const style = getComputedStyle(button)
@@ -75,9 +69,10 @@ try {
 
     return {
       workspace: workspace.getBoundingClientRect().toJSON(),
-      topbarDisplay: getComputedStyle(topbar).display,
+      topbarDisplay: topbar ? getComputedStyle(topbar).display : 'missing',
       nav: nav.getBoundingClientRect().toJSON(),
       labels: buttons.map(button => (button.textContent || '').replace(/\s+/g, ' ').trim()),
+      buttonHeights: buttons.map(button => button.getBoundingClientRect().height),
       navOverflow: nav.scrollWidth - nav.clientWidth,
       portal: portal?.getBoundingClientRect().toJSON(),
       portalSearch: !!portal?.querySelector('.prep-search input'),
@@ -89,13 +84,11 @@ try {
         width: primaryJournal.getBoundingClientRect().width,
         height: primaryJournal.getBoundingClientRect().height,
         radius: primaryJournalStyle.borderRadius,
-        justify: primaryJournalStyle.justifyContent,
       } : null,
       primaryPeerGeometry: primaryPeer && primaryPeerStyle ? {
         width: primaryPeer.getBoundingClientRect().width,
         height: primaryPeer.getBoundingClientRect().height,
         radius: primaryPeerStyle.borderRadius,
-        justify: primaryPeerStyle.justifyContent,
       } : null,
     }
   })
@@ -107,9 +100,9 @@ try {
       if (!prepLayout.labels.some(item => item.includes(label))) failures.push(`preparation: route missing ${label}`)
     })
     if (prepLayout.labels.length !== 5) failures.push(`preparation: expected five routes, got ${prepLayout.labels.join(' / ')}`)
-    if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search controls were not moved into the header lane')
-    if (prepLayout.topbarDisplay !== 'none') failures.push('preparation: redundant wide overview toolbar remains visible')
+    if (!prepLayout.portal || !prepLayout.portalSearch) failures.push('preparation: real search controls were not moved into the Luminous X header lane')
     if (prepLayout.navOverflow > 2) failures.push(`preparation: canonical navigation overflows by ${prepLayout.navOverflow}px`)
+    if (prepLayout.nav.height > 44 || prepLayout.buttonHeights.some(height => height > 36)) failures.push('preparation: business navigation is still rendered as oversized card blocks')
     if (prepLayout.draftPanel && prepLayout.journalPanel && Math.abs(prepLayout.draftPanel.height - prepLayout.journalPanel.height) > 4) failures.push('preparation: overview draft and journal panels are not equal height')
     if (prepLayout.assistant && prepLayout.topics && Math.abs(prepLayout.assistant.left - prepLayout.topics.left) > 4) failures.push('preparation: overview modules do not share one column')
     if (!prepLayout.primaryJournalGeometry || !prepLayout.primaryPeerGeometry) failures.push('preparation: global Journal Center geometry is missing')
@@ -135,17 +128,22 @@ try {
   if (await prep.locator(".preparation-workspace[data-section='figures'] > .prep-nav-primary").count()) failures.push('preparation: business navigation remains mounted in Figure Composer mode')
   const composerGeometry = await prep.locator('.figure-composer').evaluate(element => {
     const rect = element.getBoundingClientRect()
-    return { width: rect.width, overflow: element.scrollWidth - element.clientWidth }
+    const splitters = Array.from(element.querySelectorAll('.figure-composer__splitter')).map(splitter => splitter.getBoundingClientRect().toJSON())
+    return { width: rect.width, overflow: element.scrollWidth - element.clientWidth, splitters }
   })
   if (composerGeometry.width < 700) failures.push(`preparation: Figure Composer workspace is unexpectedly narrow (${composerGeometry.width}px)`)
   if (composerGeometry.overflow > 2) failures.push(`preparation: Figure Composer root horizontally overflows by ${composerGeometry.overflow}px`)
+  if (composerGeometry.splitters.length !== 2) failures.push(`preparation: expected two draggable Figure Composer splitters, got ${composerGeometry.splitters.length}`)
   await prep.screenshot({ path: 'focused-review/luminous-x-figure-composer.png', fullPage: true })
 
   await prep.getByRole('button', { name: /返回投稿准备/ }).click()
   await prep.locator('.preparation-workspace > .prep-nav-primary').waitFor({ state: 'visible', timeout: 5000 })
   const journalCenter = prep.locator("button[data-main-nav-key='journals']:visible").first()
   await journalCenter.click()
-  await prep.locator(".preparation-workspace[data-section='match'] .journal-grid").waitFor({ state: 'visible', timeout: 5000 })
+  await prep.locator('.journal-center-workspace').waitFor({ state: 'visible', timeout: 10000 })
+  await prep.locator('.journal-center-search input').waitFor({ state: 'visible', timeout: 5000 })
+  if (await prep.locator('.journal-center-workspace .prep-nav-primary').count()) failures.push('journal-center: Preparation business navigation leaked into first-class Journal Center')
+  if (await prep.locator(".preparation-workspace[data-section='match'] .journal-grid").count()) failures.push('journal-center: top-level Journal Center is still a Preparation match clone')
   await prep.close()
 
   const narrowPrep = await open('preparation', 1280, 1000)
