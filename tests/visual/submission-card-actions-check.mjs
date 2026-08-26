@@ -30,9 +30,10 @@ async function openFirstJournalPopover(page, ui) {
 }
 
 async function waitForJournalCenter(page) {
-  const grid = page.locator(".journal-center-workspace[data-section='match'] .journal-grid").first()
-  await grid.waitFor({ state: 'visible', timeout: 8000 })
-  return grid
+  const workspace = page.locator('.journal-center-workspace').first()
+  await workspace.waitFor({ state: 'visible', timeout: 10000 })
+  await workspace.locator('.journal-center-search input').waitFor({ state: 'visible', timeout: 5000 })
+  return workspace
 }
 
 for (const ui of ['luminous', 'luminous-x']) {
@@ -164,10 +165,12 @@ for (const ui of ['luminous', 'luminous-x']) {
 
     const viewRun = await openFirstJournalPopover(page, ui)
     await viewRun.journalPopover.locator('.journal-quick-library-action.is-view').click({ force: true })
-    await waitForJournalCenter(page)
+    const viewCenter = await waitForJournalCenter(page)
     const journalCenterActive = page.locator("button[data-main-nav-key='journals']:visible").first()
-    if (await journalCenterActive.count() !== 1) fail(`${label}: “在期刊库查看” does not switch to the first-class Journal Center`)
-    await page.locator('.prep-journal-card.journal-library-focus').waitFor({ state: 'attached', timeout: 5000 })
+    if (await journalCenterActive.count() !== 1 || !(await journalCenterActive.evaluate(element => element.classList.contains('active')))) fail(`${label}: “在期刊库查看” does not switch to the first-class Journal Center`)
+    await viewCenter.locator('.journal-center-card.journal-library-focus').waitFor({ state: 'attached', timeout: 5000 })
+    const focusedName = (await viewCenter.locator('.journal-center-card.journal-library-focus h2').first().textContent())?.trim() || ''
+    if (focusedName !== viewRun.journalName) fail(`${label}: “在期刊库查看” focused ${focusedName || 'nothing'} instead of ${viewRun.journalName}`)
 
     const editRun = await openFirstJournalPopover(page, ui)
     await editRun.journalPopover.locator('.journal-quick-library-action.is-edit').click({ force: true })
