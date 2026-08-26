@@ -1,4 +1,4 @@
-/* Luminous adapter: same semantics, horizontal workspace geometry. */
+/* Luminous adapter: same Preparation semantics with horizontal workspace treatment. */
 html[data-ui='luminous'] .preparation-workspace {
   --prep-surface: var(--luminous-panel,rgba(255,255,255,.78));
   --prep-surface-elevated: var(--luminous-panel-strong,rgba(255,255,255,.94));
@@ -8,14 +8,15 @@ html[data-ui='luminous'] .preparation-workspace {
   --prep-text-muted: var(--text-secondary,#46516c);
 }
 html[data-ui='luminous'] .prep-topbar,
-html[data-ui='luminous'] .prep-business-nav,
 html[data-ui='luminous'] .prep-panel,
 html[data-ui='luminous'] .prep-dashboard,
 html[data-ui='luminous'] .prep-productivity {
   backdrop-filter: blur(18px) saturate(145%);
 }
-html[data-ui='luminous'] .prep-business-nav .prep-nav-item.active {
-  box-shadow: var(--prep-shadow-soft),0 0 18px color-mix(in srgb,var(--prep-nav-tone) 12%,transparent) !important;
+/* The business rail intentionally has no mode-specific material or geometry. */
+html[data-ui='luminous'] .prep-business-nav {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 }
 html[data-ui='luminous'] .figure-composer {
   backdrop-filter: blur(16px) saturate(130%);
