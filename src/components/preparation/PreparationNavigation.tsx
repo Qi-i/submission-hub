@@ -28,13 +28,13 @@ export default function PreparationNavigation({ section, draftCount, journalCoun
     { key: 'check', label: '投稿前检查', icon: ClipboardCheck },
   ]
 
-  return <nav className={`prep-nav prep-nav-primary prep-business-nav ${className}`.trim()} aria-label="投稿准备核心工作区">
+  return <nav className={`preparation-business-rail ${className}`.trim()} data-preparation-business-rail aria-label="投稿准备核心工作区">
     {items.map(item => {
       const Icon = item.icon
-      return <button key={item.key} type="button" className={`prep-nav-item${section === item.key ? ' active' : ''}`} aria-current={section === item.key ? 'page' : undefined} onClick={() => onChange(item.key)}>
-        <span className="prep-nav-item__icon" aria-hidden="true"><Icon size={14} /></span>
-        <span className="prep-nav-item__label">{item.label}</span>
-        {item.meta != null && <span className="prep-nav-item__meta" aria-label={`${item.meta}`}>{item.meta}</span>}
+      return <button key={item.key} type="button" className={`preparation-business-rail__item${section === item.key ? ' active' : ''}`} data-section-key={item.key} aria-current={section === item.key ? 'page' : undefined} onClick={() => onChange(item.key)}>
+        <span className="preparation-business-rail__icon" aria-hidden="true"><Icon size={14} /></span>
+        <span className="preparation-business-rail__label">{item.label}</span>
+        {item.meta != null && <span className="preparation-business-rail__meta" aria-label={`${item.meta}`}>{item.meta}</span>}
       </button>
     })}
   </nav>
