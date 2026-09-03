@@ -163,6 +163,7 @@
 .journal-center-grid .prep-journal-card-main {
   min-height: 0 !important;
   height: auto !important;
+  flex: 0 0 auto !important;
   align-content: start !important;
 }
 .journal-center-grid .prep-journal-links {
