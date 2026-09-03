@@ -50,14 +50,15 @@ async function inspectDesktop(ui, theme) {
       if (parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop Journal Center grid gap is too large')
       if (!gridStyle.gridAutoRows.includes('max-content')) localFailures.push(`Journal Center grid rows are not content-sized (${gridStyle.gridAutoRows})`)
       if (gridStyle.alignItems !== 'start') localFailures.push(`Journal Center grid items still stretch vertically (${gridStyle.alignItems})`)
-      if (Math.max(...cardRects.map(rect => rect.width)) > 390) localFailures.push('Journal Center cards are too wide')
+      if (Math.max(...cardRects.map(rect => rect.width)) > 520) localFailures.push('Journal Center cards are too wide')
+      if (Math.min(...cardRects.map(rect => rect.width)) < 400) localFailures.push('Journal Center cards are still undersized')
       if (Math.max(...cardRects.map(rect => rect.height)) > 340) localFailures.push('Journal Center cards are too tall')
 
       cards.forEach((card, index) => {
         const rect = card.getBoundingClientRect()
         const body = card.querySelector('.journal-center-card__body')
-        const title = card.querySelector('.journal-center-card__body h2')
-        const facts = Array.from(card.querySelectorAll('.journal-center-card__facts > span'))
+        const title = card.querySelector('.journal-center-card__body h3')
+        const facts = Array.from(card.querySelectorAll('.prep-journal-facts > span'))
         const links = card.querySelector('.journal-center-card__links')
         if (!body || !title) {
           localFailures.push(`journal ${index + 1}: independent card structure is incomplete`)
@@ -67,7 +68,9 @@ async function inspectDesktop(ui, theme) {
         const bodyStyle = getComputedStyle(body)
         const titleStyle = getComputedStyle(title)
         if (parseFloat(bodyStyle.paddingLeft) > 12 || parseFloat(bodyStyle.paddingTop) > 12) localFailures.push(`journal ${index + 1}: body padding is oversized`)
-        if (String(titleStyle.webkitLineClamp) !== '2') localFailures.push(`journal ${index + 1}: title is not limited to two lines`)
+        const lineHeight = parseFloat(titleStyle.lineHeight)
+        if (parseFloat(titleStyle.fontSize) < 14) localFailures.push(`journal ${index + 1}: title is smaller than the journal-management hierarchy`)
+        if (Number.isFinite(lineHeight) && title.scrollHeight > lineHeight * 2.5) localFailures.push(`journal ${index + 1}: title exceeds two readable lines`)
         if (rect.right > gridRect.right + 1.5 || rect.left < gridRect.left - 1.5) localFailures.push(`journal ${index + 1}: card exceeds grid edges`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: horizontal overflow`)
         if (cardStyle.alignSelf !== 'start') localFailures.push(`journal ${index + 1}: card still stretches within its grid row`)
@@ -88,27 +91,34 @@ async function inspectDesktop(ui, theme) {
         }
 
         for (const [groupName, group] of [
-          ['ranks', card.querySelector('.journal-center-ranks')],
-          ['facts', card.querySelector('.journal-center-card__facts')],
-          ['metrics', card.querySelector('.journal-center-card__metrics')],
+          ['ranks', card.querySelector('.prep-journal-rank-blocks')],
+          ['facts', card.querySelector('.prep-journal-facts')],
+          ['metrics', card.querySelector('.prep-journal-numbers')],
         ]) {
           if (!group || !visible(group)) continue
           const style = getComputedStyle(group)
           if (style.display !== 'flex' || style.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: ${groupName} are not content-driven flex-wrap`)
         }
 
-        const metrics = Array.from(card.querySelectorAll('.journal-center-card__metrics > span')).filter(visible)
+        const metrics = Array.from(card.querySelectorAll('.prep-journal-numbers > div')).filter(visible)
         metrics.forEach((metric, metricIndex) => {
           const value = metric.querySelector('b')?.textContent?.trim() || ''
           if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: empty metric ${metricIndex + 1} remains visible`)
         })
-        Array.from(card.querySelectorAll('.journal-center-ranks > span')).forEach((chip, rankIndex) => {
+        Array.from(card.querySelectorAll('.prep-journal-rank-blocks > span')).forEach((chip, rankIndex) => {
           if (chip.scrollWidth > chip.clientWidth + 2) localFailures.push(`journal ${index + 1}: rank chip ${rankIndex + 1} is clipped`)
         })
         facts.forEach((fact, factIndex) => {
           if (visible(fact) && fact.getBoundingClientRect().height > 29) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
         })
       })
+      const coloredChips = Array.from(grid.querySelectorAll('.prep-journal-rank-blocks > span, .prep-journal-facts > span')).filter(visible)
+      if (!coloredChips.length) localFailures.push('Journal Center has no visible rank/fact color blocks')
+      else if (!coloredChips.some(chip => {
+        const style = getComputedStyle(chip)
+        return !['transparent', 'rgba(0, 0, 0, 0)'].includes(style.backgroundColor)
+      })) localFailures.push('Journal Center rank/fact blocks lost their colored surfaces')
+
       return { failures: localFailures, details: { columns: columns.length, gap: gridStyle.columnGap, maxWidth: Math.round(Math.max(...cardRects.map(rect => rect.width))), maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))), visibleLinkGroups, cards: cards.length } }
     })
     failures.push(...result.failures.map(message => `${ui}/${theme}: ${message}`))
