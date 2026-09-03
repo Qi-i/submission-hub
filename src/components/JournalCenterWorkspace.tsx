@@ -106,7 +106,7 @@ export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
     onChanged?.()
   }
 
-  return <section className="journal-center-workspace preparation-workspace" data-section="match" aria-label="期刊中心">
+  return <section className="journal-center-workspace" aria-label="期刊中心">
     <header className="journal-center-toolbar">
       <div className="journal-center-toolbar__title"><h1>期刊中心</h1><p>集中维护期刊档案、评价信息、投稿入口和费用；投稿准备中的期刊匹配直接读取这里的数据。</p></div>
       <div className="journal-center-toolbar__actions">
@@ -116,7 +116,7 @@ export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
       </div>
     </header>
 
-    {loading ? <div className="journal-center-loading">正在加载期刊档案…</div> : <div className="journal-center-grid prep-card-grid journal-grid">
+    {loading ? <div className="journal-center-loading">正在加载期刊档案…</div> : <div className="journal-center-grid prep-card-grid journal-grid journal-catalog-grid">
       {visible.map(journal => <JournalCatalogCard key={journal.id} journal={journal} onClick={() => setEditor(journal)} standalone thirdPartyLinkLimit={journal.third_party_links.length} />)}
       {!visible.length && <div className="journal-center-empty">{search || favoritesOnly ? '没有符合当前条件的期刊。' : '暂无期刊档案。'}</div>}
     </div>}
