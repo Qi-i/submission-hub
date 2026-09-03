@@ -45,9 +45,11 @@ async function inspectDesktop(ui, theme) {
       const columns = gridStyle.gridTemplateColumns.split(' ').filter(Boolean)
       const gridRect = grid.getBoundingClientRect()
       const cardRects = cards.map(card => card.getBoundingClientRect())
-      const footerHeights = []
+      let visibleLinkGroups = 0
       if (columns.length < 3) localFailures.push(`desktop Journal Center exposes only ${columns.length} columns`)
       if (parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop Journal Center grid gap is too large')
+      if (!gridStyle.gridAutoRows.includes('max-content')) localFailures.push(`Journal Center grid rows are not content-sized (${gridStyle.gridAutoRows})`)
+      if (gridStyle.alignItems !== 'start') localFailures.push(`Journal Center grid items still stretch vertically (${gridStyle.alignItems})`)
       if (Math.max(...cardRects.map(rect => rect.width)) > 390) localFailures.push('Journal Center cards are too wide')
       if (Math.max(...cardRects.map(rect => rect.height)) > 340) localFailures.push('Journal Center cards are too tall')
 
@@ -57,29 +59,42 @@ async function inspectDesktop(ui, theme) {
         const title = card.querySelector('.journal-center-card__body h2')
         const facts = Array.from(card.querySelectorAll('.journal-center-card__facts > span'))
         const links = card.querySelector('.journal-center-card__links')
-        if (!body || !title || !links) {
+        if (!body || !title) {
           localFailures.push(`journal ${index + 1}: independent card structure is incomplete`)
           return
         }
+        const cardStyle = getComputedStyle(card)
         const bodyStyle = getComputedStyle(body)
         const titleStyle = getComputedStyle(title)
         if (parseFloat(bodyStyle.paddingLeft) > 12 || parseFloat(bodyStyle.paddingTop) > 12) localFailures.push(`journal ${index + 1}: body padding is oversized`)
         if (String(titleStyle.webkitLineClamp) !== '2') localFailures.push(`journal ${index + 1}: title is not limited to two lines`)
         if (rect.right > gridRect.right + 1.5 || rect.left < gridRect.left - 1.5) localFailures.push(`journal ${index + 1}: card exceeds grid edges`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: horizontal overflow`)
+        if (cardStyle.alignSelf !== 'start') localFailures.push(`journal ${index + 1}: card still stretches within its grid row`)
+        if (parseFloat(bodyStyle.flexGrow) !== 0) localFailures.push(`journal ${index + 1}: card body still consumes artificial vertical space`)
 
-        const anchors = Array.from(links.querySelectorAll('a')).filter(visible)
+        const anchors = links ? Array.from(links.querySelectorAll('a')).filter(visible) : []
         if (anchors.length) {
-          const linksRect = links.getBoundingClientRect()
-          footerHeights.push(linksRect.height)
-          if (linksRect.height < 34 || linksRect.height > 40) localFailures.push(`journal ${index + 1}: links footer is not a compact fixed rail`)
-          if (Math.abs(rect.bottom - linksRect.bottom) > 1.5) localFailures.push(`journal ${index + 1}: links footer is not bottom anchored`)
+          visibleLinkGroups += 1
+          const linksStyle = getComputedStyle(links)
+          if (linksStyle.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: links do not wrap with their content`)
+          if (parseFloat(linksStyle.flexGrow) !== 0) localFailures.push(`journal ${index + 1}: links still stretch into a fixed footer slot`)
           const keys = anchors.map(link => {
             const url = new URL(link.href)
             url.hash = ''
             return `${url.origin}${url.pathname.replace(/\/$/, '')}${url.search}`.toLowerCase()
           })
           if (new Set(keys).size !== keys.length) localFailures.push(`journal ${index + 1}: duplicate links remain visible`)
+        }
+
+        for (const [groupName, group] of [
+          ['ranks', card.querySelector('.journal-center-ranks')],
+          ['facts', card.querySelector('.journal-center-card__facts')],
+          ['metrics', card.querySelector('.journal-center-card__metrics')],
+        ]) {
+          if (!group || !visible(group)) continue
+          const style = getComputedStyle(group)
+          if (style.display !== 'flex' || style.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: ${groupName} are not content-driven flex-wrap`)
         }
 
         const metrics = Array.from(card.querySelectorAll('.journal-center-card__metrics > span')).filter(visible)
@@ -94,8 +109,7 @@ async function inspectDesktop(ui, theme) {
           if (visible(fact) && fact.getBoundingClientRect().height > 29) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
         })
       })
-      if (footerHeights.length > 1 && Math.max(...footerHeights) - Math.min(...footerHeights) > 1) localFailures.push('Journal Center link footers do not share one height')
-      return { failures: localFailures, details: { columns: columns.length, gap: gridStyle.columnGap, maxWidth: Math.round(Math.max(...cardRects.map(rect => rect.width))), maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))), visibleFooters: footerHeights.length, cards: cards.length } }
+      return { failures: localFailures, details: { columns: columns.length, gap: gridStyle.columnGap, maxWidth: Math.round(Math.max(...cardRects.map(rect => rect.width))), maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))), visibleLinkGroups, cards: cards.length } }
     })
     failures.push(...result.failures.map(message => `${ui}/${theme}: ${message}`))
     details.push({ ui, theme, ...result.details })
@@ -120,7 +134,7 @@ async function inspectMobile(ui) {
       cards.forEach((card, index) => {
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: mobile horizontal overflow`)
         const links = card.querySelector('.journal-center-card__links')
-        if (links && Math.abs(card.getBoundingClientRect().bottom - links.getBoundingClientRect().bottom) > 1.5) localFailures.push(`journal ${index + 1}: mobile links footer is not bottom anchored`)
+        if (links && getComputedStyle(links).flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: mobile links do not wrap`)
       })
       return localFailures
     })

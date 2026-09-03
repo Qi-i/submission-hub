@@ -18,7 +18,12 @@ async function openComposer(page) {
 
 try {
   const page = await browser.newPage({ viewport: { width: 1680, height: 1050 } })
-  await page.addInitScript(() => localStorage.removeItem('submission-hub.figure-composer.panes'))
+  await page.addInitScript(() => {
+    const resetKey = 'submission-hub.figure-composer.panes.test-reset'
+    if (sessionStorage.getItem(resetKey)) return
+    localStorage.removeItem('submission-hub.figure-composer.panes')
+    sessionStorage.setItem(resetKey, '1')
+  })
   await openComposer(page)
 
   const identity = await page.locator('.figure-composer__identity').evaluate(element => ({

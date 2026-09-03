@@ -88,7 +88,12 @@ async function inspectDesktop(page, name) {
     if (utilityRect.bottom > headerRect.bottom + 1) failures.push(`${name}: utility block exceeds the sidebar height`)
     if (statusRect.left <= headerRect.right + 8) failures.push(`${name}: top control bar overlaps the sidebar`)
     if (statusRect.right > viewportWidth + 2) failures.push(`${name}: top control bar escapes the viewport`)
-    if (statusRect.height > 98) failures.push(`${name}: top control bar is too tall and recreates the empty band`)
+    if (name.includes('preparation')) {
+      if (statusRect.height > 120) failures.push(`${name}: preparation control bar is taller than its real action lane requires`)
+      if (statusRect.height - controlsRect.height > 30) failures.push(`${name}: preparation control bar recreates an unused vertical band`)
+    } else if (statusRect.height > 98) {
+      failures.push(`${name}: top control bar is too tall and recreates the empty band`)
+    }
     if (Math.abs(countRect.right - statusRect.right) > 2) failures.push(`${name}: record count is not aligned to the right edge`)
     if (controlsRect.right > countRect.left + 2) failures.push(`${name}: page controls overlap the record count`)
     if (/工作区|分析舱|控制台/.test(pageTitle)) failures.push(`${name}: page title still uses an awkward suffix`)
@@ -101,7 +106,7 @@ async function inspectDesktop(page, name) {
     }
 
     if (name.includes('preparation')) {
-      const prepNav = document.querySelector('.preparation-workspace > .prep-nav-primary')
+      const prepNav = document.querySelector('.preparation-workspace > .preparation-business-rail')
       if (!prepNav) failures.push(`${name}: preparation navigation is missing`)
       else {
         const rect = prepNav.getBoundingClientRect()
