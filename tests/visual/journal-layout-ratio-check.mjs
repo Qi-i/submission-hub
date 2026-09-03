@@ -89,9 +89,9 @@ async function inspect(ui, viewport) {
           const rect = card.getBoundingClientRect()
           const body = card.querySelector('.journal-center-card__body')
           const bodyRect = body?.getBoundingClientRect()
-          const title = body?.querySelector('h2')?.getBoundingClientRect()
-          const identity = body?.querySelector('.journal-center-card__identity')?.getBoundingClientRect()
-          const publisher = body?.querySelector(':scope > p')?.getBoundingClientRect()
+          const title = body?.querySelector('h3')?.getBoundingClientRect()
+          const identity = body?.querySelector('.prep-journal-local-identity')?.getBoundingClientRect()
+          const publisher = body?.querySelector('.prep-journal-publisher')?.getBoundingClientRect()
           const children = body ? Array.from(body.children).filter(element => {
             const style = getComputedStyle(element)
             const childRect = element.getBoundingClientRect()
