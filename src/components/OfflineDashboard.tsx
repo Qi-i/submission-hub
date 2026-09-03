@@ -12,6 +12,7 @@ import ActionCenter from './ActionCenter'
 import OfflinePreparationWorkspace from './OfflinePreparationWorkspace'
 import OfflineJournalCenterWorkspace from './OfflineJournalCenterWorkspace'
 import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
+import type { PreparationSection } from './preparation/PreparationNavigation'
 import { Search, Plus, Download, Upload, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, X, Lightbulb, Settings, HardDrive, BookOpen } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 
@@ -52,6 +53,7 @@ export default function OfflineDashboard() {
   const [showTools, setShowTools] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [preparationSection, setPreparationSection] = useState<PreparationSection>('overview')
   const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
   const [authorName, setAuthorName] = useState('')
   const [showSettings, setShowSettings] = useState(false)
@@ -263,7 +265,7 @@ export default function OfflineDashboard() {
       </header>
 
       <div className="tab-bar">
-        <button className={`tab-btn ${tab === 'preparation' ? 'active' : ''}`} onClick={() => { setTab('preparation'); setShowTools(false) }}><Lightbulb size={14} /> 投稿准备</button>
+        <button className={`tab-btn ${tab === 'preparation' ? 'active' : ''}`} onClick={() => { setPreparationSection('overview'); setTab('preparation'); setShowTools(false) }}><Lightbulb size={14} /> 投稿准备</button>
         <button className={`tab-btn ${tab === 'journals' ? 'active' : ''}`} onClick={() => { setTab('journals'); setShowTools(false) }}><BookOpen size={14} /> 期刊中心</button>
         <button className={`tab-btn ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}><FileText size={14} /> 投稿管理</button>
         <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => { setTab('stats'); setShowTools(false) }}><BarChart3 size={14} /> 个人统计</button>
@@ -275,9 +277,10 @@ export default function OfflineDashboard() {
         recordCount={papers.length}
         layoutMode={layoutMode}
         onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
+        preparationSection={preparationSection}
       />}
 
-      {tab === 'preparation' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} onPaperCreated={refreshPapers} />}
+      {tab === 'preparation' && <OfflinePreparationWorkspace authorName={authorName} refreshToken={prepRefresh} onPaperCreated={refreshPapers} section={preparationSection} onSectionChange={setPreparationSection} />}
 
       {tab === 'journals' && <OfflineJournalCenterWorkspace refreshToken={prepRefresh} onChanged={() => setPrepRefresh(value => value + 1)} />}
 
