@@ -100,7 +100,7 @@ async function inspect(ui, viewport) {
     if (maxHeight > 340) failures.push(`${label}: Journal Center cards are excessively tall (${Math.round(maxHeight)}px)`)
     library.cards.forEach(card => {
       if (card.scrollWidth > card.clientWidth + 2) failures.push(`${label}: journal ${card.index + 1} horizontally overflows`)
-      if (card.blankBelowContent > 110) failures.push(`${label}: journal ${card.index + 1} retains ${Math.round(card.blankBelowContent)}px empty body space`)
+      if (card.blankBelowContent > 28) failures.push(`${label}: journal ${card.index + 1} retains ${Math.round(card.blankBelowContent)}px empty body space`)
       if (card.identityTop !== null && card.titleBottom !== null && card.identityTop < card.titleBottom - 2) failures.push(`${label}: journal ${card.index + 1} identity overlaps title`)
       if (card.identityBottom !== null && card.publisherTop !== null && card.publisherTop < card.identityBottom - 2) failures.push(`${label}: journal ${card.index + 1} publisher overlaps identity`)
       if (card.identityLeft !== null && card.bodyLeft !== null && card.identityLeft < card.bodyLeft - 2) failures.push(`${label}: journal ${card.index + 1} identity escapes left edge`)
