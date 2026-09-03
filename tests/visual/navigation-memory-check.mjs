@@ -22,7 +22,7 @@ try {
 
   await page.goto(`${base}?scope=${scope}`)
   await page.locator('main[data-current-page="preparation"]').waitFor()
-  await page.locator('.preparation-workspace[data-section="match"]').waitFor()
+  await page.locator('.preparation-workspace[data-section="overview"]').waitFor()
 
   await page.getByRole('button', { name: '投稿管理' }).click()
   await page.locator('main[data-current-page="dashboard"]').waitFor()
@@ -32,7 +32,7 @@ try {
   await page.locator('main[data-current-page="dashboard"][data-current-layout="board"]').waitFor()
 
   await page.getByRole('button', { name: '投稿准备' }).click()
-  await page.locator('.preparation-workspace[data-section="match"]').waitFor()
+  await page.locator('.preparation-workspace[data-section="overview"]').waitFor()
   await page.locator('.preparation-workspace button[data-section-key="paper"]').click()
   await page.locator('.preparation-workspace[data-section="paper"]').waitFor()
   await page.getByRole('button', { name: '个人统计' }).click()
@@ -41,11 +41,11 @@ try {
   await page.locator('main[data-current-page="stats"]').waitFor()
 
   await page.getByRole('button', { name: '投稿准备' }).click()
-  await page.locator('.preparation-workspace[data-section="paper"]').waitFor()
+  await page.locator('.preparation-workspace[data-section="overview"]').waitFor()
 
   const stored = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), key)
   if (stored.page !== 'preparation') failures.push(`stored page is ${String(stored.page)}`)
-  if (stored.preparationSection !== 'paper') failures.push(`stored preparation section is ${String(stored.preparationSection)}`)
+  if (stored.preparationSection !== 'overview') failures.push(`stored preparation section is ${String(stored.preparationSection)}`)
   if (stored.layoutMode !== 'board') failures.push(`stored layout mode is ${String(stored.layoutMode)}`)
 
   const isolatedContext = await browser.newContext()
