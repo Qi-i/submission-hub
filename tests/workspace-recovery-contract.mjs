@@ -22,8 +22,8 @@ const figureInspector = read('src/components/figure-composer/FigurePanelInspecto
 
 assert(exists('src/components/JournalCenterWorkspace.tsx'), 'Journal Center must have its own workspace component')
 assert(exists('src/components/JournalCatalogCard.tsx'), 'Journal Center and Preparation must share one journal card component')
-assert(journalCenter.includes('JournalCatalogCard') && journalCenter.includes('preparation-workspace') && journalCenter.includes('data-section="match"'), 'Journal Center must reuse the Preparation journal visual system instead of a parallel small-card implementation')
-assert(offlineJournalCenter.includes('JournalCatalogCard') && offlineJournalCenter.includes('preparation-workspace') && offlineJournalCenter.includes('data-section="match"'), 'Offline Journal Center must use the same shared journal card visual system')
+assert(journalCenter.includes('JournalCatalogCard') && journalCenter.includes('journal-catalog-grid') && !journalCenter.includes('journal-center-workspace preparation-workspace'), 'Journal Center must reuse the shared journal catalog card system without masquerading as Preparation')
+assert(offlineJournalCenter.includes('JournalCatalogCard') && offlineJournalCenter.includes('journal-catalog-grid') && !offlineJournalCenter.includes('journal-center-workspace preparation-workspace'), 'Offline Journal Center must use the same shared journal card visual system without Preparation coupling')
 assert(journalCard.includes('prep-journal-card') && journalCard.includes('prep-journal-rank-blocks') && journalCard.includes('prep-journal-facts') && journalCard.includes('prep-journal-numbers'), 'Shared journal card must retain colorful rank/fact/metric visual layers')
 assert(!exists('src/styles/journal-center-density-contract.css') && !appStyles.includes('journal-center-density-contract.css'), 'Terminal Journal Center density override must stay removed')
 assert(dashboard.includes('JournalCenterWorkspace'), 'Dashboard must render JournalCenterWorkspace directly')
