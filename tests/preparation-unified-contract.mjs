@@ -35,7 +35,9 @@ for (const label of ['总览', '论文准备', '投稿材料', '期刊匹配', '
   expect(prepNav.includes(label), `Preparation business navigation must include ${label}.`)
 }
 expect(prep.includes("section !== 'figures'"), 'Business navigation/header chrome must be conditionally hidden in figures mode.')
-expect(prepNav.includes('prep-nav-item__icon') && prepNav.includes('prep-nav-item__label') && prepNav.includes('prep-nav-item__meta'), 'All five business navigation buttons must use icon/label/meta slots.')
+expect(prepNav.includes('preparation-business-rail__icon') && prepNav.includes('preparation-business-rail__label'), 'All five business navigation buttons must use icon and label slots.')
+expect(prepNav.includes('item.meta != null') && prepNav.includes('preparation-business-rail__meta'), 'Count badges must be rendered only when a real count exists; empty badge dots are forbidden.')
+expect(!prepNav.includes('prep-nav-item__meta'), 'Legacy always-present Preparation meta slots must not return.')
 
 // P0: shared state; no DOM-proxy navigation in Luminous X preparation controls.
 for (const forbidden of ['findControlButton', 'document.querySelector', 'MutationObserver']) {
@@ -58,15 +60,20 @@ for (const file of [
   'src/styles/preparation/luminous.css',
   'src/styles/preparation/luminous-x.css',
   'src/styles/preparation/responsive.css',
+  'src/styles/preparation-business-rail.css',
+  'src/styles/journal-center-density-contract.css',
 ]) expect(exists(file), `Missing unified preparation style file: ${file}`)
-expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css"), 'app-styles.ts must load the unified preparation style system.')
+const railImport = styles.indexOf("import './styles/preparation-business-rail.css'")
+const journalDensityImport = styles.indexOf("import './styles/journal-center-density-contract.css'")
+expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css") && railImport > styles.indexOf("import './styles/preparation/responsive.css'"), 'app-styles.ts must load the isolated Preparation rail after the Preparation style stack.')
+expect(journalDensityImport > railImport && styles.trim().endsWith("import './styles/journal-center-density-contract.css'"), 'Journal Center density contract must be the terminal style layer so historical journal-library geometry cannot override the first-class page.')
 expect(shellCss.includes('.app-layout > .online-preparation-shell') && shellCss.includes('max-width: var(--ui-shell-max)'), 'Online Preparation shell must use the global centered content lane.')
 expect(prepTokens.includes('--ui-page-width: 2400px') && prepTokens.includes('--ui-page-gutter: clamp(8px, .7vw, 18px)') && prepTokens.includes('--ui-shell-max: var(--ui-page-width)') && prepTokens.includes('--ui-shell-gutter: var(--ui-page-gutter)'), 'Header, dashboard and Preparation must share the same resolution-aware wide-screen page width/gutter tokens.')
 
 // P0: Journal Center is a real top-level React page, never a Preparation redirect.
 expect(dashboardSource.includes("type Tab = 'preparation' | 'journals' | 'dashboard'"), 'Dashboard Tab union must contain a first-class journals page.')
 expect(dashboardSource.includes("onClick={() => changeTab('journals')}") && dashboardSource.includes("tab === 'journals' ? 'active'"), 'Journal Center top navigation must directly mutate and reflect the journals tab state.')
-expect(dashboardSource.includes("tab === 'journals'") && dashboardSource.includes('workspaceMode="journal-center"') && dashboardSource.includes('section="match"'), 'The journals tab must render the standalone Journal Center workspace.')
+expect(dashboardSource.includes("tab === 'journals'") && dashboardSource.includes('JournalCenterWorkspace') && !dashboardSource.includes('workspaceMode="journal-center"'), 'The journals tab must render the independent Journal Center workspace.')
 expect(navigationMemory.includes("journals: '期刊中心'") && navigationMemory.includes("'preparation' | 'journals' | 'dashboard'"), 'Navigation memory must understand Journal Center as a top-level page.')
 expect(!globalNavigationSource.includes('createJournalCenterButton') && !globalNavigationSource.includes("clickPreparationSection('match')"), 'Global navigation must never fake Journal Center by redirecting to Preparation match.')
 

@@ -37,36 +37,23 @@ async function openJournalLibrary(page, ui) {
     selector: '.preparation-workspace:visible',
   })
 
-  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  const journalCenter = page.locator("button[data-main-nav-key='journals']:visible").first()
   await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
   await journalCenter.evaluate(element => element.click())
 
-  await page.locator('.preparation-workspace[data-section="match"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
+  await page.locator('.journal-center-workspace:visible .journal-center-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
+  await page.locator('.journal-center-toolbar:visible').first().waitFor({ state: 'visible', timeout: 15000 })
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.waitForTimeout(300)
 }
 
 async function openNewJournalEditor(page) {
-  const buttons = page.locator('.btn-journal-primary')
-  const count = await buttons.count()
-  for (let index = 0; index < count; index += 1) {
-    await buttons.nth(index).evaluate(element => element.click())
-    const modal = page.locator('.journal-form-modal:visible').first()
-    try {
-      await modal.waitFor({ state: 'visible', timeout: 1800 })
-      return modal
-    } catch {
-      // Try the next rendered action; responsive layouts may retain an inert hidden copy.
-    }
-  }
-  const diagnostics = await buttons.evaluateAll(elements => elements.map(element => ({
-    text: element.textContent?.trim() || '',
-    connected: element.isConnected,
-    display: getComputedStyle(element).display,
-    visibility: getComputedStyle(element).visibility,
-    rect: element.getBoundingClientRect().toJSON(),
-  })))
-  throw new Error(`Unable to open journal editor from ${count} actions: ${JSON.stringify(diagnostics)}`)
+  const button = page.locator('.journal-center-toolbar__actions > button.primary:visible').first()
+  await button.waitFor({ state: 'visible', timeout: 10000 })
+  await button.click()
+  const modal = page.locator('.journal-form-modal:visible').first()
+  await modal.waitFor({ state: 'visible', timeout: 5000 })
+  return modal
 }
 
 async function captureJournalLibrary(ui, path) {

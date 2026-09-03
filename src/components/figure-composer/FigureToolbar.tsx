@@ -13,9 +13,10 @@ interface Props {
   onLayoutPreset: (preset: FigureLayoutPreset) => void
   onGridSize: (rows: number, columns: number) => void
   onAutoWrap: () => void
+  onScaleSelected: (factor: number) => void
 }
 
-export default function FigureToolbar({ selectedCount, zoom, layoutPreset, gridRows, gridColumns, onZoom, onAlign, onDistribute, onLayoutPreset, onGridSize, onAutoWrap }: Props) {
+export default function FigureToolbar({ selectedCount, zoom, layoutPreset, gridRows, gridColumns, onZoom, onAlign, onDistribute, onLayoutPreset, onGridSize, onAutoWrap, onScaleSelected }: Props) {
   const alignDisabled = selectedCount < 2
   const distributeDisabled = selectedCount < 3
   return <div className="figure-composer__toolbar" aria-label="科研组图工具栏">
@@ -29,6 +30,8 @@ export default function FigureToolbar({ selectedCount, zoom, layoutPreset, gridR
       <label className="figure-composer__compact-field">列<input aria-label="网格列数" type="number" min="1" max="12" value={gridColumns} onChange={event => onGridSize(gridRows, Math.max(1, Number(event.target.value) || 1))} /></label>
       <button type="button" onClick={() => onLayoutPreset(layoutPreset)}><Grid3X3 size={14} /> 重排</button>
       <button type="button" onClick={onAutoWrap}><Maximize2 size={14} /> 包裹画布</button>
+      <button type="button" disabled={!selectedCount} onClick={() => onScaleSelected(.92)}>缩小选中图</button>
+      <button type="button" disabled={!selectedCount} onClick={() => onScaleSelected(1.08)}>放大选中图</button>
     </div>
 
     <div className="figure-composer__tool-group" aria-label="对齐与分布">

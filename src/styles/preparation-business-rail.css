@@ -1,0 +1,139 @@
+/* Canonical Preparation business rail. Intentionally uses a unique namespace so legacy
+   .prep-nav / .prep-nav-primary / .prep-business-nav rules cannot affect it. */
+
+/* The rail is a normal full-width row. This explicitly retires the historical desktop
+   layout that paired a 172px navigation block beside the dashboard. */
+.preparation-workspace[data-section='overview'] {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: none !important;
+  grid-auto-rows: max-content !important;
+  grid-auto-flow: row !important;
+  align-items: stretch !important;
+  column-gap: 0 !important;
+  row-gap: var(--prep-gap-md, 10px) !important;
+}
+
+.preparation-workspace[data-section='overview'] > :is(
+  .prep-topbar,
+  .preparation-business-rail,
+  .prep-dashboard,
+  .prep-overview-grid,
+  .prep-overview-modules,
+  .prep-topic-overview,
+  .prep-productivity
+) {
+  grid-column: 1 !important;
+  grid-row: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  align-self: stretch !important;
+}
+
+.preparation-workspace[data-section='overview'] > .prep-dashboard {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+.preparation-business-rail {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  align-self: start !important;
+  gap: 3px;
+  margin: 0;
+  padding: 1px 2px 5px;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 0;
+  border-bottom: 1px solid var(--prep-border, var(--border-light));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  scrollbar-width: thin;
+}
+
+.preparation-business-rail__item {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 104px;
+  max-width: 148px;
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--prep-text-muted, var(--text-secondary));
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 720;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .14s ease, border-color .14s ease, background-color .14s ease, box-shadow .14s ease;
+}
+
+.preparation-business-rail__item:hover {
+  color: var(--prep-text, var(--text-primary));
+  border-color: color-mix(in srgb, var(--prep-blue, #4f73e8) 12%, var(--prep-border, var(--border-light)));
+  background: color-mix(in srgb, var(--prep-blue, #4f73e8) 4%, var(--prep-surface-elevated, var(--bg-card)));
+  background-image: none;
+}
+
+.preparation-business-rail__item.active {
+  color: color-mix(in srgb, var(--prep-blue, #4f73e8) 82%, var(--prep-text, var(--text-primary)));
+  border-color: color-mix(in srgb, var(--prep-blue, #4f73e8) 24%, var(--prep-border, var(--border-light)));
+  background: color-mix(in srgb, var(--prep-blue, #4f73e8) 7%, var(--prep-surface-elevated, var(--bg-card)));
+  background-image: none;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--prep-blue, #4f73e8) 72%, transparent);
+}
+
+.preparation-business-rail__icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: inline-grid;
+  place-items: center;
+  color: currentColor;
+}
+
+.preparation-business-rail__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preparation-business-rail__meta {
+  width: auto;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--prep-text-muted, var(--text-secondary));
+  background: var(--prep-surface-soft, var(--bg-elevated));
+  font-size: 8.5px;
+  font-weight: 760;
+}
+
+@media (max-width: 760px) {
+  .preparation-business-rail__item { min-width: 100px; }
+}

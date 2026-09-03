@@ -13,7 +13,6 @@ interface Props {
   onPaperCreated?: () => void
   section?: PreparationSection
   onSectionChange?: (section: PreparationSection) => void
-  workspaceMode?: 'preparation' | 'journal-center'
 }
 
 const emptySnapshot: PreparationSnapshot = { journals: [], topics: [], drafts: [] }
@@ -23,7 +22,7 @@ function localDateString() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-export default function OfflinePreparationWorkspace({ authorName, refreshToken, onPaperCreated, section, onSectionChange, workspaceMode = 'preparation' }: Props) {
+export default function OfflinePreparationWorkspace({ authorName, refreshToken, onPaperCreated, section, onSectionChange }: Props) {
   const [snapshot, setSnapshot] = useState<PreparationSnapshot>(emptySnapshot)
 
   const refresh = useCallback(() => {
@@ -122,5 +121,5 @@ export default function OfflinePreparationWorkspace({ authorName, refreshToken, 
     onPaperCreated?.()
   }
 
-  return <PreparationWorkspaceSuite section={section} onSectionChange={onSectionChange} workspaceMode={workspaceMode} snapshot={snapshot} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} />
+  return <PreparationWorkspaceSuite section={section} onSectionChange={onSectionChange} snapshot={snapshot} onSaveJournal={saveJournal} onDeleteJournal={deleteJournal} onSaveTopic={saveTopic} onDeleteTopic={deleteTopic} onSaveDraft={saveDraft} onDeleteDraft={deleteDraft} onPromoteDraft={promoteDraft} />
 }

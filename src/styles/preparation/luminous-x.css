@@ -10,7 +10,6 @@ html[data-ui='luminous-x'] .preparation-workspace {
 }
 
 html[data-ui='luminous-x'] .prep-topbar,
-html[data-ui='luminous-x'] .prep-business-nav,
 html[data-ui='luminous-x'] .prep-panel,
 html[data-ui='luminous-x'] .prep-dashboard,
 html[data-ui='luminous-x'] .prep-productivity,
@@ -19,28 +18,14 @@ html[data-ui='luminous-x'] .figure-composer {
   backdrop-filter: blur(20px) saturate(150%);
 }
 
-/* The same canonical five-route business navigation is rendered in both interfaces.
-   Historical Luminous X layers hid .prep-nav because an old proxy nav existed in the
-   status bar; the proxy has been retired, so the canonical React navigation owns the lane. */
+/* Business navigation deliberately has no X-specific geometry. Both Luminous modes
+   render the exact same compact canonical rail from workspace-recovery.css. */
 html[data-ui='luminous-x'] .preparation-workspace:not([data-section='figures']) > .prep-business-nav {
-  width: 100% !important;
-  display: grid !important;
-  grid-template-columns: repeat(5,minmax(0,1fr)) !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
-}
-
-html[data-ui='luminous-x'] .preparation-workspace:not([data-section='figures']) > .prep-business-nav > .prep-nav-item {
-  display: grid !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  border-radius: 11px !important;
-}
-
-html[data-ui='luminous-x'] .prep-business-nav .prep-nav-item.active {
-  box-shadow: 0 10px 24px color-mix(in srgb,var(--prep-nav-tone) 13%,transparent), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 }
 
 html[data-ui='luminous-x'] .figure-composer {

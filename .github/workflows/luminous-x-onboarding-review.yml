@@ -58,6 +58,9 @@ jobs:
       - name: Review 5 - first-run guide and defaults
         if: always()
         run: node tests/visual/first-run-guide-check.mjs
+      - name: Review 6 - Figure Composer real interactions
+        if: always()
+        run: node tests/visual/figure-composer-interactions-check.mjs
       - name: Capture focused comparison pages
         if: always()
         run: |

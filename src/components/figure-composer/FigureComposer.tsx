@@ -1,5 +1,5 @@
 import { ArrowLeft, Download, FileCheck2, Plus, Save, Type, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import type { ManuscriptDraft } from '../../lib/preparation'
 import { alignPanels, distributePanels, resizePanel, translatePanels } from '../../lib/figure-composer/geometry'
 import { importFigureFiles, revokeFigureAssets } from '../../lib/figure-composer/image-import'
@@ -24,6 +24,7 @@ import {
 } from '../../lib/figure-composer/types'
 import FigureCanvas from './FigureCanvas'
 import FigureExportPanel from './FigureExportPanel'
+import FigureGlobalLayoutPanel from './FigureGlobalLayoutPanel'
 import FigurePanelInspector from './FigurePanelInspector'
 import FigurePreflightPanel from './FigurePreflightPanel'
 import FigureSidebar from './FigureSidebar'
@@ -45,9 +46,9 @@ function reducer(project: FigureProject, action: Action): FigureProject {
   return { ...project, ...action.patch, updatedAt: new Date().toISOString() }
 }
 
-function panelFromAsset(asset: RuntimeFigureAsset, index: number): FigurePanel {
+function panelFromAsset(asset: RuntimeFigureAsset, index: number, project: FigureProject): FigurePanel {
   const originalAspectRatio = asset.naturalWidth / Math.max(1, asset.naturalHeight)
-  const width = 280
+  const width = Math.max(100, project.canvas.panelWidth) * Math.max(.25, project.canvas.layoutScale / 100)
   return {
     id: crypto.randomUUID(),
     assetId: asset.id,
@@ -56,8 +57,8 @@ function panelFromAsset(asset: RuntimeFigureAsset, index: number): FigurePanel {
     naturalWidth: asset.naturalWidth,
     naturalHeight: asset.naturalHeight,
     originalAspectRatio,
-    x: 16 + index * 12,
-    y: 16 + index * 12,
+    x: project.canvas.margin + index * 12,
+    y: project.canvas.margin + index * 12,
     width,
     height: width / Math.max(0.0001, originalAspectRatio),
     lockAspectRatio: true,
@@ -66,8 +67,8 @@ function panelFromAsset(asset: RuntimeFigureAsset, index: number): FigurePanel {
     rowSpan: 1,
     colSpan: 1,
     fit: 'contain',
-    label: { ...DEFAULT_LABEL_SETTINGS },
-    border: { ...DEFAULT_BORDER_SETTINGS },
+    label: { ...DEFAULT_LABEL_SETTINGS, ...project.labelDefaults },
+    border: { ...DEFAULT_BORDER_SETTINGS, ...project.borderDefaults },
   }
 }
 
@@ -81,6 +82,15 @@ function scaleProjectToWidth(project: FigureProject, width: number) {
   }
 }
 
+const PANE_STORAGE_KEY = 'submission-hub.figure-composer.panes'
+const DEFAULT_PANES = { left: 270, right: 330 }
+function readPaneWidths() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PANE_STORAGE_KEY) || 'null')
+    return { left: Math.max(210, Math.min(460, Number(value?.left) || DEFAULT_PANES.left)), right: Math.max(260, Math.min(520, Number(value?.right) || DEFAULT_PANES.right)) }
+  } catch { return DEFAULT_PANES }
+}
+
 export default function FigureComposer({ drafts, initialDraftId = null, onDraftFigureCountChange, onBack }: Props) {
   const [project, dispatch] = useReducer(reducer, createEmptyFigureProject(initialDraftId))
   const [projects, setProjects] = useState<FigureProject[]>([])
@@ -91,8 +101,10 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('导入图片后可自动排版，也可进入自由布局精确编辑。')
   const [textDraft, setTextDraft] = useState('')
+  const [paneWidths, setPaneWidths] = useState(readPaneWidths)
 
   useEffect(() => { assetsRef.current = assets }, [assets])
+  useEffect(() => { localStorage.setItem(PANE_STORAGE_KEY, JSON.stringify(paneWidths)) }, [paneWidths])
   useEffect(() => () => revokeFigureAssets(assetsRef.current.values()), [])
 
   const refreshProjects = useCallback(async () => {
@@ -198,7 +210,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       setAssets(nextAssets)
       let next: FigureProject = {
         ...project,
-        panels: [...project.panels, ...result.assets.map((asset, index) => panelFromAsset(asset, project.panels.length + index))],
+        panels: [...project.panels, ...result.assets.map((asset, index) => panelFromAsset(asset, project.panels.length + index, project))],
         selectedPanelIds: [],
         selectedTextId: null,
       }
@@ -332,6 +344,38 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     replace({ ...project, texts: project.texts.filter(text => text.id !== selectedText.id), selectedTextId: null })
   }
 
+  const patchCanvas = (patch: Partial<FigureProject['canvas']>, reflow = false) => {
+    let next: FigureProject = { ...project, canvas: { ...project.canvas, ...patch } }
+    if (reflow && next.canvas.layoutMode === 'grid') next = applyGridLayout(next)
+    replace(next)
+  }
+
+  const patchLabelDefaults = (patch: Partial<FigureProject['labelDefaults']>) => replace({ ...project, labelDefaults: { ...project.labelDefaults, ...patch } })
+  const patchBorderDefaults = (patch: Partial<FigureProject['borderDefaults']>) => replace({ ...project, borderDefaults: { ...project.borderDefaults, ...patch } })
+  const applyLabelsToAll = () => replace({ ...project, panels: project.panels.map(panel => ({ ...panel, label: { ...project.labelDefaults, textOverride: panel.label.textOverride } })) })
+  const applyBordersToAll = () => replace({ ...project, panels: project.panels.map(panel => ({ ...panel, border: { ...project.borderDefaults } })) })
+  const scaleSelected = (factor: number) => {
+    if (!project.selectedPanelIds.length) return
+    replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: project.panels.map(panel => project.selectedPanelIds.includes(panel.id) ? resizePanel(panel, { width: Math.max(20, panel.width * factor), editedDimension: 'width' }) : panel) })
+  }
+
+  const beginPaneResize = (side: 'left' | 'right', event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const startX = event.clientX
+    const initial = paneWidths
+    const move = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX
+      setPaneWidths(side === 'left'
+        ? { ...initial, left: Math.max(210, Math.min(460, initial.left + delta)) }
+        : { ...initial, right: Math.max(260, Math.min(520, initial.right - delta)) })
+    }
+    const stop = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop) }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop, { once: true })
+  }
+
+  const resetPaneWidths = () => setPaneWidths(DEFAULT_PANES)
+
   const handleExport = async () => {
     setBusy(true)
     try {
@@ -358,7 +402,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       </div>
     </header>
 
-    <div className="figure-composer__workspace">
+    <div className="figure-composer__workspace" style={{ '--fc-left-pane': `${paneWidths.left}px`, '--fc-right-pane': `${paneWidths.right}px` } as CSSProperties}>
       <FigureSidebar
         project={project}
         projects={projects}
@@ -374,7 +418,10 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
         onSelectPanel={selectPanel}
         onMoveLayer={moveLayer}
         onRemovePanel={removePanel}
+        globalControls={<FigureGlobalLayoutPanel project={project} onCanvas={patchCanvas} onLabelDefaults={patchLabelDefaults} onBorderDefaults={patchBorderDefaults} onApplyLabelsToAll={applyLabelsToAll} onApplyBordersToAll={applyBordersToAll} />}
       />
+
+      <div className="figure-composer__splitter" role="separator" aria-orientation="vertical" aria-label="调整左侧面板宽度" aria-valuenow={paneWidths.left} tabIndex={0} onPointerDown={event => beginPaneResize('left', event)} onDoubleClick={resetPaneWidths} />
 
       <main className="figure-composer__center">
         <FigureToolbar
@@ -389,6 +436,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
           onLayoutPreset={applyLayout}
           onGridSize={setGridSize}
           onAutoWrap={() => replace(autoWrapProject(project))}
+          onScaleSelected={scaleSelected}
         />
         <FigureCanvas
           project={project}
@@ -404,6 +452,8 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
         />
         <footer className="figure-composer__status" aria-live="polite"><span>{status}</span><b>{Math.round(project.canvas.width)}×{Math.round(project.canvas.height)} logical px · {project.panels.length} 子图</b></footer>
       </main>
+
+      <div className="figure-composer__splitter" role="separator" aria-orientation="vertical" aria-label="调整右侧面板宽度" aria-valuenow={paneWidths.right} tabIndex={0} onPointerDown={event => beginPaneResize('right', event)} onDoubleClick={resetPaneWidths} />
 
       <aside className="figure-composer__right">
         <FigurePanelInspector panel={selectedPanel} selectedCount={project.selectedPanelIds.length} onPatch={patchPanel} />

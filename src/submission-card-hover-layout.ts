@@ -47,38 +47,21 @@ function setControlledInputValue(input: HTMLInputElement, value: string) {
 
 function matchingJournalCard(journalName: string) {
   const wanted = compactText(journalName)
-  const cards = Array.from(document.querySelectorAll<HTMLElement>('.prep-journal-card'))
-  return cards.find(card => compactText(card.querySelector('h3')?.textContent) === wanted)
-    || cards.find(card => compactText(card.querySelector('h3')?.textContent).includes(wanted))
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('.journal-center-card'))
+  return cards.find(card => compactText(card.querySelector('h2')?.textContent) === wanted)
+    || cards.find(card => compactText(card.querySelector('h2')?.textContent).includes(wanted))
     || null
 }
 
 async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edit') {
-  // v2.1+: Journal Center is a first-class global route. Prefer it so card actions
-  // remain valid regardless of the currently active Preparation workspace.
   const journalCenter = findButton(MAIN_NAV_SELECTOR, '期刊中心')
-  if (journalCenter) {
-    journalCenter.click()
-  } else {
-    // Compatibility fallback for older shells and historical visual fixtures.
-    findButton(MAIN_NAV_SELECTOR, '投稿准备')?.click()
-    const workspace = await waitForElement(() => document.querySelector<HTMLElement>('.preparation-workspace'))
-    if (!workspace) return
-    const route = findButton(
-      '.preparation-workspace > .prep-nav-primary button, .preparation-workspace > .prep-nav button, .lx-status-bar[data-page="preparation"] .lx-page-proxy-controls button',
-      '期刊匹配',
-    ) || findButton(
-      '.preparation-workspace > .prep-nav button, .lx-status-bar[data-page="preparation"] .lx-page-proxy-controls button',
-      '期刊库',
-    )
-    route?.click()
-  }
+  if (!journalCenter) return
+  journalCenter.click()
 
-  await waitForElement(() => document.querySelector<HTMLElement>(
-    '.preparation-workspace[data-section="journals"] .journal-grid, .preparation-workspace[data-section="match"] .journal-grid, .preparation-workspace .journal-grid',
-  ))
+  const workspace = await waitForElement(() => document.querySelector<HTMLElement>('.journal-center-workspace'))
+  if (!workspace) return
 
-  const search = document.querySelector<HTMLInputElement>('.preparation-workspace .prep-search input')
+  const search = await waitForElement(() => workspace.querySelector<HTMLInputElement>('.journal-center-search input'))
   if (search) setControlledInputValue(search, journalName)
 
   const journalCard = await waitForElement(() => matchingJournalCard(journalName))
@@ -88,9 +71,9 @@ async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edi
   journalCard.classList.add('journal-library-focus')
   window.setTimeout(() => journalCard.classList.remove('journal-library-focus'), 2600)
 
-  const main = journalCard.querySelector<HTMLButtonElement>('.prep-journal-card-main')
-  if (mode === 'edit') window.setTimeout(() => main?.click(), 180)
-  else main?.focus({ preventScroll: true })
+  const body = journalCard.querySelector<HTMLButtonElement>('.journal-center-card__body')
+  if (mode === 'edit') window.setTimeout(() => body?.click(), 180)
+  else body?.focus({ preventScroll: true })
 }
 
 function positionPopover(overlay: HTMLElement) {

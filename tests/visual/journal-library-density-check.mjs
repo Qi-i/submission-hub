@@ -6,127 +6,110 @@ const browser = await chromium.launch({ headless: true })
 const failures = []
 const details = []
 await mkdir('visual-review', { recursive: true })
-
 const errorMessage = error => error instanceof Error ? error.message : String(error)
 
-async function openJournalLibrary(page, ui, theme) {
+async function openJournalCenter(page, ui, theme) {
   await page.goto(`${baseUrl}?view=preparation&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
   await page.locator("html[data-visual-ready='true']").waitFor({ state: 'attached', timeout: 45000 })
-  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
-  await journalCenter.waitFor({ state: 'visible', timeout: 15000 })
-  await journalCenter.evaluate(element => element.click())
-  await page.locator('.preparation-workspace[data-section="match"]:visible .journal-grid:visible').first().waitFor({ state: 'visible', timeout: 15000 })
-  await page.waitForTimeout(260)
+  const entry = page.locator("button[data-main-nav-key='journals']:visible").first()
+  await entry.waitFor({ state: 'visible', timeout: 15000 })
+  await entry.click()
+  await page.locator('.journal-center-workspace:visible .journal-center-grid:visible').waitFor({ state: 'visible', timeout: 15000 })
+  await page.waitForTimeout(220)
 }
 
 async function openNewJournalEditor(page) {
-  const buttons = page.locator('.btn-journal-primary')
-  for (let index = 0; index < await buttons.count(); index += 1) {
-    await buttons.nth(index).evaluate(element => element.click())
-    const modal = page.locator('.journal-form-modal:visible').first()
-    try {
-      await modal.waitFor({ state: 'visible', timeout: 1800 })
-      return modal
-    } catch {
-      // Responsive layouts may retain an inert hidden copy.
-    }
-  }
-  const diagnostics = await buttons.evaluateAll(elements => elements.map(element => ({
-    text: element.textContent?.trim() || '',
-    display: getComputedStyle(element).display,
-    visibility: getComputedStyle(element).visibility,
-    rect: element.getBoundingClientRect().toJSON(),
-  })))
-  throw new Error(`Unable to open journal editor: ${JSON.stringify(diagnostics)}`)
+  const button = page.locator('.journal-center-toolbar__actions > button.primary:visible').first()
+  await button.waitFor({ state: 'visible', timeout: 10000 })
+  await button.click()
+  const modal = page.locator('.journal-form-modal:visible').first()
+  await modal.waitFor({ state: 'visible', timeout: 5000 })
+  return modal
 }
 
 async function inspectDesktop(ui, theme) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   try {
-    await openJournalLibrary(page, ui, theme)
+    await openJournalCenter(page, ui, theme)
     const result = await page.evaluate(() => {
       const visible = element => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
       }
-      const grid = document.querySelector('.preparation-workspace[data-section="match"]:not([hidden]) .journal-grid')
-      const cards = grid ? Array.from(grid.querySelectorAll('.prep-journal-card')) : []
-      if (!grid || !cards.length) return { failures: ['journal library fixture is incomplete'], details: {} }
-
+      const grid = document.querySelector('.journal-center-workspace .journal-center-grid')
+      const cards = grid ? Array.from(grid.querySelectorAll('.journal-center-card')) : []
+      if (!grid || !cards.length) return { failures: ['Journal Center fixture is incomplete'], details: {} }
       const localFailures = []
       const gridStyle = getComputedStyle(grid)
       const columns = gridStyle.gridTemplateColumns.split(' ').filter(Boolean)
       const gridRect = grid.getBoundingClientRect()
       const cardRects = cards.map(card => card.getBoundingClientRect())
-      const visibleFooterHeights = []
-
-      if (columns.length < 3) localFailures.push(`desktop journal library exposes only ${columns.length} columns`)
-      if (parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop journal grid gap is too large')
-      if (Math.max(...cardRects.map(rect => rect.width)) > 390) localFailures.push('journal cards are too wide')
-      if (Math.max(...cardRects.map(rect => rect.height)) > 330) localFailures.push('journal cards are too tall')
+      let visibleLinkGroups = 0
+      if (columns.length < 3) localFailures.push(`desktop Journal Center exposes only ${columns.length} columns`)
+      if (parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop Journal Center grid gap is too large')
+      if (!gridStyle.gridAutoRows.includes('max-content')) localFailures.push(`Journal Center grid rows are not content-sized (${gridStyle.gridAutoRows})`)
+      if (gridStyle.alignItems !== 'start') localFailures.push(`Journal Center grid items still stretch vertically (${gridStyle.alignItems})`)
+      if (Math.max(...cardRects.map(rect => rect.width)) > 390) localFailures.push('Journal Center cards are too wide')
+      if (Math.max(...cardRects.map(rect => rect.height)) > 340) localFailures.push('Journal Center cards are too tall')
 
       cards.forEach((card, index) => {
         const rect = card.getBoundingClientRect()
-        const main = card.querySelector('.prep-journal-card-main')
-        const title = card.querySelector('h3')
-        const facts = Array.from(card.querySelectorAll('.prep-journal-facts > *'))
-        const links = card.querySelector('.prep-journal-links')
-        if (!main || !title || !links) {
-          localFailures.push(`journal ${index + 1}: compact card structure is incomplete`)
+        const body = card.querySelector('.journal-center-card__body')
+        const title = card.querySelector('.journal-center-card__body h2')
+        const facts = Array.from(card.querySelectorAll('.journal-center-card__facts > span'))
+        const links = card.querySelector('.journal-center-card__links')
+        if (!body || !title) {
+          localFailures.push(`journal ${index + 1}: independent card structure is incomplete`)
           return
         }
-
-        const mainStyle = getComputedStyle(main)
+        const cardStyle = getComputedStyle(card)
+        const bodyStyle = getComputedStyle(body)
         const titleStyle = getComputedStyle(title)
-        const lineHeight = parseFloat(titleStyle.lineHeight)
-        if (parseFloat(mainStyle.paddingLeft) > 12 || parseFloat(mainStyle.paddingTop) > 12) localFailures.push(`journal ${index + 1}: main padding is oversized`)
-        if (lineHeight && title.getBoundingClientRect().height > lineHeight * 2 + 2) localFailures.push(`journal ${index + 1}: title exceeds two lines`)
-        if (title.scrollHeight > title.clientHeight + 2) localFailures.push(`journal ${index + 1}: title is clipped`)
+        if (parseFloat(bodyStyle.paddingLeft) > 12 || parseFloat(bodyStyle.paddingTop) > 12) localFailures.push(`journal ${index + 1}: body padding is oversized`)
+        if (String(titleStyle.webkitLineClamp) !== '2') localFailures.push(`journal ${index + 1}: title is not limited to two lines`)
         if (rect.right > gridRect.right + 1.5 || rect.left < gridRect.left - 1.5) localFailures.push(`journal ${index + 1}: card exceeds grid edges`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: horizontal overflow`)
+        if (cardStyle.alignSelf !== 'start') localFailures.push(`journal ${index + 1}: card still stretches within its grid row`)
+        if (parseFloat(bodyStyle.flexGrow) !== 0) localFailures.push(`journal ${index + 1}: card body still consumes artificial vertical space`)
 
-        const linkAnchors = Array.from(links.querySelectorAll('a')).filter(visible)
-        if (linkAnchors.length) {
-          const linksRect = links.getBoundingClientRect()
-          visibleFooterHeights.push(linksRect.height)
-          if (linksRect.height < 38 || linksRect.height > 42) localFailures.push(`journal ${index + 1}: visible links footer is not the fixed 40px rail`)
-          if (Math.abs(rect.bottom - linksRect.bottom) > 1.5) localFailures.push(`journal ${index + 1}: visible links footer is not bottom anchored`)
-          const linkKeys = linkAnchors.map(link => {
+        const anchors = links ? Array.from(links.querySelectorAll('a')).filter(visible) : []
+        if (anchors.length) {
+          visibleLinkGroups += 1
+          const linksStyle = getComputedStyle(links)
+          if (linksStyle.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: links do not wrap with their content`)
+          if (parseFloat(linksStyle.flexGrow) !== 0) localFailures.push(`journal ${index + 1}: links still stretch into a fixed footer slot`)
+          const keys = anchors.map(link => {
             const url = new URL(link.href)
             url.hash = ''
             return `${url.origin}${url.pathname.replace(/\/$/, '')}${url.search}`.toLowerCase()
           })
-          if (new Set(linkKeys).size !== linkKeys.length) localFailures.push(`journal ${index + 1}: duplicate links remain visible`)
+          if (new Set(keys).size !== keys.length) localFailures.push(`journal ${index + 1}: duplicate links remain visible`)
         }
 
-        const metricHost = card.querySelector('.prep-journal-numbers')
-        const visibleMetrics = Array.from(card.querySelectorAll('.prep-journal-numbers > div')).filter(visible)
-        visibleMetrics.forEach((cell, metricIndex) => {
-          const value = cell.querySelector('b')?.textContent?.trim() || ''
-          if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: unknown metric ${metricIndex + 1} is visible`)
+        for (const [groupName, group] of [
+          ['ranks', card.querySelector('.journal-center-ranks')],
+          ['facts', card.querySelector('.journal-center-card__facts')],
+          ['metrics', card.querySelector('.journal-center-card__metrics')],
+        ]) {
+          if (!group || !visible(group)) continue
+          const style = getComputedStyle(group)
+          if (style.display !== 'flex' || style.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: ${groupName} are not content-driven flex-wrap`)
+        }
+
+        const metrics = Array.from(card.querySelectorAll('.journal-center-card__metrics > span')).filter(visible)
+        metrics.forEach((metric, metricIndex) => {
+          const value = metric.querySelector('b')?.textContent?.trim() || ''
+          if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: empty metric ${metricIndex + 1} remains visible`)
         })
-        if (metricHost && !visibleMetrics.length && visible(metricHost)) localFailures.push(`journal ${index + 1}: empty metric row occupies space`)
-        Array.from(card.querySelectorAll('.prep-journal-rank-blocks > span')).forEach((chip, rankIndex) => {
+        Array.from(card.querySelectorAll('.journal-center-ranks > span')).forEach((chip, rankIndex) => {
           if (chip.scrollWidth > chip.clientWidth + 2) localFailures.push(`journal ${index + 1}: rank chip ${rankIndex + 1} is clipped`)
         })
         facts.forEach((fact, factIndex) => {
           if (visible(fact) && fact.getBoundingClientRect().height > 29) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
         })
       })
-
-      if (visibleFooterHeights.length > 1 && Math.max(...visibleFooterHeights) - Math.min(...visibleFooterHeights) > 1) localFailures.push('visible journal link footers do not share one height')
-      return {
-        failures: localFailures,
-        details: {
-          columns: columns.length,
-          gap: gridStyle.columnGap,
-          maxWidth: Math.round(Math.max(...cardRects.map(rect => rect.width))),
-          maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))),
-          visibleFooters: visibleFooterHeights.length,
-          cards: cards.length,
-        },
-      }
+      return { failures: localFailures, details: { columns: columns.length, gap: gridStyle.columnGap, maxWidth: Math.round(Math.max(...cardRects.map(rect => rect.width))), maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))), visibleLinkGroups, cards: cards.length } }
     })
     failures.push(...result.failures.map(message => `${ui}/${theme}: ${message}`))
     details.push({ ui, theme, ...result.details })
@@ -141,24 +124,17 @@ async function inspectDesktop(ui, theme) {
 async function inspectMobile(ui) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
   try {
-    await openJournalLibrary(page, ui, 'light')
+    await openJournalCenter(page, ui, 'light')
     const result = await page.evaluate(() => {
-      const visible = element => {
-        const style = getComputedStyle(element)
-        const rect = element.getBoundingClientRect()
-        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
-      }
-      const grid = document.querySelector('.preparation-workspace[data-section="match"] .journal-grid')
-      const cards = grid ? Array.from(grid.querySelectorAll('.prep-journal-card')) : []
-      if (!grid || !cards.length) return ['mobile journal library fixture is incomplete']
+      const grid = document.querySelector('.journal-center-workspace .journal-center-grid')
+      const cards = grid ? Array.from(grid.querySelectorAll('.journal-center-card')) : []
+      if (!grid || !cards.length) return ['mobile Journal Center fixture is incomplete']
       const localFailures = []
-      if (getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length !== 1) localFailures.push('mobile journal library is not single-column')
+      if (getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length !== 1) localFailures.push('mobile Journal Center is not single-column')
       cards.forEach((card, index) => {
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: mobile horizontal overflow`)
-        const links = card.querySelector('.prep-journal-links')
-        if (links && Array.from(links.querySelectorAll('a')).some(visible) && Math.abs(card.getBoundingClientRect().bottom - links.getBoundingClientRect().bottom) > 1.5) {
-          localFailures.push(`journal ${index + 1}: visible mobile links footer is not bottom anchored`)
-        }
+        const links = card.querySelector('.journal-center-card__links')
+        if (links && getComputedStyle(links).flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: mobile links do not wrap`)
       })
       return localFailures
     })
@@ -177,15 +153,9 @@ async function inspectReviewLookup(ui) {
   try {
     await page.route('https://r.jina.ai/**', async route => {
       const isInsights = decodeURIComponent(route.request().url()).includes('/about/insights')
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/plain',
-        body: isInsights
-          ? '# Journal Insights\n\n2 days\n\nSubmission to first decision\n\n174 days\n\nSubmission to acceptance\n\n16%\n\nAcceptance Rate'
-          : '# Journal homepage\n\nView all insights',
-      })
+      await route.fulfill({ status: 200, contentType: 'text/plain', body: isInsights ? '# Journal Insights\n\n2 days\n\nSubmission to first decision\n\n174 days\n\nSubmission to acceptance\n\n16%\n\nAcceptance Rate' : '# Journal homepage\n\nView all insights' })
     })
-    await openJournalLibrary(page, ui, 'light')
+    await openJournalCenter(page, ui, 'light')
     const modal = await openNewJournalEditor(page)
     const fieldLabels = (await modal.locator('.prep-field > span').allTextContents()).map(text => text.trim())
     const requiredFields = [
@@ -196,9 +166,7 @@ async function inspectReviewLookup(ui) {
       { name: '选刊标签', matches: label => label === '选刊标签' },
       { name: '选刊备注', matches: label => label === '选刊备注' },
     ]
-    for (const field of requiredFields) {
-      if (!fieldLabels.some(field.matches)) failures.push(`${ui}/form: missing field ${field.name}`)
-    }
+    for (const field of requiredFields) if (!fieldLabels.some(field.matches)) failures.push(`${ui}/form: missing field ${field.name}`)
     await modal.locator('.prep-field', { hasText: '英文期刊名' }).locator('input').first().fill('Journal of Rock Mechanics and Geotechnical Engineering')
     await modal.locator('.prep-field', { hasText: '期刊官网' }).locator('input').first().fill(journalUrl)
     await modal.locator('.prep-field', { hasText: '审稿周期来源' }).locator('input').first().fill('')
@@ -207,14 +175,7 @@ async function inspectReviewLookup(ui) {
       const overlay = element.parentElement
       const header = document.querySelector('.app-header')
       const headerStyle = header ? getComputedStyle(header) : null
-      return {
-        overlayClass: overlay?.className || '',
-        overlayRect: overlay?.getBoundingClientRect().toJSON(),
-        viewportHeight: window.innerHeight,
-        overlayZ: overlay ? parseFloat(getComputedStyle(overlay).zIndex) : 0,
-        headerVisibility: headerStyle?.visibility || '',
-        headerPointerEvents: headerStyle?.pointerEvents || '',
-      }
+      return { overlayClass: overlay?.className || '', overlayRect: overlay?.getBoundingClientRect().toJSON(), viewportHeight: window.innerHeight, overlayZ: overlay ? parseFloat(getComputedStyle(overlay).zIndex) : 0, headerVisibility: headerStyle?.visibility || '', headerPointerEvents: headerStyle?.pointerEvents || '' }
     })
     if (!layering.overlayClass.includes('modal-overlay')) failures.push(`${ui}/form: editor is outside modal overlay`)
     if (!layering.overlayRect || layering.overlayRect.top > 1 || layering.overlayRect.bottom < layering.viewportHeight - 1) failures.push(`${ui}/form: overlay does not cover viewport`)
