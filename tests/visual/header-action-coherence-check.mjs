@@ -96,24 +96,30 @@ try {
 
 const preparationX = await openPage('luminous-x', 'preparation')
 try {
-  const primary = preparationX.locator('.header-context-primary')
+  const portal = preparationX.locator('.prep-top-actions-portal:visible').first()
+  await portal.waitFor({ state: 'visible', timeout: 10000 })
+  const primary = portal.locator('.btn-context-new:visible').first()
   await primary.waitFor({ state: 'visible', timeout: 10000 })
   const initial = (await primary.textContent() || '').replace(/\s+/g, '')
   if (!initial.includes('新建草稿')) fail(`luminous-x/preparation: 总览主操作错误（${initial}）`)
+  if (await preparationX.locator('.header-context-primary').count()) fail('luminous-x/preparation: 已退役的动态主操作代理仍存在')
 
-  const sourceVisibility = await preparationX.evaluate(() => Array.from(document.querySelectorAll('.prep-top-actions-portal .btn-journal-primary, .prep-top-actions-portal .btn-context-new')).some(element => {
-    const style = getComputedStyle(element)
+  const portalGeometry = await portal.evaluate(element => {
     const rect = element.getBoundingClientRect()
-    return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
-  }))
-  if (sourceVisibility) fail('luminous-x/preparation: 顶部仍重复显示新增类按钮')
+    const slot = element.closest('.lx-preparation-actions-slot')?.getBoundingClientRect()
+    return { rect: rect.toJSON(), slot: slot?.toJSON() || null, overflow: element.scrollWidth - element.clientWidth }
+  })
+  if (!portalGeometry.slot) fail('luminous-x/preparation: React 页面操作未挂载到 Luminous X 控制栏')
+  else if (portalGeometry.rect.left < portalGeometry.slot.left - 1 || portalGeometry.rect.right > portalGeometry.slot.right + 1) fail('luminous-x/preparation: 页面操作越出 Luminous X 控制栏')
+  if (portalGeometry.overflow > 2) fail(`luminous-x/preparation: 页面操作横向溢出 ${portalGeometry.overflow}px`)
 
   const preparationActive = await activeStyle(preparationX, 'preparation')
   await preparationX.locator("button[data-main-nav-key='journals']").click()
   await preparationX.locator('.journal-center-workspace').waitFor({ state: 'visible', timeout: 15000 })
-  await preparationX.waitForTimeout(300)
-  const journalLabel = (await primary.textContent() || '').replace(/\s+/g, '')
-  if (!journalLabel.includes('新增期刊')) fail(`luminous-x/journals: 主操作未切换为新增期刊（${journalLabel}）`)
+  const journalPrimary = preparationX.locator('.journal-center-toolbar__actions > button.primary:visible').first()
+  await journalPrimary.waitFor({ state: 'visible', timeout: 10000 })
+  const journalLabel = (await journalPrimary.textContent() || '').replace(/\s+/g, '')
+  if (!journalLabel.includes('新增期刊')) fail(`luminous-x/journals: 期刊中心主操作错误（${journalLabel}）`)
   const journalActive = await activeStyle(preparationX, 'journals')
   compareStyles('luminous-x active navigation', journalActive, preparationActive, ['color', 'backgroundColor', 'backgroundImage', 'borderColor', 'borderRadius', 'boxShadow', 'height', 'width'])
   details.push(`luminous-x preparation primary=${initial}; journal primary=${journalLabel}`)
