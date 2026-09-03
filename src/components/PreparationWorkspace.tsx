@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  ArrowRight, BookOpen, CheckCircle2, CircleAlert, Clock3, ExternalLink,
+  ArrowRight, BookOpen, CheckCircle2, CircleAlert, Clock3,
   ClipboardCheck, FilePenLine, Images, LayoutDashboard, Lightbulb, LoaderCircle, PackageCheck, Plus, Scale, Search, Star, Target,
 } from 'lucide-react'
 import type { JournalRankLookupResult } from '../lib/journal-rank'
@@ -15,6 +15,7 @@ import { daysUntilDate } from '../lib/types'
 import { DraftForm, TopicForm } from './PreparationForms'
 import JournalFormEnhanced from './JournalFormEnhanced'
 import CurrencyCny from './CurrencyCny'
+import JournalCatalogCard from './JournalCatalogCard'
 import JournalComparison from './JournalComparison'
 import { useTheme } from '../lib/theme'
 import PreparationNavigation, { type PreparationSection } from './preparation/PreparationNavigation'
@@ -49,7 +50,6 @@ interface Props {
 }
 
 const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 }
-const safeUrl = (value?: string | null) => !!value && /^https?:\/\//i.test(value)
 
 function primarySectionFor(section: SectionKey): PreparationSection {
   if (section === 'topics' || section === 'drafts') return 'paper'
@@ -611,36 +611,5 @@ function JournalRow({ journal, onClick }: { journal: JournalProfile; onClick: ()
 }
 
 function JournalCard({ journal, onClick }: { journal: JournalProfile; onClick: () => void }) {
-  const oa = OA_OPTIONS.find(item => item.key === journal.oa_type)?.label || '未确认'
-  const showAbbreviation = !!journal.official_abbreviation && journal.official_abbreviation.toLocaleLowerCase() !== journal.name.toLocaleLowerCase()
-  const publisherLine = journal.publisher || journal.scope_zh || journal.scope || '尚未填写出版社或期刊范围'
-  return <article className="prep-journal-card">
-    <button className="prep-journal-card-main" onClick={onClick} title={journal.selection_notes || journal.scope_zh || undefined}>
-      <div className="prep-card-top">
-        <span className={`prep-priority ${journal.priority}`}>{journal.is_favorite ? <Star size={13} fill="currentColor" /> : '未收藏'}</span>
-        <span className={`prep-risk ${journal.risk_level}`}>{journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'}</span>
-      </div>
-      <h3>{journal.name}</h3>
-      {(journal.name_zh || showAbbreviation) && <div className="prep-journal-local-identity">{journal.name_zh && <strong>{journal.name_zh}</strong>}{showAbbreviation && <em>{journal.official_abbreviation}</em>}</div>}
-      <p className="prep-journal-publisher" title={publisherLine}>{publisherLine}</p>
-      <RankBlocks journal={journal} limit={7} className="full" />
-      <div className="prep-journal-facts">
-        {journal.selection_tags.slice(0, 2).map(item => <span key={`selection-${item}`} data-tone="selection">{item}</span>)}
-        <span data-tone="oa">{oa}</span>
-        {journal.indexing.slice(0, 4).map(item => <span key={item} data-tone="index">{item}</span>)}
-      </div>
-      <div className="prep-journal-numbers">
-        <div><b>{journal.first_decision_days ?? '—'}</b><small>首轮决定/天</small></div>
-        <div><b>{journal.total_review_days ?? '—'}</b><small>总审稿/天</small></div>
-        <div><b>{journal.acceptance_rate != null ? `${journal.acceptance_rate}%` : '—'}</b><small>接收率</small></div>
-        <div className="prep-journal-apc-metric"><b>{journal.apc_amount != null ? journal.apc_amount : '—'}</b><small>{journal.apc_currency || 'APC'}</small>{journal.apc_amount != null && journal.apc_amount > 0 && !['CNY', 'RMB', 'CNH'].includes((journal.apc_currency || '').trim().toUpperCase()) && <CurrencyCny amount={journal.apc_amount} currency={journal.apc_currency || 'USD'} showOriginal={false} compact className="prep-journal-apc-cny" />}</div>
-      </div>
-    </button>
-    <div className="prep-journal-links">
-      {safeUrl(journal.website_url) && <a href={journal.website_url!} target="_blank" rel="noopener noreferrer">官网 <ExternalLink size={11} /></a>}
-      {safeUrl(journal.author_guide_url) && <a href={journal.author_guide_url!} target="_blank" rel="noopener noreferrer">指南 <ExternalLink size={11} /></a>}
-      {safeUrl(journal.submission_url) && <a href={journal.submission_url!} target="_blank" rel="noopener noreferrer">投稿 <ExternalLink size={11} /></a>}
-      {journal.third_party_links.slice(0, 2).map(link => <a key={`${link.label}-${link.url}`} href={link.url} target="_blank" rel="noopener noreferrer">{link.label} <ExternalLink size={11} /></a>)}
-    </div>
-  </article>
+  return <JournalCatalogCard journal={journal} onClick={onClick} />
 }
