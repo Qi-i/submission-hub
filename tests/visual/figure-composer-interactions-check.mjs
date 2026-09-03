@@ -57,10 +57,11 @@ try {
   if (Math.abs((xB - xA) - 344) > 3) fail(`24px gap was not reflected in panel geometry (x delta ${xB - xA}, expected ~344)`)
 
   const labels = page.locator('.figure-composer__global-labels')
-  await labels.getByLabel('标签样式', { exact: true }).selectOption('A')
+  const globalLabelStyle = labels.locator('label', { hasText: '标签样式' }).locator('select').first()
+  await globalLabelStyle.selectOption('A')
   await labels.getByRole('button', { name: '标签应用到全部' }).click()
   await layers.nth(0).click()
-  const panelLabelStyle = await inspector.getByLabel('标签', { exact: true }).inputValue()
+  const panelLabelStyle = await inspector.locator('label', { hasText: /^标签/ }).locator('select').first().inputValue()
   if (panelLabelStyle !== 'A') fail(`global label style did not propagate to panels (${panelLabelStyle})`)
 
   const left = page.locator('.figure-composer__left')
