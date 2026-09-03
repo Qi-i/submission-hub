@@ -10,6 +10,7 @@ const assert = (condition, message) => {
 
 const dashboard = read('src/components/Dashboard.tsx')
 const journalCenter = read('src/components/JournalCenterWorkspace.tsx')
+const offlineJournalCenter = read('src/components/OfflineJournalCenterWorkspace.tsx')
 const journalCard = read('src/components/JournalCatalogCard.tsx')
 const appStyles = read('src/app-styles.ts')
 const preparation = read('src/components/PreparationWorkspace.tsx')
@@ -22,6 +23,7 @@ const figureInspector = read('src/components/figure-composer/FigurePanelInspecto
 assert(exists('src/components/JournalCenterWorkspace.tsx'), 'Journal Center must have its own workspace component')
 assert(exists('src/components/JournalCatalogCard.tsx'), 'Journal Center and Preparation must share one journal card component')
 assert(journalCenter.includes('JournalCatalogCard') && journalCenter.includes('preparation-workspace') && journalCenter.includes('data-section="match"'), 'Journal Center must reuse the Preparation journal visual system instead of a parallel small-card implementation')
+assert(offlineJournalCenter.includes('JournalCatalogCard') && offlineJournalCenter.includes('preparation-workspace') && offlineJournalCenter.includes('data-section="match"'), 'Offline Journal Center must use the same shared journal card visual system')
 assert(journalCard.includes('prep-journal-card') && journalCard.includes('prep-journal-rank-blocks') && journalCard.includes('prep-journal-facts') && journalCard.includes('prep-journal-numbers'), 'Shared journal card must retain colorful rank/fact/metric visual layers')
 assert(!exists('src/styles/journal-center-density-contract.css') && !appStyles.includes('journal-center-density-contract.css'), 'Terminal Journal Center density override must stay removed')
 assert(dashboard.includes('JournalCenterWorkspace'), 'Dashboard must render JournalCenterWorkspace directly')
