@@ -25,7 +25,9 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
   const oa = OA_OPTIONS.find(item => item.key === journal.oa_type)?.label || '未确认'
   const showAbbreviation = !!journal.official_abbreviation && journal.official_abbreviation.toLocaleLowerCase() !== journal.name.toLocaleLowerCase()
   const publisherLine = journal.publisher || journal.scope_zh || journal.scope || '尚未填写出版社或期刊范围'
-  const thirdPartyLinks = journal.third_party_links.filter(link => safeUrl(link.url)).slice(0, thirdPartyLinkLimit)
+  const selectionTags = Array.isArray(journal.selection_tags) ? journal.selection_tags : []
+  const indexing = Array.isArray(journal.indexing) ? journal.indexing : []
+  const thirdPartyLinks = (Array.isArray(journal.third_party_links) ? journal.third_party_links : []).filter(link => safeUrl(link.url)).slice(0, thirdPartyLinkLimit)
   const metricCount = [
     journal.first_decision_days,
     journal.total_review_days,
@@ -52,9 +54,9 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
       <p className="prep-journal-publisher" title={publisherLine}>{publisherLine}</p>
       <RankBlocks journal={journal} />
       <div className="prep-journal-facts">
-        {journal.selection_tags.slice(0, 2).map(item => <span key={`selection-${item}`} data-tone="selection">{item}</span>)}
+        {selectionTags.slice(0, 2).map(item => <span key={`selection-${item}`} data-tone="selection">{item}</span>)}
         <span data-tone="oa">{oa}</span>
-        {journal.indexing.slice(0, 4).map(item => <span key={item} data-tone="index">{item}</span>)}
+        {indexing.slice(0, 4).map(item => <span key={item} data-tone="index">{item}</span>)}
       </div>
       {metricCount > 0 && <div className="prep-journal-numbers prep-journal-metrics-compact">
         {journal.first_decision_days != null && <div><b>{journal.first_decision_days}</b><small>首轮决定/天</small></div>}
