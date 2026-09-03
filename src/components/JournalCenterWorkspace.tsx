@@ -15,6 +15,26 @@ interface Props {
 }
 
 const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 }
+
+function normalizeJournal(journal: JournalProfile): JournalProfile {
+  return {
+    ...journal,
+    third_party_links: Array.isArray(journal.third_party_links) ? journal.third_party_links : [],
+    subject_tags: Array.isArray(journal.subject_tags) ? journal.subject_tags : [],
+    selection_tags: Array.isArray(journal.selection_tags) ? journal.selection_tags : [],
+    indexing: Array.isArray(journal.indexing) ? journal.indexing : [],
+  }
+}
+
+function cleanPayload<T extends Record<string, any>>(data: T) {
+  const { id, user_id, created_at, updated_at, ...payload } = data
+  return payload
+}
+
+function legacyAutomaticJournalPayload(journal: JournalProfile) {
+  const { name_zh, official_abbreviation, scope_zh, selection_tags, selection_notes, ...legacy } = journal
+  return { ...legacy, notes: journal.notes || '系统根据投稿历史自动建立的简易期刊档案。' }
+}
 export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
   const [journals, setJournals] = useState<JournalProfile[]>([])
   const [loading, setLoading] = useState(true)
