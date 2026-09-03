@@ -1,4 +1,4 @@
-const WORKSPACE_SELECTOR = '.preparation-workspace'
+const WORKSPACE_SELECTOR = '.preparation-workspace, .journal-center-workspace'
 const FILTERS = ['all', 'focus', 'submission-history', 'manual'] as const
 const OA_SHORT_LABELS: Record<string, string> = {
   订阅制: '订阅',
