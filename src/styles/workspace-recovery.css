@@ -145,7 +145,7 @@
 .journal-center-search { width: 100%; min-width: 0; min-height: 34px; height: 34px; box-sizing: border-box; display: flex; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-card); overflow: visible; }
 .journal-center-search svg { flex: 0 0 auto; color: var(--text-tertiary); }
 .journal-center-search input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--text-primary); background: transparent; font-size: 10.5px; }
-.journal-center-grid.journal-catalog-grid {
+.journal-center-grid.prep-card-grid.journal-grid.journal-catalog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)) !important;
   grid-auto-rows: max-content !important;
