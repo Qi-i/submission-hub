@@ -55,6 +55,29 @@ async function inspect(ui, viewport) {
     })
 
     await openJournalCenter(page)
+    const toolbarGeometry = await page.evaluate(() => {
+      const toolbar = document.querySelector('.journal-center-workspace .journal-center-toolbar')
+      const search = toolbar?.querySelector('.journal-center-search')
+      if (!toolbar || !search) return null
+      const toolbarRect = toolbar.getBoundingClientRect()
+      const searchRect = search.getBoundingClientRect()
+      return {
+        clientHeight: toolbar.clientHeight,
+        scrollHeight: toolbar.scrollHeight,
+        clientWidth: toolbar.clientWidth,
+        scrollWidth: toolbar.scrollWidth,
+        toolbar: toolbarRect.toJSON(),
+        search: searchRect.toJSON(),
+      }
+    })
+    if (!toolbarGeometry) failures.push(`${label}: Journal Center toolbar/search is missing`)
+    else {
+      if (toolbarGeometry.scrollHeight > toolbarGeometry.clientHeight + 2) failures.push(`${label}: Journal Center toolbar clips vertically (${toolbarGeometry.clientHeight}/${toolbarGeometry.scrollHeight}px)`)
+      if (toolbarGeometry.scrollWidth > toolbarGeometry.clientWidth + 2) failures.push(`${label}: Journal Center toolbar clips horizontally (${toolbarGeometry.clientWidth}/${toolbarGeometry.scrollWidth}px)`)
+      if (toolbarGeometry.search.top < toolbarGeometry.toolbar.top - 1 || toolbarGeometry.search.bottom > toolbarGeometry.toolbar.bottom + 1) failures.push(`${label}: Journal Center search is vertically outside toolbar`)
+      if (toolbarGeometry.search.left < toolbarGeometry.toolbar.left - 1 || toolbarGeometry.search.right > toolbarGeometry.toolbar.right + 1) failures.push(`${label}: Journal Center search is horizontally outside toolbar`)
+    }
+
     const library = await page.evaluate(() => {
       const grid = document.querySelector('.journal-center-workspace .journal-center-grid')
       const cards = grid ? Array.from(grid.querySelectorAll('.journal-center-card')) : []
