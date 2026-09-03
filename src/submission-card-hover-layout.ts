@@ -48,8 +48,8 @@ function setControlledInputValue(input: HTMLInputElement, value: string) {
 function matchingJournalCard(journalName: string) {
   const wanted = compactText(journalName)
   const cards = Array.from(document.querySelectorAll<HTMLElement>('.journal-center-card'))
-  return cards.find(card => compactText(card.querySelector('h2')?.textContent) === wanted)
-    || cards.find(card => compactText(card.querySelector('h2')?.textContent).includes(wanted))
+  return cards.find(card => compactText(card.querySelector('h3, h2')?.textContent) === wanted)
+    || cards.find(card => compactText(card.querySelector('h3, h2')?.textContent).includes(wanted))
     || null
 }
 
