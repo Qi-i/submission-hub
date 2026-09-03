@@ -159,12 +159,12 @@ try {
     const panel = document.querySelector('.preparation-workspace')
     const productivity = document.querySelector('.prep-productivity')
     const topbar = document.querySelector('.prep-topbar')
-    const workbench = document.querySelector('.prep-nav')
+    const workbench = document.querySelector('.preparation-business-rail')
     const dashboard = document.querySelector('.prep-dashboard')
     const overviewPanels = Array.from(document.querySelectorAll('.prep-overview-grid > .prep-panel'))
     const journalPanel = document.querySelector('.prep-overview-journals')
     const journalCards = Array.from(document.querySelectorAll('.prep-overview-journals .prep-journal-overview-card'))
-    const navButtons = Array.from(document.querySelectorAll('.prep-nav button'))
+    const navButtons = Array.from(document.querySelectorAll('.preparation-business-rail > button'))
     const rect = panel.getBoundingClientRect()
 
     if (!topbar) failures.push('preparation topbar is missing')
@@ -214,34 +214,35 @@ try {
   failures.push(...preparation.failures)
   details.preparation = preparation.details
 
-  const journalCenter = page.locator(".header-tabs > button[data-main-nav-key='journals'], .tab-bar > button[data-main-nav-key='journals']").first()
+  const journalCenter = page.locator("button[data-main-nav-key='journals']:visible, .tab-bar .tab-btn:visible").filter({ hasText: '期刊中心' }).first()
   if (await journalCenter.count()) {
     await journalCenter.click()
-    await page.locator('.prep-card-grid.journal-grid').waitFor({ state: 'visible' })
+    await page.locator('.journal-center-workspace .journal-center-grid').waitFor({ state: 'visible' })
     await page.waitForTimeout(120)
     const journalTabGeometry = await page.evaluate((tol) => {
       const failures = []
-      const panel = document.querySelector('.journal-center-workspace[data-section="match"]')
-      const topbar = panel?.querySelector(':scope > .prep-topbar')
-      const nav = panel?.querySelector(':scope > .prep-nav-primary')
-      const grid = panel?.querySelector('.prep-card-grid.journal-grid')
-      if (!panel || !topbar || !grid) return { failures: ['journal tab geometry is incomplete'] }
+      const panel = document.querySelector('.journal-center-workspace')
+      const toolbar = panel?.querySelector(':scope > .journal-center-toolbar')
+      const grid = panel?.querySelector(':scope > .journal-center-grid')
+      if (!panel || !toolbar || !grid) return { failures: ['journal tab geometry is incomplete'] }
       const panelRect = panel.getBoundingClientRect()
-      const topbarRect = topbar.getBoundingClientRect()
+      const toolbarRect = toolbar.getBoundingClientRect()
       const gridRect = grid.getBoundingClientRect()
-      if (topbarRect.bottom > gridRect.top + tol) failures.push('Journal Center topbar overlaps journal library')
-      if (nav && getComputedStyle(nav).display !== 'none') failures.push('standalone Journal Center renders Preparation navigation')
-      if (Math.abs(panelRect.left - gridRect.left) > tol || Math.abs(panelRect.right - gridRect.right) > tol) failures.push('journal library edges differ from Journal Center page')
+      if (toolbarRect.bottom > gridRect.top + tol) failures.push('Journal Center toolbar overlaps journal catalogue')
+      if (panel.querySelector('.preparation-business-rail, .prep-nav-primary')) failures.push('standalone Journal Center renders Preparation navigation')
+      if (Math.abs(panelRect.left - gridRect.left) > tol || Math.abs(panelRect.right - gridRect.right) > tol) failures.push('journal catalogue edges differ from Journal Center page')
+      if (toolbar.scrollHeight > toolbar.clientHeight + 2) failures.push('Journal Center toolbar clips vertically')
+      if (toolbar.scrollWidth > toolbar.clientWidth + 2) failures.push('Journal Center toolbar clips horizontally')
 
-      panel.querySelectorAll('.prep-journal-card').forEach((card, index) => {
-        const facts = card.querySelector('.prep-journal-facts')
-        const apc = card.querySelector('[data-metric="apc"]')
-        const metrics = card.querySelector('.prep-journal-numbers')
-        if (apc && facts && apc.parentElement !== facts) failures.push(`journal ${index + 1}: APC is not inline with OA facts`)
-        if (metrics && metrics.hasAttribute('hidden') && getComputedStyle(metrics).display !== 'none') failures.push(`journal ${index + 1}: empty review metric row is still visible`)
-        card.querySelectorAll('[data-tone="oa"]').forEach(item => {
-          if ((item.textContent || '').includes('开放获取')) failures.push(`journal ${index + 1}: long open-access label remains visible`)
-        })
+      panel.querySelectorAll('.journal-center-card').forEach((card, index) => {
+        const body = card.querySelector('.journal-center-card__body')
+        const links = card.querySelector('.journal-center-card__links')
+        const cardRect = card.getBoundingClientRect()
+        const bodyRect = body?.getBoundingClientRect()
+        const linksRect = links?.getBoundingClientRect()
+        if (!body || !bodyRect) failures.push(`journal ${index + 1}: card body is missing`)
+        if (bodyRect && linksRect && linksRect.top - bodyRect.bottom > 28) failures.push(`journal ${index + 1}: large blank space remains before footer`)
+        if (cardRect.height > 340) failures.push(`journal ${index + 1}: content-driven card is unexpectedly tall (${Math.round(cardRect.height)}px)`)
       })
       return { failures }
     }, tolerance)
