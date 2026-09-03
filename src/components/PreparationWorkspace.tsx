@@ -463,7 +463,7 @@ export default function PreparationWorkspace({
       {!orderedDrafts.length && <Empty text={query ? '没有匹配的草稿' : '尚无草稿准备记录'} action="新建草稿" onClick={() => setEditor({ type: 'draft', value: 'new' })} />}
     </div>}
 
-    {section === 'journals' && <div className="prep-card-grid journal-grid">
+    {section === 'journals' && <div className="prep-card-grid journal-grid journal-catalog-grid">
       {orderedJournals.map(journal => <JournalCard key={journal.id} journal={journal} onClick={() => setEditor({ type: 'journal', value: journal })} />)}
       {!orderedJournals.length && <Empty text={query ? '没有匹配的期刊' : '尚未收藏期刊'} action="收藏期刊" onClick={() => setEditor({ type: 'journal', value: 'new' })} />}
     </div>}
