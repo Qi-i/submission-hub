@@ -16,7 +16,7 @@ function App() {
   return <main data-current-page={page} data-current-layout={layout}>
     <NavigationMemory scope={scope} />
     <nav className="header-tabs" aria-label="主导航">
-      <button className={page === 'preparation' ? 'active' : ''} onClick={() => setPage('preparation')}>投稿准备</button>
+      <button className={page === 'preparation' ? 'active' : ''} onClick={() => { setSection('overview'); setPage('preparation') }}>投稿准备</button>
       <button className={page === 'journals' ? 'active' : ''} onClick={() => setPage('journals')}>期刊中心</button>
       <button className={page === 'dashboard' ? 'active' : ''} onClick={() => setPage('dashboard')}>投稿管理</button>
       <button className={page === 'stats' ? 'active' : ''} onClick={() => setPage('stats')}>个人统计</button>
@@ -31,12 +31,12 @@ function App() {
     {page === 'journals' && <section className="journal-center-workspace" data-page="journals">独立期刊中心</section>}
 
     {page === 'preparation' && <div className="preparation-workspace" data-section={section}>
-      <div className="prep-nav prep-nav-primary prep-business-nav">
-        <button data-tone="overview" onClick={() => setSection('overview')}>总览</button>
-        <button data-tone="paper" onClick={() => setSection('paper')}>论文准备</button>
-        <button data-tone="materials" onClick={() => setSection('materials')}>投稿材料</button>
-        <button data-tone="match" onClick={() => setSection('match')}>期刊匹配</button>
-        <button data-tone="check" onClick={() => setSection('check')}>投稿前检查</button>
+      <div className="preparation-business-rail">
+        <button data-section-key="overview" onClick={() => setSection('overview')}>总览</button>
+        <button data-section-key="paper" onClick={() => setSection('paper')}>论文准备</button>
+        <button data-section-key="materials" onClick={() => setSection('materials')}>投稿材料</button>
+        <button data-section-key="match" onClick={() => setSection('match')}>期刊匹配</button>
+        <button data-section-key="check" onClick={() => setSection('check')}>投稿前检查</button>
       </div>
     </div>}
   </main>
