@@ -114,12 +114,17 @@ function syncPrimaryAction() {
   const stack = document.querySelector<HTMLElement>('.header-utility-stack')
   const existingProxy = document.querySelector<HTMLButtonElement>('.header-context-primary')
   const nativeDashboardAction = stack?.querySelector<HTMLButtonElement>(':scope > .lx-new-paper')
+  const nativeDashboardActionVisible = !!nativeDashboardAction && (() => {
+    const style = getComputedStyle(nativeDashboardAction)
+    const rect = nativeDashboardAction.getBoundingClientRect()
+    return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+  })()
 
   if (nativeDashboardAction && nativeDashboardAction.dataset.headerPrimaryAction !== 'true') {
     nativeDashboardAction.dataset.headerPrimaryAction = 'true'
   }
 
-  if (!isDesktopX || !stack || nativeDashboardAction) {
+  if (!isDesktopX || !stack || nativeDashboardActionVisible) {
     existingProxy?.remove()
     clearPreparationActionSource()
     root.classList.remove('header-context-primary-active')
