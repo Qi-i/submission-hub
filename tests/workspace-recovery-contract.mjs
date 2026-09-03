@@ -9,6 +9,9 @@ const assert = (condition, message) => {
 }
 
 const dashboard = read('src/components/Dashboard.tsx')
+const journalCenter = read('src/components/JournalCenterWorkspace.tsx')
+const journalCard = read('src/components/JournalCatalogCard.tsx')
+const appStyles = read('src/app-styles.ts')
 const preparation = read('src/components/PreparationWorkspace.tsx')
 const navigation = read('src/components/preparation/PreparationNavigation.tsx')
 const navCss = read('src/styles/preparation/components.css') + read('src/styles/workspace-recovery.css')
@@ -17,6 +20,10 @@ const figureTypes = read('src/lib/figure-composer/types.ts')
 const figureInspector = read('src/components/figure-composer/FigurePanelInspector.tsx')
 
 assert(exists('src/components/JournalCenterWorkspace.tsx'), 'Journal Center must have its own workspace component')
+assert(exists('src/components/JournalCatalogCard.tsx'), 'Journal Center and Preparation must share one journal card component')
+assert(journalCenter.includes('JournalCatalogCard') && journalCenter.includes('preparation-workspace') && journalCenter.includes('data-section="match"'), 'Journal Center must reuse the Preparation journal visual system instead of a parallel small-card implementation')
+assert(journalCard.includes('prep-journal-card') && journalCard.includes('prep-journal-rank-blocks') && journalCard.includes('prep-journal-facts') && journalCard.includes('prep-journal-numbers'), 'Shared journal card must retain colorful rank/fact/metric visual layers')
+assert(!exists('src/styles/journal-center-density-contract.css') && !appStyles.includes('journal-center-density-contract.css'), 'Terminal Journal Center density override must stay removed')
 assert(dashboard.includes('JournalCenterWorkspace'), 'Dashboard must render JournalCenterWorkspace directly')
 assert(!dashboard.includes('workspaceMode="journal-center"'), 'Dashboard must not route Journal Center through PreparationWorkspace match mode')
 assert(/next\s*===\s*['"]preparation['"][\s\S]{0,120}setPreparationSection\(['"]overview['"]\)/.test(dashboard), 'Opening 投稿准备 must reset to 总览')
