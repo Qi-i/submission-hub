@@ -236,6 +236,12 @@ function enhanceOverviewGuidance(workspace: HTMLElement, total: number) {
 }
 
 function enhanceWorkspace(workspace: HTMLElement) {
+  if (workspace.classList.contains('journal-center-workspace')) {
+    compactOaLabels(workspace)
+    workspace.querySelectorAll<HTMLElement>('.prep-journal-card').forEach(classifyJournalCard)
+    return
+  }
+
   const total = journalTotal(workspace)
 
   workspace.querySelectorAll<HTMLElement>('.prep-panel-head h2').forEach(title => {
