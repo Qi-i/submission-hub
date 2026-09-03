@@ -57,10 +57,10 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
         {journal.indexing.slice(0, 4).map(item => <span key={item} data-tone="index">{item}</span>)}
       </div>
       {metricCount > 0 && <div className="prep-journal-numbers prep-journal-metrics-compact">
-        {journal.first_decision_days != null && <div data-metric="first-decision"><b>{journal.first_decision_days}</b><small>首轮决定/天</small></div>}
-        {journal.total_review_days != null && <div data-metric="review-total"><b>{journal.total_review_days}</b><small>总审稿/天</small></div>}
-        {journal.acceptance_rate != null && <div data-metric="acceptance"><b>{journal.acceptance_rate}%</b><small>接收率</small></div>}
-        {journal.apc_amount != null && <div data-metric="apc" className="prep-journal-apc-metric">
+        {journal.first_decision_days != null && <div><b>{journal.first_decision_days}</b><small>首轮决定/天</small></div>}
+        {journal.total_review_days != null && <div><b>{journal.total_review_days}</b><small>总审稿/天</small></div>}
+        {journal.acceptance_rate != null && <div><b>{journal.acceptance_rate}%</b><small>接收率</small></div>}
+        {journal.apc_amount != null && <div className="prep-journal-apc-metric">
           <b>{journal.apc_amount}</b>
           <small>{journal.apc_currency || 'APC'}</small>
           {journal.apc_amount > 0 && !['CNY', 'RMB', 'CNH'].includes((journal.apc_currency || '').trim().toUpperCase()) && <CurrencyCny amount={journal.apc_amount} currency={journal.apc_currency || 'USD'} showOriginal={false} compact className="prep-journal-apc-cny" />}
