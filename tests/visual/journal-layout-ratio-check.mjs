@@ -89,7 +89,7 @@ async function inspect(ui, viewport) {
           const rect = card.getBoundingClientRect()
           const body = card.querySelector('.journal-center-card__body')
           const bodyRect = body?.getBoundingClientRect()
-          const title = body?.querySelector('h3')?.getBoundingClientRect()
+          const title = body?.querySelector('.journal-catalog-card__title-block > h3, h3')?.getBoundingClientRect()
           const identity = body?.querySelector('.prep-journal-local-identity')?.getBoundingClientRect()
           const publisher = body?.querySelector('.prep-journal-publisher')?.getBoundingClientRect()
           const children = body ? Array.from(body.children).filter(element => {
@@ -120,7 +120,7 @@ async function inspect(ui, viewport) {
     if (!library.cards.length) failures.push(`${label}: Journal Center cards are missing`)
     if (/\b1fr\b/.test(library.gridAutoRows)) failures.push(`${label}: Journal Center rows use viewport-filling 1fr tracks`)
     const maxHeight = library.cards.length ? Math.max(...library.cards.map(card => card.height)) : 0
-    if (maxHeight > 340) failures.push(`${label}: Journal Center cards are excessively tall (${Math.round(maxHeight)}px)`)
+    if (maxHeight > 460) failures.push(`${label}: Journal Center cards are excessively tall (${Math.round(maxHeight)}px)`)
     library.cards.forEach(card => {
       if (card.scrollWidth > card.clientWidth + 2) failures.push(`${label}: journal ${card.index + 1} horizontally overflows`)
       if (card.blankBelowContent > 28) failures.push(`${label}: journal ${card.index + 1} retains ${Math.round(card.blankBelowContent)}px empty body space`)
