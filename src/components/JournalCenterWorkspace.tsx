@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Search, Star } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useTheme } from '../lib/theme'
 import type { Paper } from '../lib/types'
 import type { JournalProfile } from '../lib/preparation'
 import { deriveAutomaticJournalProfiles } from '../lib/journal-auto-catalog'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
 import JournalFormEnhanced from './JournalFormEnhanced'
 import JournalCatalogCard from './JournalCatalogCard'
+import LuminousXStatusBar from './LuminousXStatusBar'
 import { invalidateOnlineJournalProfileCache } from './OnlinePaperCard'
 
 interface Props {
@@ -36,6 +38,7 @@ function legacyAutomaticJournalPayload(journal: JournalProfile) {
   return { ...legacy, notes: journal.notes || '系统根据投稿历史自动建立的简易期刊档案。' }
 }
 export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
+  const { uiMode } = useTheme()
   const [journals, setJournals] = useState<JournalProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -107,6 +110,12 @@ export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
   }
 
   return <section className="journal-center-workspace" aria-label="期刊中心">
+    {uiMode === 'luminous-x' && <LuminousXStatusBar
+      modeLabel="期刊中心"
+      subtitle="集中管理期刊档案、投稿入口、评价指标、费用与横向比较。"
+      recordCount={journals.length}
+    />}
+
     <header className="journal-center-toolbar">
       <div className="journal-center-toolbar__title"><h1>期刊中心</h1><p>集中维护期刊档案、评价信息、投稿入口和费用；投稿准备中的期刊匹配直接读取这里的数据。</p></div>
       <div className="journal-center-toolbar__actions">
