@@ -3,6 +3,7 @@ import type { JournalProfile } from '../lib/preparation'
 import { OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
 import { journalPrimaryRankItems, journalRankTone, type RankedJournalProfile } from '../lib/journal-display'
 import CurrencyCny from './CurrencyCny'
+import './JournalCatalogCard.css'
 
 interface Props {
   journal: JournalProfile
