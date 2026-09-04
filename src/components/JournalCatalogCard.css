@@ -425,6 +425,44 @@ html[data-theme='dark'] .journal-catalog-grid .journal-catalog-card__oa {
   background: rgba(14, 165, 233, .12) !important;
 }
 
+/* Luminous X uses the same page-control language as Submission Management.
+   The standard status bar provides page identity; the local bar becomes a compact action rail. */
+html[data-ui='luminous-x'] .journal-center-workspace > .lx-status-bar {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 0 10px !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar {
+  min-height: 44px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  padding: 5px 8px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar > .journal-center-toolbar__title {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar > .journal-center-toolbar__actions {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1fr) auto auto !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 7px !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar .journal-center-search {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
 @media (max-width: 760px) {
   .journal-center-workspace {
     width: min(calc(100% - 18px), var(--release-page-width, 1760px)) !important;
@@ -453,5 +491,9 @@ html[data-theme='dark'] .journal-catalog-grid .journal-catalog-card__oa {
 
   .journal-catalog-grid .journal-catalog-card__metrics > div {
     flex-basis: calc(50% - 3px) !important;
+  }
+
+  html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar > .journal-center-toolbar__actions {
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
   }
 }
