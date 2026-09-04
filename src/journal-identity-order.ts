@@ -36,7 +36,7 @@ function shouldShowAbbreviation(name: string, abbreviation: string) {
 function updateIdentity(host: HTMLElement) {
   const card = host.closest<HTMLElement>('.prep-journal-card, .prep-journal-overview-card')
   if (!card) return
-  const name = normalizeText(card.querySelector<HTMLElement>('.prep-journal-card-main > h3, .prep-overview-journal-copy > b')?.textContent)
+  const name = normalizeText(card.querySelector<HTMLElement>('.journal-catalog-card__title-block > h3, .prep-journal-card-main > h3, .prep-overview-journal-copy > b')?.textContent)
   const chineseName = host.querySelector<HTMLElement>('strong')
   const abbreviation = host.querySelector<HTMLElement>('em')
 
