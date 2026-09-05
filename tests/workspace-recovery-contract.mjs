@@ -26,6 +26,16 @@ assert(exists('src/components/JournalCatalogCard.tsx'), 'Journal Center and Prep
 assert(exists('src/components/JournalCatalogCard.css'), 'Shared journal card must own a dedicated canonical stylesheet')
 assert(journalCenter.includes('JournalCatalogCard') && journalCenter.includes('journal-catalog-grid') && !journalCenter.includes('journal-center-workspace preparation-workspace'), 'Journal Center must reuse the shared journal catalog card system without masquerading as Preparation')
 assert(offlineJournalCenter.includes('JournalCatalogCard') && offlineJournalCenter.includes('journal-catalog-grid') && !offlineJournalCenter.includes('journal-center-workspace preparation-workspace'), 'Offline Journal Center must use the same shared journal card visual system without Preparation coupling')
+
+// First-class Journal Center must literally participate in the Submission Management grid/card system.
+// Geometry resemblance is insufficient: using the same shell classes prevents a second visual language
+// from silently reappearing through later CSS layers.
+assert(journalCenter.includes('journal-center-grid paper-grid journal-catalog-grid'), 'Online Journal Center must use the same paper-grid layout contract as Submission Management')
+assert(offlineJournalCenter.includes('journal-center-grid paper-grid journal-catalog-grid'), 'Offline Journal Center must use the same paper-grid layout contract as Submission Management')
+for (const token of ['paper-card-v3', 'paper-card-head', 'paper-status-area', 'title-block', 'card-title', 'card-subtitle', 'paper-card-footer']) {
+  assert(journalCard.includes(token), `Journal Center card must share Submission Management structure: ${token}`)
+}
+
 assert(journalCard.includes("import './JournalCatalogCard.css'") && journalCard.includes('journal-catalog-card__status') && journalCard.includes('journal-catalog-card__substatus') && journalCard.includes('journal-catalog-card__title-block'), 'Shared journal card must use the submission-management information hierarchy')
 assert(journalCard.includes('prep-journal-rank-blocks') && journalCard.includes('prep-journal-facts') && journalCard.includes('prep-journal-numbers'), 'Shared journal card must retain colorful rank/fact/metric visual layers')
 assert(journalCardCss.includes('--release-page-width') && journalCardCss.includes('border-radius: 18px') && journalCardCss.includes('height: 32px') && journalCardCss.includes('font-size: 14.5px') && journalCardCss.includes('journal-catalog-card::before'), 'Journal Center must inherit the established submission-management lane, radius, status scale, title scale and semantic accent line')
