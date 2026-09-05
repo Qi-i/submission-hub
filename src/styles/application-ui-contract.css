@@ -1,0 +1,350 @@
+/*
+ * TERMINAL APPLICATION UI CONTRACT
+ * --------------------------------
+ * This file is intentionally imported last. Submission Management is the visual reference
+ * for every first-class workspace. Earlier historical styles may define business-specific
+ * details, but they must not redefine the application's page lane, typography, control scale,
+ * panel geometry or material language.
+ */
+
+:root {
+  --app-font-sans: "Segoe UI Variable Text", "SF Pro Text", Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Noto Sans CJK SC", system-ui, sans-serif;
+  --app-page-width: 1760px;
+  --app-page-gutter: 18px;
+  --app-page-gap: 12px;
+  --app-panel-gap: 12px;
+  --app-control-height: 34px;
+  --app-control-radius: 10px;
+  --app-small-radius: 8px;
+  --app-panel-radius: 16px;
+  --app-card-radius: 18px;
+  --app-page-title-size: 21px;
+  --app-card-title-size: 14.5px;
+  --app-body-size: 11px;
+  --app-caption-size: 9.5px;
+
+  /* Keep old tokens as aliases while legacy layers are gradually retired. */
+  --release-page-width: var(--app-page-width);
+  --release-page-gutter: var(--app-page-gutter);
+  --ui-shell-max: var(--app-page-width);
+  --ui-shell-gutter: var(--app-page-gutter);
+  --ui-gap-page: var(--app-page-gap);
+  --ui-gap-panel: var(--app-panel-gap);
+  --ui-radius-shell: var(--app-panel-radius);
+  --ui-radius-panel: var(--app-panel-radius);
+  --ui-radius-control: var(--app-control-radius);
+  --ui-radius-small: var(--app-small-radius);
+}
+
+html[data-ui] body,
+html[data-ui] body button,
+html[data-ui] body input,
+html[data-ui] body select,
+html[data-ui] body textarea {
+  font-family: var(--app-font-sans) !important;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-ui] body {
+  font-size: 13px;
+}
+
+/* --------------------------------------------------------------------------
+ * One page lane. Luminous is centered; Luminous X uses its established content lane.
+ * -------------------------------------------------------------------------- */
+html[data-ui='luminous'] body .app-layout > :is(
+  .dashboard-metrics,
+  .metric-grid.dashboard-metrics,
+  .action-center,
+  .toolbar,
+  .paper-grid,
+  .stats-panel,
+  .stats-bar,
+  .tab-bar,
+  .preparation-suite,
+  .online-preparation-shell,
+  .admin-panel,
+  .admin-page
+),
+html[data-ui='luminous'] body .app-layout > .journal-center-workspace > :is(
+  .journal-center-toolbar,
+  .journal-center-grid
+) {
+  width: min(calc(100% - (var(--app-page-gutter) * 2)), var(--app-page-width)) !important;
+  max-width: var(--app-page-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui='luminous'] body .app-layout > :is(
+  .dashboard-metrics,
+  .metric-grid.dashboard-metrics,
+  .action-center,
+  .toolbar,
+  .paper-grid,
+  .stats-panel,
+  .stats-bar,
+  .tab-bar,
+  .preparation-suite,
+  .online-preparation-shell,
+  .admin-panel,
+  .admin-page
+) {
+  margin-top: var(--app-page-gap) !important;
+}
+
+html[data-ui='luminous'] body .app-layout > .journal-center-workspace {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui='luminous-x'] body .app-layout > :is(
+  .lx-status-bar,
+  .dashboard-metrics,
+  .metric-grid.dashboard-metrics,
+  .action-center,
+  .toolbar,
+  .paper-grid,
+  .lx-board-view,
+  .lx-journal-view,
+  .stats-panel,
+  .stats-bar,
+  .preparation-suite,
+  .online-preparation-shell,
+  .admin-panel,
+  .admin-page,
+  .journal-center-workspace
+),
+html[data-ui='luminous-x'] body .app-layout > .journal-center-workspace > :is(
+  .lx-status-bar,
+  .journal-center-toolbar,
+  .journal-center-grid
+) {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* --------------------------------------------------------------------------
+ * One typographic hierarchy.
+ * -------------------------------------------------------------------------- */
+html[data-ui] body :is(
+  .journal-center-toolbar__title h1,
+  .preparation-workspace .prep-heading h1,
+  .admin-title
+) {
+  margin: 0 !important;
+  color: var(--ui-title, var(--text-primary)) !important;
+  font-family: var(--app-font-sans) !important;
+  font-size: var(--app-page-title-size) !important;
+  font-weight: 760 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -.025em !important;
+}
+
+html[data-ui] body :is(
+  .journal-center-toolbar__title p,
+  .preparation-workspace .prep-heading p,
+  .admin-subtitle,
+  .lx-status-copy p
+) {
+  color: var(--ui-muted, var(--text-secondary)) !important;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3 .card-title,
+html[data-ui] body .journal-center-card .card-title {
+  color: var(--ui-title, var(--text-primary)) !important;
+  font-size: var(--app-card-title-size) !important;
+  font-weight: 650 !important;
+  line-height: 1.48 !important;
+  letter-spacing: -.018em !important;
+}
+
+html[data-ui] body :is(
+  .paper-grid .card-subtitle,
+  .journal-center-card .card-subtitle,
+  .prep-panel p,
+  .admin-panel p
+) {
+  font-family: var(--app-font-sans) !important;
+}
+
+/* --------------------------------------------------------------------------
+ * One control scale for first-class page actions.
+ * Small inline icon controls are intentionally excluded.
+ * -------------------------------------------------------------------------- */
+html[data-ui] body :is(
+  .journal-center-toolbar__actions > button,
+  .journal-center-search,
+  .preparation-workspace .prep-top-actions > .btn,
+  .preparation-workspace .prep-search,
+  .stats-module-controls > button,
+  .stats-visibility-controls > button,
+  .segmented-control > button,
+  .admin-header button
+) {
+  min-height: var(--app-control-height) !important;
+  height: var(--app-control-height) !important;
+  box-sizing: border-box !important;
+  border-radius: var(--app-control-radius) !important;
+  font-size: var(--app-body-size) !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+}
+
+html[data-ui] body :is(
+  .journal-center-search input,
+  .preparation-workspace .prep-search input,
+  .toolbar input,
+  .toolbar select,
+  .stats-panel input,
+  .stats-panel select,
+  .admin-panel input,
+  .admin-panel select
+) {
+  font-size: var(--app-body-size) !important;
+  line-height: 1.35 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * One material and radius language. Business meaning may change colour, not geometry.
+ * -------------------------------------------------------------------------- */
+html[data-ui] body :is(
+  .journal-center-toolbar,
+  .preparation-workspace > .prep-topbar,
+  .action-center,
+  .stats-visibility-bar,
+  .admin-header
+) {
+  border-radius: var(--app-panel-radius) !important;
+}
+
+html[data-ui] body :is(
+  .prep-dashboard,
+  .prep-panel,
+  .prep-dashboard-score-card,
+  .prep-dashboard-attention-card,
+  .prep-dashboard-next-card,
+  .metric-card,
+  .summary-card,
+  .stats-summary-card,
+  .process-insight-card,
+  .insight-card,
+  .chart-card,
+  .distribution-panel,
+  .admin-card,
+  .admin-row
+) {
+  border-radius: var(--app-panel-radius) !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3,
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card {
+  border-radius: var(--app-card-radius) !important;
+}
+
+html[data-ui] body :is(
+  .journal-center-toolbar,
+  .preparation-workspace > .prep-topbar,
+  .action-center,
+  .metric-card,
+  .summary-card,
+  .stats-summary-card,
+  .chart-card,
+  .admin-card
+) {
+  border-color: var(--ui-border, var(--border-light)) !important;
+  background-color: transparent;
+  box-shadow: var(--ui-shadow, 0 12px 34px rgba(15, 23, 42, .07));
+}
+
+/* --------------------------------------------------------------------------
+ * Shared navigation scale. Main navigation differs structurally between Luminous and X,
+ * but typography and control radius remain one system.
+ * -------------------------------------------------------------------------- */
+html[data-ui] body :is(
+  .header-tabs > button,
+  .preparation-business-rail__item,
+  .preparation-workspace > .prep-business-nav > .prep-nav-item,
+  .stats-module-controls > button
+) {
+  font-family: var(--app-font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 680 !important;
+  border-radius: var(--app-small-radius) !important;
+}
+
+html[data-ui] body :is(
+  .preparation-business-rail,
+  .preparation-workspace > .prep-business-nav
+) {
+  gap: 4px !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Spacing rhythm shared by page-local grids. Do not rewrite their column semantics.
+ * -------------------------------------------------------------------------- */
+html[data-ui] body :is(
+  .paper-grid,
+  .journal-center-grid,
+  .metric-grid,
+  .prep-dashboard-grid,
+  .prep-overview-grid,
+  .prep-card-grid,
+  .stats-summary-unified,
+  .stats-distribution-grid
+) {
+  row-gap: var(--app-panel-gap) !important;
+  column-gap: var(--app-panel-gap) !important;
+}
+
+/* Submission Management cards remain the reference for all card internals. */
+html[data-ui] body .paper-grid .paper-card-v3::before {
+  top: 6px !important;
+  left: 20px !important;
+  right: 20px !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  opacity: .68 !important;
+}
+
+/* Mobile uses the same scale with a smaller page gutter, not a separate design. */
+@media (max-width: 720px) {
+  :root {
+    --app-page-gutter: 9px;
+    --app-page-gap: 9px;
+    --app-panel-gap: 9px;
+    --app-page-title-size: 19px;
+  }
+
+  html[data-ui='luminous'] body .app-layout > :is(
+    .dashboard-metrics,
+    .metric-grid.dashboard-metrics,
+    .action-center,
+    .toolbar,
+    .paper-grid,
+    .stats-panel,
+    .stats-bar,
+    .tab-bar,
+    .preparation-suite,
+    .online-preparation-shell,
+    .admin-panel,
+    .admin-page
+  ),
+  html[data-ui='luminous'] body .app-layout > .journal-center-workspace > :is(
+    .journal-center-toolbar,
+    .journal-center-grid
+  ) {
+    width: calc(100% - (var(--app-page-gutter) * 2)) !important;
+  }
+}
