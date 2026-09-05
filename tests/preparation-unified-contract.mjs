@@ -61,12 +61,10 @@ for (const file of [
   'src/styles/preparation/luminous-x.css',
   'src/styles/preparation/responsive.css',
   'src/styles/preparation-business-rail.css',
-  'src/styles/journal-center-density-contract.css',
 ]) expect(exists(file), `Missing unified preparation style file: ${file}`)
 const railImport = styles.indexOf("import './styles/preparation-business-rail.css'")
-const journalDensityImport = styles.indexOf("import './styles/journal-center-density-contract.css'")
 expect(styles.includes("./styles/preparation/tokens.css") && styles.includes("./styles/preparation/workbench.css") && railImport > styles.indexOf("import './styles/preparation/responsive.css'"), 'app-styles.ts must load the isolated Preparation rail after the Preparation style stack.')
-expect(journalDensityImport > railImport && styles.trim().endsWith("import './styles/journal-center-density-contract.css'"), 'Journal Center density contract must be the terminal style layer so historical journal-library geometry cannot override the first-class page.')
+expect(!styles.includes('journal-center-density-contract.css'), 'Journal Center must not depend on a terminal density override layer.')
 expect(shellCss.includes('.app-layout > .online-preparation-shell') && shellCss.includes('max-width: var(--ui-shell-max)'), 'Online Preparation shell must use the global centered content lane.')
 expect(prepTokens.includes('--ui-page-width: 2400px') && prepTokens.includes('--ui-page-gutter: clamp(8px, .7vw, 18px)') && prepTokens.includes('--ui-shell-max: var(--ui-page-width)') && prepTokens.includes('--ui-shell-gutter: var(--ui-page-gutter)'), 'Header, dashboard and Preparation must share the same resolution-aware wide-screen page width/gutter tokens.')
 

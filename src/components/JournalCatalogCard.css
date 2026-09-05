@@ -1,0 +1,367 @@
+/* Journal Center is a first-class Submission Management surface.
+ * The standalone catalogue deliberately reuses .paper-grid + .paper-card-v3;
+ * this file only maps journal semantics onto that established shell. */
+
+.journal-center-workspace {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  display: grid !important;
+  grid-auto-rows: max-content !important;
+  align-content: start !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+
+.journal-center-workspace > .journal-center-toolbar {
+  width: min(calc(100% - (var(--release-page-gutter, 18px) * 2)), var(--release-page-width, 1760px)) !important;
+  max-width: var(--release-page-width, 1760px) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border: 1px solid var(--ui-border, var(--border-light)) !important;
+  border-radius: 16px !important;
+  background: var(--ui-glass, var(--bg-card)) !important;
+  box-shadow: var(--ui-shadow, 0 12px 34px rgba(15, 23, 42, .07)) !important;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+
+.journal-center-workspace > .journal-center-toolbar .journal-center-search,
+.journal-center-workspace > .journal-center-toolbar .journal-center-toolbar__actions > button {
+  min-height: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+}
+
+/* Do not define Journal Center columns here. .paper-grid owns exactly the same
+ * responsive column contract as 投稿管理 in both Luminous and Luminous X. */
+.journal-center-grid.paper-grid.journal-catalog-grid {
+  grid-auto-flow: row !important;
+  align-content: start !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card {
+  --journal-card-accent: var(--paper-status-color, #64748b);
+  min-width: 0 !important;
+  cursor: pointer;
+  outline: none;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--journal-card-accent) 16%, transparent), var(--ui-shadow-hover, 0 18px 46px rgba(15, 23, 42, .11)) !important;
+}
+
+/* Keep the canonical Submission Management accent geometry. */
+html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card::before {
+  background: var(--journal-card-accent) !important;
+}
+
+/* Status = Submission Management primary/secondary state, now carrying journal priority/risk. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-priority-status {
+  color: color-mix(in srgb, var(--journal-card-accent) 82%, #0f172a) !important;
+  border-color: color-mix(in srgb, var(--journal-card-accent) 34%, transparent) !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--journal-card-accent) 18%, white),
+    color-mix(in srgb, var(--journal-card-accent) 9%, white)) !important;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--journal-card-accent) 10%, transparent) !important;
+  font-weight: 760 !important;
+}
+
+html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-priority-status {
+  color: color-mix(in srgb, var(--journal-card-accent) 48%, #f8fafc) !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--journal-card-accent) 22%, #111827),
+    color-mix(in srgb, var(--journal-card-accent) 12%, #111827)) !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__substatus {
+  color: color-mix(in srgb, var(--journal-card-accent) 78%, #334155) !important;
+}
+
+/* OA occupies the same top-right journal-pill slot as 投稿管理, but is semantically coloured. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa {
+  font-weight: 760 !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa[data-oa='gold'],
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa[data-oa='diamond'] {
+  color: #047857 !important;
+  border-color: rgba(5, 150, 105, .30) !important;
+  background: linear-gradient(135deg, rgba(209, 250, 229, .88), rgba(204, 251, 241, .72)) !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa[data-oa='hybrid'] {
+  color: #6d28d9 !important;
+  border-color: rgba(124, 58, 237, .28) !important;
+  background: linear-gradient(135deg, rgba(237, 233, 254, .90), rgba(224, 231, 255, .72)) !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa[data-oa='closed'] {
+  color: #475569 !important;
+  border-color: rgba(100, 116, 139, .28) !important;
+  background: linear-gradient(135deg, rgba(241, 245, 249, .94), rgba(226, 232, 240, .68)) !important;
+}
+
+html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa {
+  filter: saturate(.9) brightness(.82);
+}
+
+/* Publisher is the same second-row action rail used by 投稿管理. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__publisher-rail {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .publisher-mark {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .publisher-mark-name {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__abbreviation {
+  flex: 0 0 auto !important;
+  color: #0369a1 !important;
+  border-color: rgba(14, 165, 233, .24) !important;
+  background: rgba(224, 242, 254, .74) !important;
+}
+
+/* Title hierarchy is literally 投稿管理: card-title + one accented card-subtitle. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__title-block {
+  min-width: 0 !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__title-block > .card-title {
+  display: -webkit-box !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__identity > strong {
+  font: inherit !important;
+  color: inherit !important;
+}
+
+/* Rank chips regain their actual category colours. These are not decorative random colours:
+ * each hue is stable for one ranking/index family throughout the catalogue. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks,
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__facts,
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks,
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__facts {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) > span {
+  min-height: 25px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 8px !important;
+  border: 1px solid transparent !important;
+  border-radius: 7px !important;
+  font-size: 9.8px !important;
+  font-weight: 680 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks > span b { font-weight: 800 !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks > span em { font-style: normal !important; font-weight: 650 !important; }
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='xinkey'] { color: #6d28d9 !important; border-color: rgba(124,58,237,.28) !important; background: rgba(237,233,254,.94) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='cas'] { color: #0e7490 !important; border-color: rgba(8,145,178,.26) !important; background: rgba(207,250,254,.90) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='jcr'] { color: #1d4ed8 !important; border-color: rgba(37,99,235,.26) !important; background: rgba(219,234,254,.94) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='if'] { color: #047857 !important; border-color: rgba(5,150,105,.26) !important; background: rgba(209,250,229,.94) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='ei'] { color: #b45309 !important; border-color: rgba(217,119,6,.28) !important; background: rgba(254,243,199,.96) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='pku'] { color: #b91c1c !important; border-color: rgba(220,38,38,.25) !important; background: rgba(254,226,226,.94) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='cscd'] { color: #0e7490 !important; border-color: rgba(6,182,212,.26) !important; background: rgba(207,250,254,.92) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='tech'] { color: #c2410c !important; border-color: rgba(234,88,12,.27) !important; background: rgba(255,237,213,.95) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='cssci'] { color: #7e22ce !important; border-color: rgba(147,51,234,.27) !important; background: rgba(243,232,255,.95) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks [data-tone='other'] { color: #475569 !important; border-color: rgba(100,116,139,.24) !important; background: rgba(241,245,249,.96) !important; }
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__facts > span[data-tone='selection'] { color: #9d174d !important; border-color: rgba(219,39,119,.24) !important; background: rgba(252,231,243,.95) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__facts > span[data-tone='subject'] { color: #0e7490 !important; border-color: rgba(8,145,178,.24) !important; background: rgba(207,250,254,.90) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__facts > span[data-tone='index'] { color: #334155 !important; border-color: rgba(71,85,105,.22) !important; background: rgba(226,232,240,.94) !important; }
+
+html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) > span {
+  filter: saturate(.82) brightness(.78);
+}
+
+/* Public metrics become a compact coloured metadata rail rather than gray filler. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
+  grid-column: 1 / -1 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
+  flex: 1 1 90px !important;
+  min-width: 78px !important;
+  min-height: 46px !important;
+  display: grid !important;
+  align-content: center !important;
+  gap: 2px !important;
+  padding: 7px 9px !important;
+  border: 1px solid transparent !important;
+  border-radius: 9px !important;
+  text-align: left !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div[data-tone='decision'] { color: #075985 !important; border-color: rgba(14,165,233,.25) !important; background: rgba(224,242,254,.88) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div[data-tone='review'] { color: #5b21b6 !important; border-color: rgba(124,58,237,.24) !important; background: rgba(237,233,254,.88) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div[data-tone='accept'] { color: #047857 !important; border-color: rgba(5,150,105,.24) !important; background: rgba(209,250,229,.88) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div[data-tone='apc'] { color: #a16207 !important; border-color: rgba(202,138,4,.25) !important; background: rgba(254,249,195,.90) !important; }
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics b {
+  color: currentColor !important;
+  font-size: 12px !important;
+  font-weight: 780 !important;
+  line-height: 1.08 !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics small {
+  color: currentColor !important;
+  opacity: .72 !important;
+  font-size: 8.8px !important;
+  font-weight: 620 !important;
+  line-height: 1.15 !important;
+}
+
+html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
+  filter: saturate(.8) brightness(.72);
+}
+
+/* Footer is the same terminal row as 投稿管理, with journal actions inside it. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__footer {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  min-height: 30px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  border-top: 1px solid rgba(100, 116, 139, .11) !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__footer:empty {
+  display: none !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__footer > a {
+  min-height: 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 0 7px !important;
+  border: 1px solid rgba(100, 116, 139, .18) !important;
+  border-radius: 7px !important;
+  color: var(--readable-secondary, var(--ui-body, #475569)) !important;
+  background: rgba(248, 250, 252, .68) !important;
+  font-size: 9px !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__footer > a:hover {
+  color: color-mix(in srgb, var(--journal-card-accent) 78%, #1e293b) !important;
+  border-color: color-mix(in srgb, var(--journal-card-accent) 28%, rgba(100,116,139,.18)) !important;
+  background: color-mix(in srgb, var(--journal-card-accent) 7%, white) !important;
+}
+
+html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__footer > a {
+  color: #cbd5e1 !important;
+  background: rgba(30, 41, 59, .62) !important;
+}
+
+/* Preparation keeps its own journal-card geometry. Shared semantics remain compatible. */
+.preparation-workspace .journal-catalog-card:not(.journal-center-card) .journal-catalog-card__status-area {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.preparation-workspace .journal-catalog-card:not(.journal-center-card) .journal-catalog-card__title-block > h3 {
+  overflow-wrap: anywhere;
+}
+
+/* Luminous X: same status bar and full content lane as 投稿管理. */
+html[data-ui='luminous-x'] .journal-center-workspace > .lx-status-bar {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 0 10px !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar,
+html[data-ui='luminous-x'] .journal-center-workspace > .paper-grid {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar {
+  min-height: 44px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  padding: 5px 8px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar > .journal-center-toolbar__title {
+  display: none !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar > .journal-center-toolbar__actions {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1fr) auto auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar .journal-center-search {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 720px) {
+  .journal-center-workspace > .journal-center-toolbar {
+    width: calc(100% - 18px) !important;
+  }
+
+  html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
+    flex-basis: calc(50% - 3px) !important;
+  }
+
+  html[data-ui='luminous-x'] .journal-center-workspace > .journal-center-toolbar > .journal-center-toolbar__actions {
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
+  }
+}

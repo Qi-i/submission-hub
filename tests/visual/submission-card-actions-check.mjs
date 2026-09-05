@@ -169,7 +169,7 @@ for (const ui of ['luminous', 'luminous-x']) {
     const journalCenterActive = page.locator("button[data-main-nav-key='journals']:visible").first()
     if (await journalCenterActive.count() !== 1 || !(await journalCenterActive.evaluate(element => element.classList.contains('active')))) fail(`${label}: “在期刊库查看” does not switch to the first-class Journal Center`)
     await viewCenter.locator('.journal-center-card.journal-library-focus').waitFor({ state: 'attached', timeout: 5000 })
-    const focusedName = (await viewCenter.locator('.journal-center-card.journal-library-focus h2').first().textContent())?.trim() || ''
+    const focusedName = (await viewCenter.locator('.journal-center-card.journal-library-focus .journal-catalog-card__title-block > .card-title').first().textContent())?.trim() || ''
     if (focusedName !== viewRun.journalName) fail(`${label}: “在期刊库查看” focused ${focusedName || 'nothing'} instead of ${viewRun.journalName}`)
 
     const editRun = await openFirstJournalPopover(page, ui)

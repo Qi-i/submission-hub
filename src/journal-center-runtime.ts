@@ -1,4 +1,4 @@
-const WORKSPACE_SELECTOR = '.preparation-workspace'
+const WORKSPACE_SELECTOR = '.preparation-workspace, .journal-center-workspace'
 const FILTERS = ['all', 'focus', 'submission-history', 'manual'] as const
 const OA_SHORT_LABELS: Record<string, string> = {
   订阅制: '订阅',
@@ -236,6 +236,11 @@ function enhanceOverviewGuidance(workspace: HTMLElement, total: number) {
 }
 
 function enhanceWorkspace(workspace: HTMLElement) {
+  if (workspace.classList.contains('journal-center-workspace')) {
+    compactOaLabels(workspace)
+    return
+  }
+
   const total = journalTotal(workspace)
 
   workspace.querySelectorAll<HTMLElement>('.prep-panel-head h2').forEach(title => {

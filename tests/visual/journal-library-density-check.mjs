@@ -18,6 +18,34 @@ async function openJournalCenter(page, ui, theme) {
   await page.waitForTimeout(220)
 }
 
+async function readSubmissionReference(page, ui, theme) {
+  await page.goto(`${baseUrl}?view=dashboard&theme=${theme}&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+  await page.locator("html[data-visual-ready='true'] .paper-grid .paper-card-v3").first().waitFor({ state: 'visible', timeout: 45000 })
+  return page.evaluate(() => {
+    const grid = document.querySelector('.paper-grid')
+    const card = document.querySelector('.paper-grid .paper-card-v3')
+    const status = card?.querySelector('.paper-status-area > .badge')
+    const title = card?.querySelector('.card-title')
+    if (!grid || !card || !status || !title) return null
+    const gridStyle = getComputedStyle(grid)
+    const cardStyle = getComputedStyle(card)
+    const statusStyle = getComputedStyle(status)
+    const titleStyle = getComputedStyle(title)
+    const accentStyle = getComputedStyle(card, '::before')
+    return {
+      gridWidth: grid.getBoundingClientRect().width,
+      columns: gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length,
+      cardWidth: card.getBoundingClientRect().width,
+      radius: parseFloat(cardStyle.borderRadius),
+      paddingLeft: parseFloat(cardStyle.paddingLeft),
+      statusHeight: status.getBoundingClientRect().height,
+      statusRadius: parseFloat(statusStyle.borderRadius),
+      titleFontSize: parseFloat(titleStyle.fontSize),
+      accentHeight: parseFloat(accentStyle.height),
+    }
+  })
+}
+
 async function openNewJournalEditor(page) {
   const button = page.locator('.journal-center-toolbar__actions > button.primary:visible').first()
   await button.waitFor({ state: 'visible', timeout: 10000 })
@@ -30,55 +58,76 @@ async function openNewJournalEditor(page) {
 async function inspectDesktop(ui, theme) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   try {
+    const reference = await readSubmissionReference(page, ui, theme)
+    if (!reference) {
+      failures.push(`${ui}/${theme}: submission-management reference card is missing`)
+      return
+    }
+
     await openJournalCenter(page, ui, theme)
-    const result = await page.evaluate(() => {
+    const result = await page.evaluate(referenceStyle => {
+      const closeEnough = (a, b, tolerance = 1.5) => Math.abs(a - b) <= tolerance
       const visible = element => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
       }
+      const meaningfulBackground = value => value && !['transparent', 'rgba(0, 0, 0, 0)'].includes(value)
       const grid = document.querySelector('.journal-center-workspace .journal-center-grid')
+      const toolbar = document.querySelector('.journal-center-workspace .journal-center-toolbar')
       const cards = grid ? Array.from(grid.querySelectorAll('.journal-center-card')) : []
-      if (!grid || !cards.length) return { failures: ['Journal Center fixture is incomplete'], details: {} }
+      if (!grid || !toolbar || !cards.length) return { failures: ['Journal Center fixture is incomplete'], details: {} }
+
       const localFailures = []
       const gridStyle = getComputedStyle(grid)
       const columns = gridStyle.gridTemplateColumns.split(' ').filter(Boolean)
       const gridRect = grid.getBoundingClientRect()
+      const toolbarRect = toolbar.getBoundingClientRect()
       const cardRects = cards.map(card => card.getBoundingClientRect())
-      let visibleLinkGroups = 0
-      if (columns.length < 3) localFailures.push(`desktop Journal Center exposes only ${columns.length} columns`)
-      if (parseFloat(gridStyle.columnGap) > 12) localFailures.push('desktop Journal Center grid gap is too large')
-      if (!gridStyle.gridAutoRows.includes('max-content')) localFailures.push(`Journal Center grid rows are not content-sized (${gridStyle.gridAutoRows})`)
-      if (gridStyle.alignItems !== 'start') localFailures.push(`Journal Center grid items still stretch vertically (${gridStyle.alignItems})`)
-      if (Math.max(...cardRects.map(rect => rect.width)) > 390) localFailures.push('Journal Center cards are too wide')
-      if (Math.max(...cardRects.map(rect => rect.height)) > 340) localFailures.push('Journal Center cards are too tall')
+
+      if (!grid.classList.contains('paper-grid')) localFailures.push('Journal Center is not using the Submission Management paper-grid shell')
+      if (columns.length !== referenceStyle.columns) localFailures.push(`Journal Center column count diverges from Submission Management (${columns.length} vs ${referenceStyle.columns})`)
+      if (Math.abs(gridRect.width - referenceStyle.gridWidth) > 3) localFailures.push(`Journal Center page lane differs from Submission Management (${Math.round(gridRect.width)} vs ${Math.round(referenceStyle.gridWidth)}px)`)
+      if (Math.abs(toolbarRect.left - gridRect.left) > 3 || Math.abs(toolbarRect.right - gridRect.right) > 3) localFailures.push('Journal Center toolbar and submission-style card lane are not aligned')
+      if (parseFloat(gridStyle.columnGap) > 14) localFailures.push('Journal Center grid gap is looser than Submission Management')
+      if (Math.abs(cardRects[0].width - referenceStyle.cardWidth) > 4) localFailures.push(`Journal Center card width diverges from Submission Management (${Math.round(cardRects[0].width)} vs ${Math.round(referenceStyle.cardWidth)}px)`)
 
       cards.forEach((card, index) => {
         const rect = card.getBoundingClientRect()
-        const body = card.querySelector('.journal-center-card__body')
-        const title = card.querySelector('.journal-center-card__body h2')
-        const facts = Array.from(card.querySelectorAll('.journal-center-card__facts > span'))
-        const links = card.querySelector('.journal-center-card__links')
-        if (!body || !title) {
-          localFailures.push(`journal ${index + 1}: independent card structure is incomplete`)
+        const status = card.querySelector('.journal-catalog-card__status')
+        const substatus = card.querySelector('.journal-catalog-card__substatus')
+        const title = card.querySelector('.journal-catalog-card__title-block > .card-title')
+        const subtitle = card.querySelector('.journal-catalog-card__title-block > .card-subtitle')
+        const facts = Array.from(card.querySelectorAll('.prep-journal-facts > span'))
+        const links = card.querySelector('.journal-catalog-card__footer')
+        if (!card.classList.contains('paper-card-v3')) localFailures.push(`journal ${index + 1}: card is outside the Submission Management paper-card-v3 shell`)
+        if (!status || !substatus || !title) {
+          localFailures.push(`journal ${index + 1}: submission-style hierarchy is incomplete`)
           return
         }
+
         const cardStyle = getComputedStyle(card)
-        const bodyStyle = getComputedStyle(body)
+        const statusStyle = getComputedStyle(status)
         const titleStyle = getComputedStyle(title)
-        if (parseFloat(bodyStyle.paddingLeft) > 12 || parseFloat(bodyStyle.paddingTop) > 12) localFailures.push(`journal ${index + 1}: body padding is oversized`)
-        if (String(titleStyle.webkitLineClamp) !== '2') localFailures.push(`journal ${index + 1}: title is not limited to two lines`)
+        const accentStyle = getComputedStyle(card, '::before')
+
+        if (!closeEnough(parseFloat(cardStyle.borderRadius), referenceStyle.radius, 1.5)) localFailures.push(`journal ${index + 1}: card radius diverges from Submission Management`)
+        if (!closeEnough(status.getBoundingClientRect().height, referenceStyle.statusHeight, 1.5)) localFailures.push(`journal ${index + 1}: primary state block height diverges from Submission Management`)
+        if (!closeEnough(parseFloat(statusStyle.borderRadius), referenceStyle.statusRadius, 2)) localFailures.push(`journal ${index + 1}: primary state radius diverges from Submission Management`)
+        if (!closeEnough(parseFloat(titleStyle.fontSize), referenceStyle.titleFontSize, 1.5)) localFailures.push(`journal ${index + 1}: title scale diverges from Submission Management`)
+        if (!closeEnough(parseFloat(accentStyle.height), referenceStyle.accentHeight, 1)) localFailures.push(`journal ${index + 1}: semantic accent line diverges from Submission Management`)
+        if (!closeEnough(parseFloat(cardStyle.paddingLeft), referenceStyle.paddingLeft, 3)) localFailures.push(`journal ${index + 1}: card padding diverges from Submission Management`)
+        if (subtitle && parseFloat(getComputedStyle(subtitle).borderLeftWidth) < 2) localFailures.push(`journal ${index + 1}: Chinese identity lost the Submission Management subtitle accent`)
         if (rect.right > gridRect.right + 1.5 || rect.left < gridRect.left - 1.5) localFailures.push(`journal ${index + 1}: card exceeds grid edges`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: horizontal overflow`)
-        if (cardStyle.alignSelf !== 'start') localFailures.push(`journal ${index + 1}: card still stretches within its grid row`)
-        if (parseFloat(bodyStyle.flexGrow) !== 0) localFailures.push(`journal ${index + 1}: card body still consumes artificial vertical space`)
+
+        const lineHeight = parseFloat(titleStyle.lineHeight)
+        if (Number.isFinite(lineHeight) && title.scrollHeight > lineHeight * 2.5) localFailures.push(`journal ${index + 1}: title exceeds two readable lines`)
 
         const anchors = links ? Array.from(links.querySelectorAll('a')).filter(visible) : []
         if (anchors.length) {
-          visibleLinkGroups += 1
           const linksStyle = getComputedStyle(links)
-          if (linksStyle.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: links do not wrap with their content`)
-          if (parseFloat(linksStyle.flexGrow) !== 0) localFailures.push(`journal ${index + 1}: links still stretch into a fixed footer slot`)
+          if (linksStyle.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: footer links do not wrap`)
           const keys = anchors.map(link => {
             const url = new URL(link.href)
             url.hash = ''
@@ -88,29 +137,45 @@ async function inspectDesktop(ui, theme) {
         }
 
         for (const [groupName, group] of [
-          ['ranks', card.querySelector('.journal-center-ranks')],
-          ['facts', card.querySelector('.journal-center-card__facts')],
-          ['metrics', card.querySelector('.journal-center-card__metrics')],
+          ['ranks', card.querySelector('.prep-journal-rank-blocks')],
+          ['facts', card.querySelector('.prep-journal-facts')],
+          ['metrics', card.querySelector('.prep-journal-numbers')],
         ]) {
           if (!group || !visible(group)) continue
           const style = getComputedStyle(group)
           if (style.display !== 'flex' || style.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: ${groupName} are not content-driven flex-wrap`)
         }
 
-        const metrics = Array.from(card.querySelectorAll('.journal-center-card__metrics > span')).filter(visible)
+        const metrics = Array.from(card.querySelectorAll('.prep-journal-numbers > div')).filter(visible)
         metrics.forEach((metric, metricIndex) => {
           const value = metric.querySelector('b')?.textContent?.trim() || ''
           if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: empty metric ${metricIndex + 1} remains visible`)
         })
-        Array.from(card.querySelectorAll('.journal-center-ranks > span')).forEach((chip, rankIndex) => {
-          if (chip.scrollWidth > chip.clientWidth + 2) localFailures.push(`journal ${index + 1}: rank chip ${rankIndex + 1} is clipped`)
-        })
         facts.forEach((fact, factIndex) => {
-          if (visible(fact) && fact.getBoundingClientRect().height > 29) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
+          if (visible(fact) && fact.getBoundingClientRect().height > 34) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
         })
       })
-      return { failures: localFailures, details: { columns: columns.length, gap: gridStyle.columnGap, maxWidth: Math.round(Math.max(...cardRects.map(rect => rect.width))), maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))), visibleLinkGroups, cards: cards.length } }
-    })
+
+      const colorNodes = Array.from(grid.querySelectorAll('.journal-priority-status, .journal-catalog-card__oa, .prep-journal-rank-blocks > span, .prep-journal-facts > span, .prep-journal-numbers > div')).filter(visible)
+      const backgrounds = new Set(colorNodes.map(node => getComputedStyle(node).backgroundColor).filter(meaningfulBackground))
+      if (backgrounds.size < 4) localFailures.push(`Journal Center is still visually monotone: only ${backgrounds.size} distinct semantic surfaces`)
+
+      return {
+        failures: localFailures,
+        details: {
+          columns: columns.length,
+          referenceColumns: referenceStyle.columns,
+          gridWidth: Math.round(gridRect.width),
+          referenceWidth: Math.round(referenceStyle.gridWidth),
+          cardWidth: Math.round(cardRects[0].width),
+          referenceCardWidth: Math.round(referenceStyle.cardWidth),
+          maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))),
+          cards: cards.length,
+          semanticSurfaces: backgrounds.size,
+        },
+      }
+    }, reference)
+
     failures.push(...result.failures.map(message => `${ui}/${theme}: ${message}`))
     details.push({ ui, theme, ...result.details })
     if (theme === 'light') await page.screenshot({ path: `visual-review/${ui}-journal-library-light-desktop.png`, fullPage: true })
@@ -130,10 +195,12 @@ async function inspectMobile(ui) {
       const cards = grid ? Array.from(grid.querySelectorAll('.journal-center-card')) : []
       if (!grid || !cards.length) return ['mobile Journal Center fixture is incomplete']
       const localFailures = []
+      if (!grid.classList.contains('paper-grid')) localFailures.push('mobile Journal Center lost paper-grid shell')
       if (getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length !== 1) localFailures.push('mobile Journal Center is not single-column')
       cards.forEach((card, index) => {
+        if (!card.classList.contains('paper-card-v3')) localFailures.push(`journal ${index + 1}: mobile card lost paper-card-v3 shell`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: mobile horizontal overflow`)
-        const links = card.querySelector('.journal-center-card__links')
+        const links = card.querySelector('.journal-catalog-card__footer')
         if (links && getComputedStyle(links).flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: mobile links do not wrap`)
       })
       return localFailures

@@ -48,8 +48,9 @@ function setControlledInputValue(input: HTMLInputElement, value: string) {
 function matchingJournalCard(journalName: string) {
   const wanted = compactText(journalName)
   const cards = Array.from(document.querySelectorAll<HTMLElement>('.journal-center-card'))
-  return cards.find(card => compactText(card.querySelector('h2')?.textContent) === wanted)
-    || cards.find(card => compactText(card.querySelector('h2')?.textContent).includes(wanted))
+  const titleText = (card: HTMLElement) => compactText(card.querySelector('.journal-catalog-card__title-block > .card-title, .journal-catalog-card__title-block > h3, h2')?.textContent)
+  return cards.find(card => titleText(card) === wanted)
+    || cards.find(card => titleText(card).includes(wanted))
     || null
 }
 
@@ -71,9 +72,8 @@ async function navigateToJournalLibrary(journalName: string, mode: 'view' | 'edi
   journalCard.classList.add('journal-library-focus')
   window.setTimeout(() => journalCard.classList.remove('journal-library-focus'), 2600)
 
-  const body = journalCard.querySelector<HTMLButtonElement>('.journal-center-card__body')
-  if (mode === 'edit') window.setTimeout(() => body?.click(), 180)
-  else body?.focus({ preventScroll: true })
+  if (mode === 'edit') window.setTimeout(() => journalCard.click(), 180)
+  else journalCard.focus({ preventScroll: true })
 }
 
 function positionPopover(overlay: HTMLElement) {

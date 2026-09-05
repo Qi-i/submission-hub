@@ -59,7 +59,7 @@ function fixOverviewUnknownMetrics() {
 }
 
 function fixJournalTitle(card: HTMLElement) {
-  const title = card.querySelector<HTMLElement>('.prep-journal-card-main > h3')
+  const title = card.querySelector<HTMLElement>('.journal-catalog-card__title-block > .card-title, .journal-catalog-card__title-block > h3, .prep-journal-card-main > h3')
   if (!title) return
   const text = normalizeText(title.textContent)
   if (title.title !== text) title.title = text
