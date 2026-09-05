@@ -125,7 +125,7 @@ export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
       </div>
     </header>
 
-    {loading ? <div className="journal-center-loading">正在加载期刊档案…</div> : <div className="journal-center-grid prep-card-grid journal-grid journal-catalog-grid">
+    {loading ? <div className="journal-center-loading">正在加载期刊档案…</div> : <div className="journal-center-grid paper-grid journal-catalog-grid">
       {visible.map(journal => <JournalCatalogCard key={journal.id} journal={journal} onClick={() => setEditor(journal)} standalone thirdPartyLinkLimit={journal.third_party_links.length} />)}
       {!visible.length && <div className="journal-center-empty">{search || favoritesOnly ? '没有符合当前条件的期刊。' : '暂无期刊档案。'}</div>}
     </div>}
