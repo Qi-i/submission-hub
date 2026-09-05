@@ -21,6 +21,16 @@ const figureComposer = read('src/components/figure-composer/FigureComposer.tsx')
 const figureTypes = read('src/lib/figure-composer/types.ts')
 const figureInspector = read('src/components/figure-composer/FigurePanelInspector.tsx')
 
+assert(exists('src/styles/application-ui-contract.css'), 'Application must have one terminal cross-page UI contract')
+const applicationUiContract = exists('src/styles/application-ui-contract.css') ? read('src/styles/application-ui-contract.css') : ''
+assert(appStyles.trim().endsWith("import './styles/application-ui-contract.css'"), 'Cross-page UI contract must be the final stylesheet import')
+for (const token of ['--app-font-sans', '--app-page-width', '--app-page-gutter', '--app-control-height', '--app-panel-radius', '--app-card-radius']) {
+  assert(applicationUiContract.includes(token), `Cross-page UI contract is missing token ${token}`)
+}
+for (const token of ["html[data-ui='luminous']", "html[data-ui='luminous-x']", '.journal-center-workspace', '.preparation-workspace', '.stats-panel', '.paper-grid']) {
+  assert(applicationUiContract.includes(token), `Cross-page UI contract is missing shared page rule ${token}`)
+}
+
 assert(exists('src/components/JournalCenterWorkspace.tsx'), 'Journal Center must have its own workspace component')
 assert(exists('src/components/JournalCatalogCard.tsx'), 'Journal Center and Preparation must share one journal card component')
 assert(exists('src/components/JournalCatalogCard.css'), 'Shared journal card must own a dedicated canonical stylesheet')
