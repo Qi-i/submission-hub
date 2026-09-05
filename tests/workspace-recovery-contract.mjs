@@ -32,13 +32,14 @@ assert(offlineJournalCenter.includes('JournalCatalogCard') && offlineJournalCent
 // from silently reappearing through later CSS layers.
 assert(journalCenter.includes('journal-center-grid paper-grid journal-catalog-grid'), 'Online Journal Center must use the same paper-grid layout contract as Submission Management')
 assert(offlineJournalCenter.includes('journal-center-grid paper-grid journal-catalog-grid'), 'Offline Journal Center must use the same paper-grid layout contract as Submission Management')
-for (const token of ['paper-card-v3', 'paper-card-head', 'paper-status-area', 'title-block', 'card-title', 'card-subtitle', 'paper-card-footer']) {
+for (const token of ['paper-card-v3', 'paper-card-head', 'paper-status-area', 'paper-action-rail', 'title-block', 'card-title', 'card-subtitle', 'paper-card-footer']) {
   assert(journalCard.includes(token), `Journal Center card must share Submission Management structure: ${token}`)
 }
 
 assert(journalCard.includes("import './JournalCatalogCard.css'") && journalCard.includes('journal-catalog-card__status') && journalCard.includes('journal-catalog-card__substatus') && journalCard.includes('journal-catalog-card__title-block'), 'Shared journal card must use the submission-management information hierarchy')
 assert(journalCard.includes('prep-journal-rank-blocks') && journalCard.includes('prep-journal-facts') && journalCard.includes('prep-journal-numbers'), 'Shared journal card must retain colorful rank/fact/metric visual layers')
-assert(journalCardCss.includes('--release-page-width') && journalCardCss.includes('border-radius: 18px') && journalCardCss.includes('height: 32px') && journalCardCss.includes('font-size: 14.5px') && journalCardCss.includes('journal-catalog-card::before'), 'Journal Center must inherit the established submission-management lane, radius, status scale, title scale and semantic accent line')
+assert(journalCardCss.includes('--release-page-width') && journalCardCss.includes('.journal-priority-status') && journalCardCss.includes("[data-tone='selection']") && journalCardCss.includes("[data-tone='decision']") && journalCardCss.includes('.journal-center-card::before'), 'Journal Center stylesheet must only map journal semantics and visible color layers onto the shared Submission Management shell')
+assert(!/journal-center-grid[^\{]*\{[^\}]*grid-template-columns:\s*repeat\(auto-(?:fit|fill)/s.test(journalCardCss), 'Journal Center must not define an independent auto-fit/auto-fill desktop column system')
 assert(!exists('src/styles/journal-center-density-contract.css') && !appStyles.includes('journal-center-density-contract.css'), 'Terminal Journal Center density override must stay removed')
 assert(dashboard.includes('JournalCenterWorkspace'), 'Dashboard must render JournalCenterWorkspace directly')
 assert(!dashboard.includes('workspaceMode="journal-center"'), 'Dashboard must not route Journal Center through PreparationWorkspace match mode')
