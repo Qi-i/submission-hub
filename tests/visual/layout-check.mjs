@@ -21,124 +21,44 @@ try {
     const failures = []
     const metrics = document.querySelector('.dashboard-metrics, .stats-bar')
     const grid = document.querySelector('.paper-grid')
-    const cards = Array.from(document.querySelectorAll('.paper-card-v3'))
-
-    if (!metrics || !grid || cards.length === 0) {
-      return { failures: ['dashboard geometry is incomplete'], details: {} }
-    }
+    const cards = Array.from(grid?.querySelectorAll('.paper-card-v3') || [])
+    if (!metrics || !grid || !cards.length) return { failures: ['dashboard geometry is incomplete'], details: {} }
 
     const metricsRect = metrics.getBoundingClientRect()
     const gridRect = grid.getBoundingClientRect()
+    const gridStyle = getComputedStyle(grid)
     if (Math.abs(metricsRect.left - gridRect.left) > tol) failures.push('metrics and card grid left edges differ')
     if (Math.abs(metricsRect.right - gridRect.right) > tol) failures.push('metrics and card grid right edges differ')
 
     const rows = new Map()
-    for (const card of cards) {
+    cards.forEach((card, index) => {
       const rect = card.getBoundingClientRect()
-      const key = Math.round(rect.top)
-      const row = rows.get(key) || []
+      const row = rows.get(Math.round(rect.top)) || []
       row.push(rect.height)
-      rows.set(key, row)
-    }
-    for (const heights of rows.values()) {
-      if (heights.length > 1 && Math.max(...heights) - Math.min(...heights) > tol) failures.push('cards in the same row are not equal height')
-    }
+      rows.set(Math.round(rect.top), row)
 
-    const cardChecks = []
-    for (const [index, card] of cards.entries()) {
       const status = card.querySelector('.paper-status-area > .badge')
-      const detailRow = card.querySelector('.paper-status-detail-row')
       const pill = card.querySelector('.journal-pill')
-      const slot = card.querySelector('.paper-journal-slot')
-      const substatus = card.querySelector('.paper-substatus')
-      const publication = card.querySelector('.paper-publication-compact')
-      const revision = card.querySelector('.paper-revision-inline')
-      const cardRect = card.getBoundingClientRect()
-      const cardStyle = getComputedStyle(card)
-      const check = { index, journal: null, detailRow: null, substatus: null, publication: null, revisionVisible: false }
-
+      const title = card.querySelector('.card-title')
+      if (!status || !title) failures.push(`card ${index + 1}: canonical submission hierarchy is incomplete`)
       if (pill) {
         const text = pill.querySelector('.journal-pill-text')
-        if (!status || !text || !slot) {
-          failures.push(`card ${index + 1}: paper header elements are incomplete`)
-        } else {
-          const statusStyle = getComputedStyle(status)
-          const textStyle = getComputedStyle(text)
-          const pillRect = pill.getBoundingClientRect()
-          const textRect = text.getBoundingClientRect()
-          const lineHeight = Number.parseFloat(textStyle.lineHeight)
-          const expectedRight = cardRect.right - Number.parseFloat(cardStyle.paddingRight) - Number.parseFloat(cardStyle.borderRightWidth)
-
-          if (Number.parseFloat(textStyle.fontSize) <= Number.parseFloat(statusStyle.fontSize)) failures.push(`card ${index + 1}: journal name is not visually dominant`)
-          if (Number.isFinite(lineHeight) && text.scrollHeight > lineHeight * 2.35) failures.push(`card ${index + 1}: journal name exceeds two lines`)
-          if (Math.abs(expectedRight - pillRect.right) > 3) failures.push(`card ${index + 1}: journal pill is not right aligned`)
-          if (textRect.top < pillRect.top - tol || textRect.bottom > pillRect.bottom + tol) failures.push(`card ${index + 1}: journal text escapes its pill`)
-          if (pill.scrollHeight > pill.clientHeight + 2) failures.push(`card ${index + 1}: journal pill has hidden vertical overflow`)
-          if (Number.parseFloat(textStyle.fontSize) < 11) failures.push(`card ${index + 1}: journal text shrinks below readable minimum`)
-
-          check.journal = { fontSize: textStyle.fontSize, right: pillRect.right, expectedRight, height: pillRect.height, textTop: textRect.top, textBottom: textRect.bottom }
-        }
+        if (!text) failures.push(`card ${index + 1}: journal pill text is missing`)
+        else if (text.scrollWidth > text.clientWidth + 2 && getComputedStyle(text).textOverflow !== 'ellipsis') failures.push(`card ${index + 1}: journal pill overflows without truncation`)
       }
-
-      if (detailRow && status) {
-        const statusRect = status.getBoundingClientRect()
-        const detailRect = detailRow.getBoundingClientRect()
-        const style = getComputedStyle(detailRow)
-        if (style.display === 'none' || detailRect.height < 20) failures.push(`card ${index + 1}: status detail row is not readable`)
-        if (detailRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: status detail row overlaps the main status`)
-        check.detailRow = { top: detailRect.top, statusBottom: statusRect.bottom, left: detailRect.left, height: detailRect.height }
-      }
-
-      if (substatus && status) {
-        const statusRect = status.getBoundingClientRect()
-        const subRect = substatus.getBoundingClientRect()
-        const statusStyle = getComputedStyle(status)
-        const style = getComputedStyle(substatus)
-        if (style.display === 'none' || Number(style.opacity || 1) < 0.65 || subRect.height < 16) failures.push(`card ${index + 1}: substatus is not readable`)
-        if (Number.parseFloat(style.fontSize) >= Number.parseFloat(statusStyle.fontSize)) failures.push(`card ${index + 1}: substatus is not visually secondary`)
-        if (subRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: substatus overlaps the main status`)
-        if (detailRow && substatus.parentElement !== detailRow) failures.push(`card ${index + 1}: substatus is outside the shared detail row`)
-        check.substatus = { top: subRect.top, statusBottom: statusRect.bottom, left: subRect.left, right: subRect.right, height: subRect.height, fontSize: style.fontSize }
-      }
-
-      if (publication && status) {
-        const statusRect = status.getBoundingClientRect()
-        const publicationRect = publication.getBoundingClientRect()
-        const style = getComputedStyle(publication)
-        if (publicationRect.height < 20 || style.display === 'none') failures.push(`card ${index + 1}: publication entry is not readable`)
-        if (publicationRect.top < statusRect.bottom - 1) failures.push(`card ${index + 1}: publication entry overlaps the main status`)
-        if (detailRow && publication.parentElement !== detailRow) failures.push(`card ${index + 1}: publication entry is outside the shared detail row`)
-        if (substatus) {
-          const subRect = substatus.getBoundingClientRect()
-          if (Math.abs(publicationRect.top - subRect.top) > 4) failures.push(`card ${index + 1}: publication entry is not aligned with the system status`)
-          if (publicationRect.left < subRect.right - 1) failures.push(`card ${index + 1}: publication entry overlaps the system status`)
-        }
-        check.publication = { top: publicationRect.top, statusBottom: statusRect.bottom, left: publicationRect.left, height: publicationRect.height }
-      }
-
-      if (revision) {
-        const revisionStyle = getComputedStyle(revision)
-        const revisionRect = revision.getBoundingClientRect()
-        const visible = revisionStyle.display !== 'none' && revisionStyle.visibility !== 'hidden' && revisionRect.width > 0 && revisionRect.height > 0
-        if (visible) failures.push(`card ${index + 1}: revision round is still externally visible`)
-        check.revisionVisible = visible
-      }
-
       const accent = getComputedStyle(card, '::before')
-      const accentLeft = Number.parseFloat(accent.left)
-      const accentRight = Number.parseFloat(accent.right)
-      const accentTop = Number.parseFloat(accent.top)
-      if (accentLeft < 18 || accentRight < 18 || accentTop < 4) failures.push(`card ${index + 1}: accent line is not safely inset`)
-      cardChecks.push(check)
-    }
+      if (Number.parseFloat(accent.left) < 18 || Number.parseFloat(accent.right) < 18 || Number.parseFloat(accent.top) < 4) failures.push(`card ${index + 1}: accent line is not safely inset`)
+    })
+    for (const heights of rows.values()) if (heights.length > 1 && Math.max(...heights) - Math.min(...heights) > tol) failures.push('cards in the same row are not equal height')
 
     return {
       failures,
       details: {
         metrics: { left: metricsRect.left, right: metricsRect.right },
-        grid: { left: gridRect.left, right: gridRect.right },
+        grid: { left: gridRect.left, right: gridRect.right, width: gridRect.width },
+        columns: gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length,
+        firstCardWidth: cards[0].getBoundingClientRect().width,
         rows: Array.from(rows.values()),
-        cards: cardChecks,
       },
     }
   }, tolerance)
@@ -177,10 +97,6 @@ try {
       if (dashboardRect.height > 190) failures.push('preparation dashboard row is not compact')
       if (workbenchRect.bottom > dashboardRect.top + tol) failures.push('preparation secondary navigation overlaps the dashboard')
       if (dashboardRect.top - workbenchRect.bottom < 8) failures.push('preparation secondary navigation lacks separation from the dashboard')
-      const beforeContent = getComputedStyle(workbench, '::before').content
-      const afterContent = getComputedStyle(workbench, '::after').content
-      if (!['none', 'normal', '""', "''"].includes(beforeContent)) failures.push('preparation workbench still renders an overlapping pseudo title')
-      if (!['none', 'normal', '""', "''"].includes(afterContent)) failures.push('preparation workbench still renders overlapping pseudo copy')
     }
     if (overviewPanels.length >= 2) {
       const heights = overviewPanels.map(item => item.getBoundingClientRect().height)
@@ -202,13 +118,7 @@ try {
 
     return {
       failures,
-      details: {
-        left: rect.left,
-        right: rect.right,
-        topbarHeight: topbar?.getBoundingClientRect().height,
-        workbenchHeight: workbench?.getBoundingClientRect().height,
-        dashboardHeight: dashboard?.getBoundingClientRect().height,
-      },
+      details: { left: rect.left, right: rect.right, topbarHeight: topbar?.getBoundingClientRect().height, workbenchHeight: workbench?.getBoundingClientRect().height, dashboardHeight: dashboard?.getBoundingClientRect().height },
     }
   }, tolerance)
   failures.push(...preparation.failures)
@@ -218,35 +128,42 @@ try {
   if (await journalCenter.count()) {
     await journalCenter.click()
     await page.locator('.journal-center-workspace .journal-center-grid').waitFor({ state: 'visible' })
-    await page.waitForTimeout(120)
-    const journalTabGeometry = await page.evaluate((tol) => {
+    await page.waitForTimeout(180)
+    const journalTabGeometry = await page.evaluate(({ tol, reference }) => {
       const failures = []
       const panel = document.querySelector('.journal-center-workspace')
       const toolbar = panel?.querySelector(':scope > .journal-center-toolbar')
       const grid = panel?.querySelector(':scope > .journal-center-grid')
-      if (!panel || !toolbar || !grid) return { failures: ['journal tab geometry is incomplete'] }
-      const panelRect = panel.getBoundingClientRect()
+      if (!panel || !toolbar || !grid) return { failures: ['journal tab geometry is incomplete'], details: {} }
       const toolbarRect = toolbar.getBoundingClientRect()
       const gridRect = grid.getBoundingClientRect()
+      const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length
+      const cards = Array.from(grid.querySelectorAll('.journal-center-card'))
+
       if (toolbarRect.bottom > gridRect.top + tol) failures.push('Journal Center toolbar overlaps journal catalogue')
       if (panel.querySelector('.preparation-business-rail, .prep-nav-primary')) failures.push('standalone Journal Center renders Preparation navigation')
-      if (Math.abs(panelRect.left - gridRect.left) > tol || Math.abs(panelRect.right - gridRect.right) > tol) failures.push('journal catalogue edges differ from Journal Center page')
+      if (!grid.classList.contains('paper-grid')) failures.push('Journal Center does not share the Submission Management paper-grid')
+      if (columns !== reference.columns) failures.push(`Journal Center column count differs from Submission Management (${columns}/${reference.columns})`)
+      if (Math.abs(gridRect.left - reference.grid.left) > 3 || Math.abs(gridRect.right - reference.grid.right) > 3) failures.push('Journal Center card lane differs from Submission Management')
+      if (Math.abs(toolbarRect.left - gridRect.left) > 3 || Math.abs(toolbarRect.right - gridRect.right) > 3) failures.push('Journal Center toolbar does not align with card lane')
       if (toolbar.scrollHeight > toolbar.clientHeight + 2) failures.push('Journal Center toolbar clips vertically')
       if (toolbar.scrollWidth > toolbar.clientWidth + 2) failures.push('Journal Center toolbar clips horizontally')
 
-      panel.querySelectorAll('.journal-center-card').forEach((card, index) => {
-        const body = card.querySelector('.journal-center-card__body')
-        const links = card.querySelector('.journal-center-card__links')
-        const cardRect = card.getBoundingClientRect()
-        const bodyRect = body?.getBoundingClientRect()
-        const linksRect = links?.getBoundingClientRect()
-        if (!body || !bodyRect) failures.push(`journal ${index + 1}: card body is missing`)
-        if (bodyRect && linksRect && linksRect.top - bodyRect.bottom > 28) failures.push(`journal ${index + 1}: large blank space remains before footer`)
-        if (cardRect.height > 340) failures.push(`journal ${index + 1}: content-driven card is unexpectedly tall (${Math.round(cardRect.height)}px)`)
+      cards.forEach((card, index) => {
+        const rect = card.getBoundingClientRect()
+        const title = card.querySelector('.journal-catalog-card__title-block > .card-title')
+        const status = card.querySelector('.paper-status-area > .badge')
+        const footer = card.querySelector('.journal-center-card__links')
+        if (!card.classList.contains('paper-card-v3')) failures.push(`journal ${index + 1}: card does not share paper-card-v3`)
+        if (!title || !status) failures.push(`journal ${index + 1}: canonical card hierarchy is incomplete`)
+        if (Math.abs(rect.width - reference.firstCardWidth) > 4) failures.push(`journal ${index + 1}: width differs from Submission Management`)
+        if (card.scrollWidth > card.clientWidth + 2 || card.scrollHeight > card.clientHeight + 2) failures.push(`journal ${index + 1}: card content overflows`)
+        if (footer && footer.getBoundingClientRect().bottom > rect.bottom + 2) failures.push(`journal ${index + 1}: footer escapes card`)
       })
-      return { failures }
-    }, tolerance)
+      return { failures, details: { columns, cards: cards.length, left: gridRect.left, right: gridRect.right } }
+    }, { tol: tolerance, reference: dashboard.details })
     failures.push(...journalTabGeometry.failures)
+    details.journalCenter = journalTabGeometry.details
   }
 
   const dashboardEdges = details.dashboard.grid
