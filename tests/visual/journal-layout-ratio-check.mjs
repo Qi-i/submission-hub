@@ -13,6 +13,22 @@ const viewports = [
 ]
 const errorMessage = error => error instanceof Error ? error.message : String(error)
 
+async function submissionReference(page, ui) {
+  await page.goto(`${baseUrl}?view=dashboard&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+  await page.locator("html[data-visual-ready='true'] .paper-grid .paper-card-v3").first().waitFor({ state: 'visible', timeout: 45000 })
+  return page.evaluate(() => {
+    const grid = document.querySelector('.paper-grid')
+    const card = grid?.querySelector('.paper-card-v3')
+    if (!grid || !card) return null
+    return {
+      columns: getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length,
+      gridLeft: grid.getBoundingClientRect().left,
+      gridRight: grid.getBoundingClientRect().right,
+      cardWidth: card.getBoundingClientRect().width,
+    }
+  })
+}
+
 async function openPreparation(page, ui) {
   await page.goto(`${baseUrl}?view=preparation&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
   await page.locator(`html[data-ui='${ui}'][data-visual-ready='true'] .preparation-workspace:visible`).waitFor({ state: 'visible', timeout: 45000 })
@@ -31,6 +47,12 @@ async function inspect(ui, viewport) {
   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } })
   const label = `${ui}/${viewport.label}`
   try {
+    const reference = await submissionReference(page, ui)
+    if (!reference) {
+      failures.push(`${label}: Submission Management reference is missing`)
+      return
+    }
+
     await openPreparation(page, ui)
     const overview = await page.evaluate(() => {
       const root = document.querySelector('.preparation-workspace[data-section="overview"]')
@@ -83,53 +105,55 @@ async function inspect(ui, viewport) {
       const cards = grid ? Array.from(grid.querySelectorAll('.journal-center-card')) : []
       const gridRect = grid?.getBoundingClientRect()
       return {
-        gridAutoRows: grid ? getComputedStyle(grid).gridAutoRows : '',
+        isPaperGrid: !!grid?.classList.contains('paper-grid'),
+        columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+        gridLeft: gridRect?.left || 0,
+        gridRight: gridRect?.right || 0,
         gridHeight: gridRect?.height || 0,
         cards: cards.map((card, index) => {
           const rect = card.getBoundingClientRect()
-          const body = card.querySelector('.journal-center-card__body')
-          const bodyRect = body?.getBoundingClientRect()
-          const title = body?.querySelector('.journal-catalog-card__title-block > h3, h3')?.getBoundingClientRect()
-          const identity = body?.querySelector('.prep-journal-local-identity')?.getBoundingClientRect()
-          const publisher = body?.querySelector('.prep-journal-publisher')?.getBoundingClientRect()
-          const children = body ? Array.from(body.children).filter(element => {
-            const style = getComputedStyle(element)
-            const childRect = element.getBoundingClientRect()
-            return style.display !== 'none' && style.visibility !== 'hidden' && childRect.width > 0 && childRect.height > 0
-          }) : []
-          const contentBottom = children.length ? Math.max(...children.map(element => element.getBoundingClientRect().bottom)) : (bodyRect?.top || 0)
+          const title = card.querySelector('.journal-catalog-card__title-block > .card-title')?.getBoundingClientRect()
+          const identity = card.querySelector('.journal-catalog-card__title-block > .card-subtitle')?.getBoundingClientRect()
+          const publisher = card.querySelector('.journal-catalog-card__publisher-rail')?.getBoundingClientRect()
+          const footer = card.querySelector('.journal-catalog-card__footer')?.getBoundingClientRect()
           return {
             index,
+            isPaperCard: card.classList.contains('paper-card-v3'),
+            width: rect.width,
             height: rect.height,
             scrollWidth: card.scrollWidth,
             clientWidth: card.clientWidth,
-            blankBelowContent: bodyRect ? bodyRect.bottom - contentBottom : 0,
+            scrollHeight: card.scrollHeight,
+            clientHeight: card.clientHeight,
             titleBottom: title?.bottom ?? null,
             identityTop: identity?.top ?? null,
-            identityBottom: identity?.bottom ?? null,
-            identityLeft: identity?.left ?? null,
             identityRight: identity?.right ?? null,
-            publisherTop: publisher?.top ?? null,
-            bodyLeft: bodyRect?.left ?? null,
-            bodyRight: bodyRect?.right ?? null,
+            cardRight: rect.right,
+            publisherBottom: publisher?.bottom ?? null,
+            titleTop: title?.top ?? null,
+            footerBottom: footer?.bottom ?? null,
+            cardBottom: rect.bottom,
           }
         }),
       }
     })
 
+    if (!library.isPaperGrid) failures.push(`${label}: Journal Center is not using paper-grid`)
+    if (library.columns !== reference.columns) failures.push(`${label}: Journal Center columns diverge from Submission Management (${library.columns}/${reference.columns})`)
+    if (Math.abs(library.gridLeft - reference.gridLeft) > 3 || Math.abs(library.gridRight - reference.gridRight) > 3) failures.push(`${label}: Journal Center horizontal lane diverges from Submission Management`)
     if (!library.cards.length) failures.push(`${label}: Journal Center cards are missing`)
-    if (/\b1fr\b/.test(library.gridAutoRows)) failures.push(`${label}: Journal Center rows use viewport-filling 1fr tracks`)
-    const maxHeight = library.cards.length ? Math.max(...library.cards.map(card => card.height)) : 0
-    if (maxHeight > 460) failures.push(`${label}: Journal Center cards are excessively tall (${Math.round(maxHeight)}px)`)
     library.cards.forEach(card => {
+      if (!card.isPaperCard) failures.push(`${label}: journal ${card.index + 1} is not a paper-card-v3`)
+      if (Math.abs(card.width - reference.cardWidth) > 4) failures.push(`${label}: journal ${card.index + 1} width diverges from Submission Management`)
       if (card.scrollWidth > card.clientWidth + 2) failures.push(`${label}: journal ${card.index + 1} horizontally overflows`)
-      if (card.blankBelowContent > 28) failures.push(`${label}: journal ${card.index + 1} retains ${Math.round(card.blankBelowContent)}px empty body space`)
-      if (card.identityTop !== null && card.titleBottom !== null && card.identityTop < card.titleBottom - 2) failures.push(`${label}: journal ${card.index + 1} identity overlaps title`)
-      if (card.identityBottom !== null && card.publisherTop !== null && card.publisherTop < card.identityBottom - 2) failures.push(`${label}: journal ${card.index + 1} publisher overlaps identity`)
-      if (card.identityLeft !== null && card.bodyLeft !== null && card.identityLeft < card.bodyLeft - 2) failures.push(`${label}: journal ${card.index + 1} identity escapes left edge`)
-      if (card.identityRight !== null && card.bodyRight !== null && card.identityRight > card.bodyRight + 2) failures.push(`${label}: journal ${card.index + 1} identity exceeds body width`)
+      if (card.scrollHeight > card.clientHeight + 2) failures.push(`${label}: journal ${card.index + 1} vertically clips content`)
+      if (card.identityTop !== null && card.titleBottom !== null && card.identityTop < card.titleBottom - 2) failures.push(`${label}: journal ${card.index + 1} Chinese identity overlaps title`)
+      if (card.identityRight !== null && card.identityRight > card.cardRight + 2) failures.push(`${label}: journal ${card.index + 1} Chinese identity escapes card`)
+      if (card.publisherBottom !== null && card.titleTop !== null && card.publisherBottom > card.titleTop + 2) failures.push(`${label}: journal ${card.index + 1} publisher rail overlaps title`)
+      if (card.footerBottom !== null && card.footerBottom > card.cardBottom + 2) failures.push(`${label}: journal ${card.index + 1} footer escapes card`)
     })
-    details.push({ label, overview, library })
+
+    details.push({ label, reference, overview, library })
     if (viewport.label === 'ultrawide') await page.screenshot({ path: `visual-review/${ui}-journal-library-ultrawide.png`, fullPage: false })
   } catch (error) {
     failures.push(`${label}: ${errorMessage(error)}`)
