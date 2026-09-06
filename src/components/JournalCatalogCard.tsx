@@ -41,7 +41,7 @@ function publisherMark(value?: string | null) {
 }
 
 function RankBlocks({ journal, standalone = false }: { journal: JournalProfile; standalone?: boolean }) {
-  const ranks = journalPrimaryRankItems(journal as RankedJournalProfile, 7)
+  const ranks = journalPrimaryRankItems(journal as RankedJournalProfile, standalone ? 5 : 7)
   const className = `prep-journal-rank-blocks full${standalone ? ' paper-meta-row paper-rank-row journal-catalog-card__ranks' : ''}`
   if (!ranks.length) return <div className={`${className} empty`}>主要分区与收录未记录</div>
   return <div className={className}>
@@ -61,11 +61,14 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
   const subjectTags = Array.isArray(journal.subject_tags) ? journal.subject_tags : []
   const thirdPartyLinks = (Array.isArray(journal.third_party_links) ? journal.third_party_links : []).filter(link => safeUrl(link.url)).slice(0, thirdPartyLinkLimit)
   const metricCount = [journal.first_decision_days, journal.total_review_days, journal.acceptance_rate, journal.apc_amount].filter(value => value != null).length
+  const selectionLimit = standalone ? 1 : 2
+  const subjectLimit = standalone ? 1 : 2
+  const indexingLimit = standalone ? 3 : 4
 
   const facts = <div className={`prep-journal-facts journal-catalog-card__facts${standalone ? ' archive-chip-row' : ''}`}>
-    {selectionTags.slice(0, 2).map(item => <span key={`selection-${item}`} data-tone="selection">{item}</span>)}
-    {subjectTags.slice(0, 2).map(item => <span key={`subject-${item}`} data-tone="subject">{item}</span>)}
-    {indexing.slice(0, 4).map(item => <span key={item} data-tone="index">{item}</span>)}
+    {selectionTags.slice(0, selectionLimit).map(item => <span key={`selection-${item}`} data-tone="selection">{item}</span>)}
+    {subjectTags.slice(0, subjectLimit).map(item => <span key={`subject-${item}`} data-tone="subject">{item}</span>)}
+    {indexing.slice(0, indexingLimit).map(item => <span key={item} data-tone="index">{item}</span>)}
   </div>
 
   const metrics = metricCount > 0 && <div className="prep-journal-numbers prep-journal-metrics-compact journal-catalog-card__metrics">
