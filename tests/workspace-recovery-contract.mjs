@@ -21,14 +21,21 @@ const figureComposer = read('src/components/figure-composer/FigureComposer.tsx')
 const figureTypes = read('src/lib/figure-composer/types.ts')
 const figureInspector = read('src/components/figure-composer/FigurePanelInspector.tsx')
 
-assert(exists('src/styles/application-ui-contract.css'), 'Application must have one terminal cross-page UI contract')
+assert(exists('src/styles/application-ui-contract.css'), 'Application must have one cross-page UI contract')
+assert(exists('src/styles/submission-family-card-coherence.css'), 'Application must have a final Submission Management card-family coherence layer')
 const applicationUiContract = exists('src/styles/application-ui-contract.css') ? read('src/styles/application-ui-contract.css') : ''
-assert(appStyles.trim().endsWith("import './styles/application-ui-contract.css'"), 'Cross-page UI contract must be the final stylesheet import')
+const familyCoherence = exists('src/styles/submission-family-card-coherence.css') ? read('src/styles/submission-family-card-coherence.css') : ''
+assert(appStyles.includes("import './styles/application-ui-contract.css'"), 'Cross-page UI contract must remain loaded')
+assert(appStyles.trim().endsWith("import './styles/submission-family-card-coherence.css'"), 'Submission Management card-family coherence must be the final stylesheet import')
+assert(appStyles.indexOf("import './styles/application-ui-contract.css'") < appStyles.indexOf("import './styles/submission-family-card-coherence.css'"), 'Final card-family layer must load after the general application contract')
 for (const token of ['--app-font-sans', '--app-page-width', '--app-page-gutter', '--app-control-height', '--app-panel-radius', '--app-card-radius']) {
   assert(applicationUiContract.includes(token), `Cross-page UI contract is missing token ${token}`)
 }
 for (const token of ["html[data-ui='luminous']", "html[data-ui='luminous-x']", '.journal-center-workspace', '.preparation-workspace', '.stats-panel', '.paper-grid']) {
   assert(applicationUiContract.includes(token), `Cross-page UI contract is missing shared page rule ${token}`)
+}
+for (const token of ['journal-center-grid.paper-grid.journal-catalog-grid', 'repeat(3', 'repeat(4', 'repeat(5', '.journal-match-candidate-grid', 'minmax(280px', '--journal-card-accent']) {
+  assert(familyCoherence.includes(token), `Final card-family coherence layer is missing ${token}`)
 }
 
 assert(exists('src/components/JournalCenterWorkspace.tsx'), 'Journal Center must have its own workspace component')
