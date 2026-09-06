@@ -37,6 +37,79 @@
     box-sizing: border-box !important;
   }
 
+  /* release-polish uses max-content for the Submission Management desktop header.
+   * Neutralize that only inside the mobile Journal Center; otherwise the status/OA
+   * pair can make every one-column catalogue card wider than the viewport. */
+  html[data-ui] body .journal-center-workspace .journal-center-card .paper-card-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: max-content max-content !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+
+  html[data-ui] body .journal-center-workspace .journal-center-card .paper-status-area {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 5px !important;
+  }
+
+  html[data-ui] body .journal-center-workspace .journal-center-card .paper-status-area > .badge {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 30px !important;
+    max-height: none !important;
+    padding: 6px 9px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html[data-ui] body .journal-center-workspace .journal-center-card .paper-substatus {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html[data-ui] body .journal-center-workspace .journal-center-card .paper-journal-slot {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+  }
+
+  html[data-ui] body .journal-center-workspace .journal-center-card .journal-pill,
+  html[data-ui] body .journal-center-workspace .journal-center-card .journal-catalog-card__oa {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+  }
+
+  html[data-ui] body .journal-center-workspace .journal-center-card .journal-pill-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
   html[data-ui] body .journal-center-workspace .journal-center-card .journal-catalog-card__publisher-rail {
     display: flex !important;
     flex-wrap: wrap !important;
