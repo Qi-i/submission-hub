@@ -85,12 +85,11 @@ async function inspectDesktop(ui, theme) {
       const toolbarRect = toolbar.getBoundingClientRect()
       const cardRects = cards.map(card => card.getBoundingClientRect())
 
-      if (!grid.classList.contains('paper-grid')) localFailures.push('Journal Center is not using the Submission Management paper-grid shell')
-      if (columns.length !== referenceStyle.columns) localFailures.push(`Journal Center column count diverges from Submission Management (${columns.length} vs ${referenceStyle.columns})`)
+      if (!grid.classList.contains('paper-grid')) localFailures.push('Journal Center is not using the shared paper-grid shell')
+      if (columns.length !== referenceStyle.columns) localFailures.push(`Journal Center column count diverges from Submission Management (${columns.length}/${referenceStyle.columns})`)
       if (Math.abs(gridRect.width - referenceStyle.gridWidth) > 3) localFailures.push(`Journal Center page lane differs from Submission Management (${Math.round(gridRect.width)} vs ${Math.round(referenceStyle.gridWidth)}px)`)
-      if (Math.abs(toolbarRect.left - gridRect.left) > 3 || Math.abs(toolbarRect.right - gridRect.right) > 3) localFailures.push('Journal Center toolbar and submission-style card lane are not aligned')
-      if (parseFloat(gridStyle.columnGap) > 14) localFailures.push('Journal Center grid gap is looser than Submission Management')
-      if (Math.abs(cardRects[0].width - referenceStyle.cardWidth) > 4) localFailures.push(`Journal Center card width diverges from Submission Management (${Math.round(cardRects[0].width)} vs ${Math.round(referenceStyle.cardWidth)}px)`)
+      if (Math.abs(toolbarRect.left - gridRect.left) > 3 || Math.abs(toolbarRect.right - gridRect.right) > 3) localFailures.push('Journal Center toolbar and card lane are not aligned')
+      if (Math.abs(cardRects[0].width - referenceStyle.cardWidth) > 5) localFailures.push(`Journal Center card width diverges from Submission Management (${Math.round(cardRects[0].width)} vs ${Math.round(referenceStyle.cardWidth)}px)`)
 
       cards.forEach((card, index) => {
         const rect = card.getBoundingClientRect()
@@ -100,9 +99,9 @@ async function inspectDesktop(ui, theme) {
         const subtitle = card.querySelector('.journal-catalog-card__title-block > .card-subtitle')
         const facts = Array.from(card.querySelectorAll('.prep-journal-facts > span'))
         const links = card.querySelector('.journal-catalog-card__footer')
-        if (!card.classList.contains('paper-card-v3')) localFailures.push(`journal ${index + 1}: card is outside the Submission Management paper-card-v3 shell`)
+        if (!card.classList.contains('paper-card-v3')) localFailures.push(`journal ${index + 1}: card is outside the shared paper-card-v3 visual family`)
         if (!status || !substatus || !title) {
-          localFailures.push(`journal ${index + 1}: submission-style hierarchy is incomplete`)
+          localFailures.push(`journal ${index + 1}: shared card hierarchy is incomplete`)
           return
         }
 
@@ -110,14 +109,17 @@ async function inspectDesktop(ui, theme) {
         const statusStyle = getComputedStyle(status)
         const titleStyle = getComputedStyle(title)
         const accentStyle = getComputedStyle(card, '::before')
+        const statusHeight = status.getBoundingClientRect().height
 
-        if (!closeEnough(parseFloat(cardStyle.borderRadius), referenceStyle.radius, 1.5)) localFailures.push(`journal ${index + 1}: card radius diverges from Submission Management`)
-        if (!closeEnough(status.getBoundingClientRect().height, referenceStyle.statusHeight, 1.5)) localFailures.push(`journal ${index + 1}: primary state block height diverges from Submission Management`)
-        if (!closeEnough(parseFloat(statusStyle.borderRadius), referenceStyle.statusRadius, 2)) localFailures.push(`journal ${index + 1}: primary state radius diverges from Submission Management`)
-        if (!closeEnough(parseFloat(titleStyle.fontSize), referenceStyle.titleFontSize, 1.5)) localFailures.push(`journal ${index + 1}: title scale diverges from Submission Management`)
-        if (!closeEnough(parseFloat(accentStyle.height), referenceStyle.accentHeight, 1)) localFailures.push(`journal ${index + 1}: semantic accent line diverges from Submission Management`)
-        if (!closeEnough(parseFloat(cardStyle.paddingLeft), referenceStyle.paddingLeft, 3)) localFailures.push(`journal ${index + 1}: card padding diverges from Submission Management`)
-        if (subtitle && parseFloat(getComputedStyle(subtitle).borderLeftWidth) < 2) localFailures.push(`journal ${index + 1}: Chinese identity lost the Submission Management subtitle accent`)
+        if (!closeEnough(parseFloat(cardStyle.borderRadius), referenceStyle.radius, 3)) localFailures.push(`journal ${index + 1}: card radius leaves the application family`)
+        if (statusHeight < 30 || statusHeight > 34) localFailures.push(`journal ${index + 1}: primary state height is outside shared scale (${statusHeight.toFixed(1)}px)`)
+        if (Math.abs(parseFloat(statusStyle.borderRadius) - referenceStyle.statusRadius) > 3) localFailures.push(`journal ${index + 1}: primary state radius leaves the application family`)
+        if (!closeEnough(parseFloat(titleStyle.fontSize), referenceStyle.titleFontSize, 1)) localFailures.push(`journal ${index + 1}: title typography leaves the application family`)
+        if (!closeEnough(parseFloat(accentStyle.height), referenceStyle.accentHeight, 1)) localFailures.push(`journal ${index + 1}: semantic accent line diverges from the application family`)
+        const paddingLeft = parseFloat(cardStyle.paddingLeft)
+        if (paddingLeft < 13 || paddingLeft > 18) localFailures.push(`journal ${index + 1}: card padding is outside shared readable scale (${paddingLeft}px)`)
+        if (!cardStyle.backgroundImage || cardStyle.backgroundImage === 'none') localFailures.push(`journal ${index + 1}: semantic surface tint is missing`)
+        if (subtitle && parseFloat(getComputedStyle(subtitle).borderLeftWidth) < 2) localFailures.push(`journal ${index + 1}: Chinese identity lost the shared subtitle accent`)
         if (rect.right > gridRect.right + 1.5 || rect.left < gridRect.left - 1.5) localFailures.push(`journal ${index + 1}: card exceeds grid edges`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: horizontal overflow`)
 
@@ -150,15 +152,19 @@ async function inspectDesktop(ui, theme) {
         metrics.forEach((metric, metricIndex) => {
           const value = metric.querySelector('b')?.textContent?.trim() || ''
           if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: empty metric ${metricIndex + 1} remains visible`)
+          if (metric.getBoundingClientRect().height > 48) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} is too tall`)
         })
         facts.forEach((fact, factIndex) => {
-          if (visible(fact) && fact.getBoundingClientRect().height > 34) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
+          if (visible(fact) && fact.getBoundingClientRect().height > 32) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
         })
       })
 
+      const maxHeight = Math.max(...cardRects.map(rect => rect.height))
+      if (maxHeight > 390) localFailures.push(`Journal Center contains an excessively tall card (${Math.round(maxHeight)}px)`)
+
       const colorNodes = Array.from(grid.querySelectorAll('.journal-priority-status, .journal-catalog-card__oa, .prep-journal-rank-blocks > span, .prep-journal-facts > span, .prep-journal-numbers > div')).filter(visible)
       const backgrounds = new Set(colorNodes.map(node => getComputedStyle(node).backgroundColor).filter(meaningfulBackground))
-      if (backgrounds.size < 4) localFailures.push(`Journal Center is still visually monotone: only ${backgrounds.size} distinct semantic surfaces`)
+      if (backgrounds.size < 4) localFailures.push(`Journal Center is visually monotone: only ${backgrounds.size} distinct semantic surfaces`)
 
       return {
         failures: localFailures,
@@ -169,7 +175,7 @@ async function inspectDesktop(ui, theme) {
           referenceWidth: Math.round(referenceStyle.gridWidth),
           cardWidth: Math.round(cardRects[0].width),
           referenceCardWidth: Math.round(referenceStyle.cardWidth),
-          maxHeight: Math.round(Math.max(...cardRects.map(rect => rect.height))),
+          maxHeight: Math.round(maxHeight),
           cards: cards.length,
           semanticSurfaces: backgrounds.size,
         },

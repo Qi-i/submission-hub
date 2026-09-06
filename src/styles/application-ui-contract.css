@@ -1,10 +1,10 @@
 /*
  * TERMINAL APPLICATION UI CONTRACT
  * --------------------------------
- * This file is intentionally imported last. Submission Management is the visual reference
- * for every first-class workspace. Earlier historical styles may define business-specific
- * details, but they must not redefine the application's page lane, typography, control scale,
- * panel geometry or material language.
+ * This file is intentionally imported last. Submission Management anchors the visual
+ * language, not every page's information density. Earlier historical styles may define
+ * business-specific layout, but they must not redefine the application's typography,
+ * control scale, semantic colour vocabulary, page lane or material language.
  */
 
 :root {
@@ -22,6 +22,13 @@
   --app-card-title-size: 14.5px;
   --app-body-size: 11px;
   --app-caption-size: 9.5px;
+
+  /* Purpose-specific density tokens: one family, different information loads. */
+  --app-catalog-gap: 10px;
+  --app-catalog-card-padding-x: 13px;
+  --app-catalog-card-padding-top: 12px;
+  --app-catalog-card-padding-bottom: 9px;
+  --app-workbench-gap: 10px;
 
   /* Keep old tokens as aliases while legacy layers are gradually retired. */
   --release-page-width: var(--app-page-width);
@@ -217,7 +224,8 @@ html[data-ui] body :is(
 }
 
 /* --------------------------------------------------------------------------
- * One material and radius language. Business meaning may change colour, not geometry.
+ * One material language. Geometry may become denser by business purpose, while
+ * surfaces, border treatment, shadows and semantic colours remain recognisable.
  * -------------------------------------------------------------------------- */
 html[data-ui] body :is(
   .journal-center-toolbar,
@@ -292,7 +300,7 @@ html[data-ui] body :is(
 }
 
 /* --------------------------------------------------------------------------
- * Spacing rhythm shared by page-local grids. Do not rewrite their column semantics.
+ * Spacing rhythm shared by page-local grids. Do not rewrite their business semantics.
  * -------------------------------------------------------------------------- */
 html[data-ui] body :is(
   .paper-grid,
@@ -308,7 +316,7 @@ html[data-ui] body :is(
   column-gap: var(--app-panel-gap) !important;
 }
 
-/* Submission Management cards remain the reference for all card internals. */
+/* Submission Management keeps the reference accent geometry. */
 html[data-ui] body .paper-grid .paper-card-v3::before {
   top: 6px !important;
   left: 20px !important;
@@ -318,13 +326,461 @@ html[data-ui] body .paper-grid .paper-card-v3::before {
   opacity: .68 !important;
 }
 
-/* Mobile uses the same scale with a smaller page gutter, not a separate design. */
+/* --------------------------------------------------------------------------
+ * PURPOSE-SPECIFIC DENSITY: Journal Center = compact catalogue.
+ * It shares typography/material/semantic colours with Submission Management, but it
+ * deliberately carries more cards per row and removes workflow-sized vertical spacing.
+ * -------------------------------------------------------------------------- */
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+  display: grid !important;
+  grid-auto-flow: row !important;
+  grid-auto-rows: max-content !important;
+  align-items: start !important;
+  align-content: start !important;
+  gap: var(--app-catalog-gap) !important;
+  row-gap: var(--app-catalog-gap) !important;
+  column-gap: var(--app-catalog-gap) !important;
+}
+
+@media (min-width: 1100px) and (max-width: 1599px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1600px) and (max-width: 2199px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 2200px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1099px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3 {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  align-content: stretch !important;
+  gap: 5px !important;
+  row-gap: 5px !important;
+  column-gap: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  align-self: start !important;
+  padding: var(--app-catalog-card-padding-top) var(--app-catalog-card-padding-x) var(--app-catalog-card-padding-bottom) !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .paper-card-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-rows: max-content !important;
+  align-items: start !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .paper-status-area {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 4px 6px !important;
+  min-width: 0 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .paper-status-area > :is(.badge, .paper-substatus) {
+  grid-column: auto !important;
+  grid-row: auto !important;
+  justify-self: auto !important;
+  align-self: center !important;
+  width: auto !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-priority-status {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  border-radius: 9px !important;
+  font-size: 10.5px !important;
+  line-height: 1 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__substatus {
+  min-height: 20px !important;
+  font-size: 9.8px !important;
+  line-height: 1.2 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .paper-journal-slot {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  align-self: start !important;
+  justify-self: end !important;
+  width: auto !important;
+  max-width: 118px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 7px !important;
+  border-radius: 9px !important;
+  font-size: 9.8px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .journal-catalog-card__publisher-rail {
+  display: flex !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  align-self: stretch !important;
+  justify-self: auto !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 20px !important;
+  gap: 5px !important;
+  padding: 0 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .publisher-mark {
+  min-height: 21px !important;
+  font-size: 9.8px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > :is(
+  .title-block,
+  .archive-chip-row,
+  .paper-rank-row,
+  .paper-card-footer
+) {
+  grid-column: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__title-block > .card-title {
+  font-size: 13.5px !important;
+  line-height: 1.34 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__identity {
+  margin-top: 2px !important;
+  padding-left: 7px !important;
+  font-size: 10.2px !important;
+  line-height: 1.3 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) {
+  gap: 4px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) > span {
+  min-height: 22px !important;
+  padding: 3px 6px !important;
+  border-radius: 7px !important;
+  font-size: 9.5px !important;
+  line-height: 1.1 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: stretch !important;
+  gap: 4px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics > div {
+  flex: 1 1 58px !important;
+  min-width: 54px !important;
+  min-height: 36px !important;
+  height: auto !important;
+  padding: 4px 6px !important;
+  border-radius: 8px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics b {
+  font-size: 10.5px !important;
+  line-height: 1.05 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics small,
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .prep-journal-apc-cny {
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .journal-catalog-card__footer {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  min-height: 24px !important;
+  gap: 5px 9px !important;
+  padding: 3px 0 0 !important;
+  margin: 0 !important;
+  font-size: 9.5px !important;
+}
+
+/* --------------------------------------------------------------------------
+ * PURPOSE-SPECIFIC DENSITY: Preparation = compact workbench, not a mini-site.
+ * Primary content is kept compact but its hierarchy, type and panels use the same family.
+ * -------------------------------------------------------------------------- */
+html[data-ui] body .preparation-workspace .prep-primary-section-head {
+  border-radius: var(--app-panel-radius) !important;
+}
+
+html[data-ui] body .preparation-workspace .prep-primary-section-head h2 {
+  color: var(--ui-title, var(--prep-text)) !important;
+  font-family: var(--app-font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 740 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -.015em !important;
+}
+
+html[data-ui] body .preparation-workspace .prep-primary-section-head p {
+  color: var(--ui-muted, var(--prep-text-muted)) !important;
+  font-size: 10.5px !important;
+  line-height: 1.4 !important;
+}
+
+html[data-ui] body .preparation-workspace :is(
+  .prep-dashboard-head h2,
+  .prep-panel h2,
+  .prep-panel h3,
+  .prep-productivity-card-head b
+) {
+  color: var(--ui-title, var(--prep-text)) !important;
+  font-family: var(--app-font-sans) !important;
+  font-weight: 700 !important;
+}
+
+html[data-ui] body .preparation-workspace :is(
+  .prep-dashboard-head > div > span,
+  .prep-productivity-card-head small,
+  .prep-score-main small
+) {
+  font-size: 9.8px !important;
+  line-height: 1.3 !important;
+}
+
+/* Journal Match retains its manuscript-first layout, while using the same journal vocabulary. */
+html[data-ui] body .journal-match-workspace {
+  gap: var(--app-workbench-gap) !important;
+}
+
+html[data-ui] body .journal-match-layout {
+  gap: var(--app-workbench-gap) !important;
+}
+
+html[data-ui] body :is(.journal-match-drafts, .journal-match-current, .journal-match-candidates) {
+  border: 1px solid var(--ui-border, var(--prep-border)) !important;
+  border-radius: var(--app-panel-radius) !important;
+  background: var(--ui-glass, var(--prep-surface)) !important;
+  box-shadow: var(--ui-shadow, 0 10px 28px rgba(15, 23, 42, .055)) !important;
+}
+
+html[data-ui] body .journal-match-drafts {
+  padding: 10px !important;
+  gap: 6px !important;
+}
+
+html[data-ui] body .journal-match-drafts > button {
+  min-height: 54px !important;
+  padding: 8px 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--ui-glass, var(--prep-surface-elevated)) 96%, var(--prep-blue) 4%) !important;
+}
+
+html[data-ui] body .journal-match-drafts > button.active {
+  border-color: color-mix(in srgb, var(--prep-blue) 34%, var(--ui-border, var(--prep-border))) !important;
+  background: color-mix(in srgb, var(--prep-blue) 8%, var(--ui-glass, var(--prep-surface-elevated))) !important;
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--prep-blue) 78%, transparent) !important;
+}
+
+html[data-ui] body .journal-match-drafts > button strong {
+  font-size: 11.2px !important;
+  font-weight: 680 !important;
+  line-height: 1.25 !important;
+}
+
+html[data-ui] body .journal-match-drafts > button span {
+  font-size: 9.8px !important;
+  line-height: 1.25 !important;
+}
+
+html[data-ui] body :is(.journal-match-current, .journal-match-candidates) {
+  padding: 13px !important;
+}
+
+html[data-ui] body .journal-match-section-title {
+  margin-bottom: 8px !important;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+}
+
+html[data-ui] body .journal-match-current h3 {
+  margin: 0 0 9px !important;
+  color: var(--ui-title, var(--prep-text)) !important;
+  font-size: 13.5px !important;
+  font-weight: 680 !important;
+  line-height: 1.35 !important;
+}
+
+html[data-ui] body .journal-match-current__journal {
+  padding: 9px 10px !important;
+  border: 1px solid color-mix(in srgb, var(--prep-blue) 18%, var(--ui-border, var(--prep-border))) !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--prep-blue) 6%, var(--ui-glass, var(--prep-surface-soft))) !important;
+}
+
+html[data-ui] body .journal-match-current__journal strong {
+  color: var(--ui-title, var(--prep-text)) !important;
+  font-size: 11.2px !important;
+  font-weight: 680 !important;
+}
+
+html[data-ui] body .journal-match-current__journal :is(span, small) {
+  font-size: 9.8px !important;
+  line-height: 1.3 !important;
+}
+
+html[data-ui] body .journal-match-candidate-grid {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  gap: 8px !important;
+}
+
+html[data-ui] body .journal-match-candidate {
+  position: relative !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  padding: 10px !important;
+  border: 1px solid var(--ui-border, var(--prep-border)) !important;
+  border-radius: 12px !important;
+  background: var(--ui-glass, var(--prep-surface-elevated)) !important;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, .035) !important;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease !important;
+}
+
+html[data-ui] body .journal-match-candidate::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2f9fe8, #596be9 58%, #7b4ae3);
+  opacity: .58;
+}
+
+html[data-ui] body .journal-match-candidate:hover {
+  transform: translateY(-1px) !important;
+  border-color: color-mix(in srgb, var(--prep-blue) 28%, var(--ui-border, var(--prep-border))) !important;
+  box-shadow: var(--ui-shadow-hover, 0 12px 28px rgba(15, 23, 42, .09)) !important;
+}
+
+html[data-ui] body .journal-match-candidate__head {
+  margin-top: 3px !important;
+  gap: 6px !important;
+}
+
+html[data-ui] body .journal-match-candidate__head strong {
+  color: var(--ui-title, var(--prep-text)) !important;
+  font-size: 12px !important;
+  font-weight: 690 !important;
+  line-height: 1.35 !important;
+}
+
+html[data-ui] body .journal-match-candidate__identity {
+  margin: 5px 0 !important;
+  padding-left: 7px !important;
+  border-left: 2px solid rgba(14, 165, 233, .58) !important;
+  color: #087a94 !important;
+  font-size: 10.2px !important;
+  font-weight: 620 !important;
+  line-height: 1.3 !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-match-candidate__identity {
+  color: #67c8dc !important;
+}
+
+html[data-ui] body .journal-match-candidate__ranks {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+}
+
+html[data-ui] body .journal-match-candidate__ranks > span {
+  min-height: 21px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 3px 6px !important;
+  border: 1px solid transparent !important;
+  border-radius: 7px !important;
+  font-size: 9.5px !important;
+  font-weight: 670 !important;
+  line-height: 1.1 !important;
+}
+
+html[data-ui] body .journal-match-candidate__ranks [data-tone='xinkey'] { color: #6d28d9 !important; border-color: rgba(124,58,237,.25) !important; background: rgba(237,233,254,.92) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='cas'] { color: #0e7490 !important; border-color: rgba(8,145,178,.24) !important; background: rgba(207,250,254,.88) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='jcr'] { color: #1d4ed8 !important; border-color: rgba(37,99,235,.24) !important; background: rgba(219,234,254,.92) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='if'] { color: #047857 !important; border-color: rgba(5,150,105,.24) !important; background: rgba(209,250,229,.92) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='ei'] { color: #b45309 !important; border-color: rgba(217,119,6,.26) !important; background: rgba(254,243,199,.94) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='pku'] { color: #b91c1c !important; border-color: rgba(220,38,38,.24) !important; background: rgba(254,226,226,.92) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='cscd'] { color: #0e7490 !important; border-color: rgba(6,182,212,.24) !important; background: rgba(207,250,254,.88) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='tech'] { color: #c2410c !important; border-color: rgba(234,88,12,.24) !important; background: rgba(255,237,213,.92) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='cssci'] { color: #7e22ce !important; border-color: rgba(147,51,234,.24) !important; background: rgba(243,232,255,.92) !important; }
+html[data-ui] body .journal-match-candidate__ranks [data-tone='other'] { color: #475569 !important; border-color: rgba(100,116,139,.22) !important; background: rgba(241,245,249,.92) !important; }
+
+html[data-theme='dark'][data-ui] body .journal-match-candidate__ranks > span {
+  filter: saturate(.82) brightness(.76);
+}
+
+html[data-ui] body .journal-match-candidate__foot {
+  margin-top: 7px !important;
+  padding-top: 6px !important;
+  border-top: 1px solid color-mix(in srgb, var(--ui-border, var(--prep-border)) 76%, transparent) !important;
+  color: var(--ui-muted, var(--prep-text-muted)) !important;
+  font-size: 9.8px !important;
+  line-height: 1.25 !important;
+}
+
+/* Analytics/Admin use the same chrome but keep their own, more relaxed reading density. */
+html[data-ui] body :is(.stats-panel, .stats-bar, .admin-panel, .admin-page) {
+  font-family: var(--app-font-sans) !important;
+}
+
+html[data-ui] body :is(.stats-summary-card, .process-insight-card, .insight-card, .chart-card, .distribution-panel, .admin-card, .admin-row) {
+  border-color: var(--ui-border, var(--border-light)) !important;
+}
+
+/* Mobile uses the same visual family with a smaller page gutter; catalogue returns to one column. */
 @media (max-width: 720px) {
   :root {
     --app-page-gutter: 9px;
     --app-page-gap: 9px;
     --app-panel-gap: 9px;
     --app-page-title-size: 19px;
+    --app-catalog-gap: 8px;
   }
 
   html[data-ui='luminous'] body .app-layout > :is(
@@ -346,5 +802,21 @@ html[data-ui] body .paper-grid .paper-card-v3::before {
     .journal-center-grid
   ) {
     width: calc(100% - (var(--app-page-gutter) * 2)) !important;
+  }
+
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3 {
+    padding: 12px 12px 9px !important;
+  }
+
+  html[data-ui] body .journal-match-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-ui] body .journal-match-candidate-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }

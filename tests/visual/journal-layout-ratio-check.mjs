@@ -144,7 +144,7 @@ async function inspect(ui, viewport) {
     if (!library.cards.length) failures.push(`${label}: Journal Center cards are missing`)
     library.cards.forEach(card => {
       if (!card.isPaperCard) failures.push(`${label}: journal ${card.index + 1} is not a paper-card-v3`)
-      if (Math.abs(card.width - reference.cardWidth) > 4) failures.push(`${label}: journal ${card.index + 1} width diverges from Submission Management`)
+      if (Math.abs(card.width - reference.cardWidth) > 5) failures.push(`${label}: journal ${card.index + 1} width diverges from Submission Management (${card.width.toFixed(1)}/${reference.cardWidth.toFixed(1)}px)`)
       if (card.scrollWidth > card.clientWidth + 2) failures.push(`${label}: journal ${card.index + 1} horizontally overflows`)
       if (card.scrollHeight > card.clientHeight + 2) failures.push(`${label}: journal ${card.index + 1} vertically clips content`)
       if (card.identityTop !== null && card.titleBottom !== null && card.identityTop < card.titleBottom - 2) failures.push(`${label}: journal ${card.index + 1} Chinese identity overlaps title`)

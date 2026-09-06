@@ -16,11 +16,17 @@ const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 }
 
 function Candidate({ journal, onClick }: { journal: JournalProfile; onClick: () => void }) {
   const ranks = journalPrimaryRankItems(journal as RankedJournalProfile, 4)
-  return <button type="button" className="journal-match-candidate" onClick={onClick}>
-    <div className="journal-match-candidate__head"><span>{journal.is_favorite ? '★' : '☆'}</span><strong>{journal.name}</strong></div>
+  return <button
+    type="button"
+    className="journal-match-candidate"
+    data-priority={journal.priority}
+    data-favorite={journal.is_favorite ? 'true' : 'false'}
+    onClick={onClick}
+  >
+    <div className="journal-match-candidate__head"><span aria-hidden="true">{journal.is_favorite ? '★' : '☆'}</span><strong>{journal.name}</strong></div>
     {(journal.name_zh || journal.official_abbreviation) && <div className="journal-match-candidate__identity">{journal.name_zh || journal.official_abbreviation}</div>}
     <div className="journal-match-candidate__ranks">{ranks.map(item => <span key={`${item.key}-${item.value}`} data-tone={journalRankTone(item.key)}>{item.label} {item.value}</span>)}</div>
-    <div className="journal-match-candidate__foot"><span>{journalFitSummary(journal)}</span><ArrowRight size={12} /></div>
+    <div className="journal-match-candidate__foot"><span>{journalFitSummary(journal)}</span><ArrowRight size={13} /></div>
   </button>
 }
 

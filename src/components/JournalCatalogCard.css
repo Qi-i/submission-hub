@@ -1,6 +1,6 @@
-/* Journal Center is a first-class Submission Management surface.
- * The standalone catalogue deliberately reuses .paper-grid + .paper-card-v3;
- * this file only maps journal semantics onto that established shell. */
+/* Journal Center is a first-class application surface.
+ * It reuses the Submission Management visual language (type, surfaces, semantic accents)
+ * while keeping its own denser catalogue information architecture. */
 
 .journal-center-workspace {
   width: 100% !important;
@@ -33,16 +33,19 @@
   border-radius: 10px !important;
 }
 
-/* Do not define Journal Center columns here. .paper-grid owns exactly the same
- * responsive column contract as 投稿管理 in both Luminous and Luminous X. */
 .journal-center-grid.paper-grid.journal-catalog-grid {
   grid-auto-flow: row !important;
+  grid-auto-rows: max-content !important;
+  align-items: start !important;
   align-content: start !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card {
   --journal-card-accent: var(--paper-status-color, #64748b);
   min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  align-self: start !important;
   cursor: pointer;
   outline: none;
 }
@@ -51,12 +54,10 @@ html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card:focus
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--journal-card-accent) 16%, transparent), var(--ui-shadow-hover, 0 18px 46px rgba(15, 23, 42, .11)) !important;
 }
 
-/* Keep the canonical Submission Management accent geometry. */
 html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card::before {
   background: var(--journal-card-accent) !important;
 }
 
-/* Status = Submission Management primary/secondary state, now carrying journal priority/risk. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-priority-status {
   color: color-mix(in srgb, var(--journal-card-accent) 82%, #0f172a) !important;
   border-color: color-mix(in srgb, var(--journal-card-accent) 34%, transparent) !important;
@@ -78,7 +79,6 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   color: color-mix(in srgb, var(--journal-card-accent) 78%, #334155) !important;
 }
 
-/* OA occupies the same top-right journal-pill slot as 投稿管理, but is semantically coloured. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa {
   font-weight: 760 !important;
 }
@@ -106,7 +106,6 @@ html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-
   filter: saturate(.9) brightness(.82);
 }
 
-/* Publisher is the same second-row action rail used by 投稿管理. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__publisher-rail {
   min-width: 0 !important;
   overflow: hidden !important;
@@ -131,7 +130,6 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   background: rgba(224, 242, 254, .74) !important;
 }
 
-/* Title hierarchy is literally 投稿管理: card-title + one accented card-subtitle. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__title-block {
   min-width: 0 !important;
 }
@@ -151,8 +149,6 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   color: inherit !important;
 }
 
-/* Rank chips regain their actual category colours. These are not decorative random colours:
- * each hue is stable for one ranking/index family throughout the catalogue. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__ranks,
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__facts,
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics {
@@ -166,20 +162,20 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 4px !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) > span {
-  min-height: 25px !important;
+  min-height: 22px !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  padding: 4px 8px !important;
+  gap: 3px !important;
+  padding: 3px 6px !important;
   border: 1px solid transparent !important;
   border-radius: 7px !important;
-  font-size: 9.8px !important;
+  font-size: 9.5px !important;
   font-weight: 680 !important;
-  line-height: 1.15 !important;
+  line-height: 1.1 !important;
   white-space: nowrap !important;
 }
 
@@ -205,25 +201,26 @@ html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-
   filter: saturate(.82) brightness(.78);
 }
 
-/* Public metrics become a compact coloured metadata rail rather than gray filler. */
+/* Catalogue metrics stay on a single compact rail whenever width allows. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
   grid-column: 1 / -1 !important;
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: stretch !important;
-  gap: 6px !important;
+  gap: 4px !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
-  flex: 1 1 90px !important;
-  min-width: 78px !important;
-  min-height: 46px !important;
+  flex: 1 1 58px !important;
+  min-width: 54px !important;
+  min-height: 36px !important;
+  height: auto !important;
   display: grid !important;
   align-content: center !important;
-  gap: 2px !important;
-  padding: 7px 9px !important;
+  gap: 1px !important;
+  padding: 4px 6px !important;
   border: 1px solid transparent !important;
-  border-radius: 9px !important;
+  border-radius: 8px !important;
   text-align: left !important;
 }
 
@@ -234,33 +231,33 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics b {
   color: currentColor !important;
-  font-size: 12px !important;
+  font-size: 10.5px !important;
   font-weight: 780 !important;
-  line-height: 1.08 !important;
+  line-height: 1.05 !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics small {
   color: currentColor !important;
-  opacity: .72 !important;
-  font-size: 8.8px !important;
+  opacity: .76 !important;
+  font-size: 9px !important;
   font-weight: 620 !important;
-  line-height: 1.15 !important;
+  line-height: 1.1 !important;
 }
 
 html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
   filter: saturate(.8) brightness(.72);
 }
 
-/* Footer is the same terminal row as 投稿管理, with journal actions inside it. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__footer {
   grid-column: 1 / -1 !important;
   width: 100% !important;
-  min-height: 30px !important;
+  min-height: 24px !important;
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 5px !important;
+  gap: 4px 7px !important;
+  padding-top: 3px !important;
   border-top: 1px solid rgba(100, 116, 139, .11) !important;
 }
 
@@ -269,16 +266,16 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__footer > a {
-  min-height: 24px !important;
+  min-height: 22px !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  padding: 0 7px !important;
+  gap: 3px !important;
+  padding: 0 6px !important;
   border: 1px solid rgba(100, 116, 139, .18) !important;
   border-radius: 7px !important;
   color: var(--readable-secondary, var(--ui-body, #475569)) !important;
   background: rgba(248, 250, 252, .68) !important;
-  font-size: 9px !important;
+  font-size: 9.2px !important;
   font-weight: 650 !important;
   line-height: 1 !important;
   text-decoration: none !important;
@@ -308,7 +305,6 @@ html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid .journal-
   overflow-wrap: anywhere;
 }
 
-/* Luminous X: same status bar and full content lane as 投稿管理. */
 html[data-ui='luminous-x'] .journal-center-workspace > .lx-status-bar {
   width: 100% !important;
   max-width: none !important;

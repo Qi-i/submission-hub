@@ -135,6 +135,61 @@
   gap: var(--prep-gap-md) !important;
 }
 
+/* Preflight is a diagnostic workspace, not a row of anonymous white boxes. */
+.prep-check-card {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: 14px 15px 13px !important;
+  border: 1px solid var(--prep-border) !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--prep-blue) 3%, var(--prep-surface)), color-mix(in srgb, var(--prep-violet) 2%, var(--prep-surface))) !important;
+}
+.prep-check-card::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--prep-cyan), var(--prep-blue) 56%, var(--prep-violet));
+  opacity: .62;
+}
+.prep-check-card h3 {
+  min-height: 2.7em;
+  margin: 5px 0 8px !important;
+  color: var(--prep-text) !important;
+  font-size: 12.4px !important;
+  font-weight: 720 !important;
+  line-height: 1.35 !important;
+}
+.prep-check-card > b {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  margin: 0 0 5px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--prep-violet) 22%, var(--prep-border));
+  border-radius: 9px;
+  color: color-mix(in srgb, var(--prep-violet) 82%, var(--prep-text));
+  background: color-mix(in srgb, var(--prep-violet) 8%, var(--prep-surface-elevated));
+  font-size: 16px !important;
+  font-weight: 780 !important;
+  line-height: 1 !important;
+}
+.prep-check-card p {
+  margin: 4px 0 !important;
+  color: var(--prep-text-muted) !important;
+  font-size: 10.2px !important;
+  line-height: 1.35 !important;
+}
+.prep-check-card .btn {
+  margin-top: 8px;
+  min-height: 31px;
+  border-radius: 9px !important;
+}
+
 .preparation-workspace[data-section='figures'] {
   gap: 0;
 }

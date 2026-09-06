@@ -12,6 +12,7 @@ on:
       - 'tests/visual/responsive-workspace-density-check.mjs'
       - 'tests/visual/submission-grid-parity-check.mjs'
       - 'tests/visual/dark-theme-contract-check.mjs'
+      - 'tests/visual/application-density-family-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -23,6 +24,7 @@ on:
       - 'tests/visual/responsive-workspace-density-check.mjs'
       - 'tests/visual/submission-grid-parity-check.mjs'
       - 'tests/visual/dark-theme-contract-check.mjs'
+      - 'tests/visual/application-density-family-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -70,3 +72,5 @@ jobs:
         run: node tests/visual/submission-grid-parity-check.mjs
       - name: Verify dark theme blue-gray palette and readability
         run: node tests/visual/dark-theme-contract-check.mjs
+      - name: Verify shared visual language with purpose-specific density
+        run: node tests/visual/application-density-family-check.mjs

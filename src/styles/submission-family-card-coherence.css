@@ -1,0 +1,218 @@
+/*
+ * FINAL CARD-FAMILY COHERENCE
+ * ---------------------------
+ * Submission Management is the visual reference. Journal Center and Journal Match keep
+ * their own content, but no longer look like miniature catalogue thumbnails. Desktop
+ * card width, card surface hierarchy and semantic tinting follow the same family.
+ */
+
+/* Journal Center follows the same responsive column count as Submission Management. */
+@media (min-width: 1100px) and (max-width: 1599px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1600px) and (max-width: 2199px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 2200px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Keep Journal Center vertically efficient, but stop miniaturising its hierarchy. */
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3 {
+  gap: 7px !important;
+  row-gap: 7px !important;
+  padding: 15px 16px 12px !important;
+  border-color: color-mix(in srgb, var(--journal-card-accent) 24%, var(--ui-border, rgba(100, 116, 139, .18))) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--journal-card-accent) 7%, rgba(255,255,255,.97)),
+      color-mix(in srgb, var(--journal-card-accent) 3%, rgba(255,255,255,.94)) 58%,
+      rgba(255,255,255,.92)) !important;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--journal-card-accent) 7%, rgba(15, 23, 42, .06)) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3 {
+  border-color: color-mix(in srgb, var(--journal-card-accent) 28%, rgba(148,163,184,.20)) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--journal-card-accent) 10%, rgba(37,49,60,.96)),
+      color-mix(in srgb, var(--journal-card-accent) 5%, rgba(31,42,52,.96)) 60%,
+      rgba(31,42,52,.94)) !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .paper-card-head {
+  min-height: 32px !important;
+  gap: 8px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-priority-status,
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
+  min-height: 32px !important;
+  height: 32px !important;
+  border-radius: 10px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-priority-status {
+  padding: 0 10px !important;
+  font-size: 11px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
+  padding: 0 9px !important;
+  font-size: 10.2px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .paper-journal-slot {
+  max-width: 150px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__publisher-rail {
+  min-height: 23px !important;
+  gap: 6px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .publisher-mark {
+  min-height: 23px !important;
+  font-size: 10.2px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__title-block > .card-title {
+  font-size: var(--app-card-title-size, 14.5px) !important;
+  line-height: 1.42 !important;
+  font-weight: 680 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__identity {
+  margin-top: 2px !important;
+  padding-left: 8px !important;
+  border-left-width: 3px !important;
+  font-size: 10.6px !important;
+  line-height: 1.35 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) {
+  gap: 5px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) > span {
+  min-height: 24px !important;
+  padding: 4px 7px !important;
+  border-radius: 8px !important;
+  font-size: 9.8px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics {
+  gap: 5px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics > div {
+  min-width: 66px !important;
+  min-height: 40px !important;
+  padding: 5px 7px !important;
+  border-radius: 9px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics b {
+  font-size: 11px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .journal-catalog-card__footer {
+  min-height: 26px !important;
+  gap: 5px 8px !important;
+  padding-top: 5px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__footer > a {
+  min-height: 24px !important;
+  padding: 0 7px !important;
+  border-radius: 8px !important;
+  font-size: 9.6px !important;
+}
+
+/* Journal Match: same application card family, adapted to a manuscript-first workbench. */
+html[data-ui] body .journal-match-candidate-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  gap: 10px !important;
+}
+
+html[data-ui] body .journal-match-candidate {
+  min-height: 128px !important;
+  padding: 12px 12px 11px !important;
+  border-radius: 14px !important;
+  border-color: color-mix(in srgb, var(--prep-blue) 20%, var(--ui-border, var(--prep-border))) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--prep-blue) 5%, rgba(255,255,255,.98)),
+      color-mix(in srgb, #7c3aed 3%, rgba(255,255,255,.95)) 60%,
+      rgba(255,255,255,.93)) !important;
+  box-shadow: 0 9px 22px rgba(15, 23, 42, .055) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-match-candidate {
+  border-color: color-mix(in srgb, var(--prep-blue) 24%, rgba(148,163,184,.20)) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--prep-blue) 8%, rgba(37,49,60,.96)),
+      color-mix(in srgb, #7c3aed 5%, rgba(31,42,52,.96)) 60%,
+      rgba(31,42,52,.94)) !important;
+}
+
+html[data-ui] body .journal-match-candidate::before {
+  left: 16px !important;
+  right: 16px !important;
+  height: 2px !important;
+  opacity: .70 !important;
+}
+
+html[data-ui] body .journal-match-candidate__head {
+  margin-top: 5px !important;
+}
+
+html[data-ui] body .journal-match-candidate__head strong {
+  font-size: 12.8px !important;
+  font-weight: 700 !important;
+  line-height: 1.38 !important;
+}
+
+html[data-ui] body .journal-match-candidate__identity {
+  margin: 6px 0 !important;
+  padding-left: 8px !important;
+  border-left-width: 3px !important;
+  font-size: 10.5px !important;
+}
+
+html[data-ui] body .journal-match-candidate__ranks {
+  gap: 5px !important;
+}
+
+html[data-ui] body .journal-match-candidate__ranks > span {
+  min-height: 23px !important;
+  padding: 4px 7px !important;
+  border-radius: 8px !important;
+  font-size: 9.7px !important;
+}
+
+html[data-ui] body .journal-match-current__journal {
+  border-color: color-mix(in srgb, var(--prep-blue) 28%, var(--ui-border, var(--prep-border))) !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--prep-blue) 8%, var(--ui-glass, var(--prep-surface-soft))),
+    color-mix(in srgb, #7c3aed 4%, var(--ui-glass, var(--prep-surface-soft)))) !important;
+}
+
+@media (max-width: 720px) {
+  html[data-ui] body .journal-match-candidate-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3 {
+    padding: 13px 13px 11px !important;
+  }
+}
