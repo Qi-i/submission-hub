@@ -139,14 +139,12 @@ async function inspect(ui, viewport) {
     })
 
     if (!library.isPaperGrid) failures.push(`${label}: Journal Center is not using paper-grid`)
-    const expectedCatalogueColumns = reference.columns + 1
-    if (library.columns !== expectedCatalogueColumns) failures.push(`${label}: Journal Center catalogue density drifted (${library.columns} columns; expected ${expectedCatalogueColumns} from management ${reference.columns})`)
+    if (library.columns !== reference.columns) failures.push(`${label}: Journal Center columns diverge from Submission Management (${library.columns}/${reference.columns})`)
     if (Math.abs(library.gridLeft - reference.gridLeft) > 3 || Math.abs(library.gridRight - reference.gridRight) > 3) failures.push(`${label}: Journal Center horizontal lane diverges from Submission Management`)
     if (!library.cards.length) failures.push(`${label}: Journal Center cards are missing`)
     library.cards.forEach(card => {
       if (!card.isPaperCard) failures.push(`${label}: journal ${card.index + 1} is not a paper-card-v3`)
-      const widthRatio = card.width / reference.cardWidth
-      if (card.width < 260 || widthRatio < .72 || widthRatio > .90) failures.push(`${label}: journal ${card.index + 1} catalogue width is outside readable dense range (${card.width.toFixed(1)}px; ratio ${widthRatio.toFixed(2)})`)
+      if (Math.abs(card.width - reference.cardWidth) > 5) failures.push(`${label}: journal ${card.index + 1} width diverges from Submission Management (${card.width.toFixed(1)}/${reference.cardWidth.toFixed(1)}px)`)
       if (card.scrollWidth > card.clientWidth + 2) failures.push(`${label}: journal ${card.index + 1} horizontally overflows`)
       if (card.scrollHeight > card.clientHeight + 2) failures.push(`${label}: journal ${card.index + 1} vertically clips content`)
       if (card.identityTop !== null && card.titleBottom !== null && card.identityTop < card.titleBottom - 2) failures.push(`${label}: journal ${card.index + 1} Chinese identity overlaps title`)
