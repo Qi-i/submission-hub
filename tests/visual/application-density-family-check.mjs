@@ -17,13 +17,16 @@ for (const ui of ['luminous', 'luminous-x']) {
   try {
     await open(page, 'dashboard', ui)
     const reference = await page.evaluate(() => {
-      const card = document.querySelector('.paper-grid .paper-card-v3')
+      const grid = document.querySelector('.paper-grid')
+      const card = grid?.querySelector('.paper-card-v3')
       const style = card ? getComputedStyle(card) : null
       const root = getComputedStyle(document.documentElement)
       return {
         font: getComputedStyle(document.body).fontFamily,
         cardRadius: style ? parseFloat(style.borderRadius) : 0,
         controlHeight: parseFloat(root.getPropertyValue('--app-control-height')) || 34,
+        columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+        cardWidth: card?.getBoundingClientRect().width || 0,
       }
     })
 
@@ -66,11 +69,11 @@ for (const ui of ['luminous', 'luminous-x']) {
       }
     })
     if (match.font !== reference.font) fail(`${ui}: Preparation uses a different font stack`)
-    if (match.titleSize < 11.5) fail(`${ui}: Journal Match candidate title is too small (${match.titleSize}px)`)
-    if (match.identitySize && match.identitySize < 10) fail(`${ui}: Journal Match identity is too small (${match.identitySize}px)`)
-    if (match.candidateRadius < 10 || match.panelRadius < 14) fail(`${ui}: Journal Match geometry is outside the application family (${match.candidateRadius}/${match.panelRadius}px)`)
-    if (match.candidateWidth && match.candidateWidth < 260) fail(`${ui}: Journal Match candidate cards are still thumbnail-sized (${match.candidateWidth.toFixed(1)}px)`)
-    if (match.candidateHeight && match.candidateHeight < 118) fail(`${ui}: Journal Match candidate cards are still visually undersized (${match.candidateHeight.toFixed(1)}px tall)`)
+    if (match.titleSize < 12.5) fail(`${ui}: Journal Match candidate title is too small (${match.titleSize}px)`)
+    if (match.identitySize && match.identitySize < 10.2) fail(`${ui}: Journal Match identity is too small (${match.identitySize}px)`)
+    if (match.candidateRadius < 12 || match.panelRadius < 14) fail(`${ui}: Journal Match geometry is outside the application family (${match.candidateRadius}/${match.panelRadius}px)`)
+    if (match.candidateWidth && match.candidateWidth < 275) fail(`${ui}: Journal Match candidate cards are still thumbnail-sized (${match.candidateWidth.toFixed(1)}px)`)
+    if (match.candidateHeight && match.candidateHeight < 126) fail(`${ui}: Journal Match candidate cards are still visually undersized (${match.candidateHeight.toFixed(1)}px tall)`)
     if (match.panelTail > 28) fail(`${ui}: Journal Match candidate panel still leaves a large blank tail (${match.panelTail.toFixed(1)}px)`)
     if (match.draftContentTail > 28) fail(`${ui}: Journal Match draft rail still contains a large blank tail (${match.draftContentTail.toFixed(1)}px)`)
     if (match.chipCount && match.colored < Math.ceil(match.chipCount * 0.6)) fail(`${ui}: Journal Match loses journal semantic colours (${match.colored}/${match.chipCount})`)
@@ -84,21 +87,26 @@ for (const ui of ['luminous', 'luminous-x']) {
       const metrics = Array.from(document.querySelectorAll('.journal-center-card .journal-catalog-card__metrics > div'))
       const firstTop = card?.getBoundingClientRect().top || 0
       const rowCards = Array.from(document.querySelectorAll('.journal-center-card')).filter(item => Math.abs(item.getBoundingClientRect().top - firstTop) <= 2)
+      const background = card ? getComputedStyle(card).backgroundImage : ''
       return {
         columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
         firstRow: rowCards.length,
         cardHeight: card ? card.getBoundingClientRect().height : 0,
+        cardWidth: card ? card.getBoundingClientRect().width : 0,
         cardRadius: card ? parseFloat(getComputedStyle(card).borderRadius) : 0,
         maxMetricHeight: metrics.length ? Math.max(...metrics.map(item => item.getBoundingClientRect().height)) : 0,
         font: getComputedStyle(document.body).fontFamily,
+        background,
       }
     })
     if (catalog.font !== reference.font) fail(`${ui}: Journal Center uses a different font stack`)
-    if (catalog.columns < 4 || catalog.firstRow < 4) fail(`${ui}: Journal Center remains too sparse at 1440px (${catalog.columns} columns, ${catalog.firstRow} first-row cards)`)
-    const maxCatalogHeight = ui === 'luminous-x' ? 320 : 285
-    if (catalog.cardHeight > maxCatalogHeight) fail(`${ui}: Journal Center cards remain too tall (${catalog.cardHeight.toFixed(1)}px > ${maxCatalogHeight}px)`)
-    if (catalog.maxMetricHeight > 46) fail(`${ui}: Journal Center metric blocks remain too tall (${catalog.maxMetricHeight.toFixed(1)}px)`)
-    if (Math.abs(catalog.cardRadius - reference.cardRadius) > 4) fail(`${ui}: Journal Center no longer belongs to the shared card family (${catalog.cardRadius}/${reference.cardRadius}px)`)
+    if (catalog.columns !== reference.columns || catalog.firstRow !== Math.min(reference.columns, 5)) fail(`${ui}: Journal Center grid diverges from Submission Management (${catalog.columns}/${reference.columns})`)
+    if (Math.abs(catalog.cardWidth - reference.cardWidth) > 5) fail(`${ui}: Journal Center card width diverges from Submission Management (${catalog.cardWidth.toFixed(1)}/${reference.cardWidth.toFixed(1)}px)`)
+    const maxCatalogHeight = ui === 'luminous-x' ? 390 : 360
+    if (catalog.cardHeight > maxCatalogHeight) fail(`${ui}: Journal Center cards become unnecessarily tall (${catalog.cardHeight.toFixed(1)}px > ${maxCatalogHeight}px)`)
+    if (catalog.maxMetricHeight > 48) fail(`${ui}: Journal Center metric blocks are too tall (${catalog.maxMetricHeight.toFixed(1)}px)`)
+    if (Math.abs(catalog.cardRadius - reference.cardRadius) > 3) fail(`${ui}: Journal Center no longer belongs to the shared card family (${catalog.cardRadius}/${reference.cardRadius}px)`)
+    if (!catalog.background || catalog.background === 'none') fail(`${ui}: Journal Center lost the semantic card-surface tint`)
 
     await open(page, 'stats', ui)
     const stats = await page.evaluate(() => {
