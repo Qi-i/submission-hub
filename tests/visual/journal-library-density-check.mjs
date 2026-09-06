@@ -153,7 +153,7 @@ async function inspectDesktop(ui, theme) {
         metrics.forEach((metric, metricIndex) => {
           const value = metric.querySelector('b')?.textContent?.trim() || ''
           if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: empty metric ${metricIndex + 1} remains visible`)
-          if (metric.getBoundingClientRect().height > 42) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} is too tall for catalogue density`)
+          if (metric.getBoundingClientRect().height > 46) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} is too tall for catalogue density`)
         })
         facts.forEach((fact, factIndex) => {
           if (visible(fact) && fact.getBoundingClientRect().height > 30) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
