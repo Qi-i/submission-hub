@@ -39,7 +39,8 @@ for (const ui of ['luminous', 'luminous-x']) {
       const panel = document.querySelector('.journal-match-candidates')
       const grid = document.querySelector('.journal-match-candidate-grid')
       const drafts = document.querySelector('.journal-match-drafts')
-      const layout = document.querySelector('.journal-match-layout')
+      const draftButtons = drafts ? Array.from(drafts.querySelectorAll(':scope > button')) : []
+      const lastDraft = draftButtons.at(-1)
       const chips = Array.from(document.querySelectorAll('.journal-match-candidate__ranks span'))
       const colored = chips.filter(chip => {
         const bg = getComputedStyle(chip).backgroundColor
@@ -49,7 +50,7 @@ for (const ui of ['luminous', 'luminous-x']) {
       const panelRect = panel?.getBoundingClientRect()
       const gridRect = grid?.getBoundingClientRect()
       const draftsRect = drafts?.getBoundingClientRect()
-      const layoutRect = layout?.getBoundingClientRect()
+      const lastDraftRect = lastDraft?.getBoundingClientRect()
       return {
         font: getComputedStyle(document.body).fontFamily,
         titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
@@ -59,7 +60,7 @@ for (const ui of ['luminous', 'luminous-x']) {
         candidateWidth: candidateRect?.width || 0,
         candidateHeight: candidateRect?.height || 0,
         panelTail: panelRect && gridRect ? panelRect.bottom - gridRect.bottom : 0,
-        draftTail: layoutRect && draftsRect ? layoutRect.bottom - draftsRect.bottom : 0,
+        draftContentTail: draftsRect && lastDraftRect ? draftsRect.bottom - lastDraftRect.bottom : 0,
         colored,
         chipCount: chips.length,
       }
@@ -71,7 +72,7 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (match.candidateWidth && match.candidateWidth < 260) fail(`${ui}: Journal Match candidate cards are still thumbnail-sized (${match.candidateWidth.toFixed(1)}px)`)
     if (match.candidateHeight && match.candidateHeight < 118) fail(`${ui}: Journal Match candidate cards are still visually undersized (${match.candidateHeight.toFixed(1)}px tall)`)
     if (match.panelTail > 28) fail(`${ui}: Journal Match candidate panel still leaves a large blank tail (${match.panelTail.toFixed(1)}px)`)
-    if (match.draftTail > 28) fail(`${ui}: Journal Match draft rail still stretches into empty space (${match.draftTail.toFixed(1)}px)`)
+    if (match.draftContentTail > 28) fail(`${ui}: Journal Match draft rail still contains a large blank tail (${match.draftContentTail.toFixed(1)}px)`)
     if (match.chipCount && match.colored < Math.ceil(match.chipCount * 0.6)) fail(`${ui}: Journal Match loses journal semantic colours (${match.colored}/${match.chipCount})`)
 
     const journalEntry = page.locator("button[data-main-nav-key='journals']:visible").first()
