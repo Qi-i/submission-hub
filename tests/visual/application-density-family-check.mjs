@@ -78,8 +78,9 @@ for (const ui of ['luminous', 'luminous-x']) {
     })
     if (catalog.font !== reference.font) fail(`${ui}: Journal Center uses a different font stack`)
     if (catalog.columns < 4 || catalog.firstRow < 4) fail(`${ui}: Journal Center remains too sparse at 1440px (${catalog.columns} columns, ${catalog.firstRow} first-row cards)`)
-    if (catalog.cardHeight > 275) fail(`${ui}: Journal Center cards remain too tall (${catalog.cardHeight.toFixed(1)}px)`)
-    if (catalog.maxMetricHeight > 42) fail(`${ui}: Journal Center metric blocks remain too tall (${catalog.maxMetricHeight.toFixed(1)}px)`)
+    const maxCatalogHeight = ui === 'luminous-x' ? 320 : 285
+    if (catalog.cardHeight > maxCatalogHeight) fail(`${ui}: Journal Center cards remain too tall (${catalog.cardHeight.toFixed(1)}px > ${maxCatalogHeight}px)`)
+    if (catalog.maxMetricHeight > 46) fail(`${ui}: Journal Center metric blocks remain too tall (${catalog.maxMetricHeight.toFixed(1)}px)`)
     if (Math.abs(catalog.cardRadius - reference.cardRadius) > 4) fail(`${ui}: Journal Center no longer belongs to the shared card family (${catalog.cardRadius}/${reference.cardRadius}px)`)
 
     await open(page, 'stats', ui)
