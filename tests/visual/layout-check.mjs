@@ -142,8 +142,8 @@ try {
 
       if (toolbarRect.bottom > gridRect.top + tol) failures.push('Journal Center toolbar overlaps journal catalogue')
       if (panel.querySelector('.preparation-business-rail, .prep-nav-primary')) failures.push('standalone Journal Center renders Preparation navigation')
-      if (!grid.classList.contains('paper-grid')) failures.push('Journal Center does not share the Submission Management paper-grid')
-      if (columns !== reference.columns) failures.push(`Journal Center column count differs from Submission Management (${columns}/${reference.columns})`)
+      if (!grid.classList.contains('paper-grid')) failures.push('Journal Center does not share the application paper-grid family')
+      if (columns <= reference.columns) failures.push(`Journal Center is not denser than Submission Management (${columns}/${reference.columns})`)
       if (Math.abs(gridRect.left - reference.grid.left) > 3 || Math.abs(gridRect.right - reference.grid.right) > 3) failures.push('Journal Center card lane differs from Submission Management')
       if (Math.abs(toolbarRect.left - gridRect.left) > 3 || Math.abs(toolbarRect.right - gridRect.right) > 3) failures.push('Journal Center toolbar does not align with card lane')
       if (toolbar.scrollHeight > toolbar.clientHeight + 2) failures.push('Journal Center toolbar clips vertically')
@@ -154,13 +154,14 @@ try {
         const title = card.querySelector('.journal-catalog-card__title-block > .card-title')
         const status = card.querySelector('.paper-status-area > .badge')
         const footer = card.querySelector('.journal-center-card__links')
-        if (!card.classList.contains('paper-card-v3')) failures.push(`journal ${index + 1}: card does not share paper-card-v3`)
+        if (!card.classList.contains('paper-card-v3')) failures.push(`journal ${index + 1}: card does not share paper-card-v3 visual language`)
         if (!title || !status) failures.push(`journal ${index + 1}: canonical card hierarchy is incomplete`)
-        if (Math.abs(rect.width - reference.firstCardWidth) > 4) failures.push(`journal ${index + 1}: width differs from Submission Management`)
+        if (rect.width >= reference.firstCardWidth - 12) failures.push(`journal ${index + 1}: catalog card is not materially denser than Submission Management`)
+        if (rect.width < 260) failures.push(`journal ${index + 1}: catalog card is too narrow to remain readable`)
         if (card.scrollWidth > card.clientWidth + 2 || card.scrollHeight > card.clientHeight + 2) failures.push(`journal ${index + 1}: card content overflows`)
         if (footer && footer.getBoundingClientRect().bottom > rect.bottom + 2) failures.push(`journal ${index + 1}: footer escapes card`)
       })
-      return { failures, details: { columns, cards: cards.length, left: gridRect.left, right: gridRect.right } }
+      return { failures, details: { columns, cards: cards.length, left: gridRect.left, right: gridRect.right, firstCardWidth: cards[0]?.getBoundingClientRect().width || 0 } }
     }, { tol: tolerance, reference: dashboard.details })
     failures.push(...journalTabGeometry.failures)
     details.journalCenter = journalTabGeometry.details
