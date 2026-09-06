@@ -18,12 +18,12 @@ for (const ui of ['luminous', 'luminous-x']) {
     await open(page, 'dashboard', ui)
     const reference = await page.evaluate(() => {
       const card = document.querySelector('.paper-grid .paper-card-v3')
-      const nav = document.querySelector('.header-tabs button')
       const style = card ? getComputedStyle(card) : null
+      const root = getComputedStyle(document.documentElement)
       return {
         font: getComputedStyle(document.body).fontFamily,
         cardRadius: style ? parseFloat(style.borderRadius) : 0,
-        navHeight: nav ? nav.getBoundingClientRect().height : 0,
+        controlHeight: parseFloat(root.getPropertyValue('--app-control-height')) || 34,
       }
     })
 
@@ -94,7 +94,7 @@ for (const ui of ['luminous', 'luminous-x']) {
     })
     if (stats.font !== reference.font) fail(`${ui}: Statistics uses a different font stack`)
     if (stats.panelRadius && (stats.panelRadius < 12 || stats.panelRadius > 20)) fail(`${ui}: Statistics panel radius drifts from the application family (${stats.panelRadius}px)`)
-    if (stats.controlHeight && Math.abs(stats.controlHeight - reference.navHeight) > 10) fail(`${ui}: Statistics controls drift from the application control scale (${stats.controlHeight}/${reference.navHeight}px)`)
+    if (stats.controlHeight && Math.abs(stats.controlHeight - reference.controlHeight) > 2) fail(`${ui}: Statistics controls drift from the application control scale (${stats.controlHeight}/${reference.controlHeight}px)`)
   } catch (error) {
     fail(`${ui}: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
