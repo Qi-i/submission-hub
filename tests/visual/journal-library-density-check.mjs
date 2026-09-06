@@ -86,12 +86,10 @@ async function inspectDesktop(ui, theme) {
       const cardRects = cards.map(card => card.getBoundingClientRect())
 
       if (!grid.classList.contains('paper-grid')) localFailures.push('Journal Center is not using the shared paper-grid shell')
-      if (columns.length <= referenceStyle.columns) localFailures.push(`Journal Center does not use its denser catalogue grid (${columns.length} vs management ${referenceStyle.columns})`)
+      if (columns.length !== referenceStyle.columns) localFailures.push(`Journal Center column count diverges from Submission Management (${columns.length}/${referenceStyle.columns})`)
       if (Math.abs(gridRect.width - referenceStyle.gridWidth) > 3) localFailures.push(`Journal Center page lane differs from Submission Management (${Math.round(gridRect.width)} vs ${Math.round(referenceStyle.gridWidth)}px)`)
-      if (Math.abs(toolbarRect.left - gridRect.left) > 3 || Math.abs(toolbarRect.right - gridRect.right) > 3) localFailures.push('Journal Center toolbar and catalogue lane are not aligned')
-      if (parseFloat(gridStyle.columnGap) > 12) localFailures.push('Journal Center grid gap is too loose for a catalogue')
-      if (cardRects[0].width >= referenceStyle.cardWidth - 12) localFailures.push(`Journal Center card is not materially denser than Submission Management (${Math.round(cardRects[0].width)} vs ${Math.round(referenceStyle.cardWidth)}px)`)
-      if (cardRects[0].width < 260) localFailures.push(`Journal Center card is too narrow for readable metadata (${Math.round(cardRects[0].width)}px)`)
+      if (Math.abs(toolbarRect.left - gridRect.left) > 3 || Math.abs(toolbarRect.right - gridRect.right) > 3) localFailures.push('Journal Center toolbar and card lane are not aligned')
+      if (Math.abs(cardRects[0].width - referenceStyle.cardWidth) > 5) localFailures.push(`Journal Center card width diverges from Submission Management (${Math.round(cardRects[0].width)} vs ${Math.round(referenceStyle.cardWidth)}px)`)
 
       cards.forEach((card, index) => {
         const rect = card.getBoundingClientRect()
@@ -114,12 +112,13 @@ async function inspectDesktop(ui, theme) {
         const statusHeight = status.getBoundingClientRect().height
 
         if (!closeEnough(parseFloat(cardStyle.borderRadius), referenceStyle.radius, 3)) localFailures.push(`journal ${index + 1}: card radius leaves the application family`)
-        if (statusHeight < 26 || statusHeight > 34) localFailures.push(`journal ${index + 1}: primary state height is outside compact shared scale (${statusHeight.toFixed(1)}px)`)
-        if (Math.abs(parseFloat(statusStyle.borderRadius) - referenceStyle.statusRadius) > 4) localFailures.push(`journal ${index + 1}: primary state radius leaves the application family`)
-        if (!closeEnough(parseFloat(titleStyle.fontSize), referenceStyle.titleFontSize, 1.5)) localFailures.push(`journal ${index + 1}: title typography leaves the application family`)
+        if (statusHeight < 30 || statusHeight > 34) localFailures.push(`journal ${index + 1}: primary state height is outside shared scale (${statusHeight.toFixed(1)}px)`)
+        if (Math.abs(parseFloat(statusStyle.borderRadius) - referenceStyle.statusRadius) > 3) localFailures.push(`journal ${index + 1}: primary state radius leaves the application family`)
+        if (!closeEnough(parseFloat(titleStyle.fontSize), referenceStyle.titleFontSize, 1)) localFailures.push(`journal ${index + 1}: title typography leaves the application family`)
         if (!closeEnough(parseFloat(accentStyle.height), referenceStyle.accentHeight, 1)) localFailures.push(`journal ${index + 1}: semantic accent line diverges from the application family`)
         const paddingLeft = parseFloat(cardStyle.paddingLeft)
-        if (paddingLeft < 10 || paddingLeft > referenceStyle.paddingLeft + 1) localFailures.push(`journal ${index + 1}: compact padding is outside readable range (${paddingLeft}px)`)
+        if (paddingLeft < 13 || paddingLeft > 18) localFailures.push(`journal ${index + 1}: card padding is outside shared readable scale (${paddingLeft}px)`)
+        if (!cardStyle.backgroundImage || cardStyle.backgroundImage === 'none') localFailures.push(`journal ${index + 1}: semantic surface tint is missing`)
         if (subtitle && parseFloat(getComputedStyle(subtitle).borderLeftWidth) < 2) localFailures.push(`journal ${index + 1}: Chinese identity lost the shared subtitle accent`)
         if (rect.right > gridRect.right + 1.5 || rect.left < gridRect.left - 1.5) localFailures.push(`journal ${index + 1}: card exceeds grid edges`)
         if (card.scrollWidth > card.clientWidth + 2) localFailures.push(`journal ${index + 1}: horizontal overflow`)
@@ -153,19 +152,19 @@ async function inspectDesktop(ui, theme) {
         metrics.forEach((metric, metricIndex) => {
           const value = metric.querySelector('b')?.textContent?.trim() || ''
           if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: empty metric ${metricIndex + 1} remains visible`)
-          if (metric.getBoundingClientRect().height > 46) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} is too tall for catalogue density`)
+          if (metric.getBoundingClientRect().height > 48) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} is too tall`)
         })
         facts.forEach((fact, factIndex) => {
-          if (visible(fact) && fact.getBoundingClientRect().height > 30) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
+          if (visible(fact) && fact.getBoundingClientRect().height > 32) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
         })
       })
 
       const maxHeight = Math.max(...cardRects.map(rect => rect.height))
-      if (maxHeight > 340) localFailures.push(`Journal Center still contains an excessively tall catalogue card (${Math.round(maxHeight)}px)`)
+      if (maxHeight > 390) localFailures.push(`Journal Center contains an excessively tall card (${Math.round(maxHeight)}px)`)
 
       const colorNodes = Array.from(grid.querySelectorAll('.journal-priority-status, .journal-catalog-card__oa, .prep-journal-rank-blocks > span, .prep-journal-facts > span, .prep-journal-numbers > div')).filter(visible)
       const backgrounds = new Set(colorNodes.map(node => getComputedStyle(node).backgroundColor).filter(meaningfulBackground))
-      if (backgrounds.size < 4) localFailures.push(`Journal Center is still visually monotone: only ${backgrounds.size} distinct semantic surfaces`)
+      if (backgrounds.size < 4) localFailures.push(`Journal Center is visually monotone: only ${backgrounds.size} distinct semantic surfaces`)
 
       return {
         failures: localFailures,
