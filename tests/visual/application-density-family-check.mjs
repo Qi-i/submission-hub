@@ -37,17 +37,29 @@ for (const ui of ['luminous', 'luminous-x']) {
       const title = candidate?.querySelector('.journal-match-candidate__head strong')
       const identity = candidate?.querySelector('.journal-match-candidate__identity')
       const panel = document.querySelector('.journal-match-candidates')
+      const grid = document.querySelector('.journal-match-candidate-grid')
+      const drafts = document.querySelector('.journal-match-drafts')
+      const layout = document.querySelector('.journal-match-layout')
       const chips = Array.from(document.querySelectorAll('.journal-match-candidate__ranks span'))
       const colored = chips.filter(chip => {
         const bg = getComputedStyle(chip).backgroundColor
         return bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent'
       }).length
+      const candidateRect = candidate?.getBoundingClientRect()
+      const panelRect = panel?.getBoundingClientRect()
+      const gridRect = grid?.getBoundingClientRect()
+      const draftsRect = drafts?.getBoundingClientRect()
+      const layoutRect = layout?.getBoundingClientRect()
       return {
         font: getComputedStyle(document.body).fontFamily,
         titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
         identitySize: identity ? parseFloat(getComputedStyle(identity).fontSize) : 0,
         candidateRadius: candidate ? parseFloat(getComputedStyle(candidate).borderRadius) : 0,
         panelRadius: panel ? parseFloat(getComputedStyle(panel).borderRadius) : 0,
+        candidateWidth: candidateRect?.width || 0,
+        candidateHeight: candidateRect?.height || 0,
+        panelTail: panelRect && gridRect ? panelRect.bottom - gridRect.bottom : 0,
+        draftTail: layoutRect && draftsRect ? layoutRect.bottom - draftsRect.bottom : 0,
         colored,
         chipCount: chips.length,
       }
@@ -56,6 +68,10 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (match.titleSize < 11.5) fail(`${ui}: Journal Match candidate title is too small (${match.titleSize}px)`)
     if (match.identitySize && match.identitySize < 10) fail(`${ui}: Journal Match identity is too small (${match.identitySize}px)`)
     if (match.candidateRadius < 10 || match.panelRadius < 14) fail(`${ui}: Journal Match geometry is outside the application family (${match.candidateRadius}/${match.panelRadius}px)`)
+    if (match.candidateWidth && match.candidateWidth < 260) fail(`${ui}: Journal Match candidate cards are still thumbnail-sized (${match.candidateWidth.toFixed(1)}px)`)
+    if (match.candidateHeight && match.candidateHeight < 118) fail(`${ui}: Journal Match candidate cards are still visually undersized (${match.candidateHeight.toFixed(1)}px tall)`)
+    if (match.panelTail > 28) fail(`${ui}: Journal Match candidate panel still leaves a large blank tail (${match.panelTail.toFixed(1)}px)`)
+    if (match.draftTail > 28) fail(`${ui}: Journal Match draft rail still stretches into empty space (${match.draftTail.toFixed(1)}px)`)
     if (match.chipCount && match.colored < Math.ceil(match.chipCount * 0.6)) fail(`${ui}: Journal Match loses journal semantic colours (${match.colored}/${match.chipCount})`)
 
     const journalEntry = page.locator("button[data-main-nav-key='journals']:visible").first()
