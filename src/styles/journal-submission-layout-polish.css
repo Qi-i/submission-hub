@@ -1,0 +1,200 @@
+/*
+ * JOURNAL + SUBMISSION LAYOUT POLISH
+ * ----------------------------------
+ * Final follow-up for the side-by-side Journal Center / Submission Management review.
+ * This layer is intentionally loaded after the shared card-family contract.
+ */
+
+/* Journal Center needs the same page rhythm as the other first-class Luminous pages. */
+html[data-ui='luminous'] body .app-layout > .journal-center-workspace > .journal-center-toolbar {
+  margin-top: var(--app-page-gap, 12px) !important;
+}
+
+/* Equalise cards per grid row without forcing every row in the page to one global height. */
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+  align-items: stretch !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3 {
+  height: 100% !important;
+  align-self: stretch !important;
+}
+
+/* The standalone status header starts exactly on the card content rail. */
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .journal-catalog-card__status-area,
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .journal-priority-status {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .journal-catalog-card__status-area {
+  justify-content: flex-start !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .journal-priority-status {
+  padding-right: 10px !important;
+}
+
+/* “重点期刊” has one semantic treatment regardless of the journal's risk/priority accent. */
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card[data-favorite='true'] .journal-priority-status {
+  color: #6d28d9 !important;
+  border-color: rgba(124, 58, 237, .30) !important;
+  background: linear-gradient(135deg, rgba(237, 233, 254, .96), rgba(245, 243, 255, .90)) !important;
+  box-shadow: 0 5px 14px rgba(124, 58, 237, .10) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid .journal-center-card[data-favorite='true'] .journal-priority-status {
+  color: #c4b5fd !important;
+  border-color: rgba(167, 139, 250, .32) !important;
+  background: linear-gradient(135deg, rgba(91, 33, 182, .30), rgba(76, 29, 149, .18)) !important;
+}
+
+/* Make OA semantics visible at card-surface level instead of tinting every card almost identically. */
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card[data-oa='hybrid'] {
+  background: linear-gradient(145deg, rgba(247, 243, 255, .98), rgba(252, 250, 255, .95) 58%, rgba(255,255,255,.93)) !important;
+  border-color: rgba(124, 58, 237, .22) !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card:is([data-oa='gold'], [data-oa='diamond']) {
+  background: linear-gradient(145deg, rgba(236, 253, 245, .98), rgba(246, 255, 251, .95) 58%, rgba(255,255,255,.93)) !important;
+  border-color: rgba(5, 150, 105, .22) !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card[data-oa='closed'] {
+  background: linear-gradient(145deg, rgba(241, 245, 249, .98), rgba(248, 250, 252, .96) 58%, rgba(255,255,255,.93)) !important;
+  border-color: rgba(100, 116, 139, .22) !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card[data-oa='unknown'] {
+  background: linear-gradient(145deg, rgba(239, 246, 255, .98), rgba(248, 250, 255, .95) 58%, rgba(255,255,255,.93)) !important;
+  border-color: rgba(59, 130, 246, .20) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card[data-oa='hybrid'] {
+  background: linear-gradient(145deg, rgba(67, 56, 95, .94), rgba(42, 46, 61, .96) 64%, rgba(31,42,52,.94)) !important;
+  border-color: rgba(167, 139, 250, .26) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card:is([data-oa='gold'], [data-oa='diamond']) {
+  background: linear-gradient(145deg, rgba(34, 72, 65, .92), rgba(36, 54, 58, .96) 64%, rgba(31,42,52,.94)) !important;
+  border-color: rgba(52, 211, 153, .24) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card:is([data-oa='closed'], [data-oa='unknown']) {
+  background: linear-gradient(145deg, rgba(43, 55, 68, .96), rgba(34, 45, 55, .96)) !important;
+}
+
+/* APC is one compact sentence-like metric: label, original amount and CNY estimate. */
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .journal-catalog-card__metrics > .prep-journal-apc-metric {
+  grid-column: span 2 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .prep-journal-apc-metric > .journal-metric-label,
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .prep-journal-apc-metric > .journal-metric-value,
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .prep-journal-apc-metric > .prep-journal-apc-cny {
+  order: initial !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .prep-journal-apc-metric > .prep-journal-apc-cny {
+  flex: 1 1 auto !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .prep-journal-apc-metric > .prep-journal-apc-cny > * {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Submission publication metadata: DOI/citation and quartiles occupy one visual row. */
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) {
+  display: grid !important;
+  grid-template-columns: max-content minmax(0, 1fr) !important;
+  grid-auto-flow: row !important;
+  align-content: start !important;
+  column-gap: 5px !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > :not(.archive-chip-row):not(.paper-rank-row) {
+  grid-column: 1 / -1 !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .archive-chip-row {
+  grid-column: 1 !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  align-self: center !important;
+  margin-right: 0 !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .paper-rank-row {
+  grid-column: 2 !important;
+  min-width: 0 !important;
+  align-self: center !important;
+  margin-left: 0 !important;
+}
+
+/* Attachment controls stay left and the submission/resolution time stays right on one baseline. */
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-card-footer {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-card-footer > .paper-footer-left {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-card-footer > .paper-date-info {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  white-space: nowrap !important;
+  align-self: center !important;
+}
+
+@media (max-width: 720px) {
+  html[data-ui] body .journal-center-grid.paper-grid .journal-center-card .journal-catalog-card__metrics > .prep-journal-apc-metric {
+    grid-column: 1 / -1 !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > :is(.archive-chip-row, .paper-rank-row) {
+    grid-column: 1 !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-card-footer,
+  html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-card-footer > .paper-footer-left {
+    flex-wrap: wrap !important;
+  }
+}
