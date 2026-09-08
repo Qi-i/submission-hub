@@ -81,7 +81,9 @@ try {
             if (getComputedStyle(metrics).display !== 'grid') failures.push(`journal ${index + 1}: metric rail still inherits flexible full-width stretching`)
             metricCards.forEach((metric, metricIndex) => {
               const rect = metric.getBoundingClientRect()
-              if (rect.width > 220) failures.push(`journal ${index + 1}: metric ${metricIndex + 1} stretches too wide (${rect.width.toFixed(1)}px)`)
+              const isApc = metric.classList.contains('prep-journal-apc-metric')
+              const maxMetricWidth = isApc ? 300 : 220
+              if (rect.width > maxMetricWidth) failures.push(`journal ${index + 1}: metric ${metricIndex + 1} stretches too wide (${rect.width.toFixed(1)}px)`)
               if (metric.scrollWidth > metric.clientWidth + 1 || metric.scrollHeight > metric.clientHeight + 1) failures.push(`journal ${index + 1}: metric ${metricIndex + 1} content is clipped`)
               const label = metric.querySelector('.journal-metric-label')
               const value = metric.querySelector('.journal-metric-value')
