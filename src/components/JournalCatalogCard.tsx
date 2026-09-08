@@ -115,6 +115,7 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
       style={style}
       data-priority={journal.priority}
       data-risk={journal.risk_level}
+      data-oa={journal.oa_type || 'unknown'}
       data-favorite={journal.is_favorite ? 'true' : 'false'}
       role="button"
       tabIndex={0}
@@ -127,10 +128,6 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
           <span className={`badge journal-priority-status journal-catalog-card__status priority-${journal.priority}`}>
             {journal.is_favorite && <Star size={13} fill="currentColor" />}
             {journal.is_favorite ? '重点期刊' : `优先级 ${priority}`}
-          </span>
-          <span className="paper-substatus journal-catalog-card__substatus">
-            <span className="paper-substatus-dot" aria-hidden="true" />
-            <span className="paper-substatus-text">{risk}{journal.selection_tags?.[0] ? ` · ${journal.selection_tags[0]}` : ''}</span>
           </span>
         </div>
         <div className="paper-journal-slot journal-catalog-card__oa-slot">
