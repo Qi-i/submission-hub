@@ -130,7 +130,7 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .a
   grid-template-columns: max-content minmax(0, 1fr) !important;
   grid-auto-flow: row !important;
   align-content: start !important;
-  column-gap: 5px !important;
+  column-gap: 4px !important;
 }
 
 html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > :not(.archive-chip-row):not(.paper-rank-row) {
@@ -148,8 +148,12 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .a
 html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .paper-rank-row {
   grid-column: 2 !important;
   min-width: 0 !important;
+  width: 100% !important;
   align-self: center !important;
   margin-left: 0 !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
 }
 
 /* Accepted is already communicated by the workflow status; do not repeat it as a rank chip. */
@@ -170,7 +174,7 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(.pap
   html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) {
     grid-template-columns: max-content minmax(0, 1fr) !important;
     grid-auto-flow: row !important;
-    column-gap: 5px !important;
+    column-gap: 4px !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > :not(.archive-chip-row):not(.paper-rank-row) {
@@ -189,9 +193,12 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(.pap
   html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .paper-rank-row {
     grid-column: 2 !important;
     grid-row: auto !important;
-    width: auto !important;
+    width: 100% !important;
     min-width: 0 !important;
     align-self: start !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
   }
 }
 
@@ -237,6 +244,11 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper
 
   html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > :is(.archive-chip-row, .paper-rank-row) {
     grid-column: 1 !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .paper-rank-row {
+    width: auto !important;
+    flex-wrap: wrap !important;
   }
 
   html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-card-footer,
