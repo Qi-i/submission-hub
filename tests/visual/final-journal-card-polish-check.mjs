@@ -79,7 +79,13 @@ try {
         const acceptedCard = Array.from(document.querySelectorAll('.paper-grid .paper-card-v3:not(.journal-center-card)'))
           .find(card => card.querySelector(".paper-status-area[data-status='accepted']"))
         if (!acceptedCard) return ['accepted fixture card is missing']
-        const rankText = acceptedCard.querySelector('.paper-rank-row')?.textContent || ''
+        const rank = acceptedCard.querySelector('.paper-rank-row')
+        const rankText = rank
+          ? Array.from(rank.children)
+              .filter(node => node instanceof HTMLElement && getComputedStyle(node).display !== 'none' && getComputedStyle(node).visibility !== 'hidden')
+              .map(node => node.textContent || '')
+              .join('')
+          : ''
         if (/已发表|已接收|published|accepted/i.test(rankText)) {
           failures.push(`accepted card repeats publication status inside journal-rank metadata (${rankText.trim()})`)
         }
