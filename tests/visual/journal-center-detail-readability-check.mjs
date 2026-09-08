@@ -51,7 +51,8 @@ try {
           const style = getComputedStyle(card)
           return `${style.backgroundColor}|${style.backgroundImage}`
         })
-        if (cards.length >= 4 && new Set(surfaces).size < 2) failures.push('Journal Center cards still use one indistinguishable surface colour')
+        if (cards.length < 2) failures.push('Journal Center surface fixture needs at least two cards')
+        else if (new Set(surfaces).size < 2) failures.push('Journal Center cards still use one indistinguishable surface colour')
 
         const favoriteStatuses = cards
           .filter(card => card.getAttribute('data-favorite') === 'true')
