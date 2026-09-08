@@ -62,15 +62,15 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
-  min-height: 42px !important;
+  min-height: 40px !important;
   height: auto !important;
   display: grid !important;
   grid-template-rows: auto auto auto !important;
   align-content: center !important;
   justify-items: start !important;
-  gap: 2px !important;
+  gap: 1px !important;
   overflow: visible !important;
-  padding: 5px 7px !important;
+  padding: 4px 7px !important;
   text-align: left !important;
   box-sizing: border-box !important;
 }
