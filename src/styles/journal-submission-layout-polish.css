@@ -171,7 +171,7 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .a
     width: max-content !important;
     max-width: 100% !important;
     min-width: 0 !important;
-    align-self: center !important;
+    align-self: start !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .paper-rank-row {
@@ -179,7 +179,7 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .a
     grid-row: auto !important;
     width: auto !important;
     min-width: 0 !important;
-    align-self: center !important;
+    align-self: start !important;
   }
 }
 
