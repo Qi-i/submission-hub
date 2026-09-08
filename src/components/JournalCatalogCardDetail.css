@@ -142,8 +142,8 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
 
 /* Luminous X keeps the permanent sidebar at desktop widths. Between 1560 and 2199px
  * the shared four-column dashboard contract leaves each card only ~340px wide.
- * Bound every journal section to the card and give dense metric cards a 2x2 layout;
- * this is the smallest width where four metric columns become materially harder to read. */
+ * Bound every journal section to the card and use three metric columns so labels remain
+ * readable without the four-cell squeeze or the oversized two-column blocks. */
 @media (min-width: 1560px) and (max-width: 2199px) {
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid > .journal-center-card > * {
     inline-size: 100% !important;
@@ -173,29 +173,31 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   }
 
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-slot {
-    width: max-content !important;
+    width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
+    justify-self: stretch !important;
     overflow: hidden !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa {
     width: max-content !important;
-    min-width: 0 !important;
+    min-width: 104px !important;
     max-width: 100% !important;
-    overflow: hidden !important;
+    justify-self: end !important;
+    overflow: visible !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-label {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
