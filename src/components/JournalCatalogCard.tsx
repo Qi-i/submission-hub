@@ -71,18 +71,27 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
     {indexing.slice(0, indexingLimit).map(item => <span key={item} data-tone="index">{item}</span>)}
   </div>
 
-  const metrics = metricCount > 0 && <div className="prep-journal-numbers prep-journal-metrics-compact journal-catalog-card__metrics">
-    {journal.first_decision_days != null && <div data-tone="decision"><b>{journal.first_decision_days}</b><small>首轮决定/天</small></div>}
-    {journal.total_review_days != null && <div data-tone="review"><b>{journal.total_review_days}</b><small>总审稿/天</small></div>}
-    {journal.acceptance_rate != null && <div data-tone="accept"><b>{journal.acceptance_rate}%</b><small>接收率</small></div>}
+  const metrics = metricCount > 0 && <div className="prep-journal-numbers prep-journal-metrics-compact journal-catalog-card__metrics" data-count={metricCount}>
+    {journal.first_decision_days != null && <div data-tone="decision">
+      <small className="journal-metric-label">首轮决定</small>
+      <b className="journal-metric-value">{journal.first_decision_days}<span className="journal-metric-unit"> 天</span></b>
+    </div>}
+    {journal.total_review_days != null && <div data-tone="review">
+      <small className="journal-metric-label">总审稿</small>
+      <b className="journal-metric-value">{journal.total_review_days}<span className="journal-metric-unit"> 天</span></b>
+    </div>}
+    {journal.acceptance_rate != null && <div data-tone="accept">
+      <small className="journal-metric-label">接收率</small>
+      <b className="journal-metric-value">{journal.acceptance_rate}%</b>
+    </div>}
     {journal.apc_amount != null && <div className="prep-journal-apc-metric" data-tone="apc">
-      <b>{journal.apc_amount}</b>
-      <small>{journal.apc_currency || 'APC'}</small>
+      <small className="journal-metric-label">APC · {journal.apc_currency || '未注明'}</small>
+      <b className="journal-metric-value">{journal.apc_amount}</b>
       {journal.apc_amount > 0 && !['CNY', 'RMB', 'CNH'].includes((journal.apc_currency || '').trim().toUpperCase()) && <CurrencyCny amount={journal.apc_amount} currency={journal.apc_currency || 'USD'} showOriginal={false} compact className="prep-journal-apc-cny" />}
     </div>}
   </div>
 
-  const links = <div className={`prep-journal-links journal-catalog-card__footer${standalone ? ' paper-card-footer journal-center-card__links' : ''}`} onClick={event => event.stopPropagation()}>
+  const links = <div className={`prep-journal-links journal-catalog-card__footer${standalone ? ' journal-center-card__links' : ''}`} onClick={event => event.stopPropagation()}>
     {safeUrl(journal.website_url) && <a href={journal.website_url!} target="_blank" rel="noopener noreferrer">官网 <ExternalLink size={11} /></a>}
     {safeUrl(journal.author_guide_url) && <a href={journal.author_guide_url!} target="_blank" rel="noopener noreferrer">指南 <ExternalLink size={11} /></a>}
     {safeUrl(journal.submission_url) && <a href={journal.submission_url!} target="_blank" rel="noopener noreferrer">投稿 <ExternalLink size={11} /></a>}
@@ -123,10 +132,10 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
             <span className="paper-substatus-text">{risk}{journal.selection_tags?.[0] ? ` · ${journal.selection_tags[0]}` : ''}</span>
           </span>
         </div>
-        <div className="paper-journal-slot">
-          <span className="journal-pill journal-catalog-card__oa" data-oa={journal.oa_type || 'unknown'}>
-            <span className="journal-pill-icon" aria-hidden="true">OA</span>
-            <span className="journal-pill-text">{oa}</span>
+        <div className="paper-journal-slot journal-catalog-card__oa-slot">
+          <span className="journal-catalog-card__oa" data-oa={journal.oa_type || 'unknown'} title={`开放获取：${oa}`}>
+            <span className="journal-catalog-card__oa-key" aria-hidden="true">OA</span>
+            <span className="journal-catalog-card__oa-label">{oa}</span>
           </span>
         </div>
       </div>
