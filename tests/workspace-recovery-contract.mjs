@@ -13,6 +13,7 @@ const journalCenter = read('src/components/JournalCenterWorkspace.tsx')
 const offlineJournalCenter = read('src/components/OfflineJournalCenterWorkspace.tsx')
 const journalCard = read('src/components/JournalCatalogCard.tsx')
 const journalCardCss = read('src/components/JournalCatalogCard.css')
+const journalCardDetailCss = exists('src/components/JournalCatalogCardDetail.css') ? read('src/components/JournalCatalogCardDetail.css') : ''
 const appStyles = read('src/app-styles.ts')
 const preparation = read('src/components/PreparationWorkspace.tsx')
 const navigation = read('src/components/preparation/PreparationNavigation.tsx')
@@ -41,19 +42,24 @@ for (const token of ['journal-center-grid.paper-grid.journal-catalog-grid', 'rep
 assert(exists('src/components/JournalCenterWorkspace.tsx'), 'Journal Center must have its own workspace component')
 assert(exists('src/components/JournalCatalogCard.tsx'), 'Journal Center and Preparation must share one journal card component')
 assert(exists('src/components/JournalCatalogCard.css'), 'Shared journal card must own a dedicated canonical stylesheet')
+assert(exists('src/components/JournalCatalogCardDetail.css'), 'Standalone Journal Center must own a detail-geometry stylesheet')
 assert(journalCenter.includes('JournalCatalogCard') && journalCenter.includes('journal-catalog-grid') && !journalCenter.includes('journal-center-workspace preparation-workspace'), 'Journal Center must reuse the shared journal catalog card system without masquerading as Preparation')
 assert(offlineJournalCenter.includes('JournalCatalogCard') && offlineJournalCenter.includes('journal-catalog-grid') && !offlineJournalCenter.includes('journal-center-workspace preparation-workspace'), 'Offline Journal Center must use the same shared journal card visual system without Preparation coupling')
 
-// First-class Journal Center must literally participate in the Submission Management grid/card system.
-// Geometry resemblance is insufficient: using the same shell classes prevents a second visual language
-// from silently reappearing through later CSS layers.
+// First-class Journal Center participates in the Submission Management shell without
+// inheriting workflow-only internals that distort catalogue details.
 assert(journalCenter.includes('journal-center-grid paper-grid journal-catalog-grid'), 'Online Journal Center must use the same paper-grid layout contract as Submission Management')
 assert(offlineJournalCenter.includes('journal-center-grid paper-grid journal-catalog-grid'), 'Offline Journal Center must use the same paper-grid layout contract as Submission Management')
-for (const token of ['paper-card-v3', 'paper-card-head', 'paper-status-area', 'paper-action-rail', 'title-block', 'card-title', 'card-subtitle', 'paper-card-footer']) {
+for (const token of ['paper-card-v3', 'paper-card-head', 'paper-status-area', 'paper-action-rail', 'title-block', 'card-title', 'card-subtitle']) {
   assert(journalCard.includes(token), `Journal Center card must share Submission Management structure: ${token}`)
 }
+assert(journalCard.includes('journal-center-card__links'), 'Journal Center must use a dedicated inline footer action rail')
+assert(!journalCard.includes('paper-card-footer'), 'Journal Center footer must not inherit Submission Management workflow footer geometry')
+assert(journalCard.includes("import './JournalCatalogCard.css'") && journalCard.includes("import './JournalCatalogCardDetail.css'"), 'Journal Center must load canonical card styles followed by its detail-geometry contract')
+assert(journalCard.indexOf("import './JournalCatalogCard.css'") < journalCard.indexOf("import './JournalCatalogCardDetail.css'"), 'Journal Center detail geometry must load after the canonical card stylesheet')
+assert(journalCardDetailCss.includes('.journal-catalog-card__oa-label') && journalCardDetailCss.includes('.journal-catalog-card__metrics') && journalCardDetailCss.includes('.journal-center-card__links'), 'Journal Center detail stylesheet must own OA, metric and footer geometry')
 
-assert(journalCard.includes("import './JournalCatalogCard.css'") && journalCard.includes('journal-catalog-card__status') && journalCard.includes('journal-catalog-card__substatus') && journalCard.includes('journal-catalog-card__title-block'), 'Shared journal card must use the submission-management information hierarchy')
+assert(journalCard.includes('journal-catalog-card__status') && journalCard.includes('journal-catalog-card__substatus') && journalCard.includes('journal-catalog-card__title-block'), 'Shared journal card must use the submission-management information hierarchy')
 assert(journalCard.includes('prep-journal-rank-blocks') && journalCard.includes('prep-journal-facts') && journalCard.includes('prep-journal-numbers'), 'Shared journal card must retain colorful rank/fact/metric visual layers')
 assert(journalCardCss.includes('--release-page-width') && journalCardCss.includes('.journal-priority-status') && journalCardCss.includes("[data-tone='selection']") && journalCardCss.includes("[data-tone='decision']") && journalCardCss.includes('.journal-center-card::before'), 'Journal Center stylesheet must only map journal semantics and visible color layers onto the shared Submission Management shell')
 assert(!/journal-center-grid[^\{]*\{[^\}]*grid-template-columns:\s*repeat\(auto-(?:fit|fill)/s.test(journalCardCss), 'Journal Center must not define an independent auto-fit/auto-fill desktop column system')

@@ -13,6 +13,7 @@ on:
       - 'tests/visual/submission-grid-parity-check.mjs'
       - 'tests/visual/dark-theme-contract-check.mjs'
       - 'tests/visual/application-density-family-check.mjs'
+      - 'tests/visual/journal-center-detail-readability-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -25,6 +26,7 @@ on:
       - 'tests/visual/submission-grid-parity-check.mjs'
       - 'tests/visual/dark-theme-contract-check.mjs'
       - 'tests/visual/application-density-family-check.mjs'
+      - 'tests/visual/journal-center-detail-readability-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -74,3 +76,5 @@ jobs:
         run: node tests/visual/dark-theme-contract-check.mjs
       - name: Verify shared visual language with purpose-specific density
         run: node tests/visual/application-density-family-check.mjs
+      - name: Verify Journal Center detail readability
+        run: node tests/visual/journal-center-detail-readability-check.mjs

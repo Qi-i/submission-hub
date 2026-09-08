@@ -216,3 +216,162 @@ html[data-ui] body .journal-match-current__journal {
     padding: 13px 13px 11px !important;
   }
 }
+
+/*
+ * JOURNAL CENTER DETAIL READABILITY
+ * ---------------------------------
+ * Standalone catalogue details must not inherit the workflow-card internals used by
+ * Submission Management. Keep the same visual family, but own the OA, metric and link
+ * geometry so the compact information remains legible at native 2K widths.
+ */
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa-slot {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 180px !important;
+  overflow: visible !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
+  width: max-content !important;
+  min-width: 76px !important;
+  max-width: 180px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa-key {
+  flex: 0 0 auto !important;
+  font-size: 8.8px !important;
+  font-weight: 820 !important;
+  line-height: 1 !important;
+  letter-spacing: .04em !important;
+  opacity: .72 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa-label {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 10.2px !important;
+  font-weight: 760 !important;
+  line-height: 1 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)) !important;
+  grid-auto-flow: row !important;
+  align-items: stretch !important;
+  justify-content: start !important;
+  gap: 5px !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics > div {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 42px !important;
+  display: grid !important;
+  grid-template-rows: auto auto auto !important;
+  align-content: center !important;
+  justify-items: start !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+  padding: 5px 7px !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-metric-label {
+  order: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 8.9px !important;
+  font-weight: 650 !important;
+  line-height: 1.1 !important;
+  opacity: .72 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-metric-value {
+  order: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 11.2px !important;
+  font-weight: 800 !important;
+  line-height: 1.08 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-metric-unit {
+  font-size: 8.8px !important;
+  font-weight: 650 !important;
+  opacity: .72 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .prep-journal-apc-cny {
+  order: 2 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 8.7px !important;
+  line-height: 1.08 !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .prep-journal-apc-cny > * {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .journal-center-card__links {
+  width: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px 7px !important;
+  margin: 0 !important;
+  padding: 5px 0 0 !important;
+  border-top: 1px solid rgba(100, 116, 139, .11) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .journal-center-card__links:empty {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa-slot {
+    max-width: 48vw !important;
+  }
+
+  html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
+    min-width: 72px !important;
+    max-width: 48vw !important;
+  }
+
+  html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
