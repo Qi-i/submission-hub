@@ -140,6 +140,79 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   display: none !important;
 }
 
+/* Luminous X keeps the permanent sidebar at desktop widths. Between 1560 and 2199px
+ * the shared four-column dashboard contract leaves each card only ~340px wide.
+ * Bound every journal section to the card and give dense metric cards a 2x2 layout;
+ * this is the smallest width where four metric columns become materially harder to read. */
+@media (min-width: 1560px) and (max-width: 2199px) {
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid > .journal-center-card > * {
+    inline-size: 100% !important;
+    width: 100% !important;
+    min-inline-size: 0 !important;
+    min-width: 0 !important;
+    max-inline-size: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card :is(
+    .journal-catalog-card__head,
+    .journal-catalog-card__publisher-rail,
+    .journal-catalog-card__title-block,
+    .journal-catalog-card__ranks,
+    .journal-catalog-card__facts,
+    .journal-catalog-card__metrics,
+    .journal-center-card__links
+  ) {
+    min-inline-size: 0 !important;
+    min-width: 0 !important;
+    max-inline-size: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-slot {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-label {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-metric-value,
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny,
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny > span {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
 @media (max-width: 720px) {
   html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card {
     min-width: 0 !important;
