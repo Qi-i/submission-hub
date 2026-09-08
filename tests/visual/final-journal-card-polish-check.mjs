@@ -23,7 +23,7 @@ async function openDashboard(page, ui) {
 
 try {
   for (const ui of ['luminous', 'luminous-x']) {
-    const page = await browser.newPage({ viewport: { width: 2048, height: 1085 } })
+    const page = await browser.newPage({ viewport: { width: 1707, height: 960 } })
     try {
       await openJournalCenter(page, ui)
       const journalFailures = await page.evaluate(() => {
