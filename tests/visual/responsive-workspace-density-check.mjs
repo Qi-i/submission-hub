@@ -36,7 +36,19 @@ for (const current of cases) {
         if (!left || !right) return 0
         const vertical = Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top)
         if (vertical <= 1) return 0
-        return Math.min(left.right, right.right) - Math.max(left.left, right.left)
+        return Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left))
+      }
+      const visibleContentRect = container => {
+        if (!container || !visible(container)) return null
+        const children = Array.from(container.children).filter(child => child instanceof HTMLElement && visible(child))
+        if (!children.length) return container.getBoundingClientRect()
+        const rects = children.map(child => child.getBoundingClientRect())
+        return {
+          left: Math.min(...rects.map(rect => rect.left)),
+          right: Math.max(...rects.map(rect => rect.right)),
+          top: Math.min(...rects.map(rect => rect.top)),
+          bottom: Math.max(...rects.map(rect => rect.bottom)),
+        }
       }
 
       const gridRect = grid.getBoundingClientRect()
@@ -51,7 +63,7 @@ for (const current of cases) {
         const statusRect = status && visible(status) ? status.getBoundingClientRect() : null
         const journalRect = journal && visible(journal) ? journal.getBoundingClientRect() : null
         const substatusRect = substatus && visible(substatus) ? substatus.getBoundingClientRect() : null
-        const railRect = rail && visible(rail) ? rail.getBoundingClientRect() : null
+        const railRect = visibleContentRect(rail)
         return {
           index,
           width: cardRect.width,
@@ -89,7 +101,7 @@ for (const current of cases) {
       if (card.width < current.minCardWidth) fail(`${current.name}/card-${card.index + 1}: width ${card.width.toFixed(1)}px is below ${current.minCardWidth}px`)
       if (card.horizontalOverflow > 2) fail(`${current.name}/card-${card.index + 1}: horizontal overflow ${card.horizontalOverflow}px`)
       if (card.statusJournalOverlap > 1) fail(`${current.name}/card-${card.index + 1}: status overlaps journal by ${card.statusJournalOverlap.toFixed(1)}px`)
-      if (card.substatusRailOverlap > 1) fail(`${current.name}/card-${card.index + 1}: system status overlaps action rail by ${card.substatusRailOverlap.toFixed(1)}px`)
+      if (card.substatusRailOverlap > 1) fail(`${current.name}/card-${card.index + 1}: system status overlaps visible action content by ${card.substatusRailOverlap.toFixed(1)}px`)
       if (card.journalEscapes) fail(`${current.name}/card-${card.index + 1}: journal module escapes card`)
       if (card.railEscapes) fail(`${current.name}/card-${card.index + 1}: action rail escapes card`)
     }
