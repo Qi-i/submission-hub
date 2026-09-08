@@ -24,6 +24,15 @@ function journalAccent(journal: JournalProfile) {
   return '#64748b'
 }
 
+const JOURNAL_SURFACE_PALETTE = ['#2563eb', '#0f766e', '#7c3aed', '#c2410c', '#be123c', '#0e7490', '#4f46e5', '#b45309']
+
+function journalSurfaceAccent(journal: JournalProfile) {
+  const key = `${journal.name}|${journal.official_abbreviation || ''}|${journal.publisher || ''}`
+  let hash = 0
+  for (let index = 0; index < key.length; index += 1) hash = ((hash * 31) + key.charCodeAt(index)) >>> 0
+  return JOURNAL_SURFACE_PALETTE[hash % JOURNAL_SURFACE_PALETTE.length]
+}
+
 function publisherMark(value?: string | null) {
   const text = (value || '').trim()
   if (!text) return 'J'
@@ -101,7 +110,11 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
 
   if (standalone) {
     const accent = journalAccent(journal)
-    const style = { ['--paper-status-color' as string]: accent } as CSSProperties
+    const surfaceAccent = journalSurfaceAccent(journal)
+    const style = {
+      ['--paper-status-color' as string]: accent,
+      ['--journal-surface-accent' as string]: surfaceAccent,
+    } as CSSProperties
     const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
       if (event.target !== event.currentTarget) return
       if (event.key === 'Enter' || event.key === ' ') {

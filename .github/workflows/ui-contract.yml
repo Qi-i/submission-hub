@@ -14,6 +14,7 @@ on:
       - 'tests/visual/dark-theme-contract-check.mjs'
       - 'tests/visual/application-density-family-check.mjs'
       - 'tests/visual/journal-center-detail-readability-check.mjs'
+      - 'tests/visual/final-journal-card-polish-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -27,6 +28,7 @@ on:
       - 'tests/visual/dark-theme-contract-check.mjs'
       - 'tests/visual/application-density-family-check.mjs'
       - 'tests/visual/journal-center-detail-readability-check.mjs'
+      - 'tests/visual/final-journal-card-polish-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -78,3 +80,5 @@ jobs:
         run: node tests/visual/application-density-family-check.mjs
       - name: Verify Journal Center detail readability
         run: node tests/visual/journal-center-detail-readability-check.mjs
+      - name: Verify final Journal Center and accepted-card polish
+        run: node tests/visual/final-journal-card-polish-check.mjs

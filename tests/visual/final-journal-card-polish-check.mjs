@@ -1,0 +1,104 @@
+import { chromium } from 'playwright'
+
+const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
+const browser = await chromium.launch({ headless: true })
+const failures = []
+
+async function openJournalCenter(page, ui) {
+  await page.goto(`${baseUrl}?view=preparation&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+  await page.locator("html[data-visual-ready='true']").waitFor({ state: 'attached', timeout: 45000 })
+  const entry = page.locator("button[data-main-nav-key='journals']:visible").first()
+  await entry.waitFor({ state: 'visible', timeout: 15000 })
+  await entry.click()
+  await page.locator('.journal-center-workspace:visible .journal-center-card:visible').first().waitFor({ state: 'visible', timeout: 15000 })
+  await page.waitForTimeout(250)
+}
+
+async function openDashboard(page, ui) {
+  await page.goto(`${baseUrl}?view=dashboard&theme=light&ui=${ui}`, { waitUntil: 'domcontentloaded' })
+  await page.locator("html[data-visual-ready='true']").waitFor({ state: 'attached', timeout: 45000 })
+  await page.locator('.paper-grid:visible .paper-card-v3:visible').first().waitFor({ state: 'visible', timeout: 15000 })
+  await page.waitForTimeout(250)
+}
+
+try {
+  for (const ui of ['luminous', 'luminous-x']) {
+    const page = await browser.newPage({ viewport: { width: 2048, height: 1085 } })
+    try {
+      await openJournalCenter(page, ui)
+      const journalFailures = await page.evaluate(() => {
+        const failures = []
+        const cards = Array.from(document.querySelectorAll('.journal-center-workspace .journal-center-card'))
+
+        const byOa = new Map()
+        cards.forEach(card => {
+          const oa = card.getAttribute('data-oa') || 'unknown'
+          const style = getComputedStyle(card)
+          const surface = `${style.backgroundColor}|${style.backgroundImage}`
+          const list = byOa.get(oa) || []
+          list.push(surface)
+          byOa.set(oa, list)
+        })
+        for (const [oa, surfaces] of byOa.entries()) {
+          if (surfaces.length >= 2 && new Set(surfaces).size < 2) {
+            failures.push(`same-OA journals (${oa}) still collapse to one identical card surface`)
+          }
+        }
+
+        cards.forEach((card, index) => {
+          const cardRect = card.getBoundingClientRect()
+          const accent = getComputedStyle(card, '::before')
+          const accentWidth = Number.parseFloat(accent.width)
+          const accentHeight = Number.parseFloat(accent.height)
+          if (!Number.isFinite(accentWidth) || accentWidth < cardRect.width * 0.72) {
+            failures.push(`journal ${index + 1}: top accent is still a short dash (${Number.isFinite(accentWidth) ? accentWidth.toFixed(1) : 'NaN'}px of ${cardRect.width.toFixed(1)}px card)`)
+          }
+          if (!Number.isFinite(accentHeight) || accentHeight < 1.5 || accentHeight > 3.5) {
+            failures.push(`journal ${index + 1}: top accent height is inconsistent (${accentHeight || 0}px)`)
+          }
+
+          const metrics = card.querySelector('.journal-catalog-card__metrics')
+          const apc = metrics?.querySelector('.prep-journal-apc-metric')
+          if (metrics && apc) {
+            const nonApc = Array.from(metrics.children).filter(node => node !== apc && node instanceof HTMLElement && getComputedStyle(node).display !== 'none')
+            if (nonApc.length) {
+              const apcTop = apc.getBoundingClientRect().top
+              const nonApcBottom = Math.max(...nonApc.map(node => node.getBoundingClientRect().bottom))
+              if (apcTop < nonApcBottom - 1) failures.push(`journal ${index + 1}: APC still shares the review-metric row instead of using its own compact row`)
+            }
+          }
+        })
+
+        return failures
+      })
+      failures.push(...journalFailures.map(message => `${ui}: ${message}`))
+
+      await openDashboard(page, ui)
+      const dashboardFailures = await page.evaluate(() => {
+        const failures = []
+        const acceptedCard = Array.from(document.querySelectorAll('.paper-grid .paper-card-v3:not(.journal-center-card)'))
+          .find(card => card.querySelector(".paper-status-area[data-status='accepted']"))
+        if (!acceptedCard) return ['accepted fixture card is missing']
+        const rank = acceptedCard.querySelector('.paper-rank-row')
+        const rankText = rank
+          ? Array.from(rank.children)
+              .filter(node => node instanceof HTMLElement && getComputedStyle(node).display !== 'none' && getComputedStyle(node).visibility !== 'hidden')
+              .map(node => node.textContent || '')
+              .join('')
+          : ''
+        if (/已发表|已接收|published|accepted/i.test(rankText)) {
+          failures.push(`accepted card repeats publication status inside journal-rank metadata (${rankText.trim()})`)
+        }
+        return failures
+      })
+      failures.push(...dashboardFailures.map(message => `${ui}: ${message}`))
+    } finally {
+      await page.close()
+    }
+  }
+} finally {
+  await browser.close()
+}
+
+console.log(JSON.stringify({ failures }, null, 2))
+if (failures.length) throw new Error(failures.join(' | '))

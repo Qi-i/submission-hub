@@ -50,44 +50,44 @@ html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid .journal-c
   background: linear-gradient(135deg, rgba(91, 33, 182, .30), rgba(76, 29, 149, .18)) !important;
 }
 
-/* Make OA semantics visible at card-surface level instead of tinting every card almost identically. */
-html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3[data-oa='hybrid'] {
-  background: linear-gradient(145deg, rgba(247, 243, 255, .98), rgba(252, 250, 255, .95) 58%, rgba(255,255,255,.93)) !important;
-  border-color: rgba(124, 58, 237, .22) !important;
+/* Card surfaces use a stable journal identity accent. OA semantics stay on the OA badge. */
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3 {
+  border-color: color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 24%, var(--ui-border, rgba(100, 116, 139, .18))) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 7%, rgba(255,255,255,.97)),
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 3%, rgba(255,255,255,.94)) 58%,
+      rgba(255,255,255,.92)) !important;
 }
 
-html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3:is([data-oa='gold'], [data-oa='diamond']) {
-  background: linear-gradient(145deg, rgba(236, 253, 245, .98), rgba(246, 255, 251, .95) 58%, rgba(255,255,255,.93)) !important;
-  border-color: rgba(5, 150, 105, .22) !important;
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3 {
+  border-color: color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 28%, rgba(148,163,184,.20)) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 10%, rgba(37,49,60,.96)),
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 5%, rgba(31,42,52,.96)) 60%,
+      rgba(31,42,52,.94)) !important;
 }
 
-html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3[data-oa='closed'] {
-  background: linear-gradient(145deg, rgba(241, 245, 249, .98), rgba(248, 250, 252, .96) 58%, rgba(255,255,255,.93)) !important;
-  border-color: rgba(100, 116, 139, .22) !important;
+/* Journal Center uses one consistent inset top accent in both Luminous families. */
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::before {
+  top: 6px !important;
+  right: 20px !important;
+  bottom: auto !important;
+  left: 20px !important;
+  width: auto !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  opacity: .68 !important;
+  background: var(--journal-surface-accent, var(--journal-card-accent)) !important;
 }
 
-html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3[data-oa='unknown'] {
-  background: linear-gradient(145deg, rgba(239, 246, 255, .98), rgba(248, 250, 255, .95) 58%, rgba(255,255,255,.93)) !important;
-  border-color: rgba(59, 130, 246, .20) !important;
-}
-
-html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3[data-oa='hybrid'] {
-  background: linear-gradient(145deg, rgba(67, 56, 95, .94), rgba(42, 46, 61, .96) 64%, rgba(31,42,52,.94)) !important;
-  border-color: rgba(167, 139, 250, .26) !important;
-}
-
-html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3:is([data-oa='gold'], [data-oa='diamond']) {
-  background: linear-gradient(145deg, rgba(34, 72, 65, .92), rgba(36, 54, 58, .96) 64%, rgba(31,42,52,.94)) !important;
-  border-color: rgba(52, 211, 153, .24) !important;
-}
-
-html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-card-v3:is([data-oa='closed'], [data-oa='unknown']) {
-  background: linear-gradient(145deg, rgba(43, 55, 68, .96), rgba(34, 45, 55, .96)) !important;
-}
-
-/* APC is one compact sentence-like metric: label, original amount and CNY estimate. */
+/* APC is one compact sentence-like metric on its own row below review metrics. */
 html[data-ui] body .journal-center-grid.paper-grid .journal-center-card.paper-card-v3 .journal-catalog-card__metrics > .prep-journal-apc-metric {
-  grid-column: span 2 !important;
+  grid-column: 1 / -1 !important;
+  justify-self: start !important;
+  width: fit-content !important;
+  max-width: 300px !important;
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
@@ -150,6 +150,18 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .a
   min-width: 0 !important;
   align-self: center !important;
   margin-left: 0 !important;
+}
+
+/* Accepted is already communicated by the workflow status; do not repeat it as a rank chip. */
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(.paper-status-area[data-status='accepted']) .paper-rank-row > :is(
+  [title='已发表'],
+  [title='已接收'],
+  [title='Published'],
+  [title='Accepted'],
+  [title='published'],
+  [title='accepted']
+) {
+  display: none !important;
 }
 
 /* Luminous X's dense-card contract previously forced both metadata groups back to column 1.
@@ -215,6 +227,8 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper
 @media (max-width: 720px) {
   html[data-ui] body .journal-center-grid.paper-grid .journal-center-card.paper-card-v3 .journal-catalog-card__metrics > .prep-journal-apc-metric {
     grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) {
