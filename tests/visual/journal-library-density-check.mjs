@@ -95,15 +95,17 @@ async function inspectDesktop(ui, theme) {
         const rect = card.getBoundingClientRect()
         const status = card.querySelector('.journal-catalog-card__status')
         const substatus = card.querySelector('.journal-catalog-card__substatus')
+        const oa = card.querySelector('.journal-catalog-card__oa')
         const title = card.querySelector('.journal-catalog-card__title-block > .card-title')
         const subtitle = card.querySelector('.journal-catalog-card__title-block > .card-subtitle')
         const facts = Array.from(card.querySelectorAll('.prep-journal-facts > span'))
         const links = card.querySelector('.journal-catalog-card__footer')
         if (!card.classList.contains('paper-card-v3')) localFailures.push(`journal ${index + 1}: card is outside the shared paper-card-v3 visual family`)
-        if (!status || !substatus || !title) {
+        if (!status || !oa || !title) {
           localFailures.push(`journal ${index + 1}: shared card hierarchy is incomplete`)
           return
         }
+        if (substatus && visible(substatus)) localFailures.push(`journal ${index + 1}: redundant secondary status row is visible`)
 
         const cardStyle = getComputedStyle(card)
         const statusStyle = getComputedStyle(status)
