@@ -152,6 +152,37 @@ html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card):has(> .a
   margin-left: 0 !important;
 }
 
+/* Luminous X's dense-card contract previously forced both metadata groups back to column 1.
+ * Keep the same two-column publication row there with a more specific scoped override. */
+@media (min-width: 721px) {
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) {
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    column-gap: 5px !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > :not(.archive-chip-row):not(.paper-rank-row) {
+    grid-column: 1 / -1 !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .archive-chip-row {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    align-self: center !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid:not(.lx-journal-group-grid) > .paper-card-v3:not(.journal-center-card):has(> .archive-chip-row + .paper-rank-row) > .paper-rank-row {
+    grid-column: 2 !important;
+    grid-row: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    align-self: center !important;
+  }
+}
+
 /* Attachment controls stay left and the submission/resolution time stays right on one baseline. */
 html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-card-footer {
   width: 100% !important;
