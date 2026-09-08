@@ -24,10 +24,10 @@ async function inspectPage(page, name, expectedUi = 'luminous') {
 
     if (root.dataset.ui !== expectedUi) failures.push(`${name}: expected data-ui=${expectedUi}, received ${root.dataset.ui || 'unset'}`)
     if (expectedUi === 'luminous') {
-    const luminousCyan = rootStyle.getPropertyValue('--luminous-cyan').trim().toLowerCase()
-    const expectedCyan = root.dataset.theme === 'dark' ? '#72c8df' : '#3cf5ff'
-    if (luminousCyan !== expectedCyan) failures.push(`${name}: luminous cyan design token is unexpected (${luminousCyan || 'missing'})`)
-  }
+      const luminousCyan = rootStyle.getPropertyValue('--luminous-cyan').trim().toLowerCase()
+      const expectedCyan = root.dataset.theme === 'dark' ? '#72c8df' : '#3cf5ff'
+      if (luminousCyan !== expectedCyan) failures.push(`${name}: luminous cyan design token is unexpected (${luminousCyan || 'missing'})`)
+    }
     if (document.documentElement.scrollWidth > viewportWidth + 2) failures.push(`${name}: page has horizontal overflow`)
 
     if (!switcher) {
@@ -62,7 +62,10 @@ async function inspectPage(page, name, expectedUi = 'luminous') {
     journalLabels.forEach((label, index) => {
       const style = getComputedStyle(label)
       const lineHeight = Number.parseFloat(style.lineHeight)
-      if (Number.isFinite(lineHeight) && label.scrollHeight > lineHeight * 2.35) failures.push(`${name}: journal label ${index + 1} exceeds two lines`)
+      const renderedHeight = label.getBoundingClientRect().height
+      const lineClamp = style.getPropertyValue('-webkit-line-clamp').trim()
+      if (Number.isFinite(lineHeight) && renderedHeight > lineHeight * 2.35) failures.push(`${name}: journal label ${index + 1} visibly exceeds two lines`)
+      if (label.scrollHeight > label.clientHeight + 1 && lineClamp !== '2') failures.push(`${name}: journal label ${index + 1} overflows without a two-line clamp`)
       if (Number.parseFloat(style.fontSize) < 11) failures.push(`${name}: journal label ${index + 1} is too small`)
     })
 
