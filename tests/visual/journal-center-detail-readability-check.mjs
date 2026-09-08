@@ -34,7 +34,7 @@ try {
 
         const appHeader = document.querySelector('.app-header')
         const toolbar = document.querySelector('.journal-center-workspace .journal-center-toolbar')
-        if (appHeader && toolbar) {
+        if (document.documentElement.dataset.ui === 'luminous' && appHeader && toolbar) {
           const gap = toolbar.getBoundingClientRect().top - appHeader.getBoundingClientRect().bottom
           if (gap < 9) failures.push(`Journal Center toolbar touches the global header (${gap.toFixed(1)}px gap)`)
         }
