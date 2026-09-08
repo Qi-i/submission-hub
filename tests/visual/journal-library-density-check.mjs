@@ -141,18 +141,24 @@ async function inspectDesktop(ui, theme) {
         for (const [groupName, group] of [
           ['ranks', card.querySelector('.prep-journal-rank-blocks')],
           ['facts', card.querySelector('.prep-journal-facts')],
-          ['metrics', card.querySelector('.prep-journal-numbers')],
         ]) {
           if (!group || !visible(group)) continue
           const style = getComputedStyle(group)
           if (style.display !== 'flex' || style.flexWrap !== 'wrap') localFailures.push(`journal ${index + 1}: ${groupName} are not content-driven flex-wrap`)
         }
 
+        const metricGroup = card.querySelector('.prep-journal-numbers')
+        if (metricGroup && visible(metricGroup) && getComputedStyle(metricGroup).display !== 'grid') {
+          localFailures.push(`journal ${index + 1}: metrics do not use the compact non-stretching grid`)
+        }
         const metrics = Array.from(card.querySelectorAll('.prep-journal-numbers > div')).filter(visible)
         metrics.forEach((metric, metricIndex) => {
-          const value = metric.querySelector('b')?.textContent?.trim() || ''
+          const value = metric.querySelector('.journal-metric-value, b')?.textContent?.trim() || ''
+          const label = metric.querySelector('.journal-metric-label')
           if (!value || ['—', '--', '-', '–'].includes(value)) localFailures.push(`journal ${index + 1}: empty metric ${metricIndex + 1} remains visible`)
+          if (!label) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} lost its explicit label`)
           if (metric.getBoundingClientRect().height > 48) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} is too tall`)
+          if (metric.scrollWidth > metric.clientWidth + 1 || metric.scrollHeight > metric.clientHeight + 1) localFailures.push(`journal ${index + 1}: metric ${metricIndex + 1} overflows`)
         })
         facts.forEach((fact, factIndex) => {
           if (visible(fact) && fact.getBoundingClientRect().height > 32) localFailures.push(`journal ${index + 1}: fact ${factIndex + 1} is too tall`)
