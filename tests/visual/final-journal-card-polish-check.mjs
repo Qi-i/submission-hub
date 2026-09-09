@@ -1,6 +1,7 @@
 import { chromium } from 'playwright'
 
 const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
+const tierUrl = 'http://127.0.0.1:4174/tests/visual/journal-tier.html'
 const browser = await chromium.launch({ headless: true })
 const failures = []
 
@@ -41,19 +42,15 @@ try {
           if (watermark !== expected) failures.push(`journal ${index + 1}: expected rank watermark ${expected}, got ${watermark || 'missing'}`)
         })
 
-        const byOa = new Map()
-        cards.forEach(card => {
-          const oa = card.getAttribute('data-oa') || 'unknown'
-          const style = getComputedStyle(card)
-          const surface = `${style.backgroundColor}|${style.backgroundImage}`
-          const list = byOa.get(oa) || []
-          list.push(surface)
-          byOa.set(oa, list)
-        })
-        for (const [oa, surfaces] of byOa.entries()) {
-          if (surfaces.length >= 2 && new Set(surfaces).size < 2) {
-            failures.push(`same-OA journals (${oa}) still collapse to one identical card surface`)
-          }
+        if (cards.length >= 2) {
+          const first = getComputedStyle(cards[0]).backgroundImage
+          const second = getComputedStyle(cards[1]).backgroundImage
+          if (first !== second) failures.push('journals in the same JCR Q1 tier should use the same primary card surface')
+        }
+        if (cards.length >= 3) {
+          const q1 = getComputedStyle(cards[0]).backgroundImage
+          const q2 = getComputedStyle(cards[2]).backgroundImage
+          if (q1 === q2) failures.push('JCR Q1 and Q2 cards should have visibly distinct primary surfaces')
         }
 
         cards.forEach((card, index) => {
@@ -145,9 +142,7 @@ try {
           ? Array.from(rank.children).filter(node => node instanceof HTMLElement && getComputedStyle(node).display !== 'none' && getComputedStyle(node).visibility !== 'hidden')
           : []
         const rankText = visibleRankItems.map(node => node.textContent || '').join('')
-        if (/已发表|已接收|published|accepted/i.test(rankText)) {
-          failures.push(`accepted card repeats publication status inside journal-rank metadata (${rankText.trim()})`)
-        }
+        if (/已发表|已接收|published|accepted/i.test(rankText)) failures.push(`accepted card repeats publication status inside journal-rank metadata (${rankText.trim()})`)
 
         if (archive && rank && visibleRankItems.length > 1) {
           const archiveRect = archive.getBoundingClientRect()
@@ -155,24 +150,43 @@ try {
           const rankRects = visibleRankItems.map(node => node.getBoundingClientRect())
           const tops = rankRects.map(rect => rect.top)
           const topSpread = Math.max(...tops) - Math.min(...tops)
-          if (topSpread > 2) {
-            failures.push(`accepted DOI/quartile rail wraps rank badges onto multiple lines (${topSpread.toFixed(1)}px top spread)`)
-          }
-          if (Math.abs(rankRects[0].top - archiveRect.top) > 4) {
-            failures.push(`accepted DOI and quartile metadata are not aligned on one row`)
-          }
+          if (topSpread > 2) failures.push(`accepted DOI/quartile rail wraps rank badges onto multiple lines (${topSpread.toFixed(1)}px top spread)`)
+          if (Math.abs(rankRects[0].top - archiveRect.top) > 4) failures.push('accepted DOI and quartile metadata are not aligned on one row')
           const lastRight = Math.max(...rankRects.map(rect => rect.right))
-          if (lastRight > cardRect.right - 8) {
-            failures.push(`accepted DOI/quartile rail overflows the card by ${(lastRight - (cardRect.right - 8)).toFixed(1)}px`)
-          }
+          if (lastRight > cardRect.right - 8) failures.push(`accepted DOI/quartile rail overflows the card by ${(lastRight - (cardRect.right - 8)).toFixed(1)}px`)
         }
-
         return failures
       })
       failures.push(...dashboardFailures.map(message => `${ui}: ${message}`))
     } finally {
       await page.close()
     }
+  }
+
+  const tierPage = await browser.newPage({ viewport: { width: 1707, height: 960 } })
+  try {
+    await tierPage.goto(tierUrl, { waitUntil: 'domcontentloaded' })
+    await tierPage.locator("html[data-visual-ready='true']").waitFor({ state: 'attached', timeout: 45000 })
+    const tierFailures = await tierPage.evaluate(() => {
+      const failures = []
+      document.querySelectorAll('[data-tier-case]').forEach(wrapper => {
+        const expected = wrapper.getAttribute('data-expected')
+        const key = wrapper.getAttribute('data-tier-case')
+        const card = wrapper.querySelector('.journal-center-card')
+        if (!card) {
+          failures.push(`${key}: card missing`)
+          return
+        }
+        const code = card.getAttribute('data-surface-code')
+        const watermark = getComputedStyle(card, '::after').content.replace(/["']/g, '')
+        if (code !== expected) failures.push(`${key}: expected ${expected}, got ${code || 'missing'}`)
+        if (watermark !== expected) failures.push(`${key}: watermark expected ${expected}, got ${watermark || 'missing'}`)
+      })
+      return failures
+    })
+    failures.push(...tierFailures.map(message => `tier-rule: ${message}`))
+  } finally {
+    await tierPage.close()
   }
 } finally {
   await browser.close()
