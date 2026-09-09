@@ -55,6 +55,10 @@ try {
             const deadSpace = rect.width - contentRect.width
             if (deadSpace > 34) failures.push(`journal ${cardIndex + 1}: metric ${itemIndex + 1} keeps ${deadSpace.toFixed(1)}px of avoidable internal blank space`)
 
+            const verticalDeadSpace = rect.height - Math.max(labelRect.height, valueRect.height)
+            if (verticalDeadSpace > 16) failures.push(`journal ${cardIndex + 1}: metric ${itemIndex + 1} keeps ${verticalDeadSpace.toFixed(1)}px of avoidable vertical blank space`)
+            if (rect.height > 30) failures.push(`journal ${cardIndex + 1}: metric ${itemIndex + 1} is ${rect.height.toFixed(1)}px tall instead of a compact single-line chip`)
+
             if (item.classList.contains('prep-journal-apc-metric')) {
               checkedApc = true
               if (item.parentElement !== metrics) failures.push(`journal ${cardIndex + 1}: APC was moved out of the metric rail`)
