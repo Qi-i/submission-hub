@@ -1,0 +1,61 @@
+/*
+ * JOURNAL CENTER Q1-Q3 TERMINAL SURFACE CONTRACT
+ * ------------------------------------------------
+ * Loaded last from app-styles.ts. The Journal Center now uses only three dedicated
+ * international tier identities: Q1, Q2 and Q3. Keep the card family light, but make
+ * the rank readable at a glance through a stronger pastel surface, border and top rail.
+ */
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q1'] {
+  --journal-surface-accent: #e11d48 !important;
+  --journal-card-accent: #e11d48 !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q2'] {
+  --journal-surface-accent: #ca8a04 !important;
+  --journal-card-accent: #ca8a04 !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q3'] {
+  --journal-surface-accent: #2563eb !important;
+  --journal-card-accent: #2563eb !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3 {
+  border-color: color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 42%, var(--ui-border, rgba(100, 116, 139, .18))) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 20%, rgba(255,255,255,.98)),
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 10%, rgba(255,255,255,.96)) 58%,
+      rgba(255,255,255,.94)) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3 {
+  border-color: color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 48%, rgba(148,163,184,.20)) !important;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 18%, rgba(37,49,60,.96)),
+      color-mix(in srgb, var(--journal-surface-accent, var(--journal-card-accent)) 9%, rgba(31,42,52,.96)) 60%,
+      rgba(31,42,52,.94)) !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::before {
+  top: 6px !important;
+  right: 18px !important;
+  bottom: auto !important;
+  left: 18px !important;
+  width: auto !important;
+  height: 4px !important;
+  border-radius: 999px !important;
+  opacity: 0.95 !important;
+  background: var(--journal-surface-accent, var(--journal-card-accent)) !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
+  color: var(--journal-surface-accent, var(--journal-card-accent)) !important;
+  opacity: 0.12 !important;
+}
+
+html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
+  opacity: 0.17 !important;
+}

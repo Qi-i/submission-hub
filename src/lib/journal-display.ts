@@ -10,7 +10,6 @@ export type JournalSurfaceTier =
   | 'jcr-q1'
   | 'jcr-q2'
   | 'jcr-q3'
-  | 'jcr-q4'
   | 'jcr-unranked'
   | 'cn-ei'
   | 'cn-pku'
@@ -19,7 +18,7 @@ export type JournalSurfaceTier =
 
 export type JournalSurfaceClassification = {
   tier: JournalSurfaceTier
-  code: 'Q1' | 'Q2' | 'Q3' | 'Q4' | '未分区' | 'EI' | '北核' | '核心' | '普通'
+  code: 'Q1' | 'Q2' | 'Q3' | '未分区' | 'EI' | '北核' | '核心' | '普通'
 }
 
 const DOMESTIC_KEYS = ['eii', 'pku', 'cscd', 'zhongguokejihexin', 'cssci']
@@ -55,8 +54,8 @@ function normalizeJcrQuartile(journal: RankedJournalProfile) {
   const values = journal.rank_data || {}
   const raw = journal.jcr_quartile || values.sci || values.ssci || ''
   const normalized = raw.trim().toUpperCase().replace(/\s+/g, '')
-  const qMatch = normalized.match(/Q([1-4])/) || normalized.match(/^([1-4])(?:区|QUARTILE)?$/)
-  return qMatch ? `Q${qMatch[1]}` as 'Q1' | 'Q2' | 'Q3' | 'Q4' : null
+  const qMatch = normalized.match(/Q([1-3])/) || normalized.match(/^([1-3])(?:区|QUARTILE)?$/)
+  return qMatch ? `Q${qMatch[1]}` as 'Q1' | 'Q2' | 'Q3' : null
 }
 
 export function journalSurfaceClassification(journal: RankedJournalProfile): JournalSurfaceClassification {
@@ -77,7 +76,6 @@ export function journalSurfaceClassification(journal: RankedJournalProfile): Jou
   if (jcr === 'Q1') return { tier: 'jcr-q1', code: 'Q1' }
   if (jcr === 'Q2') return { tier: 'jcr-q2', code: 'Q2' }
   if (jcr === 'Q3') return { tier: 'jcr-q3', code: 'Q3' }
-  if (jcr === 'Q4') return { tier: 'jcr-q4', code: 'Q4' }
   return { tier: 'jcr-unranked', code: '未分区' }
 }
 

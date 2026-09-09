@@ -61,8 +61,8 @@ try {
           if (!Number.isFinite(accentWidth) || accentWidth < cardRect.width * 0.72) {
             failures.push(`journal ${index + 1}: top accent is still a short dash (${Number.isFinite(accentWidth) ? accentWidth.toFixed(1) : 'NaN'}px of ${cardRect.width.toFixed(1)}px card)`)
           }
-          if (!Number.isFinite(accentHeight) || accentHeight < 1.5 || accentHeight > 3.5) {
-            failures.push(`journal ${index + 1}: top accent height is inconsistent (${accentHeight || 0}px)`)
+          if (!Number.isFinite(accentHeight) || accentHeight < 3.5 || accentHeight > 4.5) {
+            failures.push(`journal ${index + 1}: strengthened top accent height is inconsistent (${accentHeight || 0}px)`)
           }
 
           const header = card.querySelector('.journal-catalog-card__head')
