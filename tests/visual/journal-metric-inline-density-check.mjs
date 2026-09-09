@@ -33,7 +33,8 @@ try {
           checkedMetrics = true
 
           const railStyle = getComputedStyle(metrics)
-          if (railStyle.display !== 'flex') failures.push(`journal ${cardIndex + 1}: metric rail is not content-driven flex (${railStyle.display})`)
+          if (railStyle.display !== 'grid') failures.push(`journal ${cardIndex + 1}: metric rail is not a content-sized grid (${railStyle.display})`)
+          if (railStyle.justifyContent !== 'start' && railStyle.justifyContent !== 'normal') failures.push(`journal ${cardIndex + 1}: metric rail still distributes spare width (${railStyle.justifyContent})`)
 
           items.forEach((item, itemIndex) => {
             const style = getComputedStyle(item)
