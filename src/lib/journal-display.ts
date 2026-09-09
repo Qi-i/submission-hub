@@ -6,9 +6,27 @@ export type RankedJournalProfile = JournalProfile & {
   rank_updated_at?: string | null
 }
 
+export type JournalSurfaceTier =
+  | 'jcr-q1'
+  | 'jcr-q2'
+  | 'jcr-q3'
+  | 'jcr-q4'
+  | 'jcr-unranked'
+  | 'cn-ei'
+  | 'cn-pku'
+  | 'cn-core'
+  | 'cn-ordinary'
+
+export type JournalSurfaceClassification = {
+  tier: JournalSurfaceTier
+  code: 'Q1' | 'Q2' | 'Q3' | 'Q4' | '未分区' | 'EI' | '北核' | '核心' | '普通'
+}
+
 const DOMESTIC_KEYS = ['eii', 'pku', 'cscd', 'zhongguokejihexin', 'cssci']
 const INTERNATIONAL_KEYS = ['xr', 'sciUp', 'sciBase', 'sci', 'ssci', 'sciif']
 const DOMESTIC_INDEXING = ['EI', '北大核心', 'CSCD', '科技核心', 'CSSCI']
+const CHINESE_CORE_KEYS = ['pku', 'cscd', 'zhongguokejihexin', 'cssci']
+const CHINESE_CORE_INDEXING = ['北大核心', 'CSCD', '科技核心', 'CSSCI']
 
 function meaningful(value?: string | null) {
   if (!value) return false
@@ -23,6 +41,44 @@ function fallbackItem(key: string, label: string, value: string): JournalRankIte
 function uniquePush(target: JournalRankItem[], item?: JournalRankItem) {
   if (!item || target.some(existing => existing.key === item.key || (existing.label === item.label && existing.value === item.value))) return
   target.push(item)
+}
+
+function isChineseJournalForSurface(journal: RankedJournalProfile) {
+  const values = journal.rank_data || {}
+  const hasChineseCoreRank = CHINESE_CORE_KEYS.some(key => meaningful(values[key]))
+  const hasChineseCoreIndexing = journal.indexing.some(item => CHINESE_CORE_INDEXING.includes(item))
+  const primaryIdentityIsChinese = /[\u3400-\u9fff]/.test(`${journal.name} ${journal.publisher || ''}`)
+  return hasChineseCoreRank || hasChineseCoreIndexing || primaryIdentityIsChinese
+}
+
+function normalizeJcrQuartile(journal: RankedJournalProfile) {
+  const values = journal.rank_data || {}
+  const raw = journal.jcr_quartile || values.sci || values.ssci || ''
+  const normalized = raw.trim().toUpperCase().replace(/\s+/g, '')
+  const qMatch = normalized.match(/Q([1-4])/) || normalized.match(/^([1-4])(?:区|QUARTILE)?$/)
+  return qMatch ? `Q${qMatch[1]}` as 'Q1' | 'Q2' | 'Q3' | 'Q4' : null
+}
+
+export function journalSurfaceClassification(journal: RankedJournalProfile): JournalSurfaceClassification {
+  const values = journal.rank_data || {}
+  const indexing = journal.indexing || []
+
+  if (isChineseJournalForSurface(journal)) {
+    if (indexing.includes('EI') || meaningful(values.eii)) return { tier: 'cn-ei', code: 'EI' }
+    if (indexing.includes('北大核心') || meaningful(values.pku)) return { tier: 'cn-pku', code: '北核' }
+    if (
+      indexing.some(item => ['CSCD', '科技核心', 'CSSCI'].includes(item)) ||
+      ['cscd', 'zhongguokejihexin', 'cssci'].some(key => meaningful(values[key]))
+    ) return { tier: 'cn-core', code: '核心' }
+    return { tier: 'cn-ordinary', code: '普通' }
+  }
+
+  const jcr = normalizeJcrQuartile(journal)
+  if (jcr === 'Q1') return { tier: 'jcr-q1', code: 'Q1' }
+  if (jcr === 'Q2') return { tier: 'jcr-q2', code: 'Q2' }
+  if (jcr === 'Q3') return { tier: 'jcr-q3', code: 'Q3' }
+  if (jcr === 'Q4') return { tier: 'jcr-q4', code: 'Q4' }
+  return { tier: 'jcr-unranked', code: '未分区' }
 }
 
 export function isDomesticJournal(journal: RankedJournalProfile) {

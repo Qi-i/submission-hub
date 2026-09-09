@@ -2,6 +2,72 @@
  * Imported after JournalCatalogCard.css so journal-specific internals do not inherit
  * workflow-card flex rules that clip OA labels or stretch sparse metric rows. */
 
+/* Journal Center surface identity is scientific rank, not a per-title hash.
+ * International titles use JCR; Chinese titles use EI > PKU > other core > ordinary. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q1'] {
+  --journal-surface-accent: #be123c !important;
+  --journal-card-accent: #be123c !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q2'] {
+  --journal-surface-accent: #c2410c !important;
+  --journal-card-accent: #c2410c !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q3'] {
+  --journal-surface-accent: #2563eb !important;
+  --journal-card-accent: #2563eb !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q4'] {
+  --journal-surface-accent: #0f766e !important;
+  --journal-card-accent: #0f766e !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-unranked'] {
+  --journal-surface-accent: #64748b !important;
+  --journal-card-accent: #64748b !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='cn-ei'] {
+  --journal-surface-accent: #0369a1 !important;
+  --journal-card-accent: #0369a1 !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='cn-pku'] {
+  --journal-surface-accent: #7c3aed !important;
+  --journal-card-accent: #7c3aed !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='cn-core'] {
+  --journal-surface-accent: #0f766e !important;
+  --journal-card-accent: #0f766e !important;
+}
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='cn-ordinary'] {
+  --journal-surface-accent: #64748b !important;
+  --journal-card-accent: #64748b !important;
+}
+
+/* Replace the generic paper sequence with a larger, low-contrast rank watermark. */
+html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
+  content: attr(data-surface-code) !important;
+  display: block !important;
+  position: absolute !important;
+  inset: auto 14px 6px auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: 46% !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  color: var(--journal-surface-accent, var(--journal-card-accent)) !important;
+  opacity: .085 !important;
+  font-size: 52px !important;
+  font-weight: 900 !important;
+  line-height: .9 !important;
+  letter-spacing: -.06em !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
+  opacity: .12 !important;
+}
+
 /* Use the otherwise-empty middle of the top card row for publisher identity. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__head {
   width: 100% !important;
@@ -383,5 +449,12 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+  }
+
+  html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
+    right: 10px !important;
+    bottom: 6px !important;
+    max-width: 50% !important;
+    font-size: 42px !important;
   }
 }

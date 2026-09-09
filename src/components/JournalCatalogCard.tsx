@@ -2,7 +2,7 @@ import type { CSSProperties, KeyboardEvent } from 'react'
 import { ExternalLink, Star } from 'lucide-react'
 import type { JournalProfile } from '../lib/preparation'
 import { OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
-import { journalPrimaryRankItems, journalRankTone, type RankedJournalProfile } from '../lib/journal-display'
+import { journalPrimaryRankItems, journalRankTone, journalSurfaceClassification, type RankedJournalProfile } from '../lib/journal-display'
 import CurrencyCny from './CurrencyCny'
 import './JournalCatalogCard.css'
 import './JournalCatalogCardDetail.css'
@@ -22,15 +22,6 @@ function journalAccent(journal: JournalProfile) {
   if (journal.priority === 'high') return '#2563eb'
   if (journal.priority === 'medium') return '#7c3aed'
   return '#64748b'
-}
-
-const JOURNAL_SURFACE_PALETTE = ['#2563eb', '#0f766e', '#7c3aed', '#c2410c', '#be123c', '#0e7490', '#4f46e5', '#b45309']
-
-function journalSurfaceAccent(journal: JournalProfile) {
-  const key = `${journal.name}|${journal.official_abbreviation || ''}|${journal.publisher || ''}`
-  let hash = 0
-  for (let index = 0; index < key.length; index += 1) hash = ((hash * 31) + key.charCodeAt(index)) >>> 0
-  return JOURNAL_SURFACE_PALETTE[hash % JOURNAL_SURFACE_PALETTE.length]
 }
 
 function publisherMark(value?: string | null) {
@@ -110,10 +101,9 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
 
   if (standalone) {
     const accent = journalAccent(journal)
-    const surfaceAccent = journalSurfaceAccent(journal)
+    const surface = journalSurfaceClassification(journal as RankedJournalProfile)
     const style = {
       ['--paper-status-color' as string]: accent,
-      ['--journal-surface-accent' as string]: surfaceAccent,
     } as CSSProperties
     const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
       if (event.target !== event.currentTarget) return
@@ -130,6 +120,8 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
       data-risk={journal.risk_level}
       data-oa={journal.oa_type || 'unknown'}
       data-favorite={journal.is_favorite ? 'true' : 'false'}
+      data-surface-tier={surface.tier}
+      data-surface-code={surface.code}
       role="button"
       tabIndex={0}
       onClick={onClick}
