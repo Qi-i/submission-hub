@@ -20,6 +20,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Verify card inline rhythm source contract
+        run: node tests/card-inline-rhythm-source-contract.mjs
       - name: Run complete verification
         run: npm run verify
         env:
