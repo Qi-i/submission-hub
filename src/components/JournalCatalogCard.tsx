@@ -143,20 +143,19 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
             {journal.is_favorite ? '重点期刊' : `优先级 ${priority}`}
           </span>
         </div>
+        <div className="paper-meta-row paper-meta-compact paper-action-rail journal-catalog-card__publisher-rail">
+          <span className="publisher-mark" title={`出版社：${publisherLine}`}>
+            <span className="publisher-mark-symbol">{publisherMark(publisherLine)}</span>
+            <span className="publisher-mark-name">{publisherLine}</span>
+          </span>
+          {showAbbreviation && <span className="badge badge-sm badge-outline journal-catalog-card__abbreviation">{journal.official_abbreviation}</span>}
+        </div>
         <div className="paper-journal-slot journal-catalog-card__oa-slot">
           <span className="journal-catalog-card__oa" data-oa={journal.oa_type || 'unknown'} title={`开放获取：${oa}`}>
             <span className="journal-catalog-card__oa-key" aria-hidden="true">OA</span>
             <span className="journal-catalog-card__oa-label">{oa}</span>
           </span>
         </div>
-      </div>
-
-      <div className="paper-meta-row paper-meta-compact paper-action-rail journal-catalog-card__publisher-rail">
-        <span className="publisher-mark" title={`出版社：${publisherLine}`}>
-          <span className="publisher-mark-symbol">{publisherMark(publisherLine)}</span>
-          <span className="publisher-mark-name">{publisherLine}</span>
-        </span>
-        {showAbbreviation && <span className="badge badge-sm badge-outline journal-catalog-card__abbreviation">{journal.official_abbreviation}</span>}
       </div>
 
       <div className="title-block journal-catalog-card__title-block">
