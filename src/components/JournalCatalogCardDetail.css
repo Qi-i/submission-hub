@@ -2,11 +2,65 @@
  * Imported after JournalCatalogCard.css so journal-specific internals do not inherit
  * workflow-card flex rules that clip OA labels or stretch sparse metric rows. */
 
+/* Use the otherwise-empty middle of the top card row for publisher identity. */
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__head {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: max-content minmax(0, 1fr) max-content !important;
+  align-items: center !important;
+  column-gap: 8px !important;
+  row-gap: 0 !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__status-area {
+  grid-column: 1 !important;
+  min-width: 0 !important;
+  align-self: center !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__publisher-rail {
+  grid-column: 2 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__publisher-rail > .publisher-mark {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__publisher-rail .publisher-mark-name {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__publisher-rail > .journal-catalog-card__abbreviation {
+  flex: 0 0 auto !important;
+}
+
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-slot {
+  grid-column: 3 !important;
   width: max-content !important;
   min-width: 0 !important;
   max-width: 190px !important;
   justify-self: end !important;
+  align-self: center !important;
   overflow: visible !important;
 }
 
@@ -175,7 +229,9 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   }
 }
 
-/* Luminous X has a narrower desktop card because of its permanent sidebar. */
+/* Luminous X has a narrower desktop card because of its permanent sidebar. Keep status
+ * and OA on the first row and let the publisher group wrap as one unit inside the same
+ * header instead of consuming a separate card section. */
 @media (min-width: 721px) and (max-width: 2199px) {
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid > .journal-center-card > * {
     inline-size: 100% !important;
@@ -203,11 +259,32 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
     box-sizing: border-box !important;
   }
 
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__head {
+    grid-template-columns: max-content max-content !important;
+    justify-content: space-between !important;
+    row-gap: 5px !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__status-area {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__publisher-rail {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    justify-self: start !important;
+  }
+
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-slot {
-    width: 100% !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: max-content !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    justify-self: stretch !important;
+    justify-self: end !important;
     overflow: hidden !important;
   }
 
@@ -249,7 +326,28 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
     max-width: 100% !important;
   }
 
+  html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__head {
+    grid-template-columns: max-content max-content !important;
+    justify-content: space-between !important;
+    row-gap: 5px !important;
+  }
+
+  html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__status-area {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__publisher-rail {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    justify-self: start !important;
+  }
+
   html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-slot {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: 46vw !important;
