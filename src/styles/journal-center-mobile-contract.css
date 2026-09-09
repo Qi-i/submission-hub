@@ -20,12 +20,26 @@
     contain: inline-size !important;
   }
 
-  /* Journal Center has no use for Submission Management's decorative sequence layer.
-   * Removing it on mobile also prevents a generated pseudo-element from contributing
-   * to scrollWidth on narrow cards. */
+  /* Journal Center now owns this decorative layer as a scientific tier watermark.
+   * Keep it contained on mobile instead of suppressing the former manuscript sequence. */
   html[data-ui] body .journal-center-workspace .journal-center-card.paper-card-v3::after {
-    content: none !important;
-    display: none !important;
+    content: attr(data-surface-code) !important;
+    display: block !important;
+    position: absolute !important;
+    inset: auto 10px 6px auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: 48% !important;
+    border: 0 !important;
+    background: none !important;
+    color: var(--journal-surface-accent, var(--journal-card-accent)) !important;
+    opacity: .08 !important;
+    font-size: 40px !important;
+    font-weight: 900 !important;
+    line-height: .9 !important;
+    letter-spacing: -.06em !important;
+    white-space: nowrap !important;
+    pointer-events: none !important;
   }
 
   html[data-ui] body .journal-center-workspace .journal-center-card.paper-card-v3 *,
