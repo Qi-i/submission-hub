@@ -5,12 +5,12 @@
 /* Journal Center surface identity is scientific rank, not a per-title hash.
  * International titles use JCR; Chinese titles use EI > PKU > other core > ordinary. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q1'] {
-  --journal-surface-accent: #be123c !important;
-  --journal-card-accent: #be123c !important;
+  --journal-surface-accent: #e11d48 !important;
+  --journal-card-accent: #e11d48 !important;
 }
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q2'] {
-  --journal-surface-accent: #c2410c !important;
-  --journal-card-accent: #c2410c !important;
+  --journal-surface-accent: #ca8a04 !important;
+  --journal-card-accent: #ca8a04 !important;
 }
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q3'] {
   --journal-surface-accent: #2563eb !important;
