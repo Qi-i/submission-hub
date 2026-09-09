@@ -1,0 +1,56 @@
+/*
+ * SUBMISSION STATUS SURFACE COHERENCE
+ * -----------------------------------
+ * One restrained semantic-colour scale for Submission Management cards across
+ * Luminous and Luminous X. This layer intentionally owns the final submission
+ * surface treatment so list, board and journal-group views do not drift apart.
+ */
+
+/* Light mode: shared 14% -> 6% semantic wash with a 34% status edge. */
+html[data-ui='luminous'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status]) {
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--paper-status-color) 14%, #ffffff),
+      color-mix(in srgb, var(--paper-status-color) 6%, #ffffff) 62%,
+      rgba(255, 255, 255, .985)) padding-box,
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--paper-status-color) 34%, transparent),
+      color-mix(in srgb, var(--paper-status-color) 18%, transparent)) border-box !important;
+}
+
+html[data-ui='luminous-x'][data-theme='light'] .paper-card-v3:has(.paper-status-area[data-status]) {
+  --paper-card-start: color-mix(in srgb, var(--paper-status-color) 14%, #ffffff) !important;
+  --paper-card-end: color-mix(in srgb, var(--paper-status-color) 6%, #ffffff) !important;
+  --paper-card-border: color-mix(in srgb, var(--paper-status-color) 34%, var(--lx-line)) !important;
+}
+
+/* Keep the same final surface in every Luminous X submission-card container. */
+html[data-ui='luminous-x'][data-theme='light'] .paper-grid .paper-card-v3:has(.paper-status-area[data-status]),
+html[data-ui='luminous-x'][data-theme='light'] .lx-board-stack .paper-card-v3:has(.paper-status-area[data-status]),
+html[data-ui='luminous-x'][data-theme='light'] .lx-journal-group-grid .paper-card-v3:has(.paper-status-area[data-status]) {
+  background-color: var(--paper-card-end) !important;
+  background-image:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--paper-status-color) 9%, transparent), transparent 34%),
+    linear-gradient(var(--paper-card-angle), var(--paper-card-start), var(--paper-card-end)) !important;
+  border-color: var(--paper-card-border) !important;
+}
+
+/* Dark mode stays materially neutral; semantic colour is an edge cue, not a fill. */
+html[data-ui='luminous'][data-theme='dark'] .paper-card-v3:has(.paper-status-area[data-status]) {
+  background:
+    linear-gradient(155deg, #25313c, #222d37) padding-box,
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--paper-status-color) 20%, transparent),
+      color-mix(in srgb, var(--paper-status-color) 10%, transparent)) border-box !important;
+}
+
+html[data-ui='luminous-x'][data-theme='dark'] .paper-grid .paper-card-v3:has(.paper-status-area[data-status]),
+html[data-ui='luminous-x'][data-theme='dark'] .lx-board-stack .paper-card-v3:has(.paper-status-area[data-status]),
+html[data-ui='luminous-x'][data-theme='dark'] .lx-journal-group-grid .paper-card-v3:has(.paper-status-area[data-status]) {
+  --paper-card-start: #25313c !important;
+  --paper-card-end: #222d37 !important;
+  --paper-card-border: color-mix(in srgb, var(--paper-status-color) 20%, #455463) !important;
+  background-color: var(--paper-card-end) !important;
+  background-image: linear-gradient(var(--paper-card-angle), var(--paper-card-start), var(--paper-card-end)) !important;
+  border-color: var(--paper-card-border) !important;
+}
