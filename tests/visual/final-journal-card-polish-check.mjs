@@ -172,7 +172,7 @@ try {
       document.querySelectorAll('[data-tier-case]').forEach(wrapper => {
         const expected = wrapper.getAttribute('data-expected')
         const key = wrapper.getAttribute('data-tier-case')
-        const card = wrapper.querySelector('.journal-center-card')
+        const card = wrapper.matches('.journal-center-card') ? wrapper : wrapper.querySelector('.journal-center-card')
         if (!card) {
           failures.push(`${key}: card missing`)
           return
