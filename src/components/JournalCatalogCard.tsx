@@ -150,7 +150,7 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
           </span>
           {showAbbreviation && <span className="badge badge-sm badge-outline journal-catalog-card__abbreviation">{journal.official_abbreviation}</span>}
         </div>
-        <div className="paper-journal-slot journal-catalog-card__oa-slot">
+        <div className="journal-catalog-card__oa-slot">
           <span className="journal-catalog-card__oa" data-oa={journal.oa_type || 'unknown'} title={`开放获取：${oa}`}>
             <span className="journal-catalog-card__oa-key" aria-hidden="true">OA</span>
             <span className="journal-catalog-card__oa-label">{oa}</span>
