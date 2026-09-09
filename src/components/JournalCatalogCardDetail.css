@@ -167,8 +167,15 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   display: none !important;
 }
 
-/* Luminous X has a narrower desktop card because of its permanent sidebar. With four
- * metrics, keep the first three on one row and move the entire APC chip below them. */
+/* Narrow desktop cards use three content-sized columns for four metrics. This keeps each
+ * chip intact and moves only the fourth chip as a unit instead of clipping its contents. */
+@media (min-width: 1600px) and (max-width: 2199px) {
+  html[data-ui='luminous'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='4'] {
+    grid-template-columns: repeat(3, max-content) !important;
+  }
+}
+
+/* Luminous X has a narrower desktop card because of its permanent sidebar. */
 @media (min-width: 721px) and (max-width: 2199px) {
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid > .journal-center-card > * {
     inline-size: 100% !important;
@@ -220,6 +227,12 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
     text-overflow: clip !important;
   }
 
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='4'] {
+    grid-template-columns: repeat(3, max-content) !important;
+  }
+}
+
+@media (min-width: 2200px) {
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='4'] {
     grid-template-columns: repeat(3, max-content) !important;
   }
