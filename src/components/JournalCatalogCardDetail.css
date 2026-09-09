@@ -45,22 +45,27 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   line-height: 1 !important;
 }
 
-/* Metrics are content-driven chips, not equal-width cells. The whole chip may wrap to
- * another rail position when space is genuinely exhausted, but its contents stay inline. */
+/* Metrics are content-sized grid chips, never equal-width cells. The grid consumes only
+ * the width required by its visible metrics; a whole chip moves to the next row only when
+ * the card is genuinely too narrow. Text inside a chip never wraps. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
   grid-column: 1 / -1 !important;
   width: 100% !important;
   min-width: 0 !important;
-  display: flex !important;
-  flex-flow: row wrap !important;
+  display: grid !important;
+  grid-auto-flow: row !important;
+  grid-template-columns: repeat(4, max-content) !important;
   align-items: center !important;
-  justify-content: flex-start !important;
-  align-content: flex-start !important;
+  justify-content: start !important;
+  align-content: start !important;
   gap: 4px !important;
 }
 
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='1'] { grid-template-columns: max-content !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='2'] { grid-template-columns: repeat(2, max-content) !important; }
+html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='3'] { grid-template-columns: repeat(3, max-content) !important; }
+
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
-  flex: 0 0 auto !important;
   width: max-content !important;
   min-width: 0 !important;
   max-width: 100% !important;
@@ -78,6 +83,14 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   text-align: left !important;
   white-space: nowrap !important;
   box-sizing: border-box !important;
+}
+
+/* Override the older full-row APC rule: APC is just another content-sized metric chip. */
+html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid .journal-center-card.paper-card-v3 > .journal-catalog-card__metrics > .prep-journal-apc-metric {
+  grid-column: auto !important;
+  justify-self: start !important;
+  width: max-content !important;
+  max-width: 100% !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-metric-label {
@@ -154,8 +167,8 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   display: none !important;
 }
 
-/* Luminous X keeps the permanent sidebar at desktop widths. Bound each section to the
- * card, but do not turn the compact metric chips back into equal-width grid cells. */
+/* Luminous X has a narrower desktop card because of its permanent sidebar. With four
+ * metrics, keep the first three on one row and move the entire APC chip below them. */
 @media (min-width: 1560px) and (max-width: 2199px) {
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid > .journal-center-card > * {
     inline-size: 100% !important;
@@ -207,18 +220,8 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
     text-overflow: clip !important;
   }
 
-  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
-    display: flex !important;
-    flex-flow: row wrap !important;
-    overflow: visible !important;
-  }
-
-  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
-    flex: 0 0 auto !important;
-    width: max-content !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    overflow: visible !important;
+  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='4'] {
+    grid-template-columns: repeat(3, max-content) !important;
   }
 }
 
@@ -256,15 +259,11 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   }
 
   html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
-    display: flex !important;
-    flex-flow: row wrap !important;
+    grid-template-columns: repeat(2, max-content) !important;
   }
 
-  html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
-    flex: 0 0 auto !important;
-    width: max-content !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
+  html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics[data-count='1'] {
+    grid-template-columns: max-content !important;
   }
 
   html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny,
