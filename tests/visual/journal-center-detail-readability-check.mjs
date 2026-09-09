@@ -79,23 +79,16 @@ try {
           const metrics = card.querySelector('.journal-catalog-card__metrics')
           const metricCards = metrics ? Array.from(metrics.children).filter(node => node instanceof HTMLElement && getComputedStyle(node).display !== 'none') : []
           if (metrics && metricCards.length) {
-            if (getComputedStyle(metrics).display !== 'flex') failures.push(`journal ${index + 1}: metric rail is not content-driven flex`)
+            if (getComputedStyle(metrics).display !== 'grid') failures.push(`journal ${index + 1}: metric rail still inherits flexible full-width stretching`)
             metricCards.forEach((metric, metricIndex) => {
               const rect = metric.getBoundingClientRect()
               const isApc = metric.classList.contains('prep-journal-apc-metric')
-              const maxMetricWidth = isApc ? 340 : 220
+              const maxMetricWidth = isApc ? 300 : 220
               if (rect.width > maxMetricWidth) failures.push(`journal ${index + 1}: metric ${metricIndex + 1} stretches too wide (${rect.width.toFixed(1)}px)`)
               if (metric.scrollWidth > metric.clientWidth + 1 || metric.scrollHeight > metric.clientHeight + 1) failures.push(`journal ${index + 1}: metric ${metricIndex + 1} content is clipped`)
               const label = metric.querySelector('.journal-metric-label')
               const value = metric.querySelector('.journal-metric-value')
               if (!label || !value) failures.push(`journal ${index + 1}: metric ${metricIndex + 1} lacks explicit label/value hierarchy`)
-              else {
-                const labelRect = label.getBoundingClientRect()
-                const valueRect = value.getBoundingClientRect()
-                const centerDelta = Math.abs((labelRect.top + labelRect.height / 2) - (valueRect.top + valueRect.height / 2))
-                if (centerDelta > 7) failures.push(`journal ${index + 1}: metric ${metricIndex + 1} stacks label/value vertically`)
-              }
-              if (getComputedStyle(metric).flexWrap !== 'nowrap') failures.push(`journal ${index + 1}: metric ${metricIndex + 1} allows internal wrapping`)
             })
           }
 
