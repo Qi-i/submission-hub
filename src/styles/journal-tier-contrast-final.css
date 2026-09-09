@@ -40,6 +40,8 @@ html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid.journal-ca
 }
 
 html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::before {
+  width: 100% !important;
+  height: 4px !important;
   opacity: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
