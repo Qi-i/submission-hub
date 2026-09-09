@@ -9,25 +9,38 @@ const requireToken = (source, token, label) => {
 }
 
 const forbidToken = (source, token, label) => {
-  if (source.includes(token)) failures.push(`${label}: stale pale surface remains ${token}`)
+  if (source.includes(token)) failures.push(`${label}: stale heavy surface remains ${token}`)
 }
 
-// Submission Management should read by status at a glance without becoming saturated.
-// The strong stop stays at 20%, the soft stop remains below 10%, and borders carry
-// enough semantic colour to separate adjacent cards on a white canvas.
-requireToken(luminousCss, "color-mix(in srgb, var(--paper-status-color) 20%, #ffffff)", 'Luminous')
-requireToken(luminousCss, "color-mix(in srgb, var(--paper-status-color) 9%, #ffffff)", 'Luminous')
-requireToken(luminousCss, "color-mix(in srgb, var(--paper-status-color) 46%, transparent)", 'Luminous')
+// Submission Management uses one restrained semantic surface scale in both UI families.
+// The 14% -> 6% wash is enough to scan by status without turning cards into colour blocks;
+// borders stay at 34%, corner glow at 9%, and dark-mode status edges at 20%.
+for (const [label, source] of [['Luminous', luminousCss], ['Luminous X', luminousXCss]]) {
+  requireToken(source, 'color-mix(in srgb, var(--paper-status-color) 14%, #ffffff)', label)
+  requireToken(source, 'color-mix(in srgb, var(--paper-status-color) 6%, #ffffff)', label)
+}
 
-requireToken(luminousXCss, "--paper-card-start: color-mix(in srgb, var(--paper-status-color) 20%, #ffffff)", 'Luminous X')
-requireToken(luminousXCss, "--paper-card-end: color-mix(in srgb, var(--paper-status-color) 8%, #ffffff)", 'Luminous X')
-requireToken(luminousXCss, "--paper-card-border: color-mix(in srgb, var(--paper-status-color) 42%, var(--lx-line))", 'Luminous X')
-requireToken(luminousXCss, "color-mix(in srgb, var(--paper-status-color) 13%, transparent)", 'Luminous X')
+requireToken(luminousCss, 'color-mix(in srgb, var(--paper-status-color) 34%, transparent)', 'Luminous')
+requireToken(luminousCss, 'color-mix(in srgb, var(--paper-status-color) 18%, transparent)', 'Luminous')
+requireToken(luminousCss, 'color-mix(in srgb, var(--paper-status-color) 20%, transparent)', 'Luminous dark')
 
-forbidToken(luminousCss, 'rgba(255, 249, 235, .97)', 'Luminous')
-forbidToken(luminousCss, 'rgba(248, 244, 255, .97)', 'Luminous')
-forbidToken(luminousXCss, '--paper-card-start: #fff8e9', 'Luminous X')
-forbidToken(luminousXCss, '--paper-card-start: #faf1ff', 'Luminous X')
+requireToken(luminousXCss, '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 34%, var(--lx-line))', 'Luminous X')
+requireToken(luminousXCss, 'color-mix(in srgb, var(--paper-status-color) 9%, transparent)', 'Luminous X')
+requireToken(luminousXCss, '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 20%, #455463)', 'Luminous X dark')
+
+for (const token of [
+  'color-mix(in srgb, var(--paper-status-color) 20%, #ffffff)',
+  'color-mix(in srgb, var(--paper-status-color) 9%, #ffffff)',
+  'color-mix(in srgb, var(--paper-status-color) 46%, transparent)',
+]) forbidToken(luminousCss, token, 'Luminous')
+
+for (const token of [
+  '--paper-card-start: color-mix(in srgb, var(--paper-status-color) 20%, #ffffff)',
+  '--paper-card-end: color-mix(in srgb, var(--paper-status-color) 8%, #ffffff)',
+  '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 42%, var(--lx-line))',
+  'color-mix(in srgb, var(--paper-status-color) 13%, transparent)',
+  '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 26%, #455463)',
+]) forbidToken(luminousXCss, token, 'Luminous X')
 
 if (failures.length) {
   console.error('Submission status surface contract failed:')
