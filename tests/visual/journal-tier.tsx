@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import '../../src/app-styles'
 import JournalCatalogCard from '../../src/components/JournalCatalogCard'
@@ -15,17 +15,28 @@ const base: JournalProfile = {
 }
 
 const cases = [
-  { expected: 'Q1', journal: { ...base, id: 'intl-q1-ei', name: 'International Engineering Methods', publisher: 'Example Press', indexing: ['EI'], jcr_quartile: 'Q1', rank_data: { eii: '是', sci: 'Q1' } } },
-  { expected: 'EI', journal: { ...base, id: 'cn-ei-pku', name: '工程方法学报', indexing: ['EI', '北大核心', 'CSCD'], rank_data: { eii: '是', pku: '是', cscd: '是' } } },
-  { expected: '北核', journal: { ...base, id: 'cn-pku', name: '城市科学学报', indexing: ['北大核心', 'CSCD'], rank_data: { pku: '是', cscd: '是' } } },
-  { expected: '核心', journal: { ...base, id: 'cn-core', name: '区域研究学报', indexing: ['CSCD'], rank_data: { cscd: '是' } } },
-  { expected: '普通', journal: { ...base, id: 'cn-ordinary', name: '应用研究通讯', indexing: [] } },
+  { key: 'intl-q1-ei', expected: 'Q1', journal: { ...base, id: 'intl-q1-ei', name: 'International Engineering Methods', publisher: 'Example Press', indexing: ['EI'], jcr_quartile: 'Q1', rank_data: { eii: '是', sci: 'Q1' } } },
+  { key: 'cn-ei-pku', expected: 'EI', journal: { ...base, id: 'cn-ei-pku', name: '工程方法学报', indexing: ['EI', '北大核心', 'CSCD'], rank_data: { eii: '是', pku: '是', cscd: '是' } } },
+  { key: 'cn-pku', expected: '北核', journal: { ...base, id: 'cn-pku', name: '城市科学学报', indexing: ['北大核心', 'CSCD'], rank_data: { pku: '是', cscd: '是' } } },
+  { key: 'cn-core', expected: '核心', journal: { ...base, id: 'cn-core', name: '区域研究学报', indexing: ['CSCD'], rank_data: { cscd: '是' } } },
+  { key: 'cn-ordinary', expected: '普通', journal: { ...base, id: 'cn-ordinary', name: '应用研究通讯', indexing: [] } },
 ]
 
 function App() {
+  useEffect(() => {
+    const cards = Array.from(document.querySelectorAll('.journal-center-grid > .journal-center-card'))
+    cards.forEach((card, index) => {
+      const item = cases[index]
+      if (!item || !(card instanceof HTMLElement)) return
+      card.dataset.tierCase = item.key
+      card.dataset.expected = item.expected
+    })
+    document.documentElement.dataset.visualReady = 'true'
+  }, [])
+
   return <main style={{ padding: 24 }}>
     <div className="journal-center-workspace">
-      <div className="journal-center-grid paper-grid journal-catalog-grid" data-tier-expected={cases.map(item => item.expected).join('|')}>
+      <div className="journal-center-grid paper-grid journal-catalog-grid">
         {cases.map(item => <JournalCatalogCard key={item.journal.id} journal={item.journal as JournalProfile} onClick={() => undefined} standalone />)}
       </div>
     </div>
@@ -33,4 +44,3 @@ function App() {
 }
 
 createRoot(document.getElementById('root')!).render(<App />)
-document.documentElement.dataset.visualReady = 'true'
