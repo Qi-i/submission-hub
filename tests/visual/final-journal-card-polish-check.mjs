@@ -30,6 +30,17 @@ try {
         const failures = []
         const cards = Array.from(document.querySelectorAll('.journal-center-workspace .journal-center-card'))
 
+        const expectedSurfaceCodes = ['Q1', 'Q1', 'Q2']
+        cards.slice(0, expectedSurfaceCodes.length).forEach((card, index) => {
+          const expected = expectedSurfaceCodes[index]
+          const code = card.getAttribute('data-surface-code')
+          const tier = card.getAttribute('data-surface-tier')
+          const watermark = getComputedStyle(card, '::after').content.replace(/["']/g, '')
+          if (code !== expected) failures.push(`journal ${index + 1}: expected rank surface code ${expected}, got ${code || 'missing'}`)
+          if (!tier) failures.push(`journal ${index + 1}: rank surface tier is missing`)
+          if (watermark !== expected) failures.push(`journal ${index + 1}: expected rank watermark ${expected}, got ${watermark || 'missing'}`)
+        })
+
         const byOa = new Map()
         cards.forEach(card => {
           const oa = card.getAttribute('data-oa') || 'unknown'
