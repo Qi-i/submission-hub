@@ -16,6 +16,7 @@ on:
       - 'tests/visual/journal-center-detail-readability-check.mjs'
       - 'tests/visual/final-journal-card-polish-check.mjs'
       - 'tests/visual/journal-metric-inline-density-check.mjs'
+      - 'tests/visual/journal-tier-color-separation-check.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -31,6 +32,7 @@ on:
       - 'tests/visual/journal-center-detail-readability-check.mjs'
       - 'tests/visual/final-journal-card-polish-check.mjs'
       - 'tests/visual/journal-metric-inline-density-check.mjs'
+      - 'tests/visual/journal-tier-color-separation-check.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -86,3 +88,5 @@ jobs:
         run: node tests/visual/final-journal-card-polish-check.mjs
       - name: Verify compact inline journal metrics
         run: node tests/visual/journal-metric-inline-density-check.mjs
+      - name: Verify JCR tier color separation stays distinct and light
+        run: node tests/visual/journal-tier-color-separation-check.mjs
