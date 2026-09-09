@@ -24,11 +24,13 @@ const figureInspector = read('src/components/figure-composer/FigurePanelInspecto
 
 assert(exists('src/styles/application-ui-contract.css'), 'Application must have one cross-page UI contract')
 assert(exists('src/styles/submission-family-card-coherence.css'), 'Application must have a final Submission Management card-family coherence layer')
+assert(exists('src/styles/journal-tier-contrast-final.css'), 'Journal Center must have a terminal Q1-Q3 semantic tier layer')
 const applicationUiContract = exists('src/styles/application-ui-contract.css') ? read('src/styles/application-ui-contract.css') : ''
 const familyCoherence = exists('src/styles/submission-family-card-coherence.css') ? read('src/styles/submission-family-card-coherence.css') : ''
 assert(appStyles.includes("import './styles/application-ui-contract.css'"), 'Cross-page UI contract must remain loaded')
-assert(appStyles.trim().endsWith("import './styles/submission-family-card-coherence.css'"), 'Submission Management card-family coherence must be the final stylesheet import')
+assert(appStyles.trim().endsWith("import './styles/journal-tier-contrast-final.css'"), 'Q1-Q3 Journal Center semantic tier layer must be the terminal stylesheet import')
 assert(appStyles.indexOf("import './styles/application-ui-contract.css'") < appStyles.indexOf("import './styles/submission-family-card-coherence.css'"), 'Final card-family layer must load after the general application contract')
+assert(appStyles.indexOf("import './styles/submission-family-card-coherence.css'") < appStyles.indexOf("import './styles/journal-tier-contrast-final.css'"), 'Journal tier identity must load after card-family geometry without changing the shared layout contract')
 for (const token of ['--app-font-sans', '--app-page-width', '--app-page-gutter', '--app-control-height', '--app-panel-radius', '--app-card-radius']) {
   assert(applicationUiContract.includes(token), `Cross-page UI contract is missing token ${token}`)
 }
