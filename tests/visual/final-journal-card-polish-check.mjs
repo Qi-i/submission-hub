@@ -58,8 +58,8 @@ try {
           }
 
           const metrics = card.querySelector('.journal-catalog-card__metrics')
-          if (metrics && getComputedStyle(metrics).display !== 'flex') {
-            failures.push(`journal ${index + 1}: metric rail regressed from content-driven flex`)
+          if (metrics && getComputedStyle(metrics).display !== 'grid') {
+            failures.push(`journal ${index + 1}: metric rail regressed from content-sized grid`)
           }
           const apc = metrics?.querySelector('.prep-journal-apc-metric')
           if (apc) {
