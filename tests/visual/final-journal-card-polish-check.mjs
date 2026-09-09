@@ -58,13 +58,22 @@ try {
           }
 
           const metrics = card.querySelector('.journal-catalog-card__metrics')
+          if (metrics && getComputedStyle(metrics).display !== 'grid') {
+            failures.push(`journal ${index + 1}: metric rail regressed from content-sized grid`)
+          }
           const apc = metrics?.querySelector('.prep-journal-apc-metric')
-          if (metrics && apc) {
-            const nonApc = Array.from(metrics.children).filter(node => node !== apc && node instanceof HTMLElement && getComputedStyle(node).display !== 'none')
-            if (nonApc.length) {
-              const apcTop = apc.getBoundingClientRect().top
-              const nonApcBottom = Math.max(...nonApc.map(node => node.getBoundingClientRect().bottom))
-              if (apcTop < nonApcBottom - 1) failures.push(`journal ${index + 1}: APC still shares the review-metric row instead of using its own compact row`)
+          if (apc) {
+            const parts = ['.journal-metric-label', '.journal-metric-value', '.prep-journal-apc-cny']
+              .map(selector => apc.querySelector(selector))
+              .filter(Boolean)
+            if (parts.length >= 2) {
+              const centers = parts.map(part => {
+                const rect = part.getBoundingClientRect()
+                return rect.top + rect.height / 2
+              })
+              if (Math.max(...centers) - Math.min(...centers) > 7) {
+                failures.push(`journal ${index + 1}: APC content is internally wrapped instead of staying on one line`)
+              }
             }
           }
         })
