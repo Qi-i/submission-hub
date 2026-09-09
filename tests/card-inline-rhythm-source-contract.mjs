@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 
+// Browser-independent RED/GREEN guard for the shared card geometry and publisher policy.
 const failures = []
 const cssPath = 'src/styles/submission-family-card-coherence.css'
 const publisherPath = 'src/lib/publisher-display.ts'
