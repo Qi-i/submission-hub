@@ -47,15 +47,15 @@ html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journ
   width: auto !important;
   height: 4px !important;
   border-radius: 999px !important;
-  opacity: .95 !important;
+  opacity: 0.95 !important;
   background: var(--journal-surface-accent, var(--journal-card-accent)) !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
   color: var(--journal-surface-accent, var(--journal-card-accent)) !important;
-  opacity: .12 !important;
+  opacity: 0.12 !important;
 }
 
 html[data-theme='dark'][data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
-  opacity: .17 !important;
+  opacity: 0.17 !important;
 }
