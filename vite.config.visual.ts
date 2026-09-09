@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         review: resolve(__dirname, 'tests/visual/index.html'),
         navigation: resolve(__dirname, 'tests/visual/navigation-memory.html'),
+        journalTier: resolve(__dirname, 'tests/visual/journal-tier.html'),
       },
     },
   },
