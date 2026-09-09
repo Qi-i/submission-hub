@@ -45,52 +45,63 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   line-height: 1 !important;
 }
 
+/* Metrics are content-driven chips, not equal-width cells. The whole chip may wrap to
+ * another rail position when space is genuinely exhausted, but its contents stay inline. */
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
   grid-column: 1 / -1 !important;
   width: 100% !important;
   min-width: 0 !important;
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  grid-auto-flow: row !important;
-  align-items: stretch !important;
-  justify-content: start !important;
-  gap: 5px !important;
+  display: flex !important;
+  flex-flow: row wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  align-content: flex-start !important;
+  gap: 4px !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
-  flex: none !important;
-  width: auto !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
   min-width: 0 !important;
-  max-width: none !important;
-  min-height: 40px !important;
+  max-width: 100% !important;
+  min-height: 30px !important;
   height: auto !important;
-  display: grid !important;
-  grid-template-rows: auto auto auto !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
   align-content: center !important;
-  justify-items: start !important;
-  gap: 1px !important;
+  gap: 3px !important;
   overflow: visible !important;
   padding: 4px 7px !important;
   text-align: left !important;
+  white-space: nowrap !important;
   box-sizing: border-box !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-metric-label {
-  width: 100% !important;
+  width: auto !important;
   min-width: 0 !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
   white-space: nowrap !important;
   color: currentColor !important;
   opacity: .72 !important;
   font-size: 8.8px !important;
   font-weight: 650 !important;
-  line-height: 1.1 !important;
+  line-height: 1.08 !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-metric-value {
-  width: 100% !important;
+  width: auto !important;
   min-width: 0 !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
   overflow: visible !important;
   white-space: nowrap !important;
   color: currentColor !important;
@@ -109,9 +120,12 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .prep-j
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny > span {
   width: auto !important;
   min-width: 0 !important;
-  max-width: 100% !important;
-  display: inline !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
   overflow: visible !important;
+  text-overflow: clip !important;
   white-space: nowrap !important;
   font-size: 8.5px !important;
   line-height: 1.08 !important;
@@ -140,10 +154,8 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   display: none !important;
 }
 
-/* Luminous X keeps the permanent sidebar at desktop widths. Between 1560 and 2199px
- * the shared four-column dashboard contract leaves each card only ~340px wide.
- * Bound every journal section to the card and use three metric columns so labels remain
- * readable without the four-cell squeeze or the oversized two-column blocks. */
+/* Luminous X keeps the permanent sidebar at desktop widths. Bound each section to the
+ * card, but do not turn the compact metric chips back into equal-width grid cells. */
 @media (min-width: 1560px) and (max-width: 2199px) {
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid > .journal-center-card > * {
     inline-size: 100% !important;
@@ -168,7 +180,6 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
     min-width: 0 !important;
     max-inline-size: 100% !important;
     max-width: 100% !important;
-    overflow-x: hidden !important;
     box-sizing: border-box !important;
   }
 
@@ -197,21 +208,17 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   }
 
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    display: flex !important;
+    flex-flow: row wrap !important;
+    overflow: visible !important;
   }
 
   html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
+    flex: 0 0 auto !important;
+    width: max-content !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    overflow: hidden !important;
-  }
-
-  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .journal-metric-value,
-  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny,
-  html[data-ui='luminous-x'] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny > span {
-    max-width: 100% !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    overflow: visible !important;
   }
 }
 
@@ -249,17 +256,22 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .jour
   }
 
   html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card > .journal-catalog-card__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    display: flex !important;
+    flex-flow: row wrap !important;
   }
 
   html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__metrics > div {
+    flex: 0 0 auto !important;
+    width: max-content !important;
     min-width: 0 !important;
     max-width: 100% !important;
   }
 
   html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny,
   html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .prep-journal-apc-cny > span {
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 }
