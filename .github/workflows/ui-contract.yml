@@ -17,6 +17,7 @@ on:
       - 'tests/visual/final-journal-card-polish-check.mjs'
       - 'tests/visual/journal-metric-inline-density-check.mjs'
       - 'tests/visual/journal-tier-color-separation-check.mjs'
+      - 'tests/visual/submission-status-surface-contract.mjs'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -33,6 +34,7 @@ on:
       - 'tests/visual/final-journal-card-polish-check.mjs'
       - 'tests/visual/journal-metric-inline-density-check.mjs'
       - 'tests/visual/journal-tier-color-separation-check.mjs'
+      - 'tests/visual/submission-status-surface-contract.mjs'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -78,6 +80,8 @@ jobs:
         run: node tests/visual/responsive-workspace-density-check.mjs
       - name: Verify submission grid parity across Luminous and Luminous X
         run: node tests/visual/submission-grid-parity-check.mjs
+      - name: Verify submission status surfaces stay distinct but light
+        run: node tests/visual/submission-status-surface-contract.mjs
       - name: Verify dark theme blue-gray palette and readability
         run: node tests/visual/dark-theme-contract-check.mjs
       - name: Verify shared visual language with purpose-specific density
