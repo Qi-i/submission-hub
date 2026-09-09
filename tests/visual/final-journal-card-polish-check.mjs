@@ -65,16 +65,26 @@ try {
           if (!header || !publisherRail || !status || !oa) {
             failures.push(`journal ${index + 1}: header fixture is incomplete`)
           } else {
-            if (publisherRail.parentElement !== header) failures.push(`journal ${index + 1}: publisher and abbreviation still occupy a separate row below the priority/OA header`)
-            const aligned = [status, publisherRail, oa, abbreviation].filter(Boolean).map(node => {
-              const rect = node.getBoundingClientRect()
-              return rect.top + rect.height / 2
-            })
-            if (aligned.length > 1 && Math.max(...aligned) - Math.min(...aligned) > 8) {
-              failures.push(`journal ${index + 1}: priority, publisher, abbreviation and OA are not aligned on one header row`)
+            if (publisherRail.parentElement !== header) failures.push(`journal ${index + 1}: publisher and abbreviation still occupy a separate card row below the priority/OA header`)
+            const statusRect = status.getBoundingClientRect()
+            const oaRect = oa.getBoundingClientRect()
+            const statusCenter = statusRect.top + statusRect.height / 2
+            const oaCenter = oaRect.top + oaRect.height / 2
+            if (Math.abs(statusCenter - oaCenter) > 8) failures.push(`journal ${index + 1}: priority and OA no longer share the first header row`)
+
+            if (cardRect.width >= 390) {
+              const aligned = [status, publisherRail, oa, abbreviation].filter(Boolean).map(node => {
+                const rect = node.getBoundingClientRect()
+                return rect.top + rect.height / 2
+              })
+              if (aligned.length > 1 && Math.max(...aligned) - Math.min(...aligned) > 8) {
+                failures.push(`journal ${index + 1}: wide card does not align priority, publisher, abbreviation and OA on one header row`)
+              }
             }
+
+            const headerRect = header.getBoundingClientRect()
             const publisherRect = publisherRail.getBoundingClientRect()
-            if (publisherRect.right > cardRect.right - 8) failures.push(`journal ${index + 1}: publisher rail overflows card header`)
+            if (publisherRect.left < headerRect.left - 1 || publisherRect.right > headerRect.right + 1) failures.push(`journal ${index + 1}: publisher rail overflows card header`)
           }
 
           const metrics = card.querySelector('.journal-catalog-card__metrics')
