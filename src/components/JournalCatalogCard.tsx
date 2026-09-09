@@ -3,6 +3,7 @@ import { ExternalLink, Star } from 'lucide-react'
 import type { JournalProfile } from '../lib/preparation'
 import { OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
 import { journalPrimaryRankItems, journalRankTone, journalSurfaceClassification, type RankedJournalProfile } from '../lib/journal-display'
+import { journalPublisherIdentity } from '../lib/publisher-display'
 import CurrencyCny from './CurrencyCny'
 import './JournalCatalogCard.css'
 import './JournalCatalogCardDetail.css'
@@ -24,23 +25,6 @@ function journalAccent(journal: JournalProfile) {
   return '#64748b'
 }
 
-function publisherMark(value?: string | null) {
-  const text = (value || '').trim()
-  if (!text) return 'J'
-  const aliases: Array<[RegExp, string]> = [
-    [/elsevier/i, 'E'],
-    [/springer/i, 'S'],
-    [/wiley/i, 'W'],
-    [/mdpi/i, 'MDPI'],
-    [/copernicus/i, 'C'],
-    [/taylor\s*(?:&|and)\s*francis/i, 'T&F'],
-  ]
-  const alias = aliases.find(([pattern]) => pattern.test(text))
-  if (alias) return alias[1]
-  const words = text.replace(/[()（）]/g, ' ').split(/\s+/).filter(Boolean)
-  return words.length > 1 ? words.slice(0, 2).map(word => word[0]).join('').toUpperCase() : text.slice(0, 2).toUpperCase()
-}
-
 function RankBlocks({ journal, standalone = false }: { journal: JournalProfile; standalone?: boolean }) {
   const ranks = journalPrimaryRankItems(journal as RankedJournalProfile, standalone ? 5 : 7)
   const className = `prep-journal-rank-blocks full${standalone ? ' paper-meta-row paper-rank-row journal-catalog-card__ranks' : ''}`
@@ -55,8 +39,7 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
   const priority = PRIORITY_OPTIONS.find(item => item.key === journal.priority)?.label || '中'
   const risk = journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'
   const showAbbreviation = !!journal.official_abbreviation && journal.official_abbreviation.toLocaleLowerCase() !== journal.name.toLocaleLowerCase()
-  const publisher = journal.publisher?.trim() || ''
-  const publisherLine = publisher || journal.scope_zh || journal.scope || '期刊档案'
+  const publisher = journalPublisherIdentity(journal)
   const selectionTags = Array.isArray(journal.selection_tags) ? journal.selection_tags : []
   const indexing = Array.isArray(journal.indexing) ? journal.indexing : []
   const subjectTags = Array.isArray(journal.subject_tags) ? journal.subject_tags : []
@@ -136,10 +119,10 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
           </span>
         </div>
         <div className="paper-meta-row paper-meta-compact paper-action-rail journal-catalog-card__publisher-rail">
-          <span className="publisher-mark" title={`出版社：${publisherLine}`}>
-            <span className="publisher-mark-symbol">{publisherMark(publisherLine)}</span>
-            <span className="publisher-mark-name">{publisherLine}</span>
-          </span>
+          {publisher && <span className="publisher-mark" data-publisher={publisher.tone} title={`出版社：${publisher.name}`}>
+            <span className="publisher-mark-symbol">{publisher.mark}</span>
+            <span className="publisher-mark-name">{publisher.name}</span>
+          </span>}
           {showAbbreviation && <span className="badge badge-sm badge-outline journal-catalog-card__abbreviation">{journal.official_abbreviation}</span>}
         </div>
         <div className="journal-catalog-card__oa-slot">
@@ -179,7 +162,7 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
       <div className="journal-catalog-card__title-block">
         <h3>{journal.name}</h3>
         {(journal.name_zh || showAbbreviation) && <div className="prep-journal-local-identity journal-catalog-card__identity">{journal.name_zh && <strong>{journal.name_zh}</strong>}{showAbbreviation && <em>{journal.official_abbreviation}</em>}</div>}
-        <p className="prep-journal-publisher journal-catalog-card__subtitle" title={publisherLine}>{publisherLine}</p>
+        {publisher && <p className="prep-journal-publisher journal-catalog-card__subtitle" title={publisher.name}>{publisher.name}</p>}
       </div>
       <RankBlocks journal={journal} />
       {facts}
