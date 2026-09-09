@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 
-const luminousCss = readFileSync(new URL('../../src/luminous-ui.css', import.meta.url), 'utf8')
-const luminousXCss = readFileSync(new URL('../../src/luminous-x-rebuild-corrections.css', import.meta.url), 'utf8')
+const coherenceCss = readFileSync(new URL('../../src/styles/submission-status-surface-coherence.css', import.meta.url), 'utf8')
+const appStyles = readFileSync(new URL('../../src/app-styles.ts', import.meta.url), 'utf8')
 const failures = []
 
 const requireToken = (source, token, label) => {
@@ -9,38 +9,45 @@ const requireToken = (source, token, label) => {
 }
 
 const forbidToken = (source, token, label) => {
-  if (source.includes(token)) failures.push(`${label}: stale heavy surface remains ${token}`)
+  if (source.includes(token)) failures.push(`${label}: stale heavy token remains ${token}`)
 }
 
-// Submission Management uses one restrained semantic surface scale in both UI families.
-// The 14% -> 6% wash is enough to scan by status without turning cards into colour blocks;
-// borders stay at 34%, corner glow at 9%, and dark-mode status edges at 20%.
-for (const [label, source] of [['Luminous', luminousCss], ['Luminous X', luminousXCss]]) {
-  requireToken(source, 'color-mix(in srgb, var(--paper-status-color) 14%, #ffffff)', label)
-  requireToken(source, 'color-mix(in srgb, var(--paper-status-color) 6%, #ffffff)', label)
+// One canonical late coherence layer owns the effective submission-card treatment.
+// It deliberately sits after the two theme-specific implementations and before the
+// Journal Center tier layer, keeping the two card families independent but coherent.
+const coherenceImport = "import './styles/submission-status-surface-coherence.css'"
+const journalTierImport = "import './styles/journal-tier-contrast-final.css'"
+requireToken(appStyles, coherenceImport, 'app-styles')
+requireToken(appStyles, journalTierImport, 'app-styles')
+if (appStyles.indexOf(coherenceImport) > appStyles.indexOf(journalTierImport)) {
+  failures.push('app-styles: submission coherence must load before Journal Center tier styling')
 }
 
-requireToken(luminousCss, 'color-mix(in srgb, var(--paper-status-color) 34%, transparent)', 'Luminous')
-requireToken(luminousCss, 'color-mix(in srgb, var(--paper-status-color) 18%, transparent)', 'Luminous')
-requireToken(luminousCss, 'color-mix(in srgb, var(--paper-status-color) 20%, transparent)', 'Luminous dark')
+// Light mode: identical 14% -> 6% wash in Luminous and Luminous X.
+requireToken(coherenceCss, "html[data-ui='luminous'][data-theme='light']", 'Luminous selector')
+requireToken(coherenceCss, "html[data-ui='luminous-x'][data-theme='light']", 'Luminous X selector')
+requireToken(coherenceCss, 'color-mix(in srgb, var(--paper-status-color) 14%, #ffffff)', 'shared light surface')
+requireToken(coherenceCss, 'color-mix(in srgb, var(--paper-status-color) 6%, #ffffff)', 'shared light surface')
+requireToken(coherenceCss, 'color-mix(in srgb, var(--paper-status-color) 34%, transparent)', 'Luminous light edge')
+requireToken(coherenceCss, 'color-mix(in srgb, var(--paper-status-color) 18%, transparent)', 'Luminous light edge')
+requireToken(coherenceCss, '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 34%, var(--lx-line))', 'Luminous X light edge')
+requireToken(coherenceCss, 'color-mix(in srgb, var(--paper-status-color) 9%, transparent)', 'Luminous X corner glow')
 
-requireToken(luminousXCss, '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 34%, var(--lx-line))', 'Luminous X')
-requireToken(luminousXCss, 'color-mix(in srgb, var(--paper-status-color) 9%, transparent)', 'Luminous X')
-requireToken(luminousXCss, '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 20%, #455463)', 'Luminous X dark')
+// Board, list and journal-group containers must resolve through the same Luminous X rule.
+for (const container of ['.paper-grid', '.lx-board-stack', '.lx-journal-group-grid']) {
+  requireToken(coherenceCss, container, `Luminous X container ${container}`)
+}
 
-for (const token of [
-  'color-mix(in srgb, var(--paper-status-color) 20%, #ffffff)',
-  'color-mix(in srgb, var(--paper-status-color) 9%, #ffffff)',
-  'color-mix(in srgb, var(--paper-status-color) 46%, transparent)',
-]) forbidToken(luminousCss, token, 'Luminous')
+// Dark cards stay neutral, using only a restrained 20% semantic edge cue.
+requireToken(coherenceCss, "html[data-ui='luminous'][data-theme='dark']", 'Luminous dark selector')
+requireToken(coherenceCss, "html[data-ui='luminous-x'][data-theme='dark']", 'Luminous X dark selector')
+requireToken(coherenceCss, 'color-mix(in srgb, var(--paper-status-color) 20%, transparent)', 'Luminous dark edge')
+requireToken(coherenceCss, '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 20%, #455463)', 'Luminous X dark edge')
 
-for (const token of [
-  '--paper-card-start: color-mix(in srgb, var(--paper-status-color) 20%, #ffffff)',
-  '--paper-card-end: color-mix(in srgb, var(--paper-status-color) 8%, #ffffff)',
-  '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 42%, var(--lx-line))',
-  'color-mix(in srgb, var(--paper-status-color) 13%, transparent)',
-  '--paper-card-border: color-mix(in srgb, var(--paper-status-color) 26%, #455463)',
-]) forbidToken(luminousXCss, token, 'Luminous X')
+// Prevent the canonical coherence layer from drifting back to the heavier PR #125 scale.
+for (const token of [' 20%, #ffffff', ' 46%, transparent', ' 42%, var(--lx-line)', ' 13%, transparent', ' 26%, #455463']) {
+  forbidToken(coherenceCss, token, 'coherence layer')
+}
 
 if (failures.length) {
   console.error('Submission status surface contract failed:')
