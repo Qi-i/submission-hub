@@ -54,11 +54,11 @@ if (secondaryMix < 8) failures.push(`Secondary journal surface tint is too weak:
 if (primaryMix > 22) failures.push(`Primary journal surface tint is too strong: ${primaryMix}%`)
 
 const accentBlockStart = css.indexOf('::before')
-const accentBlock = css.slice(accentBlockStart, css.indexOf('::after', accentBlockStart))
-const height = Number(accentBlock.match(/height:\s*(\d+(?:\.\d+)?)px/)?.[1] || 0)
-const opacity = Number(accentBlock.match(/opacity:\s*(\d+(?:\.\d+)?)/)?.[1] || 0)
-if (height < 4) failures.push(`Journal tier top accent is too thin: ${height}px`)
-if (opacity < 0.9) failures.push(`Journal tier top accent is too faint: ${opacity}`)
+const accentBlock = accentBlockStart >= 0 ? css.slice(accentBlockStart, css.indexOf('::after', accentBlockStart)) : ''
+const topRailInvisible = /display:\s*none\s*!important/.test(accentBlock)
+  || /content:\s*none\s*!important/.test(accentBlock)
+  || /opacity:\s*0(?:\.0+)?\s*!important/.test(accentBlock)
+if (!topRailInvisible) failures.push('Journal Center top tier rail must be visually absent; tier identity belongs to the pastel surface, border and watermark')
 
-console.log(JSON.stringify({ q1, q2, q3, pairDistances, primaryMix, secondaryMix, height, opacity, failures }, null, 2))
+console.log(JSON.stringify({ q1, q2, q3, pairDistances, primaryMix, secondaryMix, topRailInvisible, failures }, null, 2))
 if (failures.length) throw new Error(failures.join(' | '))
