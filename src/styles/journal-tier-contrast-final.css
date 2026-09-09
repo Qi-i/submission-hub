@@ -2,8 +2,8 @@
  * JOURNAL CENTER Q1-Q3 TERMINAL SURFACE CONTRACT
  * ------------------------------------------------
  * Loaded last from app-styles.ts. The Journal Center now uses only three dedicated
- * international tier identities: Q1, Q2 and Q3. Keep the card family light, but make
- * the rank readable at a glance through a stronger pastel surface, border and top rail.
+ * international tier identities: Q1, Q2 and Q3. Keep the card family light, and make
+ * the rank readable at a glance through the pastel surface, border and watermark only.
  */
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card[data-surface-tier='jcr-q1'] {
@@ -40,15 +40,8 @@ html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid.journal-ca
 }
 
 html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::before {
-  top: 6px !important;
-  right: 18px !important;
-  bottom: auto !important;
-  left: 18px !important;
-  width: auto !important;
-  height: 4px !important;
-  border-radius: 999px !important;
-  opacity: 0.95 !important;
-  background: var(--journal-surface-accent, var(--journal-card-accent)) !important;
+  content: none !important;
+  display: none !important;
 }
 
 html[data-ui] body .paper-grid.journal-catalog-grid > .journal-center-card.paper-card-v3::after {
