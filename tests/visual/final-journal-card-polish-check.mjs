@@ -57,6 +57,45 @@ try {
             failures.push(`journal ${index + 1}: top accent height is inconsistent (${accentHeight || 0}px)`)
           }
 
+          const header = card.querySelector('.journal-catalog-card__head')
+          const publisherRail = card.querySelector('.journal-catalog-card__publisher-rail')
+          const status = card.querySelector('.journal-catalog-card__status')
+          const oaSlot = card.querySelector('.journal-catalog-card__oa-slot')
+          const oa = card.querySelector('.journal-catalog-card__oa')
+          const abbreviation = card.querySelector('.journal-catalog-card__abbreviation')
+          if (!header || !publisherRail || !status || !oaSlot || !oa) {
+            failures.push(`journal ${index + 1}: header fixture is incomplete`)
+          } else {
+            if (publisherRail.parentElement !== header) failures.push(`journal ${index + 1}: publisher and abbreviation still occupy a separate card row below the priority/OA header`)
+            const headerRect = header.getBoundingClientRect()
+            const statusRect = status.getBoundingClientRect()
+            const oaSlotRect = oaSlot.getBoundingClientRect()
+            const oaRect = oa.getBoundingClientRect()
+            const oaStyle = getComputedStyle(oa)
+            const statusCenter = statusRect.top + statusRect.height / 2
+            const oaCenter = oaRect.top + oaRect.height / 2
+            if (oaStyle.display === 'none' || oaStyle.visibility === 'hidden' || Number.parseFloat(oaStyle.opacity || '1') < 0.1 || oaRect.width < 40 || oaRect.height < 18) {
+              failures.push(`journal ${index + 1}: OA badge is not visibly rendered (${oaRect.width.toFixed(1)}x${oaRect.height.toFixed(1)}px)`)
+            }
+            if (oaSlotRect.right > headerRect.right + 1 || oaSlotRect.left < headerRect.left - 1 || oaRect.right > cardRect.right - 4 || oaRect.left < cardRect.left + 4) {
+              failures.push(`journal ${index + 1}: OA badge is clipped or positioned outside the visible header/card`)
+            }
+            if (Math.abs(statusCenter - oaCenter) > 8) failures.push(`journal ${index + 1}: priority and OA no longer share the first header row`)
+
+            if (cardRect.width >= 390) {
+              const aligned = [status, publisherRail, oa, abbreviation].filter(Boolean).map(node => {
+                const rect = node.getBoundingClientRect()
+                return rect.top + rect.height / 2
+              })
+              if (aligned.length > 1 && Math.max(...aligned) - Math.min(...aligned) > 8) {
+                failures.push(`journal ${index + 1}: wide card does not align priority, publisher, abbreviation and OA on one header row`)
+              }
+            }
+
+            const publisherRect = publisherRail.getBoundingClientRect()
+            if (publisherRect.left < headerRect.left - 1 || publisherRect.right > headerRect.right + 1) failures.push(`journal ${index + 1}: publisher rail overflows card header`)
+          }
+
           const metrics = card.querySelector('.journal-catalog-card__metrics')
           if (metrics && getComputedStyle(metrics).display !== 'grid') {
             failures.push(`journal ${index + 1}: metric rail regressed from content-sized grid`)
