@@ -124,7 +124,7 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
     }
 
     return <article
-      className="card glass-card paper-card-v3 prep-journal-card journal-catalog-card journal-center-card"
+      className="card glass-card paper-card-v3 journal-catalog-card journal-center-card"
       style={style}
       data-priority={journal.priority}
       data-risk={journal.risk_level}
