@@ -69,7 +69,7 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   width: max-content !important;
   min-width: 0 !important;
   max-width: 100% !important;
-  min-height: 30px !important;
+  min-height: 0 !important;
   height: auto !important;
   display: inline-flex !important;
   flex-direction: row !important;
