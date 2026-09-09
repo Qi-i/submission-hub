@@ -57,6 +57,26 @@ try {
             failures.push(`journal ${index + 1}: top accent height is inconsistent (${accentHeight || 0}px)`)
           }
 
+          const header = card.querySelector('.journal-catalog-card__head')
+          const publisherRail = card.querySelector('.journal-catalog-card__publisher-rail')
+          const status = card.querySelector('.journal-catalog-card__status')
+          const oa = card.querySelector('.journal-catalog-card__oa')
+          const abbreviation = card.querySelector('.journal-catalog-card__abbreviation')
+          if (!header || !publisherRail || !status || !oa) {
+            failures.push(`journal ${index + 1}: header fixture is incomplete`)
+          } else {
+            if (publisherRail.parentElement !== header) failures.push(`journal ${index + 1}: publisher and abbreviation still occupy a separate row below the priority/OA header`)
+            const aligned = [status, publisherRail, oa, abbreviation].filter(Boolean).map(node => {
+              const rect = node.getBoundingClientRect()
+              return rect.top + rect.height / 2
+            })
+            if (aligned.length > 1 && Math.max(...aligned) - Math.min(...aligned) > 8) {
+              failures.push(`journal ${index + 1}: priority, publisher, abbreviation and OA are not aligned on one header row`)
+            }
+            const publisherRect = publisherRail.getBoundingClientRect()
+            if (publisherRect.right > cardRect.right - 8) failures.push(`journal ${index + 1}: publisher rail overflows card header`)
+          }
+
           const metrics = card.querySelector('.journal-catalog-card__metrics')
           if (metrics && getComputedStyle(metrics).display !== 'grid') {
             failures.push(`journal ${index + 1}: metric rail regressed from content-sized grid`)
