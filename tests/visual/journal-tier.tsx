@@ -15,40 +15,18 @@ const base: JournalProfile = {
 }
 
 const cases = [
-  {
-    key: 'intl-q1-ei',
-    expected: 'Q1',
-    journal: { ...base, id: 'intl-q1-ei', name: 'International Engineering Methods', publisher: 'Example Press', indexing: ['EI'], jcr_quartile: 'Q1', rank_data: { eii: '是', sci: 'Q1' } },
-  },
-  {
-    key: 'cn-ei-pku',
-    expected: 'EI',
-    journal: { ...base, id: 'cn-ei-pku', name: '工程方法学报', indexing: ['EI', '北大核心', 'CSCD'], rank_data: { eii: '是', pku: '是', cscd: '是' } },
-  },
-  {
-    key: 'cn-pku',
-    expected: '北核',
-    journal: { ...base, id: 'cn-pku', name: '城市科学学报', indexing: ['北大核心', 'CSCD'], rank_data: { pku: '是', cscd: '是' } },
-  },
-  {
-    key: 'cn-core',
-    expected: '核心',
-    journal: { ...base, id: 'cn-core', name: '区域研究学报', indexing: ['CSCD'], rank_data: { cscd: '是' } },
-  },
-  {
-    key: 'cn-ordinary',
-    expected: '普通',
-    journal: { ...base, id: 'cn-ordinary', name: '应用研究通讯', indexing: [] },
-  },
+  { expected: 'Q1', journal: { ...base, id: 'intl-q1-ei', name: 'International Engineering Methods', publisher: 'Example Press', indexing: ['EI'], jcr_quartile: 'Q1', rank_data: { eii: '是', sci: 'Q1' } } },
+  { expected: 'EI', journal: { ...base, id: 'cn-ei-pku', name: '工程方法学报', indexing: ['EI', '北大核心', 'CSCD'], rank_data: { eii: '是', pku: '是', cscd: '是' } } },
+  { expected: '北核', journal: { ...base, id: 'cn-pku', name: '城市科学学报', indexing: ['北大核心', 'CSCD'], rank_data: { pku: '是', cscd: '是' } } },
+  { expected: '核心', journal: { ...base, id: 'cn-core', name: '区域研究学报', indexing: ['CSCD'], rank_data: { cscd: '是' } } },
+  { expected: '普通', journal: { ...base, id: 'cn-ordinary', name: '应用研究通讯', indexing: [] } },
 ]
 
 function App() {
   return <main style={{ padding: 24 }}>
     <div className="journal-center-workspace">
-      <div className="journal-center-grid paper-grid journal-catalog-grid">
-        {cases.map(item => <div key={item.key} data-tier-case={item.key} data-expected={item.expected} style={{ minWidth: 0 }}>
-          <JournalCatalogCard journal={item.journal as JournalProfile} onClick={() => undefined} standalone />
-        </div>)}
+      <div className="journal-center-grid paper-grid journal-catalog-grid" data-tier-expected={cases.map(item => item.expected).join('|')}>
+        {cases.map(item => <JournalCatalogCard key={item.journal.id} journal={item.journal as JournalProfile} onClick={() => undefined} standalone />)}
       </div>
     </div>
   </main>
