@@ -111,7 +111,7 @@ const project = read('src/lib/figure-composer/project.ts')
 assert(project.includes('indexedDB'), 'figure project assets must persist in browser IndexedDB')
 assert(!project.toLowerCase().includes('supabase'), 'figure project image persistence must not upload to Supabase')
 
-const workbench = read('src/styles/preparation/workbench.css')
+const workbench = read('src/styles/preparation/workbench.css') + '\n' + read('src/components/figure-composer/FigureComposerCoherence.css')
 assert(workbench.includes('height: calc(100dvh'), 'Figure Composer should fit its editing shell to the visible viewport')
 assert(workbench.includes('.figure-composer__workspace') && workbench.includes('min-height: 0'), 'Figure Composer workspace must be allowed to shrink so the bottom status rail remains visible')
 assert(workbench.includes('.figure-composer__grid-number'), 'Figure Composer needs compact row/column input geometry')
