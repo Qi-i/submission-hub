@@ -38,6 +38,7 @@ async function submissionGeometry(ui) {
           right: rect.right,
           paddingLeft: parseFloat(style.paddingLeft) || 0,
           paddingRight: parseFloat(style.paddingRight) || 0,
+          text: element.textContent?.trim() || '',
         }
       }
       return Array.from(document.querySelectorAll('.paper-grid .paper-card-v3:not(.journal-center-card)')).filter(visible).slice(0, 6).map((card, index) => {
@@ -79,6 +80,7 @@ async function journalGeometry(ui) {
           height: rect.height,
           paddingLeft: parseFloat(style.paddingLeft) || 0,
           paddingRight: parseFloat(style.paddingRight) || 0,
+          text: element.textContent?.trim() || '',
         }
       }
       return Array.from(document.querySelectorAll('.journal-center-workspace .journal-center-card')).filter(visible).slice(0, 5).map((card, index) => {
@@ -88,7 +90,7 @@ async function journalGeometry(ui) {
           index,
           status: status instanceof HTMLElement && visible(status) ? geom(status) : null,
           oa: oa instanceof HTMLElement && visible(oa) ? geom(oa) : null,
-          secondary: Array.from(card.querySelectorAll('.journal-catalog-card__publisher-rail > .publisher-mark, .journal-catalog-card__publisher-rail > .journal-catalog-card__abbreviation')).filter(visible).map(geom),
+          topMeta: Array.from(card.querySelectorAll('.journal-catalog-card__publisher-rail > .publisher-mark, .journal-catalog-card__publisher-rail > .journal-catalog-card__abbreviation')).filter(visible).map(geom),
           compact: Array.from(card.querySelectorAll('.journal-catalog-card__ranks > span, .journal-catalog-card__facts > span, .journal-catalog-card__footer > a')).filter(visible).map(geom),
           metrics: Array.from(card.querySelectorAll('.journal-catalog-card__metrics > div')).filter(visible).map(geom),
         }
@@ -137,10 +139,10 @@ try {
     const journals = await journalGeometry(ui)
     journals.forEach(card => {
       const prefix = `${ui}/journal card ${card.index + 1}`
-      validateBlock(`${prefix} status`, card.status, { height: [29, 31], pad: [8, 11] })
-      validateBlock(`${prefix} OA`, card.oa, { height: [29, 31], pad: [8, 11] })
-      if (card.status && card.oa && !closeEnough(card.status.height, card.oa.height, 1)) failures.push(`${prefix}: status/OA heights diverge`)
-      card.secondary.forEach((item, index) => validateBlock(`${prefix} secondary ${index + 1}`, item, { height: [25, 27], pad: [7, 10] }))
+      const topBlocks = [card.status, ...card.topMeta, card.oa].filter(Boolean)
+      topBlocks.forEach((item, index) => validateBlock(`${prefix} top metadata ${index + 1}`, item, { height: [29, 31], pad: [8, 10] }))
+      if (card.status && !/[★☆]/.test(card.status.text)) failures.push(`${prefix}: first top metadata block is not a star rating (${card.status.text})`)
+      if (card.status && card.oa && !closeEnough(card.status.height, card.oa.height, 1)) failures.push(`${prefix}: rating/OA heights diverge`)
       card.compact.forEach((item, index) => validateBlock(`${prefix} compact ${index + 1}`, item, { height: [23, 25], pad: [7, 9] }))
       card.metrics.forEach((item, index) => validateBlock(`${prefix} metric ${index + 1}`, item, { height: [40, 44], pad: [7, 9] }))
     })
