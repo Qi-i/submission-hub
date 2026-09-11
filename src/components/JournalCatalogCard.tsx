@@ -1,8 +1,8 @@
 import type { CSSProperties, KeyboardEvent } from 'react'
-import { ExternalLink, Star } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import type { JournalProfile } from '../lib/preparation'
-import { OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
-import { journalPrimaryRankItems, journalRankTone, journalSurfaceClassification, type RankedJournalProfile } from '../lib/journal-display'
+import { OA_OPTIONS } from '../lib/preparation'
+import { journalPrimaryRankItems, journalRankTone, journalStarRating, journalSurfaceClassification, type RankedJournalProfile } from '../lib/journal-display'
 import { journalPublisherIdentity } from '../lib/publisher-display'
 import CurrencyCny from './CurrencyCny'
 import './JournalCatalogCard.css'
@@ -36,8 +36,9 @@ function RankBlocks({ journal, standalone = false }: { journal: JournalProfile; 
 
 export default function JournalCatalogCard({ journal, onClick, standalone = false, thirdPartyLinkLimit = 2 }: Props) {
   const oa = OA_OPTIONS.find(item => item.key === journal.oa_type)?.label || '未确认'
-  const priority = PRIORITY_OPTIONS.find(item => item.key === journal.priority)?.label || '中'
   const risk = journal.risk_level === 'warning' ? '预警' : journal.risk_level === 'watch' ? '关注' : '正常'
+  const rating = journalStarRating(journal as RankedJournalProfile)
+  const ratingStars = `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}`
   const showAbbreviation = !!journal.official_abbreviation && journal.official_abbreviation.toLocaleLowerCase() !== journal.name.toLocaleLowerCase()
   const publisher = journalPublisherIdentity(journal)
   const selectionTags = Array.isArray(journal.selection_tags) ? journal.selection_tags : []
@@ -103,6 +104,7 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
       data-risk={journal.risk_level}
       data-oa={journal.oa_type || 'unknown'}
       data-favorite={journal.is_favorite ? 'true' : 'false'}
+      data-star-rating={rating}
       data-surface-tier={surface.tier}
       data-surface-code={surface.code}
       role="button"
@@ -113,9 +115,8 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
     >
       <div className="paper-card-head journal-catalog-card__head">
         <div className="paper-status-area journal-catalog-card__status-area">
-          <span className={`badge journal-priority-status journal-catalog-card__status priority-${journal.priority}`}>
-            {journal.is_favorite && <Star size={13} fill="currentColor" />}
-            {journal.is_favorite ? '重点期刊' : `优先级 ${priority}`}
+          <span className="badge journal-rating-pill journal-catalog-card__status" title={`投稿星级：${rating}/5`} aria-label={`投稿星级 ${rating} 星`}>
+            <span className="journal-rating-stars" aria-hidden="true">{ratingStars}</span>
           </span>
         </div>
         <div className="paper-meta-row paper-meta-compact paper-action-rail journal-catalog-card__publisher-rail">
@@ -150,12 +151,13 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
     data-priority={journal.priority}
     data-risk={journal.risk_level}
     data-favorite={journal.is_favorite ? 'true' : 'false'}
+    data-star-rating={rating}
   >
     <button className="prep-journal-card-main journal-catalog-card__main" onClick={onClick} title={journal.selection_notes || journal.scope_zh || undefined} type="button">
       <div className="prep-card-top journal-catalog-card__head">
         <div className="journal-catalog-card__status-area">
-          <span className={`prep-priority journal-catalog-card__status ${journal.priority}`}>{journal.is_favorite && <Star size={13} fill="currentColor" />}{journal.is_favorite ? '重点期刊' : '期刊档案'}</span>
-          <span className={`prep-risk journal-catalog-card__substatus ${journal.risk_level}`}><i aria-hidden="true" />优先级 {priority} · {risk}</span>
+          <span className="prep-priority journal-rating-pill journal-catalog-card__status" title={`投稿星级：${rating}/5`}><span className="journal-rating-stars" aria-hidden="true">{ratingStars}</span></span>
+          {risk !== '正常' && <span className={`prep-risk journal-catalog-card__substatus ${journal.risk_level}`}><i aria-hidden="true" />{risk}</span>}
         </div>
         <span className="journal-catalog-card__oa" data-tone="oa">{oa}</span>
       </div>
