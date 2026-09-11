@@ -7,6 +7,7 @@ import { journalPublisherIdentity } from '../lib/publisher-display'
 import CurrencyCny from './CurrencyCny'
 import './JournalCatalogCard.css'
 import './JournalCatalogCardDetail.css'
+import './JournalCatalogCardTopMeta.css'
 
 interface Props {
   journal: JournalProfile
