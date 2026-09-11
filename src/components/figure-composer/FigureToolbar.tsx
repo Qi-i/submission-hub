@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, CheckSquare2, ChevronDown, ChevronRight, Eraser, GripVertical, Grid3X3, Maximize2, Rows3, Scan, SquareStack, ZoomIn, ZoomOut } from 'lucide-react'
 import type { AlignMode, DistributionAxis, FigureLayoutPreset } from '../../lib/figure-composer/types'
+import './FigureComposerCoherence.css'
 
 interface Props {
   selectedCount: number
@@ -31,7 +32,7 @@ function readToolbarState() {
     const order = stored?.order?.filter(key => DEFAULT_ORDER.includes(key)) || []
     return {
       order: [...order, ...DEFAULT_ORDER.filter(key => !order.includes(key))],
-      collapsed: { align: true, ...(stored?.collapsed || {}) } as Record<ClusterKey, boolean>,
+      collapsed: { layout: false, selection: false, align: true, view: false, ...(stored?.collapsed || {}) } as Record<ClusterKey, boolean>,
     }
   } catch {
     return { order: DEFAULT_ORDER, collapsed: { layout: false, selection: false, align: true, view: false } as Record<ClusterKey, boolean> }
