@@ -20,9 +20,11 @@ try {
   const page = await browser.newPage({ viewport: { width: 1680, height: 1050 } })
   await page.addInitScript(() => {
     const resetKey = 'submission-hub.figure-composer.panes.test-reset'
-    if (sessionStorage.getItem(resetKey)) return
-    localStorage.removeItem('submission-hub.figure-composer.panes')
-    sessionStorage.setItem(resetKey, '1')
+    if (!sessionStorage.getItem(resetKey)) {
+      localStorage.removeItem('submission-hub.figure-composer.panes')
+      sessionStorage.setItem(resetKey, '1')
+    }
+    localStorage.removeItem('submission-hub.figure-composer.toolbar')
   })
   await openComposer(page)
 
@@ -34,6 +36,19 @@ try {
   if (identity.name !== '未命名组图' || projectName !== '未命名组图') fail(`neutral project identity was lost (${identity.name} / ${projectName})`)
   if (/Figure\s*1|Supplementary\s*Figure|论文|manuscript/i.test(`${identity.name} ${projectName}`)) fail('new project is polluted by manuscript/publication identity')
   if (/Figure\s*1|Supplementary\s*Figure/i.test(identity.description)) fail(`default description exposes a generated publication number: ${identity.description}`)
+
+  const firstSection = await page.locator('.figure-composer__left > .figure-composer__section').first().locator('.figure-composer__section-title strong').textContent()
+  if (firstSection?.trim() !== '图片与图层') fail(`left rail does not start with 图片与图层 (${firstSection})`)
+  const localDraftNote = await page.locator('.figure-composer__local-save-note').textContent()
+  if (!/IndexedDB/.test(localDraftNote || '') || !/不会上传/.test(localDraftNote || '')) fail(`local draft semantics are unclear (${localDraftNote})`)
+
+  const gridNumbers = page.locator('.figure-composer__grid-number')
+  const gridNumberGeometry = []
+  for (let index = 0; index < await gridNumbers.count(); index += 1) {
+    const box = await gridNumbers.nth(index).boundingBox()
+    if (box) gridNumberGeometry.push(box)
+  }
+  if (gridNumberGeometry.length !== 2 || gridNumberGeometry.some(box => box.width > 52 || box.height > 31)) fail(`row/column inputs are not compact (${JSON.stringify(gridNumberGeometry)})`)
 
   const fileInput = page.locator('.figure-composer__left input[type="file"]')
   await fileInput.setInputFiles([
@@ -61,6 +76,26 @@ try {
   if (Math.abs(widthA - 320) > 1 || Math.abs(widthB - 320) > 1) fail(`global single-panel width did not reflow imported panels (${widthA}, ${widthB})`)
   if (Math.abs((xB - xA) - 344) > 3) fail(`24px gap was not reflected in panel geometry (x delta ${xB - xA}, expected ~344)`)
 
+  await page.getByRole('button', { name: '全选', exact: true }).click()
+  if (!/已选\s*2/.test(await page.locator('.figure-composer__selection-count').textContent() || '')) fail('select-all did not select both panels')
+  await page.getByRole('button', { name: '清空选择', exact: true }).click()
+  if (!/未选择/.test(await page.locator('.figure-composer__selection-count').textContent() || '')) fail('clear selection did not clear both panels')
+
+  const canvas = page.locator('.figure-composer__canvas')
+  const canvasBox = await canvas.boundingBox()
+  if (!canvasBox) throw new Error('Figure Composer canvas is not measurable')
+  await page.mouse.move(canvasBox.x + 3, canvasBox.y + 3)
+  await page.mouse.down()
+  await page.mouse.move(canvasBox.x + canvasBox.width - 3, canvasBox.y + canvasBox.height - 3, { steps: 6 })
+  await page.mouse.up()
+  await page.waitForTimeout(120)
+  if (!/已选\s*2/.test(await page.locator('.figure-composer__selection-count').textContent() || '')) fail('marquee drag did not select both panels')
+
+  const alignCluster = page.locator('[data-tool-cluster="align"]')
+  if ((await alignCluster.getAttribute('aria-expanded')) !== 'false') fail('alignment cluster should default collapsed to preserve toolbar space')
+  await alignCluster.getByTitle('展开对齐').click()
+  if (await alignCluster.getByTitle('左对齐').isDisabled()) fail('alignment controls remain disabled after multi-select')
+
   const labels = page.locator('.figure-composer__global-labels')
   const globalLabelStyle = labels.locator('label', { hasText: '标签样式' }).locator('select').first()
   await globalLabelStyle.selectOption('A')
@@ -68,6 +103,23 @@ try {
   await layers.nth(0).click()
   const panelLabelStyle = await inspector.locator('label', { hasText: /^标签/ }).locator('select').first().inputValue()
   if (panelLabelStyle !== 'A') fail(`global label style did not propagate to panels (${panelLabelStyle})`)
+
+  const viewport = page.locator('.figure-composer__canvas-viewport')
+  await page.getByRole('button', { name: /适配画布/ }).click()
+  await page.waitForTimeout(120)
+  const viewportBox = await viewport.boundingBox()
+  const fittedCanvasBox = await canvas.boundingBox()
+  if (!viewportBox || !fittedCanvasBox) throw new Error('fit-canvas geometry is not measurable')
+  if (fittedCanvasBox.width > viewportBox.width - 8 || fittedCanvasBox.height > viewportBox.height - 8) fail(`fit canvas still exceeds viewport (${fittedCanvasBox.width}×${fittedCanvasBox.height} vs ${viewportBox.width}×${viewportBox.height})`)
+
+  const statusBox = await page.locator('.figure-composer__status').boundingBox()
+  const composerBox = await page.locator('.figure-composer').boundingBox()
+  if (!statusBox || !composerBox) throw new Error('Figure Composer status geometry is not measurable')
+  if (statusBox.y + statusBox.height > 1050 || statusBox.y + statusBox.height > composerBox.y + composerBox.height + 1) fail(`bottom status rail is clipped (${JSON.stringify(statusBox)})`)
+
+  await page.getByRole('button', { name: /保存本地草稿/ }).first().click()
+  await page.locator('.figure-composer__status').filter({ hasText: 'IndexedDB' }).waitFor({ state: 'visible', timeout: 10000 })
+  if (await page.locator('.figure-composer__project-list > button').count() < 1) fail('saved project is not discoverable from the local draft library')
 
   const left = page.locator('.figure-composer__left')
   const right = page.locator('.figure-composer__right')
@@ -115,7 +167,7 @@ try {
   }
   if (Math.abs(restored.left - stored.left) > 1 || Math.abs(restored.right - stored.right) > 1) fail(`pane widths did not survive reload (${JSON.stringify(restored)} vs ${JSON.stringify(stored)})`)
 
-  console.log(JSON.stringify({ failures, identity, widthA, widthB, xA, xB, before, after, stored, restored }, null, 2))
+  console.log(JSON.stringify({ failures, identity, firstSection, gridNumberGeometry, widthA, widthB, xA, xB, statusBox, before, after, stored, restored }, null, 2))
   await page.close()
 } finally {
   await browser.close()
