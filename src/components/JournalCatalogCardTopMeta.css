@@ -110,3 +110,47 @@ html[data-ui] body .prep-journal-card .journal-rating-pill {
   color: #b45309 !important;
   letter-spacing: .05em !important;
 }
+
+/* Journal editor: 1-5 stars are a compact preference control, not another large select. */
+.journal-star-rating-control {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border: 1px solid var(--prep-border-strong, rgba(100,116,139,.24));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--prep-surface-elevated, #fff) 94%, transparent);
+}
+
+.journal-star-rating-control button {
+  width: 27px;
+  min-width: 27px;
+  height: 27px;
+  min-height: 27px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  color: #cbd5e1 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.journal-star-rating-control button.active {
+  color: #d97706 !important;
+  background: rgba(245,158,11,.08) !important;
+}
+
+.journal-star-rating-control button:hover {
+  color: #b45309 !important;
+  background: rgba(245,158,11,.11) !important;
+}
+
+.journal-star-rating-control > span {
+  margin-left: 5px;
+  color: var(--prep-text-muted, #64748b);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
