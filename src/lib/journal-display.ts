@@ -21,6 +21,23 @@ export type JournalSurfaceClassification = {
   code: 'Q1' | 'Q2' | 'Q3' | '未分区' | 'EI' | '北核' | '核心' | '普通'
 }
 
+export const JOURNAL_STAR_RATING_KEY = 'ui_star_rating'
+
+export function journalStarRating(journal?: RankedJournalProfile | null) {
+  const explicit = Number(journal?.rank_data?.[JOURNAL_STAR_RATING_KEY])
+  if (Number.isInteger(explicit) && explicit >= 1 && explicit <= 5) return explicit
+  const legacy: Record<string, number> = { low: 2, medium: 3, high: 4, critical: 5 }
+  return legacy[journal?.priority || ''] || 3
+}
+
+export function journalPriorityForStarRating(rating: number): JournalProfile['priority'] {
+  const value = Math.max(1, Math.min(5, Math.round(rating)))
+  if (value >= 5) return 'critical'
+  if (value === 4) return 'high'
+  if (value === 3) return 'medium'
+  return 'low'
+}
+
 const DOMESTIC_KEYS = ['eii', 'pku', 'cscd', 'zhongguokejihexin', 'cssci']
 const INTERNATIONAL_KEYS = ['xr', 'sciUp', 'sciBase', 'sci', 'ssci', 'sciif']
 const DOMESTIC_INDEXING = ['EI', '北大核心', 'CSCD', '科技核心', 'CSSCI']
@@ -124,7 +141,6 @@ export function primaryJournalRankItems(journal: RankedJournalProfile, limit = 6
     .slice(0, limit)
 }
 
-// Compatibility alias used by the preparation workspace.
 export const journalPrimaryRankItems = primaryJournalRankItems
 
 export function journalRankTone(key: string) {
