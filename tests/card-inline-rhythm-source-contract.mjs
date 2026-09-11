@@ -2,13 +2,14 @@ import { existsSync, readFileSync } from 'node:fs'
 
 const failures = []
 const cssPath = 'src/styles/submission-family-card-coherence.css'
+const topMetaCssPath = 'src/components/JournalCatalogCardTopMeta.css'
 const publisherPath = 'src/lib/publisher-display.ts'
 const displayPath = 'src/lib/journal-display.ts'
 const journalPath = 'src/components/JournalCatalogCard.tsx'
 const journalFormPath = 'src/components/JournalFormEnhanced.tsx'
 const paperPath = 'src/components/PaperCardEnhanced.tsx'
 
-const css = readFileSync(cssPath, 'utf8')
+const css = readFileSync(cssPath, 'utf8') + '\n' + (existsSync(topMetaCssPath) ? readFileSync(topMetaCssPath, 'utf8') : '')
 const journal = readFileSync(journalPath, 'utf8')
 const journalForm = readFileSync(journalFormPath, 'utf8')
 const display = readFileSync(displayPath, 'utf8')
@@ -39,6 +40,7 @@ if (!existsSync(publisherPath)) {
 }
 
 if (!journal.includes("from '../lib/publisher-display'")) failures.push('JournalCatalogCard does not use the shared publisher display policy')
+if (!journal.includes("./JournalCatalogCardTopMeta.css")) failures.push('JournalCatalogCard does not load the unified top metadata stylesheet')
 if (!paper.includes("from '../lib/publisher-display'")) failures.push('PaperCardEnhanced does not use the shared publisher display policy')
 if (/function\s+publisherMark\s*\(/.test(journal)) failures.push('JournalCatalogCard still owns a duplicate publisherMark implementation')
 if (/function\s+publisherIdentity\s*\(/.test(paper)) failures.push('PaperCardEnhanced still owns a duplicate publisherIdentity implementation')
