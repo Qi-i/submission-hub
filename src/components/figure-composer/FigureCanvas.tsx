@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type Ref } from 'react'
 import { automaticPanelLabel, type FigurePanel, type FigureProject, type FigureSnapGuide, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
 
 type DragState = {
@@ -15,12 +15,14 @@ type DragState = {
   additive: boolean
 } | null
 
+type MarqueeDrag = Extract<NonNullable<DragState>, { kind: 'marquee' }>
+
 interface Props {
   project: FigureProject
   assets: Map<string, RuntimeFigureAsset>
   zoom: number
   guides: FigureSnapGuide[]
-  viewportRef?: RefObject<HTMLDivElement | null>
+  viewportRef?: Ref<HTMLDivElement>
   onSelectPanel: (id: string, mode: 'replace' | 'toggle' | 'range') => void
   onSelectPanels: (ids: string[], mode: 'replace' | 'add') => void
   onSelectText: (id: string) => void
@@ -42,7 +44,7 @@ function hitPanel(panels: FigurePanel[], x: number, y: number) {
   return [...panels].reverse().find(panel => x >= panel.x && x <= panel.x + panel.width && y >= panel.y && y <= panel.y + panel.height) || null
 }
 
-function marqueeBounds(drag: Extract<NonNullable<DragState>, { kind: 'marquee' }>) {
+function marqueeBounds(drag: MarqueeDrag) {
   return {
     left: Math.min(drag.startX, drag.currentX),
     top: Math.min(drag.startY, drag.currentY),
@@ -54,7 +56,7 @@ function marqueeBounds(drag: Extract<NonNullable<DragState>, { kind: 'marquee' }
 export default function FigureCanvas({ project, assets, zoom, guides, viewportRef, onSelectPanel, onSelectPanels, onSelectText, onClearSelection, onMovePanel, onMoveText, onFinishMove }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dragRef = useRef<DragState>(null)
-  const [marquee, setMarquee] = useState<Extract<NonNullable<DragState>, { kind: 'marquee' }> | null>(null)
+  const [marquee, setMarquee] = useState<MarqueeDrag | null>(null)
   const [imageVersion, setImageVersion] = useState(0)
   const imageCache = useRef(new Map<string, HTMLImageElement>())
 
@@ -226,7 +228,7 @@ export default function FigureCanvas({ project, assets, zoom, guides, viewportRe
       return
     }
 
-    const nextMarquee = { kind: 'marquee' as const, startX: point.x, startY: point.y, currentX: point.x, currentY: point.y, additive: event.ctrlKey || event.metaKey }
+    const nextMarquee: MarqueeDrag = { kind: 'marquee', startX: point.x, startY: point.y, currentX: point.x, currentY: point.y, additive: event.ctrlKey || event.metaKey }
     dragRef.current = nextMarquee
     setMarquee(nextMarquee)
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -239,7 +241,14 @@ export default function FigureCanvas({ project, assets, zoom, guides, viewportRe
     if (drag.kind === 'text') onMoveText(drag.id, point.x - drag.dx, point.y - drag.dy)
     else if (drag.kind === 'panel') onMovePanel(drag.id, point.x - drag.dx, point.y - drag.dy)
     else {
-      const next = { ...drag, currentX: point.x, currentY: point.y }
+      const next: MarqueeDrag = {
+        kind: 'marquee',
+        startX: drag.startX,
+        startY: drag.startY,
+        currentX: point.x,
+        currentY: point.y,
+        additive: drag.additive,
+      }
       dragRef.current = next
       setMarquee(next)
     }
