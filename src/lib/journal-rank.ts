@@ -110,7 +110,7 @@ function sortRankItems(items: JournalRankItem[]) {
 
 export function rankItemsFromValues(values: Record<string, string> | null | undefined) {
   return sortRankItems(Object.entries(values || {})
-    .filter(([key, value]) => !key.startsWith('metric_') && !!text(value))
+    .filter(([key, value]) => !key.startsWith('metric_') && !key.startsWith('ui_') && !!text(value))
     .map(([key, value]) => ({
       key,
       label: journalRankLabel(key),
