@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react'
 import { automaticPanelLabel, type FigurePanel, type FigureProject, type FigureSnapGuide, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
 
 type DragState = {
@@ -6,6 +6,13 @@ type DragState = {
   id: string
   dx: number
   dy: number
+} | {
+  kind: 'marquee'
+  startX: number
+  startY: number
+  currentX: number
+  currentY: number
+  additive: boolean
 } | null
 
 interface Props {
@@ -13,7 +20,9 @@ interface Props {
   assets: Map<string, RuntimeFigureAsset>
   zoom: number
   guides: FigureSnapGuide[]
+  viewportRef?: RefObject<HTMLDivElement | null>
   onSelectPanel: (id: string, mode: 'replace' | 'toggle' | 'range') => void
+  onSelectPanels: (ids: string[], mode: 'replace' | 'add') => void
   onSelectText: (id: string) => void
   onClearSelection: () => void
   onMovePanel: (id: string, x: number, y: number) => void
@@ -33,9 +42,19 @@ function hitPanel(panels: FigurePanel[], x: number, y: number) {
   return [...panels].reverse().find(panel => x >= panel.x && x <= panel.x + panel.width && y >= panel.y && y <= panel.y + panel.height) || null
 }
 
-export default function FigureCanvas({ project, assets, zoom, guides, onSelectPanel, onSelectText, onClearSelection, onMovePanel, onMoveText, onFinishMove }: Props) {
+function marqueeBounds(drag: Extract<NonNullable<DragState>, { kind: 'marquee' }>) {
+  return {
+    left: Math.min(drag.startX, drag.currentX),
+    top: Math.min(drag.startY, drag.currentY),
+    right: Math.max(drag.startX, drag.currentX),
+    bottom: Math.max(drag.startY, drag.currentY),
+  }
+}
+
+export default function FigureCanvas({ project, assets, zoom, guides, viewportRef, onSelectPanel, onSelectPanels, onSelectText, onClearSelection, onMovePanel, onMoveText, onFinishMove }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dragRef = useRef<DragState>(null)
+  const [marquee, setMarquee] = useState<Extract<NonNullable<DragState>, { kind: 'marquee' }> | null>(null)
   const [imageVersion, setImageVersion] = useState(0)
   const imageCache = useRef(new Map<string, HTMLImageElement>())
 
@@ -167,7 +186,19 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
       context.stroke()
       context.restore()
     })
-  }, [project, selected, guides, imageVersion])
+
+    if (marquee) {
+      const box = marqueeBounds(marquee)
+      context.save()
+      context.fillStyle = 'rgba(37,99,235,.08)'
+      context.strokeStyle = '#2563eb'
+      context.lineWidth = 1.5
+      context.setLineDash([5, 4])
+      context.fillRect(box.left, box.top, box.right - box.left, box.bottom - box.top)
+      context.strokeRect(box.left, box.top, box.right - box.left, box.bottom - box.top)
+      context.restore()
+    }
+  }, [project, selected, guides, imageVersion, marquee])
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const point = pointFor(event, project)
@@ -187,13 +218,17 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
     }
 
     const panel = hitPanel(project.panels, point.x, point.y)
-    if (!panel) {
-      onClearSelection()
+    if (panel) {
+      const mode = event.shiftKey ? 'range' : event.ctrlKey || event.metaKey ? 'toggle' : 'replace'
+      onSelectPanel(panel.id, mode)
+      dragRef.current = { kind: 'panel', id: panel.id, dx: point.x - panel.x, dy: point.y - panel.y }
+      event.currentTarget.setPointerCapture(event.pointerId)
       return
     }
-    const mode = event.shiftKey ? 'range' : event.ctrlKey || event.metaKey ? 'toggle' : 'replace'
-    onSelectPanel(panel.id, mode)
-    dragRef.current = { kind: 'panel', id: panel.id, dx: point.x - panel.x, dy: point.y - panel.y }
+
+    const nextMarquee = { kind: 'marquee' as const, startX: point.x, startY: point.y, currentX: point.x, currentY: point.y, additive: event.ctrlKey || event.metaKey }
+    dragRef.current = nextMarquee
+    setMarquee(nextMarquee)
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
@@ -202,17 +237,36 @@ export default function FigureCanvas({ project, assets, zoom, guides, onSelectPa
     if (!drag) return
     const point = pointFor(event, project)
     if (drag.kind === 'text') onMoveText(drag.id, point.x - drag.dx, point.y - drag.dy)
-    else onMovePanel(drag.id, point.x - drag.dx, point.y - drag.dy)
+    else if (drag.kind === 'panel') onMovePanel(drag.id, point.x - drag.dx, point.y - drag.dy)
+    else {
+      const next = { ...drag, currentX: point.x, currentY: point.y }
+      dragRef.current = next
+      setMarquee(next)
+    }
   }
 
   const finish = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!dragRef.current) return
+    const drag = dragRef.current
+    if (!drag) return
     dragRef.current = null
-    onFinishMove()
+    if (drag.kind === 'marquee') {
+      const box = marqueeBounds(drag)
+      const width = box.right - box.left
+      const height = box.bottom - box.top
+      if (width < 3 && height < 3) {
+        if (!drag.additive) onClearSelection()
+      } else {
+        const ids = project.panels.filter(panel => panel.x < box.right && panel.x + panel.width > box.left && panel.y < box.bottom && panel.y + panel.height > box.top).map(panel => panel.id)
+        onSelectPanels(ids, drag.additive ? 'add' : 'replace')
+      }
+      setMarquee(null)
+    } else {
+      onFinishMove()
+    }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  return <div className="figure-composer__canvas-viewport" data-testid="figure-canvas-viewport">
+  return <div ref={viewportRef} className="figure-composer__canvas-viewport" data-testid="figure-canvas-viewport">
     <div className="figure-composer__canvas-scale" style={{ width: project.canvas.width * zoom, height: project.canvas.height * zoom }}>
       <canvas
         ref={canvasRef}
