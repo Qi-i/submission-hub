@@ -122,7 +122,6 @@ export default function JournalCatalogCard({ journal, onClick, standalone = fals
         </div>
         <div className="paper-meta-row paper-meta-compact paper-action-rail journal-catalog-card__publisher-rail">
           {publisher && <span className="publisher-mark" data-publisher={publisher.tone} title={`出版社：${publisher.name}`}>
-            <span className="publisher-mark-symbol">{publisher.mark}</span>
             <span className="publisher-mark-name">{publisher.name}</span>
           </span>}
           {showAbbreviation && <span className="badge badge-sm badge-outline journal-catalog-card__abbreviation">{journal.official_abbreviation}</span>}

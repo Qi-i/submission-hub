@@ -44,6 +44,7 @@ if (!journal.includes("./JournalCatalogCardTopMeta.css")) failures.push('Journal
 if (!paper.includes("from '../lib/publisher-display'")) failures.push('PaperCardEnhanced does not use the shared publisher display policy')
 if (/function\s+publisherMark\s*\(/.test(journal)) failures.push('JournalCatalogCard still owns a duplicate publisherMark implementation')
 if (/function\s+publisherIdentity\s*\(/.test(paper)) failures.push('PaperCardEnhanced still owns a duplicate publisherIdentity implementation')
+if (journal.includes('publisher-mark-symbol') || journal.includes('publisher.mark')) failures.push('Journal Center must render one publisher wordmark only, not a pseudo-logo plus duplicate text')
 
 if (!display.includes('journalStarRating') || !display.includes('ui_star_rating')) failures.push('journal-display does not expose persisted 1-5 star rating semantics')
 if (!journal.includes('journalStarRating') || !journal.includes('journal-rating-pill')) failures.push('JournalCatalogCard does not render the 1-5 star rating pill')
