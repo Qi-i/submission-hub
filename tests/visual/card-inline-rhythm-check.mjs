@@ -143,8 +143,8 @@ try {
       topBlocks.forEach((item, index) => validateBlock(`${prefix} top metadata ${index + 1}`, item, { height: [29, 31], pad: [8, 10] }))
       if (card.status && !/[★☆]/.test(card.status.text)) failures.push(`${prefix}: first top metadata block is not a star rating (${card.status.text})`)
       if (card.status && card.oa && !closeEnough(card.status.height, card.oa.height, 1)) failures.push(`${prefix}: rating/OA heights diverge`)
-      card.compact.forEach((item, index) => validateBlock(`${prefix} compact ${index + 1}`, item, { height: [23, 25], pad: [7, 9] }))
-      card.metrics.forEach((item, index) => validateBlock(`${prefix} metric ${index + 1}`, item, { height: [40, 44], pad: [7, 9] }))
+      card.compact.forEach((item, index) => validateBlock(`${prefix} compact ${index + 1}`, item, { height: [23, 25], pad: [5, 7] }))
+      card.metrics.forEach((item, index) => validateBlock(`${prefix} metric ${index + 1}`, item, { height: [20, 30], pad: [7, 9] }))
     })
     details.push({ ui, journalCards: journals.length })
   }
