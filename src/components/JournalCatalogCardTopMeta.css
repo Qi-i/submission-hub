@@ -1,0 +1,156 @@
+:root {
+  --journal-card-meta-h: 30px;
+  --journal-card-meta-pad-x: 9px;
+  --journal-card-meta-radius: 9px;
+}
+
+/* Journal Center top metadata uses one geometry: rating / publisher / abbreviation / OA. */
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(
+  .journal-rating-pill,
+  .publisher-mark,
+  .journal-catalog-card__abbreviation,
+  .journal-catalog-card__oa
+) {
+  min-height: var(--journal-card-meta-h) !important;
+  height: var(--journal-card-meta-h) !important;
+  padding-inline: var(--journal-card-meta-pad-x) !important;
+  border: 1px solid color-mix(in srgb, var(--journal-card-accent, #64748b) 24%, rgba(100, 116, 139, .24)) !important;
+  border-radius: var(--journal-card-meta-radius) !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__status-area,
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__publisher-rail,
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa-slot {
+  min-height: var(--journal-card-meta-h) !important;
+  height: var(--journal-card-meta-h) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__publisher-rail {
+  gap: 6px !important;
+  overflow: hidden !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .publisher-mark {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  gap: 5px !important;
+  justify-content: flex-start !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .publisher-mark-name {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__abbreviation {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
+  min-width: 0 !important;
+  max-width: 150px !important;
+  gap: 5px !important;
+  justify-content: center !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-rating-pill {
+  min-width: 88px !important;
+  color: color-mix(in srgb, #b45309 86%, var(--text, #0f172a)) !important;
+  background: color-mix(in srgb, #f59e0b 9%, rgba(255,255,255,.86)) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: .06em !important;
+  text-align: center !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-rating-stars {
+  display: inline-block !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(
+  .journal-rating-pill,
+  .publisher-mark,
+  .journal-catalog-card__abbreviation,
+  .journal-catalog-card__oa
+) {
+  border-color: color-mix(in srgb, var(--journal-card-accent, #94a3b8) 30%, rgba(148,163,184,.24)) !important;
+}
+
+html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-rating-pill {
+  color: #fbbf24 !important;
+  background: rgba(245, 158, 11, .10) !important;
+}
+
+/* The preparation catalogue variant uses the same balanced star capsule. */
+html[data-ui] body .prep-journal-card .journal-rating-pill {
+  min-height: var(--journal-card-meta-h) !important;
+  height: var(--journal-card-meta-h) !important;
+  padding-inline: var(--journal-card-meta-pad-x) !important;
+  border-radius: var(--journal-card-meta-radius) !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #b45309 !important;
+  letter-spacing: .05em !important;
+}
+
+/* Journal editor: 1-5 stars are a compact preference control, not another large select. */
+.journal-star-rating-control {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border: 1px solid var(--prep-border-strong, rgba(100,116,139,.24));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--prep-surface-elevated, #fff) 94%, transparent);
+}
+
+.journal-star-rating-control button {
+  width: 27px;
+  min-width: 27px;
+  height: 27px;
+  min-height: 27px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  color: #cbd5e1 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.journal-star-rating-control button.active {
+  color: #d97706 !important;
+  background: rgba(245,158,11,.08) !important;
+}
+
+.journal-star-rating-control button:hover {
+  color: #b45309 !important;
+  background: rgba(245,158,11,.11) !important;
+}
+
+.journal-star-rating-control > span {
+  margin-left: 5px;
+  color: var(--prep-text-muted, #64748b);
+  font-size: 10.5px;
+  white-space: nowrap;
+}

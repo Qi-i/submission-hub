@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { isSupabaseStoragePath } from '../lib/file-storage-path'
 import { mergePaperWithJournalProfile } from '../lib/journal-paper-sync'
 import type { JournalProfile } from '../lib/preparation'
+import { journalPublisherIdentity } from '../lib/publisher-display'
 import type { Paper, PaperFile } from '../lib/types'
 import { daysBetweenDates, daysUntilDate, getStatus, getWorkflowSignal } from '../lib/types'
 import { inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
@@ -19,7 +20,6 @@ interface Props {
 
 type RankBadge = { label: string; cls: string }
 type BackendAction = { url: string; label: string; hint: string; kind: 'manuscript' | 'journal' }
-type PublisherIdentity = { name: string; mark: string; tone: string }
 
 function formatDate(date?: string | null) {
   if (!date) return ''
@@ -52,13 +52,13 @@ function cardFileDescriptor(file: PaperFile): CardFileDescriptor {
   if (/版权协议/.test(normalized)) return { kind: 'receipt', mark: '版权' }
   if (/apc|发票/.test(normalized)) return { kind: 'receipt', mark: '发票' }
   if (/投稿截图/.test(normalized)) return { kind: 'image', mark: '截图' }
-  if (/\.pdf/.test(normalized)) return { kind: 'pdf', mark: 'PDF' }
-  if (/\.(docx?|odt|rtf)/.test(normalized)) return { kind: 'document', mark: 'Word' }
-  if (/\.(xlsx?|csv|ods)/.test(normalized)) return { kind: 'sheet', mark: '表格' }
-  if (/\.(pptx?|odp)/.test(normalized)) return { kind: 'slides', mark: 'PPT' }
-  if (/\.(png|jpe?g|webp|gif|bmp|tiff?|svg)/.test(normalized)) return { kind: 'image', mark: '图片' }
-  if (/\.(zip|rar|7z|tar|gz)/.test(normalized)) return { kind: 'archive', mark: '压缩' }
-  if (/\.(json|xml|html?|md|txt|log)/.test(normalized)) return { kind: 'code', mark: '文本' }
+  if (/\.pdf\b/.test(normalized)) return { kind: 'pdf', mark: 'PDF' }
+  if (/\.(docx?|odt|rtf)\b/.test(normalized)) return { kind: 'document', mark: 'Word' }
+  if (/\.(xlsx?|csv|ods)\b/.test(normalized)) return { kind: 'sheet', mark: '表格' }
+  if (/\.(pptx?|odp)\b/.test(normalized)) return { kind: 'slides', mark: 'PPT' }
+  if (/\.(png|jpe?g|webp|gif|bmp|tiff?|svg)\b/.test(normalized)) return { kind: 'image', mark: '图片' }
+  if (/\.(zip|rar|7z|tar|gz)\b/.test(normalized)) return { kind: 'archive', mark: '压缩' }
+  if (/\.(json|xml|html?|md|txt|log)\b/.test(normalized)) return { kind: 'code', mark: '文本' }
   return { kind: 'generic', mark: file.t?.trim() || '附件' }
 }
 
@@ -162,34 +162,6 @@ function resolveBackend(paper: Paper, profile?: JournalProfile): BackendAction |
   return null
 }
 
-function publisherIdentity(value?: string | null): PublisherIdentity | null {
-  const name = (value || '').trim()
-  if (!name) return null
-  const normalized = name.toLocaleLowerCase()
-  const presets: Array<[RegExp, string, string]> = [
-    [/elsevier/, 'E', 'elsevier'],
-    [/springer nature/, 'SN', 'springer'],
-    [/springer|birkh[aä]user|palgrave/, 'S', 'springer'],
-    [/taylor\s*(?:&|and)\s*francis|informa/, 'T&F', 'taylor'],
-    [/wiley/, 'W', 'wiley'],
-    [/sage/, 'SAGE', 'sage'],
-    [/mdpi/, 'MDPI', 'mdpi'],
-    [/ieee/, 'IEEE', 'ieee'],
-    [/copernicus/, 'C', 'copernicus'],
-    [/emerald/, 'E', 'emerald'],
-    [/oxford university press|\boup\b/, 'OUP', 'oup'],
-    [/cambridge university press|\bcup\b/, 'CUP', 'cup'],
-  ]
-  const preset = presets.find(([pattern]) => pattern.test(normalized))
-  if (preset) return { name, mark: preset[1], tone: preset[2] }
-
-  const words = name.replace(/[()（）]/g, ' ').split(/\s+/).filter(Boolean)
-  const mark = words.length > 1
-    ? words.slice(0, 2).map(word => word[0]).join('').toUpperCase()
-    : name.slice(0, 2).toUpperCase()
-  return { name, mark, tone: 'default' }
-}
-
 function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, onTogglePinned, onClose }: {
   paper: Paper
   profile?: JournalProfile
@@ -202,7 +174,7 @@ function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, on
 }) {
   const website = profile?.website_url || paper.journal_url
   const backend = resolveBackend(paper, profile)
-  const publisher = publisherIdentity(profile?.publisher)
+  const publisher = journalPublisherIdentity(profile)
   const scope = profile?.scope_zh || profile?.selection_notes || null
   const indexing = profile?.indexing || []
   return <div className={`journal-quick-overlay${pinned ? ' is-pinned' : ''}`} onClick={event => event.stopPropagation()}>
@@ -271,7 +243,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   const authors = authorItems(linkedPaper, currentUsername, authorName)
   const authorTitle = (linkedPaper.authors || []).join('、')
   const backend = resolveBackend(linkedPaper, journalProfile)
-  const publisher = publisherIdentity(journalProfile?.publisher)
+  const publisher = journalPublisherIdentity(journalProfile)
   const statusBackend = effectiveStatus !== 'preparing' ? backend : null
 
   const clearJournalCloseTimer = () => {

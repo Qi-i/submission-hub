@@ -18,6 +18,8 @@ on:
       - 'tests/visual/journal-metric-inline-density-check.mjs'
       - 'tests/visual/journal-tier-color-separation-check.mjs'
       - 'tests/visual/submission-status-surface-contract.mjs'
+      - 'tests/visual/card-inline-rhythm-check.mjs'
+      - 'tests/visual/journal-tier.tsx'
       - '.github/workflows/ui-contract.yml'
   push:
     branches: [main]
@@ -35,6 +37,8 @@ on:
       - 'tests/visual/journal-metric-inline-density-check.mjs'
       - 'tests/visual/journal-tier-color-separation-check.mjs'
       - 'tests/visual/submission-status-surface-contract.mjs'
+      - 'tests/visual/card-inline-rhythm-check.mjs'
+      - 'tests/visual/journal-tier.tsx'
       - '.github/workflows/ui-contract.yml'
 
 permissions:
@@ -94,3 +98,5 @@ jobs:
         run: node tests/visual/journal-metric-inline-density-check.mjs
       - name: Verify JCR tier color separation stays distinct and light
         run: node tests/visual/journal-tier-color-separation-check.mjs
+      - name: Verify card inline rhythm and publisher display
+        run: node tests/visual/card-inline-rhythm-check.mjs

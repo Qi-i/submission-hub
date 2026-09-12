@@ -15,11 +15,30 @@ const base: JournalProfile = {
 }
 
 const cases = [
-  { key: 'intl-q1-ei', expected: 'Q1', journal: { ...base, id: 'intl-q1-ei', name: 'International Engineering Methods', publisher: 'Example Press', indexing: ['EI'], jcr_quartile: 'Q1', rank_data: { eii: '是', sci: 'Q1' } } },
-  { key: 'cn-ei-pku', expected: 'EI', journal: { ...base, id: 'cn-ei-pku', name: '工程方法学报', indexing: ['EI', '北大核心', 'CSCD'], rank_data: { eii: '是', pku: '是', cscd: '是' } } },
-  { key: 'cn-pku', expected: '北核', journal: { ...base, id: 'cn-pku', name: '城市科学学报', indexing: ['北大核心', 'CSCD'], rank_data: { pku: '是', cscd: '是' } } },
-  { key: 'cn-core', expected: '核心', journal: { ...base, id: 'cn-core', name: '区域研究学报', indexing: ['CSCD'], rank_data: { cscd: '是' } } },
-  { key: 'cn-ordinary', expected: '普通', journal: { ...base, id: 'cn-ordinary', name: '应用研究通讯', indexing: [] } },
+  {
+    key: 'intl-q1-ei', expected: 'Q1', expectedPublisher: 'Wiley',
+    journal: { ...base, id: 'intl-q1-ei', name: 'International Engineering Methods', publisher: 'John Wiley & Sons, Ltd. (Wiley)', indexing: ['EI'], jcr_quartile: 'Q1', rank_data: { eii: '是', sci: 'Q1' } },
+  },
+  {
+    key: 'intl-q2-mdpi', expected: 'Q2', expectedPublisher: 'MDPI',
+    journal: { ...base, id: 'intl-q2-mdpi', name: 'Open Methods and Data', publisher: 'MDPI AG (Multidisciplinary Digital Publishing Institute)', indexing: ['SCIE'], jcr_quartile: 'Q2', rank_data: { sci: 'Q2' } },
+  },
+  {
+    key: 'cn-ei-pku', expected: 'EI', expectedPublisher: '',
+    journal: { ...base, id: 'cn-ei-pku', name: '工程方法学报', publisher: '科学出版社（北京）', indexing: ['EI', '北大核心', 'CSCD'], rank_data: { eii: '是', pku: '是', cscd: '是' } },
+  },
+  {
+    key: 'cn-pku', expected: '北核', expectedPublisher: '',
+    journal: { ...base, id: 'cn-pku', name: '城市科学学报', publisher: '中国科学出版传媒股份有限公司', indexing: ['北大核心', 'CSCD'], rank_data: { pku: '是', cscd: '是' } },
+  },
+  {
+    key: 'cn-core', expected: '核心', expectedPublisher: '',
+    journal: { ...base, id: 'cn-core', name: '区域研究学报', publisher: '区域研究杂志社', indexing: ['CSCD'], rank_data: { cscd: '是' } },
+  },
+  {
+    key: 'cn-ordinary', expected: '普通', expectedPublisher: '',
+    journal: { ...base, id: 'cn-ordinary', name: '应用研究通讯', publisher: '应用研究编辑部', indexing: [] },
+  },
 ]
 
 function App() {
@@ -30,6 +49,7 @@ function App() {
       if (!item || !(card instanceof HTMLElement)) return
       card.dataset.tierCase = item.key
       card.dataset.expected = item.expected
+      card.dataset.publisherExpected = item.expectedPublisher
     })
     document.documentElement.dataset.visualReady = 'true'
   }, [])

@@ -6,6 +6,103 @@
  * card width, card surface hierarchy and semantic tinting follow the same family.
  */
 
+:root {
+  --card-inline-primary-h: 30px;
+  --card-inline-secondary-h: 26px;
+  --card-inline-compact-h: 24px;
+  --card-inline-metric-h: 42px;
+  --card-inline-primary-pad-x: 10px;
+  --card-inline-secondary-pad-x: 8px;
+  --card-inline-compact-pad-x: 8px;
+}
+
+/*
+ * CARD-INTERNAL RHYTHM
+ * --------------------
+ * Keep a small, intentional hierarchy rather than forcing every capsule to one size:
+ * primary workflow controls 30px, metadata 26px, compact taxonomy/actions 24px and
+ * two-line numeric metrics 42px. Elements that share a row share a visual baseline.
+ */
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) :is(
+  .paper-journal-slot,
+  .paper-status-area
+) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) .paper-status-area > :is(.badge, .paper-status-backend) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: var(--card-inline-primary-h) !important;
+  height: var(--card-inline-primary-h) !important;
+  padding-inline: var(--card-inline-primary-pad-x) !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) .paper-status-backend > span:first-child {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) .journal-pill-button {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: var(--card-inline-primary-h) !important;
+  height: var(--card-inline-primary-h) !important;
+  padding: 0 var(--card-inline-primary-pad-x) !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) .journal-pill-text {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) > .paper-action-rail > :is(.publisher-mark, .badge),
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) .author-badge-v2 {
+  min-height: var(--card-inline-secondary-h) !important;
+  height: var(--card-inline-secondary-h) !important;
+  padding-inline: var(--card-inline-secondary-pad-x) !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) :is(
+  .paper-rank-row > .badge,
+  .archive-chip-row > .archive-chip,
+  .paper-next-action-chip,
+  .deadline-badge
+) {
+  min-height: var(--card-inline-compact-h) !important;
+  height: var(--card-inline-compact-h) !important;
+  padding: 0 var(--card-inline-compact-pad-x) !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+@media (min-width: 721px) {
+  html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) !important;
+    column-gap: 10px !important;
+  }
+
+  html[data-ui] body .paper-grid .paper-card-v3:not(.journal-center-card) .paper-journal-slot {
+    width: 100% !important;
+  }
+}
+
 /* Journal Center follows the same responsive column count as Submission Management. */
 @media (min-width: 1100px) and (max-width: 1599px) {
   html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
@@ -49,24 +146,28 @@ html[data-theme='dark'][data-ui] body .journal-center-grid.paper-grid > .journal
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .paper-card-head {
-  min-height: 32px !important;
+  min-height: var(--card-inline-primary-h) !important;
   gap: 8px !important;
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-priority-status,
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
-  min-height: 32px !important;
-  height: 32px !important;
+  min-height: var(--card-inline-primary-h) !important;
+  height: var(--card-inline-primary-h) !important;
   border-radius: 10px !important;
+  box-sizing: border-box !important;
+}
+
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-priority-status,
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
+  padding-inline: var(--card-inline-primary-pad-x) !important;
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-priority-status {
-  padding: 0 10px !important;
   font-size: 11px !important;
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
-  padding: 0 9px !important;
   font-size: 10.2px !important;
 }
 
@@ -75,12 +176,16 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .paper
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__publisher-rail {
-  min-height: 23px !important;
+  min-height: var(--card-inline-secondary-h) !important;
   gap: 6px !important;
 }
 
-html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .publisher-mark {
-  min-height: 23px !important;
+html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(.publisher-mark, .journal-catalog-card__abbreviation) {
+  min-height: var(--card-inline-secondary-h) !important;
+  height: var(--card-inline-secondary-h) !important;
+  padding-inline: var(--card-inline-secondary-pad-x) !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
   font-size: 10.2px !important;
 }
 
@@ -103,9 +208,13 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(.j
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card :is(.journal-catalog-card__ranks, .journal-catalog-card__facts) > span {
-  min-height: 24px !important;
-  padding: 4px 7px !important;
+  min-height: var(--card-inline-compact-h) !important;
+  height: var(--card-inline-compact-h) !important;
+  padding: 0 var(--card-inline-compact-pad-x) !important;
   border-radius: 8px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
   font-size: 9.8px !important;
 }
 
@@ -115,9 +224,11 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journ
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics > div {
   min-width: 66px !important;
-  min-height: 40px !important;
-  padding: 5px 7px !important;
+  min-height: var(--card-inline-metric-h) !important;
+  height: var(--card-inline-metric-h) !important;
+  padding: 5px var(--card-inline-compact-pad-x) !important;
   border-radius: 9px !important;
+  box-sizing: border-box !important;
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics b {
@@ -131,9 +242,13 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .jou
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__footer > a {
-  min-height: 24px !important;
-  padding: 0 7px !important;
+  min-height: var(--card-inline-compact-h) !important;
+  height: var(--card-inline-compact-h) !important;
+  padding: 0 var(--card-inline-compact-pad-x) !important;
   border-radius: 8px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
   font-size: 9.6px !important;
 }
 
@@ -194,9 +309,13 @@ html[data-ui] body .journal-match-candidate__ranks {
 }
 
 html[data-ui] body .journal-match-candidate__ranks > span {
-  min-height: 23px !important;
-  padding: 4px 7px !important;
+  min-height: var(--card-inline-compact-h) !important;
+  height: var(--card-inline-compact-h) !important;
+  padding: 0 var(--card-inline-compact-pad-x) !important;
   border-radius: 8px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
   font-size: 9.7px !important;
 }
 
@@ -278,14 +397,15 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journ
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
-  min-height: 42px !important;
+  min-height: var(--card-inline-metric-h) !important;
+  height: var(--card-inline-metric-h) !important;
   display: grid !important;
   grid-template-rows: auto auto auto !important;
   align-content: center !important;
   justify-items: start !important;
   gap: 2px !important;
   overflow: hidden !important;
-  padding: 5px 7px !important;
+  padding: 5px var(--card-inline-compact-pad-x) !important;
   box-sizing: border-box !important;
 }
 

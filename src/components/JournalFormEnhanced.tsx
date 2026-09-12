@@ -8,9 +8,11 @@ import {
   writeJournalPublicMetrics,
   type SelfCitationBasis,
 } from '../lib/journal-metrics'
+import { journalPriorityForStarRating, journalStarRating } from '../lib/journal-display'
 import { defaultRankDisplayKeys, rankFieldSuggestions, rankItemsFromValues, readRankDisplayKeys, writeRankDisplayKeys, type JournalRankLookupResult } from '../lib/journal-rank'
 import type { ExternalLink as JournalLink, JournalProfile } from '../lib/preparation'
-import { INDEXING_OPTIONS, OA_OPTIONS, PRIORITY_OPTIONS } from '../lib/preparation'
+import { INDEXING_OPTIONS, OA_OPTIONS } from '../lib/preparation'
+import './JournalCatalogCardTopMeta.css'
 
 interface Props {
   value: JournalProfile | 'new'
@@ -100,7 +102,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
   const [metricsUpdatedAt, setMetricsUpdatedAt] = useState(initialMetrics.metricsUpdatedAt || '')
   const [risk, setRisk] = useState<string>(source?.risk_level || 'normal')
   const [favorite, setFavorite] = useState(source?.is_favorite ?? true)
-  const [priority, setPriority] = useState<string>(source?.priority || 'medium')
+  const [starRating, setStarRating] = useState(() => journalStarRating(source))
   const [selectionNotes, setSelectionNotes] = useState(source?.selection_notes || '')
   const [notes, setNotes] = useState(source?.notes || '')
 
@@ -157,7 +159,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
       const result = await onLookupRanks(name.trim())
       const suggestions = rankFieldSuggestions(result.values)
       setRankData(previous => ({
-        ...Object.fromEntries(Object.entries(previous).filter(([key]) => key.startsWith('metric_'))),
+        ...Object.fromEntries(Object.entries(previous).filter(([key]) => key.startsWith('metric_') || key.startsWith('ui_'))),
         ...result.values,
       }))
       setRankUpdatedAt(result.fetchedAt)
@@ -220,6 +222,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
         reviewSource: reviewSource.trim() || null,
         metricsUpdatedAt: metricsUpdatedAt || new Date().toISOString(),
       })
+      const rankDataWithUi = { ...publicMetricsRankData, ui_star_rating: String(starRating) }
       const payload = {
         ...(source || {}), name: name.trim(), name_zh: nameZh.trim() || null,
         official_abbreviation: officialAbbreviation.trim() || null, publisher: publisher.trim() || null,
@@ -233,9 +236,9 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
         fee_notes: feeNotes.trim() || null, first_decision_days: integerOrNull(firstDecision),
         total_review_days: integerOrNull(totalReview), acceptance_rate: percentageOrNull(acceptanceRate),
         risk_level: risk as JournalProfile['risk_level'], is_favorite: favorite,
-        priority: priority as JournalProfile['priority'], selection_notes: selectionNotes.trim() || null,
+        priority: journalPriorityForStarRating(starRating), selection_notes: selectionNotes.trim() || null,
         notes: notes.trim() || null,
-        rank_data: publicMetricsRankData, rank_updated_at: rankUpdatedAt || null,
+        rank_data: rankDataWithUi, rank_updated_at: rankUpdatedAt || null,
       }
       await onSave(payload as any)
       onClose()
@@ -273,7 +276,7 @@ export default function JournalFormEnhanced({ value, onSave, onDelete, onClose, 
 
         <section className="journal-form-section identity journal-identity-localized"><div className="journal-form-section-head"><b>基础身份</b><span>英文名与缩写可由 DOI 识别；中文信息需人工核对</span></div>
           <div className="prep-form-grid two"><Field label="英文期刊名" wide><input className="input" value={name} onChange={event => setName(event.target.value)} autoFocus={!source} maxLength={200} /></Field><Field label="中文译名"><input className="input" value={nameZh} onChange={event => setNameZh(event.target.value)} maxLength={200} placeholder="用于中文检索与快速辨认" /></Field><Field label="缩写"><input className="input" value={officialAbbreviation} onChange={event => setOfficialAbbreviation(event.target.value)} maxLength={80} placeholder="以期刊官网或数据库为准" /></Field></div>
-          <div className="prep-form-grid three"><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="收藏优先级"><select className="select" value={priority} onChange={event => setPriority(event.target.value)}>{PRIORITY_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></Field><Field label="选刊标签"><input className="input" value={selectionTags} onChange={event => setSelectionTags(event.target.value)} placeholder="主投, 备选, 审稿快, 岩土工程" /></Field></div>
+          <div className="prep-form-grid three"><Field label="出版社"><input className="input" value={publisher} onChange={event => setPublisher(event.target.value)} /></Field><Field label="投稿星级"><div className="journal-star-rating-control" role="radiogroup" aria-label="投稿星级">{[1, 2, 3, 4, 5].map(value => <button key={value} type="button" className={value <= starRating ? 'active' : ''} aria-label={`${value} 星`} aria-pressed={value === starRating} title={`设为 ${value} 星`} onClick={() => setStarRating(value)}>★</button>)}<span>{starRating}/5</span></div></Field><Field label="选刊标签"><input className="input" value={selectionTags} onChange={event => setSelectionTags(event.target.value)} placeholder="主投, 备选, 审稿快, 岩土工程" /></Field></div>
           <div className="prep-form-grid four"><Field label="ISSN"><input className="input" value={issn} onChange={event => setIssn(event.target.value)} /></Field><Field label="EISSN"><input className="input" value={eissn} onChange={event => setEissn(event.target.value)} /></Field><Field label="JCR 分区"><input className="input" value={jcr} onChange={event => setJcr(event.target.value)} placeholder="Q1" /></Field><Field label="中科院分区"><input className="input" value={cas} onChange={event => setCas(event.target.value)} placeholder="一区" /></Field></div>
         </section>
 

@@ -96,10 +96,11 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const [projects, setProjects] = useState<FigureProject[]>([])
   const [assets, setAssets] = useState<Map<string, RuntimeFigureAsset>>(new Map())
   const assetsRef = useRef(assets)
+  const canvasViewportRef = useRef<HTMLDivElement>(null)
   const [guides, setGuides] = useState<FigureSnapGuide[]>([])
   const [zoom, setZoom] = useState(1)
   const [busy, setBusy] = useState(false)
-  const [status, setStatus] = useState('导入图片后可自动排版，也可进入自由布局精确编辑。')
+  const [status, setStatus] = useState('第一步从左侧“图片与图层”导入子图；工程保存到当前浏览器 IndexedDB。')
   const [textDraft, setTextDraft] = useState('')
   const [paneWidths, setPaneWidths] = useState(readPaneWidths)
 
@@ -123,6 +124,25 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const selectedPanel = useMemo(() => project.panels.find(panel => panel.id === project.selectedPanelIds.at(-1)) || null, [project.panels, project.selectedPanelIds])
   const selectedText = useMemo(() => project.texts.find(text => text.id === project.selectedTextId) || null, [project.texts, project.selectedTextId])
 
+  const fitCanvasToViewport = useCallback(() => {
+    const viewport = canvasViewportRef.current
+    if (!viewport) return
+    const style = getComputedStyle(viewport)
+    const availableWidth = Math.max(80, viewport.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - 18)
+    const availableHeight = Math.max(80, viewport.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0) - 18)
+    const nextZoom = Math.max(.2, Math.min(1.5, Math.min(availableWidth / Math.max(1, project.canvas.width), availableHeight / Math.max(1, project.canvas.height))))
+    setZoom(Number(nextZoom.toFixed(3)))
+  }, [project.canvas.height, project.canvas.width])
+
+  useEffect(() => {
+    const viewport = canvasViewportRef.current
+    if (!viewport) return
+    const frame = requestAnimationFrame(fitCanvasToViewport)
+    const observer = new ResizeObserver(() => fitCanvasToViewport())
+    observer.observe(viewport)
+    return () => { cancelAnimationFrame(frame); observer.disconnect() }
+  }, [fitCanvasToViewport, paneWidths.left, paneWidths.right, project.id])
+
   const syncDraftCount = useCallback(async (draftId: string | null) => {
     if (!draftId || !onDraftFigureCountChange) return
     const count = await countFigureProjectsForDraft(draftId)
@@ -139,7 +159,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     const nextSequence = Math.max(0, ...projects.map(item => item.sequence)) + 1
     replace(createEmptyFigureProject(null, nextSequence, project.role))
     setGuides([])
-    setStatus('已建立新的未命名组图；需要时可主动关联草稿或设置出版编号。')
+    setStatus('已建立新的未命名组图；先导入图片，保存后可从“本地草稿库”重新打开。')
   }
 
   const openProject = async (projectId: string) => {
@@ -150,7 +170,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       clearRuntimeAssets()
       setAssets(loaded.assets)
       replace(loaded.project)
-      setStatus(`已打开 ${loaded.project.name}。`)
+      setStatus(`已从当前浏览器 IndexedDB 打开 ${loaded.project.name}。`)
     } catch (error) {
       setStatus(error instanceof Error ? `打开工程失败：${error.message}` : '打开工程失败。')
     } finally {
@@ -164,7 +184,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       await saveFigureProject(project, assets.values())
       await refreshProjects()
       await syncDraftCount(project.draftId)
-      setStatus(`已保存 ${project.name}；图片仍仅保存在当前浏览器。`)
+      setStatus(`已保存本地草稿“${project.name}”到当前浏览器 IndexedDB；编辑记录与图片 Blob 均未上传服务器。`)
     } catch (error) {
       setStatus(error instanceof Error ? `保存失败：${error.message}` : '保存失败。')
     } finally {
@@ -180,11 +200,10 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     try {
       await deleteFigureProject(project.id)
       clearRuntimeAssets()
-      const next = createEmptyFigureProject(null)
-      replace(next)
+      replace(createEmptyFigureProject(null))
       await refreshProjects()
       await syncDraftCount(oldDraftId)
-      setStatus('组图工程已从当前浏览器删除。')
+      setStatus('组图工程已从当前浏览器 IndexedDB 删除。')
     } catch (error) {
       setStatus(error instanceof Error ? `删除失败：${error.message}` : '删除失败。')
     } finally {
@@ -192,9 +211,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     }
   }
 
-  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'publicationLabel' | 'title' | 'caption'>>) => {
-    replace({ ...project, ...patch })
-  }
+  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'publicationLabel' | 'title' | 'caption'>>) => replace({ ...project, ...patch })
 
   const handleImport = async (files: FileList | File[]) => {
     setBusy(true)
@@ -237,6 +254,12 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     replace({ ...project, selectedPanelIds: nextIds, selectedTextId: null })
   }
 
+  const selectPanels = (ids: string[], mode: 'replace' | 'add') => {
+    const valid = ids.filter(id => project.panels.some(panel => panel.id === id))
+    const nextIds = mode === 'add' ? Array.from(new Set([...project.selectedPanelIds, ...valid])) : valid
+    replace({ ...project, selectedPanelIds: nextIds, selectedTextId: null })
+  }
+  const selectAllPanels = () => replace({ ...project, selectedPanelIds: project.panels.map(panel => panel.id), selectedTextId: null })
   const selectText = (id: string) => replace({ ...project, selectedPanelIds: [], selectedTextId: id })
   const clearSelection = () => replace({ ...project, selectedPanelIds: [], selectedTextId: null })
 
@@ -249,17 +272,13 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     const dx = snapped.x - active.x
     const dy = snapped.y - active.y
     setGuides(snapped.guides)
-    replace({
-      ...project,
-      canvas: { ...project.canvas, layoutMode: 'manual' },
-      panels: translatePanels(project.panels, selectedIds, dx, dy),
-    })
+    replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: translatePanels(project.panels, selectedIds, dx, dy) })
   }
 
   const moveText = (id: string, x: number, y: number) => replace({ ...project, texts: project.texts.map(text => text.id === id ? { ...text, x, y } : text) })
 
   const patchPanel = (id: string, patch: Partial<FigurePanel>, editedDimension?: 'width' | 'height' | 'both') => {
-    let panels = project.panels.map(panel => panel.id === id ? resizePanel({ ...panel, ...patch }, { ...patch, editedDimension }) : panel)
+    const panels = project.panels.map(panel => panel.id === id ? resizePanel({ ...panel, ...patch }, { ...patch, editedDimension }) : panel)
     let next: FigureProject = { ...project, panels }
     const spanChange = patch.rowSpan !== undefined || patch.colSpan !== undefined || patch.gridRow !== undefined || patch.gridColumn !== undefined
     const directGeometry = patch.x !== undefined || patch.y !== undefined || patch.width !== undefined || patch.height !== undefined
@@ -297,13 +316,13 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const distribute = (axis: DistributionAxis) => replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: distributePanels(project.panels, project.selectedPanelIds, axis) })
 
   const applyLayout = (preset: FigureProject['canvas']['layoutPreset']) => {
-    let next = applyGridLayout({ ...project, canvas: { ...project.canvas, layoutPreset: preset } }, preset)
+    let next = applyGridLayout({ ...project, canvas: { ...project.canvas, layoutMode: 'grid', layoutPreset: preset } }, preset)
     if (next.canvas.autoWrap) next = autoWrapProject(next)
     replace(next)
   }
 
   const setGridSize = (rows: number, columns: number) => {
-    let next = applyGridLayout({ ...project, canvas: { ...project.canvas, gridRows: rows, gridColumns: columns, layoutPreset: 'uniform' } }, 'uniform')
+    let next = applyGridLayout({ ...project, canvas: { ...project.canvas, layoutMode: 'grid', gridRows: rows, gridColumns: columns, layoutPreset: 'uniform' } }, 'uniform')
     if (next.canvas.autoWrap) next = autoWrapProject(next)
     replace(next)
   }
@@ -311,10 +330,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const applyPublicationPreset = (preset: PublicationPreset) => {
     const width = physicalToLogicalPx(preset.width, preset.unit)
     const scaled = scaleProjectToWidth(project, width)
-    replace({
-      ...scaled,
-      exportSettings: { ...scaled.exportSettings, physicalWidth: preset.width, physicalHeight: preset.height, unit: preset.unit },
-    })
+    replace({ ...scaled, exportSettings: { ...scaled.exportSettings, physicalWidth: preset.width, physicalHeight: preset.height, unit: preset.unit } })
   }
 
   const addText = () => {
@@ -346,7 +362,11 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
 
   const patchCanvas = (patch: Partial<FigureProject['canvas']>, reflow = false) => {
     let next: FigureProject = { ...project, canvas: { ...project.canvas, ...patch } }
-    if (reflow && next.canvas.layoutMode === 'grid') next = applyGridLayout(next)
+    if (reflow) {
+      next = { ...next, canvas: { ...next.canvas, layoutMode: 'grid' } }
+      next = applyGridLayout(next, next.canvas.layoutPreset)
+      if (next.canvas.autoWrap) next = autoWrapProject(next)
+    }
     replace(next)
   }
 
@@ -396,7 +416,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       </div>
       <div className="figure-composer__header-actions">
         <button type="button" onClick={newProject}><Plus size={14} /> 新建</button>
-        <button type="button" disabled={busy} onClick={() => void saveProject()}><Save size={14} /> 保存</button>
+        <button type="button" disabled={busy} onClick={() => void saveProject()} title="保存到当前浏览器 IndexedDB，不上传图片"><Save size={14} /> 保存本地草稿</button>
         <span className={`figure-composer__preflight-chip ${preflight.some(issue => issue.severity === 'error') ? 'error' : preflight.length ? 'warning' : 'ok'}`}><FileCheck2 size={14} /> {preflight.length ? `${preflight.length} 项检查` : '检查通过'}</span>
         <button className="primary" type="button" disabled={busy} onClick={() => void handleExport()}><Download size={14} /> 导出</button>
       </div>
@@ -426,11 +446,15 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       <main className="figure-composer__center">
         <FigureToolbar
           selectedCount={project.selectedPanelIds.length}
+          panelCount={project.panels.length}
           zoom={zoom}
           layoutPreset={project.canvas.layoutPreset}
           gridRows={project.canvas.gridRows}
           gridColumns={project.canvas.gridColumns}
           onZoom={setZoom}
+          onFitView={fitCanvasToViewport}
+          onSelectAll={selectAllPanels}
+          onClearSelection={clearSelection}
           onAlign={align}
           onDistribute={distribute}
           onLayoutPreset={applyLayout}
@@ -443,7 +467,9 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
           assets={assets}
           zoom={zoom}
           guides={guides}
+          viewportRef={canvasViewportRef}
           onSelectPanel={selectPanel}
+          onSelectPanels={selectPanels}
           onSelectText={selectText}
           onClearSelection={clearSelection}
           onMovePanel={movePanel}
@@ -456,30 +482,36 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       <div className="figure-composer__splitter" role="separator" aria-orientation="vertical" aria-label="调整右侧面板宽度" aria-valuenow={paneWidths.right} tabIndex={0} onPointerDown={event => beginPaneResize('right', event)} onDoubleClick={resetPaneWidths} />
 
       <aside className="figure-composer__right">
-        <FigurePanelInspector panel={selectedPanel} selectedCount={project.selectedPanelIds.length} onPatch={patchPanel} />
-        <section className="figure-composer__section" aria-label="自由文本">
-          <div className="figure-composer__section-title"><Type size={14} /><strong>自由文本</strong></div>
-          <div className="figure-composer__inline-add"><input value={textDraft} placeholder="添加可移动文本" onChange={event => setTextDraft(event.target.value)} /><button type="button" onClick={addText}><Plus size={13} /> 添加</button></div>
-          {selectedText && <div className="figure-composer__text-editor">
-            <label>文本<input value={selectedText.text} onChange={event => patchSelectedText({ text: event.target.value })} /></label>
-            <div className="figure-composer__field-grid two">
-              <label>字体<select value={selectedText.fontFamily} onChange={event => patchSelectedText({ fontFamily: event.target.value })}><option>Times New Roman</option><option>Arial</option><option>Helvetica</option><option>Microsoft YaHei</option><option>SimSun</option></select></label>
-              <label>字号<input type="number" min="8" value={selectedText.fontSize} onChange={event => patchSelectedText({ fontSize: Math.max(8, Number(event.target.value) || 8) })} /></label>
-              <label>颜色<input type="color" value={selectedText.color} onChange={event => patchSelectedText({ color: event.target.value })} /></label>
-              <label>X<input type="number" value={selectedText.x} onChange={event => patchSelectedText({ x: Number(event.target.value) || 0 })} /></label>
-              <label>Y<input type="number" value={selectedText.y} onChange={event => patchSelectedText({ y: Number(event.target.value) || 0 })} /></label>
-            </div>
-            <button type="button" className="danger" onClick={removeSelectedText}><X size={13} /> 删除文本</button>
-          </div>}
-        </section>
-        <FigurePreflightPanel issues={preflight} />
-        <FigureExportPanel
-          project={project}
-          busy={busy}
-          onExportSettings={patch => replace({ ...project, exportSettings: { ...project.exportSettings, ...patch } })}
-          onApplyPreset={applyPublicationPreset}
-          onExport={() => void handleExport()}
-        />
+        <div className="figure-composer__rail-group">
+          <div className="figure-composer__rail-heading"><strong>对象属性</strong><span>选中子图或文本后编辑</span></div>
+          <FigurePanelInspector panel={selectedPanel} selectedCount={project.selectedPanelIds.length} onPatch={patchPanel} />
+          <section className="figure-composer__section" aria-label="自由文本">
+            <div className="figure-composer__section-title"><Type size={14} /><strong>自由文本</strong></div>
+            <div className="figure-composer__inline-add"><input value={textDraft} placeholder="添加可移动文本" onChange={event => setTextDraft(event.target.value)} /><button type="button" onClick={addText}><Plus size={13} /> 添加</button></div>
+            {selectedText && <div className="figure-composer__text-editor">
+              <label>文本<input value={selectedText.text} onChange={event => patchSelectedText({ text: event.target.value })} /></label>
+              <div className="figure-composer__field-grid two">
+                <label>字体<select value={selectedText.fontFamily} onChange={event => patchSelectedText({ fontFamily: event.target.value })}><option>Times New Roman</option><option>Arial</option><option>Helvetica</option><option>Microsoft YaHei</option><option>SimSun</option></select></label>
+                <label>字号<input type="number" min="8" value={selectedText.fontSize} onChange={event => patchSelectedText({ fontSize: Math.max(8, Number(event.target.value) || 8) })} /></label>
+                <label>颜色<input type="color" value={selectedText.color} onChange={event => patchSelectedText({ color: event.target.value })} /></label>
+                <label>X<input type="number" value={selectedText.x} onChange={event => patchSelectedText({ x: Number(event.target.value) || 0 })} /></label>
+                <label>Y<input type="number" value={selectedText.y} onChange={event => patchSelectedText({ y: Number(event.target.value) || 0 })} /></label>
+              </div>
+              <button type="button" className="danger" onClick={removeSelectedText}><X size={13} /> 删除文本</button>
+            </div>}
+          </section>
+        </div>
+        <div className="figure-composer__rail-group">
+          <div className="figure-composer__rail-heading"><strong>投稿检查与导出</strong><span>先处理检查，再设置出版尺寸</span></div>
+          <FigurePreflightPanel issues={preflight} />
+          <FigureExportPanel
+            project={project}
+            busy={busy}
+            onExportSettings={patch => replace({ ...project, exportSettings: { ...project.exportSettings, ...patch } })}
+            onApplyPreset={applyPublicationPreset}
+            onExport={() => void handleExport()}
+          />
+        </div>
       </aside>
     </div>
     <div className="figure-composer__mobile-note">复杂组图排版建议在桌面端完成；当前设备仍可查看工程、调整基础参数和导出。</div>
