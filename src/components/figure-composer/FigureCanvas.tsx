@@ -2,7 +2,12 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { automaticPanelLabel, type FigurePanel, type FigureProject, type FigureSnapGuide, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
 
 type DragState = {
-  kind: 'panel' | 'text'
+  kind: 'panel'
+  id: string
+  dx: number
+  dy: number
+} | {
+  kind: 'text'
   id: string
   dx: number
   dy: number
