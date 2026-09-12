@@ -1,8 +1,8 @@
 /* Final Figure Composer workbench geometry: visible status rail, compact grouped tools and scan-friendly side rails. */
 .figure-composer {
-  height: calc(100dvh - 126px) !important;
+  height: calc(100dvh - 174px) !important;
   min-height: 560px !important;
-  max-height: calc(100dvh - 126px) !important;
+  max-height: calc(100dvh - 174px) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
