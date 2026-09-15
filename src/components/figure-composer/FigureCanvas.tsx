@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type Ref } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type PointerEvent as ReactPointerEvent } from 'react'
 import { automaticPanelLabel, type FigurePanel, type FigureProject, type FigureSnapGuide, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
 import type { FigureInteractionMode } from './FigureToolbar'
 
@@ -35,7 +35,7 @@ interface Props {
   zoom: number
   guides: FigureSnapGuide[]
   interactionMode: FigureInteractionMode
-  viewportRef?: Ref<HTMLDivElement>
+  viewportRef?: MutableRefObject<HTMLDivElement | null>
   onSelectPanel: (id: string, mode: 'replace' | 'toggle' | 'range') => void
   onSelectPanels: (ids: string[], mode: 'replace' | 'add') => void
   onSelectText: (id: string) => void
@@ -76,8 +76,7 @@ export default function FigureCanvas({ project, assets, zoom, guides, interactio
 
   const assignViewportRef = (node: HTMLDivElement | null) => {
     localViewportRef.current = node
-    if (typeof viewportRef === 'function') viewportRef(node)
-    else if (viewportRef && 'current' in viewportRef) viewportRef.current = node
+    if (viewportRef) viewportRef.current = node
   }
 
   useEffect(() => {
