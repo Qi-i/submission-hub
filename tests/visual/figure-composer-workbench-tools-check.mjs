@@ -47,12 +47,15 @@ try {
     if (await page.getByTitle(title, { exact: true }).count() < 1) fail(`missing basic workbench action: ${title}`)
   }
 
-  const coreClusters = ['tools', 'layout', 'arrange', 'view']
-  for (const key of coreClusters) {
+  const visibleByDefault = ['tools', 'edit', 'selection', 'layout', 'view']
+  for (const key of visibleByDefault) {
     const cluster = page.locator(`[data-tool-cluster="${key}"]`)
     if (await cluster.count() !== 1) fail(`missing ${key} tool group`)
     else if ((await cluster.getAttribute('aria-expanded')) !== 'true') fail(`${key} tool group should be visible by default`)
   }
+  const alignCluster = page.locator('[data-tool-cluster="align"]')
+  if (await alignCluster.count() !== 1) fail('missing align tool group')
+  else if ((await alignCluster.getAttribute('aria-expanded')) !== 'false') fail('dense alignment group should stay collapsible by default')
 
   const viewport = page.locator('.figure-composer__canvas-viewport')
   const canvas = page.locator('.figure-composer__canvas')
