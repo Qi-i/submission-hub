@@ -27,9 +27,9 @@ interface Props {
   onScaleSelected: (factor: number) => void
 }
 
-type ClusterKey = 'tools' | 'edit' | 'selection' | 'layout' | 'align' | 'view'
-const DEFAULT_ORDER: ClusterKey[] = ['tools', 'edit', 'selection', 'layout', 'align', 'view']
-const DEFAULT_COLLAPSED: Record<ClusterKey, boolean> = { tools: false, edit: false, selection: false, layout: false, align: true, view: false }
+type ClusterKey = 'tools' | 'layout' | 'selection' | 'align' | 'view' | 'edit'
+const DEFAULT_ORDER: ClusterKey[] = ['tools', 'layout', 'selection', 'align', 'view', 'edit']
+const DEFAULT_COLLAPSED: Record<ClusterKey, boolean> = { tools: false, layout: false, selection: false, align: true, view: false, edit: false }
 const STORAGE_KEY = 'submission-hub.figure-composer.toolbar'
 
 function readToolbarState() {
@@ -69,9 +69,8 @@ function Cluster({ clusterKey, label, collapsed, onToggle, onDragStart, onDrop, 
     onDrop={event => { event.preventDefault(); onDrop(clusterKey) }}
   >
     <div className="figure-composer__tool-cluster-head">
-      <GripVertical size={11} aria-hidden="true" />
-      <strong>{label}</strong>
-      <button type="button" className="figure-composer__tool-collapse" title={collapsed ? `展开${label}` : `收起${label}`} onClick={onToggle}>{collapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}</button>
+      <span className="figure-composer__tool-drag"><GripVertical size={10} aria-hidden="true" /><strong>{label}</strong></span>
+      <button type="button" className="figure-composer__tool-collapse" title={collapsed ? `展开${label}` : `收起${label}`} onClick={onToggle}>{collapsed ? <ChevronRight size={10} /> : <ChevronDown size={10} />}</button>
     </div>
     {!collapsed && <div className="figure-composer__tool-cluster-body">{children}</div>}
   </section>
@@ -115,16 +114,6 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
       {toolButton('move', '移动', <Move size={14} />)}
       {toolButton('pan', '平移', <Hand size={14} />)}
     </>,
-    edit: <>
-      <button type="button" disabled={!selectedCount} title="缩小选中对象" onClick={() => onScaleSelected(.92)}>缩小</button>
-      <button type="button" disabled={!selectedCount} title="放大选中对象" onClick={() => onScaleSelected(1.08)}>放大</button>
-      <button type="button" disabled={!selectedCount} title="删除选中" onClick={onDeleteSelected}><Trash2 size={14} /> 删除</button>
-    </>,
-    selection: <>
-      <button type="button" disabled={!panelCount || selectedCount === panelCount} onClick={onSelectAll}><CheckSquare2 size={14} /> 全选</button>
-      <button type="button" disabled={!selectedCount} onClick={onClearSelection}><Eraser size={14} /> 清空选择</button>
-      <span className="figure-composer__selection-count"><SquareStack size={13} /> {selectedCount ? `已选 ${selectedCount}` : '未选择'}</span>
-    </>,
     layout: <>
       <select aria-label="布局预设" value={layoutPreset} onChange={event => onLayoutPreset(event.target.value as FigureLayoutPreset)}>
         <option value="auto">自动网格</option>
@@ -133,8 +122,13 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
       </select>
       <label className="figure-composer__compact-field">行<input className="figure-composer__grid-number" aria-label="网格行数" type="number" min="1" max="12" value={gridRows} onChange={event => onGridSize(Math.max(1, Number(event.target.value) || 1), gridColumns)} /></label>
       <label className="figure-composer__compact-field">列<input className="figure-composer__grid-number" aria-label="网格列数" type="number" min="1" max="12" value={gridColumns} onChange={event => onGridSize(gridRows, Math.max(1, Number(event.target.value) || 1))} /></label>
-      <button type="button" title="按当前布局重排" onClick={() => onLayoutPreset(layoutPreset)}><Grid3X3 size={14} /> 重排</button>
-      <button type="button" title="让画布紧贴所有子图" onClick={onAutoWrap}><Maximize2 size={14} /> 包裹</button>
+      <button type="button" title="按当前布局重排" onClick={() => onLayoutPreset(layoutPreset)}><Grid3X3 size={13} /> 重排</button>
+      <button type="button" title="让画布紧贴所有子图" onClick={onAutoWrap}><Maximize2 size={13} /> 包裹</button>
+    </>,
+    selection: <>
+      <button type="button" disabled={!panelCount || selectedCount === panelCount} onClick={onSelectAll}><CheckSquare2 size={13} /> 全选</button>
+      <button type="button" disabled={!selectedCount} onClick={onClearSelection}><Eraser size={13} /> 清空</button>
+      <span className="figure-composer__selection-count"><SquareStack size={12} /> {selectedCount ? `${selectedCount} 已选` : '未选择'}</span>
     </>,
     align: <>
       <button type="button" disabled={alignDisabled} title="左对齐" onClick={() => onAlign('left')}><AlignStartVertical size={14} /></button>
@@ -147,15 +141,20 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
       <button type="button" disabled={distributeDisabled} title="纵向等间距" onClick={() => onDistribute('vertical')}><AlignVerticalDistributeCenter size={14} /></button>
     </>,
     view: <>
-      <button type="button" aria-label="适配画布" title="适配画布" onClick={onFitView}><Scan size={14} /> 适配</button>
+      <button type="button" aria-label="适配画布" title="适配画布" onClick={onFitView}><Scan size={13} /> 适配</button>
       <button type="button" title="100%" onClick={() => onZoom(1)}>100%</button>
-      <button type="button" title="缩小视图" onClick={() => onZoom(Math.max(0.1, zoom - 0.25))}><ZoomOut size={14} /></button>
+      <button type="button" title="缩小视图" aria-label="缩小视图" onClick={() => onZoom(Math.max(0.1, zoom - 0.25))}><ZoomOut size={14} /></button>
       <b className="figure-composer__zoom-value">{Math.round(zoom * 100)}%</b>
-      <button type="button" title="放大视图" onClick={() => onZoom(Math.min(4, zoom + 0.25))}><ZoomIn size={14} /></button>
+      <button type="button" title="放大视图" aria-label="放大视图" onClick={() => onZoom(Math.min(4, zoom + 0.25))}><ZoomIn size={14} /></button>
+    </>,
+    edit: <>
+      <button type="button" disabled={!selectedCount} title="缩小选中对象" onClick={() => onScaleSelected(.92)}>− 对象</button>
+      <button type="button" disabled={!selectedCount} title="放大选中对象" onClick={() => onScaleSelected(1.08)}>+ 对象</button>
+      <button type="button" disabled={!selectedCount} title="删除选中" onClick={onDeleteSelected}><Trash2 size={13} /> 删除</button>
     </>,
   }
 
-  const labels: Record<ClusterKey, string> = { tools: '工具', edit: '编辑', selection: '选择', layout: '布局', align: '对齐', view: '视图' }
+  const labels: Record<ClusterKey, string> = { tools: '工具', layout: '布局', selection: '选择', align: '对齐', view: '视图', edit: '编辑' }
 
   return <div className="figure-composer__toolbar" aria-label="科研组图工具栏">
     {order.map(key => <Cluster key={key} clusterKey={key} label={labels[key]} collapsed={collapsed[key]} onToggle={() => toggle(key)} onDragStart={setDragging} onDrop={dropOn}>{clusters[key]}</Cluster>)}
