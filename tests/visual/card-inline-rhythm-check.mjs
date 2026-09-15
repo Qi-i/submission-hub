@@ -101,18 +101,28 @@ async function journalGeometry(ui) {
   }
 }
 
-async function publisherPolicy() {
+async function journalTierPolicy() {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   try {
     await page.goto(`${tierUrl}?theme=light&ui=luminous`, { waitUntil: 'domcontentloaded' })
     await page.locator("html[data-visual-ready='true'] .journal-center-card").first().waitFor({ state: 'visible', timeout: 45000 })
     return await page.evaluate(() => Array.from(document.querySelectorAll('.journal-center-card[data-tier-case]')).map(card => {
       const publisher = card.querySelector('.publisher-mark-name')
-      const visible = publisher instanceof HTMLElement && getComputedStyle(publisher).display !== 'none' && publisher.getBoundingClientRect().width > 0
+      const publisherVisible = publisher instanceof HTMLElement && getComputedStyle(publisher).display !== 'none' && publisher.getBoundingClientRect().width > 0
+      const rankNodes = Array.from(card.querySelectorAll('.journal-catalog-card__ranks > span'))
+      const rankLabels = rankNodes.map(node => node.querySelector('b')?.textContent?.trim() || '').filter(Boolean)
+      const rankText = rankNodes.map(node => node.textContent?.trim() || '').join(' · ')
+      const key = card.getAttribute('data-tier-case') || ''
       return {
-        key: card.getAttribute('data-tier-case') || '',
-        expected: card.getAttribute('data-publisher-expected') || '',
-        actual: visible ? publisher.textContent?.trim() || '' : '',
+        key,
+        expectedPublisher: card.getAttribute('data-publisher-expected') || '',
+        actualPublisher: publisherVisible ? publisher.textContent?.trim() || '' : '',
+        expectedSurface: card.getAttribute('data-expected') || '',
+        actualSurface: card.getAttribute('data-surface-code') || '',
+        expectedPrimaryRank: card.getAttribute('data-primary-rank-expected') || '',
+        actualPrimaryRank: rankLabels[0] || '',
+        rankText,
+        englishCase: key.startsWith('intl-'),
       }
     }))
   } finally {
@@ -149,22 +159,25 @@ try {
     details.push({ ui, journalCards: journals.length })
   }
 
-  const publishers = await publisherPolicy()
-  publishers.forEach(item => {
-    if (item.actual !== item.expected) failures.push(`publisher/${item.key}: expected "${item.expected || 'hidden'}", got "${item.actual || 'hidden'}"`)
-    if (item.actual && /[()（）]/.test(item.actual)) failures.push(`publisher/${item.key}: redundant parentheses remain (${item.actual})`)
+  const tierPolicy = await journalTierPolicy()
+  tierPolicy.forEach(item => {
+    if (item.actualPublisher !== item.expectedPublisher) failures.push(`publisher/${item.key}: expected "${item.expectedPublisher || 'hidden'}", got "${item.actualPublisher || 'hidden'}"`)
+    if (item.actualPublisher && /[()（）]/.test(item.actualPublisher)) failures.push(`publisher/${item.key}: redundant parentheses remain (${item.actualPublisher})`)
+    if (item.actualSurface !== item.expectedSurface) failures.push(`surface/${item.key}: expected ${item.expectedSurface}, got ${item.actualSurface || 'missing'}`)
+    if (item.actualPrimaryRank !== item.expectedPrimaryRank) failures.push(`rank/${item.key}: expected first rank "${item.expectedPrimaryRank || 'none'}", got "${item.actualPrimaryRank || 'none'}"`)
+    if (item.englishCase && /(北大核心|CSCD|科技核心|CSSCI|核心)/.test(item.rankText)) failures.push(`rank/${item.key}: English/international card leaks Chinese-core rank metadata (${item.rankText})`)
   })
-  details.push({ publisherCases: publishers })
+  details.push({ tierPolicy })
 } finally {
   await browser.close()
 }
 
 if (failures.length) {
-  console.error('Card inline rhythm / publisher contract failed:')
+  console.error('Card inline rhythm / publisher / journal-rank contract failed:')
   failures.forEach(item => console.error(`- ${item}`))
   console.error(JSON.stringify(details, null, 2))
   process.exit(1)
 }
 
-console.log('Card inline rhythm / publisher contract passed.')
+console.log('Card inline rhythm / publisher / journal-rank contract passed.')
 console.log(JSON.stringify(details, null, 2))
