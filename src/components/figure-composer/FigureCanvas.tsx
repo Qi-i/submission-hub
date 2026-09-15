@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type Ref } from 'react'
 import { automaticPanelLabel, type FigurePanel, type FigureProject, type FigureSnapGuide, type RuntimeFigureAsset } from '../../lib/figure-composer/types'
+import type { FigureInteractionMode } from './FigureToolbar'
 
 type DragState = {
   kind: 'panel'
@@ -18,6 +19,12 @@ type DragState = {
   currentX: number
   currentY: number
   additive: boolean
+} | {
+  kind: 'pan'
+  startClientX: number
+  startClientY: number
+  startScrollLeft: number
+  startScrollTop: number
 } | null
 
 type MarqueeDrag = Extract<NonNullable<DragState>, { kind: 'marquee' }>
@@ -27,6 +34,7 @@ interface Props {
   assets: Map<string, RuntimeFigureAsset>
   zoom: number
   guides: FigureSnapGuide[]
+  interactionMode: FigureInteractionMode
   viewportRef?: Ref<HTMLDivElement>
   onSelectPanel: (id: string, mode: 'replace' | 'toggle' | 'range') => void
   onSelectPanels: (ids: string[], mode: 'replace' | 'add') => void
@@ -58,12 +66,19 @@ function marqueeBounds(drag: MarqueeDrag) {
   }
 }
 
-export default function FigureCanvas({ project, assets, zoom, guides, viewportRef, onSelectPanel, onSelectPanels, onSelectText, onClearSelection, onMovePanel, onMoveText, onFinishMove }: Props) {
+export default function FigureCanvas({ project, assets, zoom, guides, interactionMode, viewportRef, onSelectPanel, onSelectPanels, onSelectText, onClearSelection, onMovePanel, onMoveText, onFinishMove }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const localViewportRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState>(null)
   const [marquee, setMarquee] = useState<MarqueeDrag | null>(null)
   const [imageVersion, setImageVersion] = useState(0)
   const imageCache = useRef(new Map<string, HTMLImageElement>())
+
+  const assignViewportRef = (node: HTMLDivElement | null) => {
+    localViewportRef.current = node
+    if (typeof viewportRef === 'function') viewportRef(node)
+    else if (viewportRef && 'current' in viewportRef) viewportRef.current = node
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -208,6 +223,20 @@ export default function FigureCanvas({ project, assets, zoom, guides, viewportRe
   }, [project, selected, guides, imageVersion, marquee])
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (interactionMode === 'pan') {
+      const viewport = localViewportRef.current
+      if (!viewport) return
+      dragRef.current = {
+        kind: 'pan',
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startScrollLeft: viewport.scrollLeft,
+        startScrollTop: viewport.scrollTop,
+      }
+      event.currentTarget.setPointerCapture(event.pointerId)
+      return
+    }
+
     const point = pointFor(event, project)
     const context = canvasRef.current?.getContext('2d')
     if (context) {
@@ -218,8 +247,10 @@ export default function FigureCanvas({ project, assets, zoom, guides, viewportRe
       })
       if (text) {
         onSelectText(text.id)
-        dragRef.current = { kind: 'text', id: text.id, dx: point.x - text.x, dy: point.y - text.y }
-        event.currentTarget.setPointerCapture(event.pointerId)
+        if (interactionMode === 'move') {
+          dragRef.current = { kind: 'text', id: text.id, dx: point.x - text.x, dy: point.y - text.y }
+          event.currentTarget.setPointerCapture(event.pointerId)
+        }
         return
       }
     }
@@ -228,11 +259,14 @@ export default function FigureCanvas({ project, assets, zoom, guides, viewportRe
     if (panel) {
       const mode = event.shiftKey ? 'range' : event.ctrlKey || event.metaKey ? 'toggle' : 'replace'
       onSelectPanel(panel.id, mode)
-      dragRef.current = { kind: 'panel', id: panel.id, dx: point.x - panel.x, dy: point.y - panel.y }
-      event.currentTarget.setPointerCapture(event.pointerId)
+      if (interactionMode === 'move') {
+        dragRef.current = { kind: 'panel', id: panel.id, dx: point.x - panel.x, dy: point.y - panel.y }
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }
       return
     }
 
+    if (interactionMode !== 'select') return
     const nextMarquee: MarqueeDrag = { kind: 'marquee', startX: point.x, startY: point.y, currentX: point.x, currentY: point.y, additive: event.ctrlKey || event.metaKey }
     dragRef.current = nextMarquee
     setMarquee(nextMarquee)
@@ -242,6 +276,14 @@ export default function FigureCanvas({ project, assets, zoom, guides, viewportRe
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const drag = dragRef.current
     if (!drag) return
+    if (drag.kind === 'pan') {
+      const viewport = localViewportRef.current
+      if (!viewport) return
+      viewport.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startClientX)
+      viewport.scrollTop = drag.startScrollTop - (event.clientY - drag.startClientY)
+      return
+    }
+
     const point = pointFor(event, project)
     if (drag.kind === 'text') onMoveText(drag.id, point.x - drag.dx, point.y - drag.dy)
     else if (drag.kind === 'panel') onMovePanel(drag.id, point.x - drag.dx, point.y - drag.dy)
@@ -274,13 +316,13 @@ export default function FigureCanvas({ project, assets, zoom, guides, viewportRe
         onSelectPanels(ids, drag.additive ? 'add' : 'replace')
       }
       setMarquee(null)
-    } else {
+    } else if (drag.kind !== 'pan') {
       onFinishMove()
     }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  return <div ref={viewportRef} className="figure-composer__canvas-viewport" data-testid="figure-canvas-viewport">
+  return <div ref={assignViewportRef} className="figure-composer__canvas-viewport" data-testid="figure-canvas-viewport" data-interaction-mode={interactionMode}>
     <div className="figure-composer__canvas-scale" style={{ width: project.canvas.width * zoom, height: project.canvas.height * zoom }}>
       <canvas
         ref={canvasRef}
