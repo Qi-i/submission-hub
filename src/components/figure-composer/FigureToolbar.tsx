@@ -29,13 +29,14 @@ interface Props {
 
 type ClusterKey = 'tools' | 'edit' | 'selection' | 'layout' | 'align' | 'view'
 const DEFAULT_ORDER: ClusterKey[] = ['tools', 'edit', 'selection', 'layout', 'align', 'view']
+const DEFAULT_COLLAPSED: Record<ClusterKey, boolean> = { tools: false, edit: false, selection: false, layout: false, align: true, view: false }
 const STORAGE_KEY = 'submission-hub.figure-composer.toolbar'
 
 function readToolbarState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') as { order?: string[]; collapsed?: Partial<Record<string, boolean>> } | null
     const normalizedOrder = (stored?.order || []).map(key => key === 'arrange' ? 'align' : key).filter((key): key is ClusterKey => DEFAULT_ORDER.includes(key as ClusterKey))
-    const collapsed = Object.fromEntries(DEFAULT_ORDER.map(key => [key, false])) as Record<ClusterKey, boolean>
+    const collapsed = { ...DEFAULT_COLLAPSED }
     Object.entries(stored?.collapsed || {}).forEach(([rawKey, value]) => {
       const key = rawKey === 'arrange' ? 'align' : rawKey
       if (DEFAULT_ORDER.includes(key as ClusterKey)) collapsed[key as ClusterKey] = Boolean(value)
@@ -45,7 +46,7 @@ function readToolbarState() {
       collapsed,
     }
   } catch {
-    return { order: DEFAULT_ORDER, collapsed: Object.fromEntries(DEFAULT_ORDER.map(key => [key, false])) as Record<ClusterKey, boolean> }
+    return { order: DEFAULT_ORDER, collapsed: { ...DEFAULT_COLLAPSED } }
   }
 }
 
@@ -154,7 +155,7 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
     </>,
   }
 
-  const labels: Record<ClusterKey, string> = { tools: '工具', edit: '编辑', selection: '选择', layout: '布局', align: '排列', view: '视图' }
+  const labels: Record<ClusterKey, string> = { tools: '工具', edit: '编辑', selection: '选择', layout: '布局', align: '对齐', view: '视图' }
 
   return <div className="figure-composer__toolbar" aria-label="科研组图工具栏">
     {order.map(key => <Cluster key={key} clusterKey={key} label={labels[key]} collapsed={collapsed[key]} onToggle={() => toggle(key)} onDragStart={setDragging} onDrop={dropOn}>{clusters[key]}</Cluster>)}
