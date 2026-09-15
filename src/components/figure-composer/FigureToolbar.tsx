@@ -28,9 +28,9 @@ interface Props {
 }
 
 type ClusterKey = 'tools' | 'layout' | 'selection' | 'align' | 'view' | 'edit'
-const DEFAULT_ORDER: ClusterKey[] = ['tools', 'layout', 'selection', 'align', 'view', 'edit']
+const DEFAULT_ORDER: ClusterKey[] = ['tools', 'selection', 'edit', 'layout', 'align', 'view']
 const DEFAULT_COLLAPSED: Record<ClusterKey, boolean> = { tools: false, layout: false, selection: false, align: true, view: false, edit: false }
-const STORAGE_KEY = 'submission-hub.figure-composer.toolbar'
+const STORAGE_KEY = 'submission-hub.figure-composer.toolbar.v2'
 
 function readToolbarState() {
   try {
@@ -127,7 +127,7 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
     </>,
     selection: <>
       <button type="button" disabled={!panelCount || selectedCount === panelCount} onClick={onSelectAll}><CheckSquare2 size={13} /> 全选</button>
-      <button type="button" disabled={!selectedCount} title="清空选择" onClick={onClearSelection}><Eraser size={13} /> 清空</button>
+      <button type="button" disabled={!selectedCount} aria-label="清空选择" title="清空选择" onClick={onClearSelection}><Eraser size={13} /> 清空</button>
       <span className="figure-composer__selection-count"><SquareStack size={12} /> {selectedCount ? `${selectedCount} 已选` : '未选择'}</span>
     </>,
     align: <>
