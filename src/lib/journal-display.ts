@@ -39,10 +39,9 @@ export function journalPriorityForStarRating(rating: number): JournalProfile['pr
 }
 
 const DOMESTIC_KEYS = ['eii', 'pku', 'cscd', 'zhongguokejihexin', 'cssci']
-const INTERNATIONAL_KEYS = ['xr', 'sciUp', 'sciBase', 'sci', 'ssci', 'sciif']
+const CHINESE_CORE_KEYS = new Set(['pku', 'cscd', 'zhongguokejihexin', 'cssci'])
 const DOMESTIC_INDEXING = ['EI', '北大核心', 'CSCD', '科技核心', 'CSSCI']
-const CHINESE_CORE_KEYS = ['pku', 'cscd', 'zhongguokejihexin', 'cssci']
-const CHINESE_CORE_INDEXING = ['北大核心', 'CSCD', '科技核心', 'CSSCI']
+const INTERNATIONAL_PRIMARY_KEYS = ['sci', 'ssci', 'sciUp', 'sciBase', 'sciif', 'xr']
 
 function meaningful(value?: string | null) {
   if (!value) return false
@@ -59,12 +58,8 @@ function uniquePush(target: JournalRankItem[], item?: JournalRankItem) {
   target.push(item)
 }
 
-function isChineseJournalForSurface(journal: RankedJournalProfile) {
-  const values = journal.rank_data || {}
-  const hasChineseCoreRank = CHINESE_CORE_KEYS.some(key => meaningful(values[key]))
-  const hasChineseCoreIndexing = journal.indexing.some(item => CHINESE_CORE_INDEXING.includes(item))
-  const primaryIdentityIsChinese = /[\u3400-\u9fff]/.test(`${journal.name} ${journal.publisher || ''}`)
-  return hasChineseCoreRank || hasChineseCoreIndexing || primaryIdentityIsChinese
+export function isChineseJournalIdentity(journal: Pick<RankedJournalProfile, 'name'>) {
+  return /[\u3400-\u9fff]/.test(journal.name || '')
 }
 
 function normalizeJcrQuartile(journal: RankedJournalProfile) {
@@ -79,7 +74,16 @@ export function journalSurfaceClassification(journal: RankedJournalProfile): Jou
   const values = journal.rank_data || {}
   const indexing = journal.indexing || []
 
-  if (isChineseJournalForSurface(journal)) {
+  // JCR is the primary surface for any journal that has a valid JCR quartile.
+  // Domestic/core indexing must never override a real JCR Q1-Q3 classification.
+  const jcr = normalizeJcrQuartile(journal)
+  if (jcr === 'Q1') return { tier: 'jcr-q1', code: 'Q1' }
+  if (jcr === 'Q2') return { tier: 'jcr-q2', code: 'Q2' }
+  if (jcr === 'Q3') return { tier: 'jcr-q3', code: 'Q3' }
+
+  // Chinese-core surfaces are only meaningful for journals whose primary title is Chinese.
+  // An English/SCI journal carrying CSCD/PKU metadata remains an international journal surface.
+  if (isChineseJournalIdentity(journal)) {
     if (indexing.includes('EI') || meaningful(values.eii)) return { tier: 'cn-ei', code: 'EI' }
     if (indexing.includes('北大核心') || meaningful(values.pku)) return { tier: 'cn-pku', code: '北核' }
     if (
@@ -89,35 +93,42 @@ export function journalSurfaceClassification(journal: RankedJournalProfile): Jou
     return { tier: 'cn-ordinary', code: '普通' }
   }
 
-  const jcr = normalizeJcrQuartile(journal)
-  if (jcr === 'Q1') return { tier: 'jcr-q1', code: 'Q1' }
-  if (jcr === 'Q2') return { tier: 'jcr-q2', code: 'Q2' }
-  if (jcr === 'Q3') return { tier: 'jcr-q3', code: 'Q3' }
   return { tier: 'jcr-unranked', code: '未分区' }
 }
 
 export function isDomesticJournal(journal: RankedJournalProfile) {
-  const values = journal.rank_data || {}
-  const hasDomesticRank = DOMESTIC_KEYS.some(key => meaningful(values[key]))
-  const hasDomesticIndexing = journal.indexing.some(item => DOMESTIC_INDEXING.includes(item))
-  const chineseName = /[\u3400-\u9fff]/.test(`${journal.name} ${journal.publisher || ''}`)
-  return hasDomesticRank || hasDomesticIndexing || chineseName
+  return isChineseJournalIdentity(journal)
 }
 
 export function primaryJournalRankItems(journal: RankedJournalProfile, limit = 6) {
   const values = journal.rank_data || {}
   const allItems = rankItemsFromValues(values)
   const itemMap = new Map(allItems.map(item => [item.key, item]))
-  const domestic = isDomesticJournal(journal)
-  const hasInternationalEvidence = INTERNATIONAL_KEYS.some(key => meaningful(values[key])) || !!journal.jcr_quartile || !!journal.cas_quartile || journal.impact_factor != null
-  const order = domestic
-    ? [...DOMESTIC_KEYS, ...(hasInternationalEvidence ? INTERNATIONAL_KEYS : [])]
-    : [...INTERNATIONAL_KEYS, ...DOMESTIC_KEYS]
+  const chinese = isChineseJournalIdentity(journal)
   const result: JournalRankItem[] = []
 
-  order.forEach(key => uniquePush(result, itemMap.get(key)))
+  // JCR always leads the rank rail when it exists.
+  ;['sci', 'ssci'].forEach(key => uniquePush(result, itemMap.get(key)))
+  if (!result.some(item => ['sci', 'ssci'].includes(item.key)) && journal.jcr_quartile) {
+    uniquePush(result, fallbackItem('profile:jcr', 'JCR 分区', journal.jcr_quartile))
+  }
 
-  if (domestic) {
+  // Secondary international metrics follow JCR, never precede it.
+  ;['sciUp', 'sciBase'].forEach(key => uniquePush(result, itemMap.get(key)))
+  if (!result.some(item => ['sciUp', 'sciBase'].includes(item.key)) && journal.cas_quartile) {
+    uniquePush(result, fallbackItem('profile:cas', '中科院分区', journal.cas_quartile))
+  }
+  uniquePush(result, itemMap.get('sciif'))
+  if (!result.some(item => item.key === 'sciif') && journal.impact_factor != null) {
+    uniquePush(result, fallbackItem('profile:if', '影响因子', String(journal.impact_factor)))
+  }
+  uniquePush(result, itemMap.get('xr'))
+
+  // EI can be useful for either Chinese or English journals. Chinese-only core labels are
+  // intentionally suppressed on English journal cards so an SCI title cannot surface as “核心”.
+  uniquePush(result, itemMap.get('eii'))
+  if (chinese) {
+    ;['pku', 'cscd', 'zhongguokejihexin', 'cssci'].forEach(key => uniquePush(result, itemMap.get(key)))
     journal.indexing.forEach(index => {
       if (!DOMESTIC_INDEXING.includes(index)) return
       const key = `index:${index}`
@@ -125,17 +136,13 @@ export function primaryJournalRankItems(journal: RankedJournalProfile, limit = 6
     })
   }
 
-  if (!result.some(item => ['sciUp', 'sciBase'].includes(item.key)) && journal.cas_quartile) {
-    uniquePush(result, fallbackItem('profile:cas', '中科院分区', journal.cas_quartile))
-  }
-  if (!result.some(item => ['sci', 'ssci'].includes(item.key)) && journal.jcr_quartile) {
-    uniquePush(result, fallbackItem('profile:jcr', 'JCR 分区', journal.jcr_quartile))
-  }
-  if (!result.some(item => item.key === 'sciif') && journal.impact_factor != null) {
-    uniquePush(result, fallbackItem('profile:if', '影响因子', String(journal.impact_factor)))
-  }
+  // Preserve custom/other ranks, but never leak Chinese-core keys back onto English cards.
+  allItems.forEach(item => {
+    if (!chinese && CHINESE_CORE_KEYS.has(item.key)) return
+    if (INTERNATIONAL_PRIMARY_KEYS.includes(item.key) || DOMESTIC_KEYS.includes(item.key)) return
+    uniquePush(result, item)
+  })
 
-  allItems.forEach(item => uniquePush(result, item))
   return result
     .filter(item => item.key.startsWith('profile:') || item.key.startsWith('index:') || isRankItemVisible(values, item.key))
     .slice(0, limit)
