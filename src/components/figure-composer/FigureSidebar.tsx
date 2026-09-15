@@ -60,10 +60,10 @@ export default function FigureSidebar({ project, projects, drafts, assets, busy,
     </details>
 
     <section className="figure-composer__section figure-composer__project-library">
-      <div className="figure-composer__section-title"><HardDrive size={14} /><strong>本地草稿</strong><span>{projects.length}</span></div>
+      <div className="figure-composer__section-title"><HardDrive size={14} /><strong>本地草稿库</strong><span>{projects.length}</span></div>
       <div className="figure-composer__button-row figure-composer__project-actions">
         <button type="button" onClick={onNewProject}><Plus size={13} /> 新建</button>
-        <button type="button" className="primary" disabled={busy} onClick={onSaveProject} title="保存到当前浏览器 IndexedDB，不上传服务器"><Save size={13} /> 保存</button>
+        <button type="button" className="primary" disabled={busy} onClick={onSaveProject} title="保存到当前浏览器 IndexedDB，不会上传服务器"><Save size={13} /> 保存</button>
         <button type="button" className="danger" disabled={!projects.some(item => item.id === project.id)} onClick={onDeleteProject}><Trash2 size={13} /> 删除</button>
       </div>
       <div className="figure-composer__project-list">
