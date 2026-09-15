@@ -36,7 +36,8 @@ if (!existsSync(publisherPath)) {
   for (const canonical of ["name: 'Wiley'", "name: 'MDPI'", "name: 'Elsevier'", "name: 'Springer'", "name: 'T&F'", "name: 'Copernicus'"]) {
     if (!publisher.includes(canonical)) failures.push(`publisher policy missing canonical short name: ${canonical}`)
   }
-  if (!publisher.includes("tier.startsWith('cn-')")) failures.push('publisher utility does not suppress publisher display for Chinese journals')
+  if (!publisher.includes('isChineseJournalIdentity')) failures.push('publisher utility does not suppress publisher display by Chinese journal identity')
+  if (publisher.includes("tier.startsWith('cn-')")) failures.push('publisher visibility must not depend on journal rank surface classification')
 }
 
 if (!journal.includes("from '../lib/publisher-display'")) failures.push('JournalCatalogCard does not use the shared publisher display policy')
@@ -47,6 +48,7 @@ if (/function\s+publisherIdentity\s*\(/.test(paper)) failures.push('PaperCardEnh
 if (journal.includes('publisher-mark-symbol') || journal.includes('publisher.mark')) failures.push('Journal Center must render one publisher wordmark only, not a pseudo-logo plus duplicate text')
 
 if (!display.includes('journalStarRating') || !display.includes('ui_star_rating')) failures.push('journal-display does not expose persisted 1-5 star rating semantics')
+if (!display.includes('JCR is the primary surface') || !display.includes('CHINESE_CORE_KEYS')) failures.push('journal-display must encode JCR-first surfaces and suppress Chinese-core labels on English journals')
 if (!journal.includes('journalStarRating') || !journal.includes('journal-rating-pill')) failures.push('JournalCatalogCard does not render the 1-5 star rating pill')
 if (journal.includes('期刊档案')) failures.push('JournalCatalogCard must not fabricate a 期刊档案 placeholder when publisher metadata is absent')
 if (!journalForm.includes('投稿星级') || !journalForm.includes('ui_star_rating')) failures.push('Journal editor does not provide a persisted custom 1-5 star control')
