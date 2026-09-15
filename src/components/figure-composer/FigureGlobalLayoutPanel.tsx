@@ -40,13 +40,13 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
             <label>线宽<input type="number" min="0.25" step="0.25" value={project.borderDefaults.width} onChange={event => onBorderDefaults({ width: numberValue(event.target.value, project.borderDefaults.width, .25) })} /></label>
             <label>线型<select value={project.borderDefaults.style} onChange={event => onBorderDefaults({ style: event.target.value as FigureBorderSettings['style'] })}><option value="solid">实线</option><option value="dashed">虚线</option></select></label>
           </div>
-          <button type="button" className="figure-composer__mini-action" onClick={onApplyBordersToAll}>应用到全部</button>
+          <button type="button" className="figure-composer__mini-action" aria-label="边框应用到全部" onClick={onApplyBordersToAll}>应用到全部</button>
         </div>
       </details>
     </section>
 
     <section className="figure-composer__section figure-composer__global-labels" aria-label="全局标签">
-      <div className="figure-composer__section-title"><Tags size={14} /><strong>全局标签</strong><button type="button" className="figure-composer__mini-action" onClick={onApplyLabelsToAll}>应用到全部</button></div>
+      <div className="figure-composer__section-title"><Tags size={14} /><strong>全局标签</strong><button type="button" className="figure-composer__mini-action" aria-label="标签应用到全部" onClick={onApplyLabelsToAll}>应用到全部</button></div>
       <div className="figure-composer__label-core">
         <label className="figure-composer__check"><input type="checkbox" checked={project.labelDefaults.visible} onChange={event => onLabelDefaults({ visible: event.target.checked })} /> 显示</label>
         <select aria-label="标签样式" value={project.labelDefaults.style} onChange={event => onLabelDefaults({ style: event.target.value as FigureLabelSettings['style'] })}><option value="parena">(a), (b), (c)</option><option value="a">a, b, c</option><option value="parenA">(A), (B), (C)</option><option value="A">A, B, C</option></select>
