@@ -127,7 +127,7 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
     </>,
     selection: <>
       <button type="button" disabled={!panelCount || selectedCount === panelCount} onClick={onSelectAll}><CheckSquare2 size={13} /> 全选</button>
-      <button type="button" disabled={!selectedCount} onClick={onClearSelection}><Eraser size={13} /> 清空</button>
+      <button type="button" disabled={!selectedCount} title="清空选择" onClick={onClearSelection}><Eraser size={13} /> 清空</button>
       <span className="figure-composer__selection-count"><SquareStack size={12} /> {selectedCount ? `${selectedCount} 已选` : '未选择'}</span>
     </>,
     align: <>
