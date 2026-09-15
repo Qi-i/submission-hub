@@ -35,7 +35,7 @@ interface Props {
   zoom: number
   guides: FigureSnapGuide[]
   interactionMode: FigureInteractionMode
-  viewportRef?: RefObject<HTMLDivElement | null>
+  viewportRef?: RefObject<HTMLDivElement>
   onSelectPanel: (id: string, mode: 'replace' | 'toggle' | 'range') => void
   onSelectPanels: (ids: string[], mode: 'replace' | 'add') => void
   onSelectText: (id: string) => void
