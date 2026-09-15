@@ -20,6 +20,7 @@ try {
   await page.addInitScript(() => {
     localStorage.removeItem('submission-hub.figure-composer.toolbar')
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v2')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v3')
     localStorage.removeItem('submission-hub.figure-composer.panes')
   })
   await openComposer(page)
