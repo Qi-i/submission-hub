@@ -30,7 +30,7 @@ interface Props {
 type ClusterKey = 'tools' | 'layout' | 'selection' | 'align' | 'view' | 'edit'
 const DEFAULT_ORDER: ClusterKey[] = ['tools', 'selection', 'edit', 'layout', 'align', 'view']
 const DEFAULT_COLLAPSED: Record<ClusterKey, boolean> = { tools: false, layout: false, selection: false, align: true, view: false, edit: false }
-const STORAGE_KEY = 'submission-hub.figure-composer.toolbar.v2'
+const STORAGE_KEY = 'submission-hub.figure-composer.toolbar.v3'
 
 function readToolbarState() {
   try {
