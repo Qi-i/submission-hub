@@ -42,6 +42,7 @@ const DOMESTIC_KEYS = ['eii', 'pku', 'cscd', 'zhongguokejihexin', 'cssci']
 const CHINESE_CORE_KEYS = new Set(['pku', 'cscd', 'zhongguokejihexin', 'cssci'])
 const DOMESTIC_INDEXING = ['EI', '北大核心', 'CSCD', '科技核心', 'CSSCI']
 const INTERNATIONAL_PRIMARY_KEYS = ['sci', 'ssci', 'sciUp', 'sciBase', 'sciif', 'xr']
+const ALWAYS_VISIBLE_JCR_KEYS = new Set(['sci', 'ssci'])
 
 function meaningful(value?: string | null) {
   if (!value) return false
@@ -144,7 +145,7 @@ export function primaryJournalRankItems(journal: RankedJournalProfile, limit = 6
   })
 
   return result
-    .filter(item => item.key.startsWith('profile:') || item.key.startsWith('index:') || isRankItemVisible(values, item.key))
+    .filter(item => item.key.startsWith('profile:') || item.key.startsWith('index:') || ALWAYS_VISIBLE_JCR_KEYS.has(item.key) || isRankItemVisible(values, item.key))
     .slice(0, limit)
 }
 
