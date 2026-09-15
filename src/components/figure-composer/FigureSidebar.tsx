@@ -29,7 +29,7 @@ export default function FigureSidebar({ project, projects, drafts, assets, busy,
       <div className="figure-composer__section-title"><FileImage size={14} /><strong>图片与图层</strong><span>{project.panels.length}</span></div>
       <div className="figure-composer__import-row">
         <button className="figure-composer__import" type="button" disabled={busy} title="支持 PNG、JPG、WEBP、SVG、TIFF、PDF" onClick={() => inputRef.current?.click()}><Upload size={15} /> 导入图片</button>
-        <small title="图片本体仅保存在当前浏览器 IndexedDB，不会自动上传 Supabase。">本地保存 · {assets.size} 个资源</small>
+        <small className="figure-composer__local-save-note" title="图片和工程保存在当前浏览器 IndexedDB，不会上传服务器。">IndexedDB · 不上传 · {assets.size}</small>
       </div>
       <input ref={inputRef} hidden multiple type="file" accept={FIGURE_ACCEPT} onChange={event => event.target.files && onImport(event.target.files)} />
       <div className="figure-composer__layers">
