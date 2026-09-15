@@ -147,7 +147,7 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
       <button type="button" disabled={distributeDisabled} title="纵向等间距" onClick={() => onDistribute('vertical')}><AlignVerticalDistributeCenter size={14} /></button>
     </>,
     view: <>
-      <button type="button" title="适配画布" onClick={onFitView}><Scan size={14} /> 适配</button>
+      <button type="button" aria-label="适配画布" title="适配画布" onClick={onFitView}><Scan size={14} /> 适配</button>
       <button type="button" title="100%" onClick={() => onZoom(1)}>100%</button>
       <button type="button" title="缩小视图" onClick={() => onZoom(Math.max(0.1, zoom - 0.25))}><ZoomOut size={14} /></button>
       <b className="figure-composer__zoom-value">{Math.round(zoom * 100)}%</b>
