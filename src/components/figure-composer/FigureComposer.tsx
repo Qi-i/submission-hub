@@ -28,7 +28,7 @@ import FigureGlobalLayoutPanel from './FigureGlobalLayoutPanel'
 import FigurePanelInspector from './FigurePanelInspector'
 import FigurePreflightPanel from './FigurePreflightPanel'
 import FigureSidebar from './FigureSidebar'
-import FigureToolbar from './FigureToolbar'
+import FigureToolbar, { type FigureInteractionMode } from './FigureToolbar'
 
 interface Props {
   drafts: ManuscriptDraft[]
@@ -99,6 +99,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const canvasViewportRef = useRef<HTMLDivElement>(null)
   const [guides, setGuides] = useState<FigureSnapGuide[]>([])
   const [zoom, setZoom] = useState(1)
+  const [interactionMode, setInteractionMode] = useState<FigureInteractionMode>('select')
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('第一步从左侧“图片与图层”导入子图；工程保存到当前浏览器 IndexedDB。')
   const [textDraft, setTextDraft] = useState('')
@@ -132,7 +133,27 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     const availableHeight = Math.max(80, viewport.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0) - 18)
     const nextZoom = Math.max(.2, Math.min(1.5, Math.min(availableWidth / Math.max(1, project.canvas.width), availableHeight / Math.max(1, project.canvas.height))))
     setZoom(Number(nextZoom.toFixed(3)))
+    requestAnimationFrame(() => {
+      viewport.scrollLeft = 0
+      viewport.scrollTop = 0
+    })
   }, [project.canvas.height, project.canvas.width])
+
+  const setZoomLevel = useCallback((value: number) => {
+    const nextZoom = Math.max(.1, Math.min(4, value))
+    const viewport = canvasViewportRef.current
+    if (!viewport) {
+      setZoom(nextZoom)
+      return
+    }
+    const centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / Math.max(.001, zoom)
+    const centerY = (viewport.scrollTop + viewport.clientHeight / 2) / Math.max(.001, zoom)
+    setZoom(nextZoom)
+    requestAnimationFrame(() => {
+      viewport.scrollLeft = Math.max(0, centerX * nextZoom - viewport.clientWidth / 2)
+      viewport.scrollTop = Math.max(0, centerY * nextZoom - viewport.clientHeight / 2)
+    })
+  }, [zoom])
 
   useEffect(() => {
     const viewport = canvasViewportRef.current
@@ -159,6 +180,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     const nextSequence = Math.max(0, ...projects.map(item => item.sequence)) + 1
     replace(createEmptyFigureProject(null, nextSequence, project.role))
     setGuides([])
+    setInteractionMode('select')
     setStatus('已建立新的未命名组图；先导入图片，保存后可从“本地草稿库”重新打开。')
   }
 
@@ -170,6 +192,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       clearRuntimeAssets()
       setAssets(loaded.assets)
       replace(loaded.project)
+      setInteractionMode('select')
       setStatus(`已从当前浏览器 IndexedDB 打开 ${loaded.project.name}。`)
     } catch (error) {
       setStatus(error instanceof Error ? `打开工程失败：${error.message}` : '打开工程失败。')
@@ -312,6 +335,23 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     replace(next)
   }
 
+  const removeSelectedPanels = () => {
+    if (!project.selectedPanelIds.length) return
+    const selectedIds = new Set(project.selectedPanelIds)
+    const nextAssets = new Map(assets)
+    project.panels.filter(panel => selectedIds.has(panel.id)).forEach(panel => {
+      const asset = nextAssets.get(panel.assetId)
+      if (asset) revokeFigureAssets([asset])
+      nextAssets.delete(panel.assetId)
+    })
+    setAssets(nextAssets)
+    let next: FigureProject = { ...project, panels: project.panels.filter(panel => !selectedIds.has(panel.id)), selectedPanelIds: [] }
+    if (next.canvas.layoutMode === 'grid') next = applyGridLayout(next)
+    if (next.canvas.autoWrap) next = autoWrapProject(next)
+    replace(next)
+    setStatus(`已删除 ${selectedIds.size} 个选中子图。`)
+  }
+
   const align = (mode: AlignMode) => replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: alignPanels(project.panels, project.selectedPanelIds, mode) })
   const distribute = (axis: DistributionAxis) => replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: distributePanels(project.panels, project.selectedPanelIds, axis) })
 
@@ -379,6 +419,12 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: project.panels.map(panel => project.selectedPanelIds.includes(panel.id) ? resizePanel(panel, { width: Math.max(20, panel.width * factor), editedDimension: 'width' }) : panel) })
   }
 
+  const changeInteractionMode = (mode: FigureInteractionMode) => {
+    setInteractionMode(mode)
+    const label = mode === 'select' ? '选择' : mode === 'move' ? '移动对象' : '平移画布'
+    setStatus(`已切换到${label}工具。`)
+  }
+
   const beginPaneResize = (side: 'left' | 'right', event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault()
     const startX = event.clientX
@@ -414,6 +460,27 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
         {onBack && <button className="figure-composer__icon-button" type="button" onClick={onBack}><ArrowLeft size={16} /><span>返回投稿准备</span></button>}
         <div className="figure-composer__identity"><small><span>投稿准备</span><i>/</i><span>科研组图</span></small><h2>{project.name}</h2><p>{project.publicationLabel ? `出版编号：${project.publicationLabel}` : '通用科研组图工作台 · 默认不关联任何论文'}</p></div>
       </div>
+      <FigureToolbar
+        selectedCount={project.selectedPanelIds.length}
+        panelCount={project.panels.length}
+        zoom={zoom}
+        layoutPreset={project.canvas.layoutPreset}
+        gridRows={project.canvas.gridRows}
+        gridColumns={project.canvas.gridColumns}
+        interactionMode={interactionMode}
+        onInteractionMode={changeInteractionMode}
+        onZoom={setZoomLevel}
+        onFitView={fitCanvasToViewport}
+        onSelectAll={selectAllPanels}
+        onClearSelection={clearSelection}
+        onDeleteSelected={removeSelectedPanels}
+        onAlign={align}
+        onDistribute={distribute}
+        onLayoutPreset={applyLayout}
+        onGridSize={setGridSize}
+        onAutoWrap={() => replace(autoWrapProject(project))}
+        onScaleSelected={scaleSelected}
+      />
       <div className="figure-composer__header-actions">
         <button type="button" onClick={newProject}><Plus size={14} /> 新建</button>
         <button type="button" disabled={busy} onClick={() => void saveProject()} title="保存到当前浏览器 IndexedDB，不上传图片"><Save size={14} /> 保存本地草稿</button>
@@ -444,29 +511,12 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       <div className="figure-composer__splitter" role="separator" aria-orientation="vertical" aria-label="调整左侧面板宽度" aria-valuenow={paneWidths.left} tabIndex={0} onPointerDown={event => beginPaneResize('left', event)} onDoubleClick={resetPaneWidths} />
 
       <main className="figure-composer__center">
-        <FigureToolbar
-          selectedCount={project.selectedPanelIds.length}
-          panelCount={project.panels.length}
-          zoom={zoom}
-          layoutPreset={project.canvas.layoutPreset}
-          gridRows={project.canvas.gridRows}
-          gridColumns={project.canvas.gridColumns}
-          onZoom={setZoom}
-          onFitView={fitCanvasToViewport}
-          onSelectAll={selectAllPanels}
-          onClearSelection={clearSelection}
-          onAlign={align}
-          onDistribute={distribute}
-          onLayoutPreset={applyLayout}
-          onGridSize={setGridSize}
-          onAutoWrap={() => replace(autoWrapProject(project))}
-          onScaleSelected={scaleSelected}
-        />
         <FigureCanvas
           project={project}
           assets={assets}
           zoom={zoom}
           guides={guides}
+          interactionMode={interactionMode}
           viewportRef={canvasViewportRef}
           onSelectPanel={selectPanel}
           onSelectPanels={selectPanels}

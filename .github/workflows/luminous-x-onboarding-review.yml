@@ -61,6 +61,9 @@ jobs:
       - name: Review 6 - Figure Composer real interactions
         if: always()
         run: node tests/visual/figure-composer-interactions-check.mjs
+      - name: Review 7 - Figure Composer zoom and workbench tools
+        if: always()
+        run: node tests/visual/figure-composer-workbench-tools-check.mjs
       - name: Capture focused comparison pages
         if: always()
         run: |

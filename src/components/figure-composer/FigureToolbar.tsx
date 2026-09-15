@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, CheckSquare2, ChevronDown, ChevronRight, Eraser, GripVertical, Grid3X3, Maximize2, Rows3, Scan, SquareStack, ZoomIn, ZoomOut } from 'lucide-react'
+import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, CheckSquare2, ChevronDown, ChevronRight, Eraser, GripVertical, Grid3X3, Hand, Maximize2, Move, MousePointer2, Scan, SquareStack, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { AlignMode, DistributionAxis, FigureLayoutPreset } from '../../lib/figure-composer/types'
 import './FigureComposerCoherence.css'
+
+export type FigureInteractionMode = 'select' | 'move' | 'pan'
 
 interface Props {
   selectedCount: number
@@ -10,10 +12,13 @@ interface Props {
   layoutPreset: FigureLayoutPreset
   gridRows: number
   gridColumns: number
+  interactionMode: FigureInteractionMode
+  onInteractionMode: (mode: FigureInteractionMode) => void
   onZoom: (value: number) => void
   onFitView: () => void
   onSelectAll: () => void
   onClearSelection: () => void
+  onDeleteSelected: () => void
   onAlign: (mode: AlignMode) => void
   onDistribute: (axis: DistributionAxis) => void
   onLayoutPreset: (preset: FigureLayoutPreset) => void
@@ -22,20 +27,26 @@ interface Props {
   onScaleSelected: (factor: number) => void
 }
 
-type ClusterKey = 'layout' | 'selection' | 'align' | 'view'
-const DEFAULT_ORDER: ClusterKey[] = ['layout', 'selection', 'align', 'view']
+type ClusterKey = 'tools' | 'edit' | 'selection' | 'layout' | 'align' | 'view'
+const DEFAULT_ORDER: ClusterKey[] = ['tools', 'edit', 'selection', 'layout', 'align', 'view']
+const DEFAULT_COLLAPSED: Record<ClusterKey, boolean> = { tools: false, edit: false, selection: false, layout: false, align: true, view: false }
 const STORAGE_KEY = 'submission-hub.figure-composer.toolbar'
 
 function readToolbarState() {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') as { order?: ClusterKey[]; collapsed?: Partial<Record<ClusterKey, boolean>> } | null
-    const order = stored?.order?.filter(key => DEFAULT_ORDER.includes(key)) || []
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') as { order?: string[]; collapsed?: Partial<Record<string, boolean>> } | null
+    const normalizedOrder = (stored?.order || []).map(key => key === 'arrange' ? 'align' : key).filter((key): key is ClusterKey => DEFAULT_ORDER.includes(key as ClusterKey))
+    const collapsed = { ...DEFAULT_COLLAPSED }
+    Object.entries(stored?.collapsed || {}).forEach(([rawKey, value]) => {
+      const key = rawKey === 'arrange' ? 'align' : rawKey
+      if (DEFAULT_ORDER.includes(key as ClusterKey)) collapsed[key as ClusterKey] = Boolean(value)
+    })
     return {
-      order: [...order, ...DEFAULT_ORDER.filter(key => !order.includes(key))],
-      collapsed: { layout: false, selection: false, align: true, view: false, ...(stored?.collapsed || {}) } as Record<ClusterKey, boolean>,
+      order: [...new Set(normalizedOrder), ...DEFAULT_ORDER.filter(key => !normalizedOrder.includes(key))],
+      collapsed,
     }
   } catch {
-    return { order: DEFAULT_ORDER, collapsed: { layout: false, selection: false, align: true, view: false } as Record<ClusterKey, boolean> }
+    return { order: DEFAULT_ORDER, collapsed: { ...DEFAULT_COLLAPSED } }
   }
 }
 
@@ -58,15 +69,15 @@ function Cluster({ clusterKey, label, collapsed, onToggle, onDragStart, onDrop, 
     onDrop={event => { event.preventDefault(); onDrop(clusterKey) }}
   >
     <div className="figure-composer__tool-cluster-head">
-      <GripVertical size={12} aria-hidden="true" />
+      <GripVertical size={11} aria-hidden="true" />
       <strong>{label}</strong>
-      <button type="button" className="figure-composer__tool-collapse" title={collapsed ? `展开${label}` : `收起${label}`} onClick={onToggle}>{collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}</button>
+      <button type="button" className="figure-composer__tool-collapse" title={collapsed ? `展开${label}` : `收起${label}`} onClick={onToggle}>{collapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}</button>
     </div>
     {!collapsed && <div className="figure-composer__tool-cluster-body">{children}</div>}
   </section>
 }
 
-export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutPreset, gridRows, gridColumns, onZoom, onFitView, onSelectAll, onClearSelection, onAlign, onDistribute, onLayoutPreset, onGridSize, onAutoWrap, onScaleSelected }: Props) {
+export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutPreset, gridRows, gridColumns, interactionMode, onInteractionMode, onZoom, onFitView, onSelectAll, onClearSelection, onDeleteSelected, onAlign, onDistribute, onLayoutPreset, onGridSize, onAutoWrap, onScaleSelected }: Props) {
   const initial = useMemo(readToolbarState, [])
   const [order, setOrder] = useState<ClusterKey[]>(initial.order)
   const [collapsed, setCollapsed] = useState<Record<ClusterKey, boolean>>(initial.collapsed)
@@ -89,7 +100,31 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
     setDragging(null)
   }
 
+  const toolButton = (mode: FigureInteractionMode, label: string, icon: ReactNode) => <button
+    type="button"
+    data-fc-tool-mode={mode}
+    className={interactionMode === mode ? 'is-active' : ''}
+    aria-pressed={interactionMode === mode}
+    title={`${label}工具`}
+    onClick={() => onInteractionMode(mode)}
+  >{icon}<span>{label}</span></button>
+
   const clusters: Record<ClusterKey, ReactNode> = {
+    tools: <>
+      {toolButton('select', '选择', <MousePointer2 size={14} />)}
+      {toolButton('move', '移动', <Move size={14} />)}
+      {toolButton('pan', '平移', <Hand size={14} />)}
+    </>,
+    edit: <>
+      <button type="button" disabled={!selectedCount} title="缩小选中对象" onClick={() => onScaleSelected(.92)}>缩小</button>
+      <button type="button" disabled={!selectedCount} title="放大选中对象" onClick={() => onScaleSelected(1.08)}>放大</button>
+      <button type="button" disabled={!selectedCount} title="删除选中" onClick={onDeleteSelected}><Trash2 size={14} /> 删除</button>
+    </>,
+    selection: <>
+      <button type="button" disabled={!panelCount || selectedCount === panelCount} onClick={onSelectAll}><CheckSquare2 size={14} /> 全选</button>
+      <button type="button" disabled={!selectedCount} onClick={onClearSelection}><Eraser size={14} /> 清空选择</button>
+      <span className="figure-composer__selection-count"><SquareStack size={13} /> {selectedCount ? `已选 ${selectedCount}` : '未选择'}</span>
+    </>,
     layout: <>
       <select aria-label="布局预设" value={layoutPreset} onChange={event => onLayoutPreset(event.target.value as FigureLayoutPreset)}>
         <option value="auto">自动网格</option>
@@ -101,33 +136,26 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
       <button type="button" title="按当前布局重排" onClick={() => onLayoutPreset(layoutPreset)}><Grid3X3 size={14} /> 重排</button>
       <button type="button" title="让画布紧贴所有子图" onClick={onAutoWrap}><Maximize2 size={14} /> 包裹</button>
     </>,
-    selection: <>
-      <button type="button" disabled={!panelCount || selectedCount === panelCount} onClick={onSelectAll}><CheckSquare2 size={14} /> 全选</button>
-      <button type="button" disabled={!selectedCount} onClick={onClearSelection}><Eraser size={14} /> 清空选择</button>
-      <button type="button" disabled={!selectedCount} onClick={() => onScaleSelected(.92)}>缩小</button>
-      <button type="button" disabled={!selectedCount} onClick={() => onScaleSelected(1.08)}>放大</button>
-      <span className="figure-composer__selection-count"><SquareStack size={13} /> {selectedCount ? `已选 ${selectedCount}` : '未选择'}</span>
-    </>,
     align: <>
-      <button disabled={alignDisabled} title="左对齐" onClick={() => onAlign('left')}><AlignStartVertical size={14} /></button>
-      <button disabled={alignDisabled} title="水平中心" onClick={() => onAlign('horizontal-center')}><AlignCenterVertical size={14} /></button>
-      <button disabled={alignDisabled} title="右对齐" onClick={() => onAlign('right')}><AlignEndVertical size={14} /></button>
-      <button disabled={alignDisabled} title="上对齐" onClick={() => onAlign('top')}><AlignStartHorizontal size={14} /></button>
-      <button disabled={alignDisabled} title="垂直中心" onClick={() => onAlign('vertical-center')}><AlignCenterHorizontal size={14} /></button>
-      <button disabled={alignDisabled} title="下对齐" onClick={() => onAlign('bottom')}><AlignEndHorizontal size={14} /></button>
-      <button disabled={distributeDisabled} title="横向等间距" onClick={() => onDistribute('horizontal')}><AlignHorizontalDistributeCenter size={14} /></button>
-      <button disabled={distributeDisabled} title="纵向等间距" onClick={() => onDistribute('vertical')}><AlignVerticalDistributeCenter size={14} /></button>
+      <button type="button" disabled={alignDisabled} title="左对齐" onClick={() => onAlign('left')}><AlignStartVertical size={14} /></button>
+      <button type="button" disabled={alignDisabled} title="水平中心" onClick={() => onAlign('horizontal-center')}><AlignCenterVertical size={14} /></button>
+      <button type="button" disabled={alignDisabled} title="右对齐" onClick={() => onAlign('right')}><AlignEndVertical size={14} /></button>
+      <button type="button" disabled={alignDisabled} title="上对齐" onClick={() => onAlign('top')}><AlignStartHorizontal size={14} /></button>
+      <button type="button" disabled={alignDisabled} title="垂直中心" onClick={() => onAlign('vertical-center')}><AlignCenterHorizontal size={14} /></button>
+      <button type="button" disabled={alignDisabled} title="下对齐" onClick={() => onAlign('bottom')}><AlignEndHorizontal size={14} /></button>
+      <button type="button" disabled={distributeDisabled} title="横向等间距" onClick={() => onDistribute('horizontal')}><AlignHorizontalDistributeCenter size={14} /></button>
+      <button type="button" disabled={distributeDisabled} title="纵向等间距" onClick={() => onDistribute('vertical')}><AlignVerticalDistributeCenter size={14} /></button>
     </>,
     view: <>
-      <button type="button" title="适配画布到当前视图" onClick={onFitView}><Scan size={14} /> 适配画布</button>
-      <button type="button" title="缩小视图" onClick={() => onZoom(Math.max(0.2, zoom - 0.1))}><ZoomOut size={14} /></button>
+      <button type="button" aria-label="适配画布" title="适配画布" onClick={onFitView}><Scan size={14} /> 适配</button>
+      <button type="button" title="100%" onClick={() => onZoom(1)}>100%</button>
+      <button type="button" title="缩小视图" onClick={() => onZoom(Math.max(0.1, zoom - 0.25))}><ZoomOut size={14} /></button>
       <b className="figure-composer__zoom-value">{Math.round(zoom * 100)}%</b>
-      <button type="button" title="放大视图" onClick={() => onZoom(Math.min(2, zoom + 0.1))}><ZoomIn size={14} /></button>
-      <Rows3 size={13} aria-hidden="true" />
+      <button type="button" title="放大视图" onClick={() => onZoom(Math.min(4, zoom + 0.25))}><ZoomIn size={14} /></button>
     </>,
   }
 
-  const labels: Record<ClusterKey, string> = { layout: '布局', selection: '选择', align: '对齐', view: '视图' }
+  const labels: Record<ClusterKey, string> = { tools: '工具', edit: '编辑', selection: '选择', layout: '布局', align: '对齐', view: '视图' }
 
   return <div className="figure-composer__toolbar" aria-label="科研组图工具栏">
     {order.map(key => <Cluster key={key} clusterKey={key} label={labels[key]} collapsed={collapsed[key]} onToggle={() => toggle(key)} onDragStart={setDragging} onDrop={dropOn}>{clusters[key]}</Cluster>)}
