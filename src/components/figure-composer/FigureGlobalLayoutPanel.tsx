@@ -26,10 +26,10 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
         <label className="figure-composer__title-color" title="画布背景"><span>背景</span><input aria-label="画布背景" type="color" value={project.canvas.background} onChange={event => onCanvas({ background: event.target.value })} /></label>
       </div>
       <div className="figure-composer__field-grid two figure-composer__global-core">
-        <label>单图宽度<input type="number" min="100" step="20" value={project.canvas.panelWidth} onChange={event => onCanvas({ panelWidth: numberValue(event.target.value, project.canvas.panelWidth, 100) }, true)} /></label>
-        <label>整体缩放 %<input type="number" min="25" max="400" step="5" value={project.canvas.layoutScale} onChange={event => onCanvas({ layoutScale: numberValue(event.target.value, project.canvas.layoutScale, 25, 400) }, true)} /></label>
-        <label>图间距<input type="number" min="0" step="2" value={project.canvas.gap} onChange={event => onCanvas({ gap: numberValue(event.target.value, project.canvas.gap, 0) }, true)} /></label>
-        <label>画布边距<input type="number" min="0" step="2" value={project.canvas.margin} onChange={event => onCanvas({ margin: numberValue(event.target.value, project.canvas.margin, 0) }, true)} /></label>
+        <label className="figure-composer__rail-inline-field"><span>单图宽度</span><input type="number" min="100" step="20" value={project.canvas.panelWidth} onChange={event => onCanvas({ panelWidth: numberValue(event.target.value, project.canvas.panelWidth, 100) }, true)} /></label>
+        <label className="figure-composer__rail-inline-field"><span>整体缩放</span><div className="figure-composer__unit-input"><input aria-label="整体缩放" type="number" min="25" max="400" step="5" value={project.canvas.layoutScale} onChange={event => onCanvas({ layoutScale: numberValue(event.target.value, project.canvas.layoutScale, 25, 400) }, true)} /><em>%</em></div></label>
+        <label className="figure-composer__rail-inline-field"><span>图间距</span><input type="number" min="0" step="2" value={project.canvas.gap} onChange={event => onCanvas({ gap: numberValue(event.target.value, project.canvas.gap, 0) }, true)} /></label>
+        <label className="figure-composer__rail-inline-field"><span>画布边距</span><input type="number" min="0" step="2" value={project.canvas.margin} onChange={event => onCanvas({ margin: numberValue(event.target.value, project.canvas.margin, 0) }, true)} /></label>
       </div>
       <details className="figure-composer__compact-details figure-composer__global-advanced">
         <summary><strong>默认边框</strong><span>{project.borderDefaults.enabled ? '已开启' : '关闭'}</span></summary>
@@ -46,7 +46,7 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
     </section>
 
     <section className="figure-composer__section figure-composer__global-labels" aria-label="全局标签">
-      <div className="figure-composer__section-title"><Tags size={14} /><strong>全局标签</strong><button type="button" className="figure-composer__mini-action" onClick={onApplyLabelsToAll}>应用全部</button></div>
+      <div className="figure-composer__section-title"><Tags size={14} /><strong>全局标签</strong><button type="button" className="figure-composer__mini-action" onClick={onApplyLabelsToAll}>应用到全部</button></div>
       <div className="figure-composer__label-core">
         <label className="figure-composer__check"><input type="checkbox" checked={project.labelDefaults.visible} onChange={event => onLabelDefaults({ visible: event.target.checked })} /> 显示</label>
         <select aria-label="标签样式" value={project.labelDefaults.style} onChange={event => onLabelDefaults({ style: event.target.value as FigureLabelSettings['style'] })}><option value="parena">(a), (b), (c)</option><option value="a">a, b, c</option><option value="parenA">(A), (B), (C)</option><option value="A">A, B, C</option></select>
