@@ -4,6 +4,7 @@ const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
 const browser = await chromium.launch({ headless: true })
 const failures = []
 const fail = message => failures.push(message)
+const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400"><rect width="640" height="400" fill="white"/><rect x="8" y="8" width="624" height="384" fill="none" stroke="black"/></svg>')
 
 async function openComposer(page) {
   await page.goto(`${baseUrl}?view=preparation&theme=light&ui=luminous`, { waitUntil: 'domcontentloaded' })
@@ -18,6 +19,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1680, height: 1050 } })
   await page.addInitScript(() => {
     localStorage.removeItem('submission-hub.figure-composer.toolbar')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v2')
     localStorage.removeItem('submission-hub.figure-composer.panes')
   })
   await openComposer(page)
@@ -90,8 +92,13 @@ try {
   const globalAdvanced = globalLayout.locator('.figure-composer__global-advanced')
   if (await globalAdvanced.count() !== 1 || await globalAdvanced.getAttribute('open') !== null) fail('advanced global border controls should be collapsed by default')
 
+  const fileInput = page.locator('.figure-composer__left input[type="file"]')
+  if (await page.locator('.figure-composer__layer-main').count() === 0) {
+    await fileInput.setInputFiles({ name: 'workbench-panel.svg', mimeType: 'image/svg+xml', buffer: svg })
+    await page.locator('.figure-composer__layer-main').first().waitFor({ state: 'visible', timeout: 10000 })
+  }
   const firstLayer = page.locator('.figure-composer__layer-main').first()
-  if (await firstLayer.count()) await firstLayer.click()
+  await firstLayer.click()
   await page.waitForTimeout(50)
   const inspector = page.locator('.figure-composer__inspector')
   const inspectorBox = await inspector.boundingBox()
