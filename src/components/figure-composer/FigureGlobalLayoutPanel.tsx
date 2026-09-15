@@ -26,7 +26,7 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
         <label className="figure-composer__title-color" title="画布背景"><span>背景</span><input aria-label="画布背景" type="color" value={project.canvas.background} onChange={event => onCanvas({ background: event.target.value })} /></label>
       </div>
       <div className="figure-composer__field-grid two figure-composer__global-core">
-        <label>单图宽<input type="number" min="100" step="20" value={project.canvas.panelWidth} onChange={event => onCanvas({ panelWidth: numberValue(event.target.value, project.canvas.panelWidth, 100) }, true)} /></label>
+        <label>单图宽度<input type="number" min="100" step="20" value={project.canvas.panelWidth} onChange={event => onCanvas({ panelWidth: numberValue(event.target.value, project.canvas.panelWidth, 100) }, true)} /></label>
         <label>整体缩放 %<input type="number" min="25" max="400" step="5" value={project.canvas.layoutScale} onChange={event => onCanvas({ layoutScale: numberValue(event.target.value, project.canvas.layoutScale, 25, 400) }, true)} /></label>
         <label>图间距<input type="number" min="0" step="2" value={project.canvas.gap} onChange={event => onCanvas({ gap: numberValue(event.target.value, project.canvas.gap, 0) }, true)} /></label>
         <label>画布边距<input type="number" min="0" step="2" value={project.canvas.margin} onChange={event => onCanvas({ margin: numberValue(event.target.value, project.canvas.margin, 0) }, true)} /></label>
@@ -57,11 +57,11 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
         <summary><strong>字体、颜色与偏移</strong></summary>
         <div className="figure-composer__details-body">
           <div className="figure-composer__field-grid two">
-            <label>字体<select value={project.labelDefaults.fontFamily} onChange={event => onLabelDefaults({ fontFamily: event.target.value })}><option>Times New Roman</option><option>Arial</option><option>Cambria</option><option>Georgia</option><option>Microsoft YaHei</option><option>SimSun</option><option>SimHei</option></select></label>
+            <label>标签字体<select value={project.labelDefaults.fontFamily} onChange={event => onLabelDefaults({ fontFamily: event.target.value })}><option>Times New Roman</option><option>Arial</option><option>Cambria</option><option>Georgia</option><option>Microsoft YaHei</option><option>SimSun</option><option>SimHei</option></select></label>
             <label>字重<select value={project.labelDefaults.fontWeight} onChange={event => onLabelDefaults({ fontWeight: Number(event.target.value) as FigureLabelSettings['fontWeight'] })}><option value="400">常规</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700">粗体</option></select></label>
             <label>颜色<input type="color" value={project.labelDefaults.color} onChange={event => onLabelDefaults({ color: event.target.value })} /></label>
-            <label>X 偏移<input type="number" step="2" value={project.labelDefaults.offsetX} onChange={event => onLabelDefaults({ offsetX: numberValue(event.target.value, project.labelDefaults.offsetX) })} /></label>
-            <label>Y 偏移<input type="number" step="2" value={project.labelDefaults.offsetY} onChange={event => onLabelDefaults({ offsetY: numberValue(event.target.value, project.labelDefaults.offsetY) })} /></label>
+            <label>横向偏移<input type="number" step="2" value={project.labelDefaults.offsetX} onChange={event => onLabelDefaults({ offsetX: numberValue(event.target.value, project.labelDefaults.offsetX) })} /></label>
+            <label>纵向偏移<input type="number" step="2" value={project.labelDefaults.offsetY} onChange={event => onLabelDefaults({ offsetY: numberValue(event.target.value, project.labelDefaults.offsetY) })} /></label>
           </div>
         </div>
       </details>
