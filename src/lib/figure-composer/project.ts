@@ -70,11 +70,27 @@ export function openFigureProjectDatabase() {
 export async function saveFigureProject(project: FigureProject, assets?: Iterable<RuntimeFigureAsset>) {
   const db = await openFigureProjectDatabase()
   try {
+    const activeAssets = assets ? [...assets] : null
+    let staleAssetIds: IDBValidKey[] = []
+
+    // Supplying assets means this save is authoritative for the project's current
+    // panel set. Keep runtime blobs in memory for undo, but remove IndexedDB rows
+    // that are no longer referenced by the saved project. Metadata-only saves
+    // (assets === undefined) intentionally leave existing blobs untouched.
+    if (activeAssets) {
+      const activeIds = new Set(activeAssets.map(asset => asset.id))
+      const read = db.transaction(ASSET_STORE, 'readonly')
+      const existingIds = await requestValue(read.objectStore(ASSET_STORE).index('projectId').getAllKeys(project.id))
+      await transactionDone(read)
+      staleAssetIds = existingIds.filter(id => typeof id !== 'string' || !activeIds.has(id))
+    }
+
     const transaction = db.transaction([PROJECT_STORE, ASSET_STORE], 'readwrite')
     transaction.objectStore(PROJECT_STORE).put({ ...project, updatedAt: new Date().toISOString() })
-    if (assets) {
+    if (activeAssets) {
       const assetStore = transaction.objectStore(ASSET_STORE)
-      for (const asset of assets) {
+      for (const id of staleAssetIds) assetStore.delete(id)
+      for (const asset of activeAssets) {
         const stored: StoredFigureAsset = {
           id: asset.id,
           projectId: project.id,
