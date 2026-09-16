@@ -13,6 +13,7 @@ const components = [
   'src/components/figure-composer/FigurePanelInspector.tsx',
   'src/components/figure-composer/FigureExportPanel.tsx',
   'src/components/figure-composer/FigurePreflightPanel.tsx',
+  'src/components/figure-composer/useFigureProjectHistory.ts',
 ]
 const libraries = [
   'src/lib/figure-composer/types.ts',
@@ -64,7 +65,9 @@ const snapping = read('src/lib/figure-composer/snapping.ts')
 assert(snapping.includes('guides') && snapping.includes('gap'), 'snapping must expose visible guides and uniform-gap candidates')
 
 const composer = read('src/components/figure-composer/FigureComposer.tsx')
-assert(composer.includes('useReducer'), 'Figure Composer must use reducer-owned project state')
+const history = read('src/components/figure-composer/useFigureProjectHistory.ts')
+assert(composer.includes('useFigureProjectHistory'), 'Figure Composer must delegate project history to the dedicated history owner')
+assert(history.includes('useReducer'), 'Figure Composer project history must keep project state reducer-owned')
 assert(composer.includes('Times New Roman'), 'default label font must be Times New Roman')
 assert(!composer.includes('drafts[0]'), 'generic Figure Composer must not bind the first manuscript implicitly')
 assert(composer.includes('selectAllPanels'), 'Figure Composer must expose select-all for multi-panel operations')
@@ -72,6 +75,7 @@ assert(composer.includes('fitCanvasToViewport'), 'Figure Composer must expose a 
 assert(composer.includes("layoutMode: 'grid'"), 'global layout changes must be able to return the canvas to grid reflow')
 assert(composer.includes('autoWrapProject(next)'), 'grid reflow must update auto-wrapped canvas bounds')
 assert(composer.includes('IndexedDB') && composer.includes('当前浏览器'), 'save semantics must explain local IndexedDB persistence')
+assert(history.includes('HISTORY_LIMIT') && history.includes('future'), 'Figure Composer history owner must keep bounded undo and redo stacks')
 
 const sidebar = read('src/components/figure-composer/FigureSidebar.tsx')
 const layersIndex = sidebar.indexOf('图片与图层')
@@ -82,7 +86,7 @@ assert(layersIndex < projectIndex, '图片与图层 must appear before project m
 assert(sidebar.includes('IndexedDB') && sidebar.includes('不会上传'), 'local draft library must state where files are stored and that they are not uploaded')
 
 const toolbar = read('src/components/figure-composer/FigureToolbar.tsx')
-for (const label of ['适配画布', '全选', '清空选择', '布局', '选择', '对齐']) assert(toolbar.includes(label), `Figure toolbar missing ${label}`)
+for (const label of ['适配画布', '全选', '清空选择', '布局', '选择', '对齐', '撤销编辑', '重做编辑']) assert(toolbar.includes(label), `Figure toolbar missing ${label}`)
 assert(toolbar.includes('draggable'), 'Figure toolbar groups must be reorderable like compact GIS tool palettes')
 assert(toolbar.includes('aria-expanded'), 'Figure toolbar groups must be collapsible/expandable')
 assert(toolbar.includes('figure-composer__grid-number'), 'grid row/column controls need compact numeric fields')
