@@ -67,6 +67,9 @@ jobs:
       - name: Review 8 - Figure Composer undo and redo history
         if: always()
         run: node tests/visual/figure-composer-undo-redo-check.mjs
+      - name: Review 9 - Figure Composer keyboard editing
+        if: always()
+        run: node tests/visual/figure-composer-keyboard-edit-check.mjs
       - name: Capture focused comparison pages
         if: always()
         run: |
