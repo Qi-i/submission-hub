@@ -1,7 +1,11 @@
-import { useCallback, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { applyGridLayout, autoWrapProject } from '../../lib/figure-composer/layout'
 import type { FigureProject } from '../../lib/figure-composer/types'
 
 const HISTORY_LIMIT = 50
+const DUPLICATE_OFFSET = 12
+const KEYBOARD_NUDGE = 1
+const KEYBOARD_NUDGE_FAST = 10
 
 type HistoryState = {
   past: FigureProject[]
@@ -117,6 +121,86 @@ export default function useFigureProjectHistory(initialProject: FigureProject) {
     replaceProject(restored)
     return true
   }, [publishHistory])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isFigureHistoryEditableTarget(event.target)) return
+
+      const current = projectRef.current
+      const key = event.key.toLowerCase()
+      const modified = event.ctrlKey || event.metaKey
+
+      if (modified && key === 'd' && current.selectedPanelIds.length) {
+        const selectedIds = new Set(current.selectedPanelIds)
+        const copies = current.panels
+          .filter(panel => selectedIds.has(panel.id))
+          .map(panel => ({
+            ...panel,
+            id: crypto.randomUUID(),
+            x: panel.x + DUPLICATE_OFFSET,
+            y: panel.y + DUPLICATE_OFFSET,
+          }))
+        if (copies.length) {
+          event.preventDefault()
+          apply({
+            ...current,
+            canvas: { ...current.canvas, layoutMode: 'manual' },
+            panels: [...current.panels, ...copies],
+            selectedPanelIds: copies.map(panel => panel.id),
+            selectedTextId: null,
+          })
+        }
+        return
+      }
+
+      if (!modified && !event.altKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) && current.selectedPanelIds.length) {
+        const step = event.shiftKey ? KEYBOARD_NUDGE_FAST : KEYBOARD_NUDGE
+        const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
+        const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
+        const selectedIds = new Set(current.selectedPanelIds)
+        event.preventDefault()
+        apply({
+          ...current,
+          canvas: { ...current.canvas, layoutMode: 'manual' },
+          panels: current.panels.map(panel => selectedIds.has(panel.id) ? { ...panel, x: panel.x + dx, y: panel.y + dy } : panel),
+        })
+        return
+      }
+
+      if (!modified && (event.key === 'Delete' || event.key === 'Backspace')) {
+        if (current.selectedPanelIds.length) {
+          event.preventDefault()
+          const selectedIds = new Set(current.selectedPanelIds)
+          let next: FigureProject = {
+            ...current,
+            panels: current.panels.filter(panel => !selectedIds.has(panel.id)),
+            selectedPanelIds: [],
+          }
+          if (next.canvas.layoutMode === 'grid') next = applyGridLayout(next)
+          if (next.canvas.autoWrap) next = autoWrapProject(next)
+          apply(next)
+          return
+        }
+        if (current.selectedTextId) {
+          event.preventDefault()
+          apply({
+            ...current,
+            texts: current.texts.filter(text => text.id !== current.selectedTextId),
+            selectedTextId: null,
+          })
+          return
+        }
+      }
+
+      if (!modified && event.key === 'Escape' && (current.selectedPanelIds.length || current.selectedTextId)) {
+        event.preventDefault()
+        apply({ ...current, selectedPanelIds: [], selectedTextId: null }, 'transient')
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [apply])
 
   return {
     project,
