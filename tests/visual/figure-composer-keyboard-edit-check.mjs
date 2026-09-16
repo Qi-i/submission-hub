@@ -76,13 +76,12 @@ try {
   const assetCount = Number(await storedAssetCount(page))
   if (assetCount !== 1) fail(`duplicating one panel copied its Blob instead of reusing the asset (${assetCount}, expected 1)`)
 
-  // Editable fields must retain native keyboard behavior instead of moving the canvas selection.
-  const xBeforeInputKey = Number(await inspector.getByRole('spinbutton', { name: 'X', exact: true }).inputValue())
-  const projectName = page.getByLabel('工程名称')
-  await projectName.focus()
+  // A visible editable field must retain native keyboard behavior instead of moving the canvas selection.
+  const xBeforeInputKey = Number(await xInput.inputValue())
+  await xInput.focus()
   await page.keyboard.press('ArrowRight')
   await page.waitForTimeout(80)
-  const xAfterInputKey = Number(await inspector.getByRole('spinbutton', { name: 'X', exact: true }).inputValue())
+  const xAfterInputKey = Number(await xInput.inputValue())
   if (Math.abs(xAfterInputKey - xBeforeInputKey) > 0.1) fail('global arrow-key nudge intercepted an editable input target')
   await page.locator('.figure-composer__canvas').click({ position: { x: 4, y: 4 } })
   if (await page.locator('.figure-composer__selection-count').innerText().then(text => text.includes('未选择'))) {
