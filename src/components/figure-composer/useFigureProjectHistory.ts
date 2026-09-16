@@ -21,6 +21,16 @@ function stamp(project: FigureProject): FigureProject {
   return { ...project, updatedAt: new Date().toISOString() }
 }
 
+function restoreSnapshot(snapshot: FigureProject, current: FigureProject): FigureProject {
+  const panelIds = new Set(snapshot.panels.map(panel => panel.id))
+  const textIds = new Set(snapshot.texts.map(text => text.id))
+  return stamp({
+    ...snapshot,
+    selectedPanelIds: current.selectedPanelIds.filter(id => panelIds.has(id)),
+    selectedTextId: current.selectedTextId && textIds.has(current.selectedTextId) ? current.selectedTextId : null,
+  })
+}
+
 export function isFigureHistoryEditableTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
   if (target.isContentEditable) return true
@@ -86,7 +96,7 @@ export default function useFigureProjectHistory(initialProject: FigureProject) {
       past: currentHistory.past.slice(0, -1),
       future: [...currentHistory.future.slice(-(HISTORY_LIMIT - 1)), current],
     })
-    const restored = stamp(previous)
+    const restored = restoreSnapshot(previous, current)
     projectRef.current = restored
     replaceProject(restored)
     return true
@@ -102,7 +112,7 @@ export default function useFigureProjectHistory(initialProject: FigureProject) {
       past: [...currentHistory.past.slice(-(HISTORY_LIMIT - 1)), current],
       future: currentHistory.future.slice(0, -1),
     })
-    const restored = stamp(nextProject)
+    const restored = restoreSnapshot(nextProject, current)
     projectRef.current = restored
     replaceProject(restored)
     return true
