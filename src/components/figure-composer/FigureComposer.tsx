@@ -1,5 +1,5 @@
 import { ArrowLeft, Download, FileCheck2, Plus, Save, Type, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import type { ManuscriptDraft } from '../../lib/preparation'
 import { alignPanels, distributePanels, resizePanel, translatePanels } from '../../lib/figure-composer/geometry'
 import { importFigureFiles, revokeFigureAssets } from '../../lib/figure-composer/image-import'
@@ -29,21 +29,13 @@ import FigurePanelInspector from './FigurePanelInspector'
 import FigurePreflightPanel from './FigurePreflightPanel'
 import FigureSidebar from './FigureSidebar'
 import FigureToolbar, { type FigureInteractionMode } from './FigureToolbar'
+import useFigureProjectHistory, { isFigureHistoryEditableTarget } from './useFigureProjectHistory'
 
 interface Props {
   drafts: ManuscriptDraft[]
   initialDraftId?: string | null
   onDraftFigureCountChange?: (draftId: string, count: number) => Promise<void> | void
   onBack?: () => void
-}
-
-type Action =
-  | { type: 'replace'; project: FigureProject }
-  | { type: 'patch'; patch: Partial<FigureProject> }
-
-function reducer(project: FigureProject, action: Action): FigureProject {
-  if (action.type === 'replace') return action.project
-  return { ...project, ...action.patch, updatedAt: new Date().toISOString() }
 }
 
 function panelFromAsset(asset: RuntimeFigureAsset, index: number, project: FigureProject): FigurePanel {
@@ -92,7 +84,18 @@ function readPaneWidths() {
 }
 
 export default function FigureComposer({ drafts, initialDraftId = null, onDraftFigureCountChange, onBack }: Props) {
-  const [project, dispatch] = useReducer(reducer, createEmptyFigureProject(initialDraftId))
+  const {
+    project,
+    replace,
+    replaceTransient,
+    resetProject,
+    beginGesture,
+    finishGesture,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useFigureProjectHistory(createEmptyFigureProject(initialDraftId))
   const [projects, setProjects] = useState<FigureProject[]>([])
   const [assets, setAssets] = useState<Map<string, RuntimeFigureAsset>>(new Map())
   const assetsRef = useRef(assets)
@@ -120,7 +123,37 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
 
   useEffect(() => { void refreshProjects() }, [refreshProjects])
 
-  const replace = (next: FigureProject) => dispatch({ type: 'replace', project: { ...next, updatedAt: new Date().toISOString() } })
+  const undoEdit = useCallback(() => {
+    const changed = undo()
+    if (changed) {
+      setGuides([])
+      setStatus('已撤销上一步组图编辑。')
+    }
+    return changed
+  }, [undo])
+
+  const redoEdit = useCallback(() => {
+    const changed = redo()
+    if (changed) {
+      setGuides([])
+      setStatus('已重做上一步组图编辑。')
+    }
+    return changed
+  }, [redo])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || isFigureHistoryEditableTarget(event.target)) return
+      const key = event.key.toLowerCase()
+      const wantsUndo = key === 'z' && !event.shiftKey
+      const wantsRedo = (key === 'z' && event.shiftKey) || key === 'y'
+      if (wantsUndo && undoEdit()) event.preventDefault()
+      else if (wantsRedo && redoEdit()) event.preventDefault()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [redoEdit, undoEdit])
+
   const preflight = useMemo(() => validateFigureProject(project), [project])
   const selectedPanel = useMemo(() => project.panels.find(panel => panel.id === project.selectedPanelIds.at(-1)) || null, [project.panels, project.selectedPanelIds])
   const selectedText = useMemo(() => project.texts.find(text => text.id === project.selectedTextId) || null, [project.texts, project.selectedTextId])
@@ -178,7 +211,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const newProject = () => {
     clearRuntimeAssets()
     const nextSequence = Math.max(0, ...projects.map(item => item.sequence)) + 1
-    replace(createEmptyFigureProject(null, nextSequence, project.role))
+    resetProject(createEmptyFigureProject(null, nextSequence, project.role))
     setGuides([])
     setInteractionMode('select')
     setStatus('已建立新的未命名组图；先导入图片，保存后可从“本地草稿库”重新打开。')
@@ -191,7 +224,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       if (!loaded) throw new Error('工程不存在或已被删除')
       clearRuntimeAssets()
       setAssets(loaded.assets)
-      replace(loaded.project)
+      resetProject(loaded.project)
       setInteractionMode('select')
       setStatus(`已从当前浏览器 IndexedDB 打开 ${loaded.project.name}。`)
     } catch (error) {
@@ -204,7 +237,9 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const saveProject = async () => {
     setBusy(true)
     try {
-      await saveFigureProject(project, assets.values())
+      const usedAssetIds = new Set(project.panels.map(panel => panel.assetId))
+      const activeAssets = [...assets.values()].filter(asset => usedAssetIds.has(asset.id))
+      await saveFigureProject(project, activeAssets)
       await refreshProjects()
       await syncDraftCount(project.draftId)
       setStatus(`已保存本地草稿“${project.name}”到当前浏览器 IndexedDB；编辑记录与图片 Blob 均未上传服务器。`)
@@ -223,7 +258,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     try {
       await deleteFigureProject(project.id)
       clearRuntimeAssets()
-      replace(createEmptyFigureProject(null))
+      resetProject(createEmptyFigureProject(null))
       await refreshProjects()
       await syncDraftCount(oldDraftId)
       setStatus('组图工程已从当前浏览器 IndexedDB 删除。')
@@ -234,7 +269,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     }
   }
 
-  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'publicationLabel' | 'title' | 'caption'>>) => replace({ ...project, ...patch })
+  const patchProjectIdentity = (patch: Partial<Pick<FigureProject, 'draftId' | 'role' | 'sequence' | 'name' | 'publicationLabel' | 'title' | 'caption'>>) => replaceTransient({ ...project, ...patch })
 
   const handleImport = async (files: FileList | File[]) => {
     setBusy(true)
@@ -274,31 +309,35 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       const [from, to] = start <= end ? [start, end] : [end, start]
       nextIds = Array.from(new Set([...ids, ...order.slice(from, to + 1)]))
     } else nextIds = [id]
-    replace({ ...project, selectedPanelIds: nextIds, selectedTextId: null })
+    replaceTransient({ ...project, selectedPanelIds: nextIds, selectedTextId: null })
   }
 
   const selectPanels = (ids: string[], mode: 'replace' | 'add') => {
     const valid = ids.filter(id => project.panels.some(panel => panel.id === id))
     const nextIds = mode === 'add' ? Array.from(new Set([...project.selectedPanelIds, ...valid])) : valid
-    replace({ ...project, selectedPanelIds: nextIds, selectedTextId: null })
+    replaceTransient({ ...project, selectedPanelIds: nextIds, selectedTextId: null })
   }
-  const selectAllPanels = () => replace({ ...project, selectedPanelIds: project.panels.map(panel => panel.id), selectedTextId: null })
-  const selectText = (id: string) => replace({ ...project, selectedPanelIds: [], selectedTextId: id })
-  const clearSelection = () => replace({ ...project, selectedPanelIds: [], selectedTextId: null })
+  const selectAllPanels = () => replaceTransient({ ...project, selectedPanelIds: project.panels.map(panel => panel.id), selectedTextId: null })
+  const selectText = (id: string) => replaceTransient({ ...project, selectedPanelIds: [], selectedTextId: id })
+  const clearSelection = () => replaceTransient({ ...project, selectedPanelIds: [], selectedTextId: null })
 
   const movePanel = (id: string, x: number, y: number) => {
     const active = project.panels.find(panel => panel.id === id)
     if (!active) return
+    beginGesture()
     const selectedIds = project.selectedPanelIds.includes(id) ? project.selectedPanelIds : [id]
     const proposed = { ...active, x, y }
     const snapped = snapPanel(proposed, project.panels, project.canvas, project.canvas.gap)
     const dx = snapped.x - active.x
     const dy = snapped.y - active.y
     setGuides(snapped.guides)
-    replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: translatePanels(project.panels, selectedIds, dx, dy) })
+    replaceTransient({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: translatePanels(project.panels, selectedIds, dx, dy) })
   }
 
-  const moveText = (id: string, x: number, y: number) => replace({ ...project, texts: project.texts.map(text => text.id === id ? { ...text, x, y } : text) })
+  const moveText = (id: string, x: number, y: number) => {
+    beginGesture()
+    replaceTransient({ ...project, texts: project.texts.map(text => text.id === id ? { ...text, x, y } : text) })
+  }
 
   const patchPanel = (id: string, patch: Partial<FigurePanel>, editedDimension?: 'width' | 'height' | 'both') => {
     const panels = project.panels.map(panel => panel.id === id ? resizePanel({ ...panel, ...patch }, { ...patch, editedDimension }) : panel)
@@ -324,11 +363,6 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const removePanel = (id: string) => {
     const panel = project.panels.find(item => item.id === id)
     if (!panel) return
-    const asset = assets.get(panel.assetId)
-    if (asset) revokeFigureAssets([asset])
-    const nextAssets = new Map(assets)
-    nextAssets.delete(panel.assetId)
-    setAssets(nextAssets)
     let next = { ...project, panels: project.panels.filter(item => item.id !== id), selectedPanelIds: project.selectedPanelIds.filter(item => item !== id) }
     if (project.canvas.layoutMode === 'grid') next = applyGridLayout(next)
     if (project.canvas.autoWrap) next = autoWrapProject(next)
@@ -338,18 +372,11 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const removeSelectedPanels = () => {
     if (!project.selectedPanelIds.length) return
     const selectedIds = new Set(project.selectedPanelIds)
-    const nextAssets = new Map(assets)
-    project.panels.filter(panel => selectedIds.has(panel.id)).forEach(panel => {
-      const asset = nextAssets.get(panel.assetId)
-      if (asset) revokeFigureAssets([asset])
-      nextAssets.delete(panel.assetId)
-    })
-    setAssets(nextAssets)
     let next: FigureProject = { ...project, panels: project.panels.filter(panel => !selectedIds.has(panel.id)), selectedPanelIds: [] }
     if (next.canvas.layoutMode === 'grid') next = applyGridLayout(next)
     if (next.canvas.autoWrap) next = autoWrapProject(next)
     replace(next)
-    setStatus(`已删除 ${selectedIds.size} 个选中子图。`)
+    setStatus(`已删除 ${selectedIds.size} 个选中子图；可使用撤销恢复。`)
   }
 
   const align = (mode: AlignMode) => replace({ ...project, canvas: { ...project.canvas, layoutMode: 'manual' }, panels: alignPanels(project.panels, project.selectedPanelIds, mode) })
@@ -468,9 +495,13 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
         gridRows={project.canvas.gridRows}
         gridColumns={project.canvas.gridColumns}
         interactionMode={interactionMode}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onInteractionMode={changeInteractionMode}
         onZoom={setZoomLevel}
         onFitView={fitCanvasToViewport}
+        onUndo={undoEdit}
+        onRedo={redoEdit}
         onSelectAll={selectAllPanels}
         onClearSelection={clearSelection}
         onDeleteSelected={removeSelectedPanels}
@@ -524,7 +555,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
           onClearSelection={clearSelection}
           onMovePanel={movePanel}
           onMoveText={moveText}
-          onFinishMove={() => setGuides([])}
+          onFinishMove={() => { finishGesture(); setGuides([]) }}
         />
         <footer className="figure-composer__status" aria-live="polite"><span>{status}</span><b>{Math.round(project.canvas.width)}×{Math.round(project.canvas.height)} logical px · {project.panels.length} 子图</b></footer>
       </main>
