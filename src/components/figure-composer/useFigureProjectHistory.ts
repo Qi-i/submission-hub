@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useReducer, useRef, useState } from 'react'
 import type { FigureProject } from '../../lib/figure-composer/types'
 
 const HISTORY_LIMIT = 50
@@ -28,7 +28,7 @@ export function isFigureHistoryEditableTarget(target: EventTarget | null) {
 }
 
 export default function useFigureProjectHistory(initialProject: FigureProject) {
-  const [project, setProject] = useState(initialProject)
+  const [project, replaceProject] = useReducer((_current: FigureProject, next: FigureProject) => next, initialProject)
   const projectRef = useRef(project)
   const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY)
   const historyRef = useRef<HistoryState>(EMPTY_HISTORY)
@@ -54,7 +54,7 @@ export default function useFigureProjectHistory(initialProject: FigureProject) {
 
     const next = stamp(nextProject)
     projectRef.current = next
-    setProject(next)
+    replaceProject(next)
   }, [publishHistory, pushPast])
 
   const replace = useCallback((next: FigureProject) => apply(next, 'history'), [apply])
@@ -88,7 +88,7 @@ export default function useFigureProjectHistory(initialProject: FigureProject) {
     })
     const restored = stamp(previous)
     projectRef.current = restored
-    setProject(restored)
+    replaceProject(restored)
     return true
   }, [publishHistory])
 
@@ -104,7 +104,7 @@ export default function useFigureProjectHistory(initialProject: FigureProject) {
     })
     const restored = stamp(nextProject)
     projectRef.current = restored
-    setProject(restored)
+    replaceProject(restored)
     return true
   }, [publishHistory])
 
