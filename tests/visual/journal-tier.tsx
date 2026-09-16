@@ -16,27 +16,39 @@ const base: JournalProfile = {
 
 const cases = [
   {
-    key: 'intl-q1-ei', expected: 'Q1', expectedPublisher: 'Wiley',
+    key: 'intl-q1-ei', expected: 'Q1', expectedPublisher: 'Wiley', expectedPrimaryRank: 'JCR 分区',
     journal: { ...base, id: 'intl-q1-ei', name: 'International Engineering Methods', publisher: 'John Wiley & Sons, Ltd. (Wiley)', indexing: ['EI'], jcr_quartile: 'Q1', rank_data: { eii: '是', sci: 'Q1' } },
   },
   {
-    key: 'intl-q2-mdpi', expected: 'Q2', expectedPublisher: 'MDPI',
+    key: 'intl-q2-mdpi', expected: 'Q2', expectedPublisher: 'MDPI', expectedPrimaryRank: 'JCR 分区',
     journal: { ...base, id: 'intl-q2-mdpi', name: 'Open Methods and Data', publisher: 'MDPI AG (Multidisciplinary Digital Publishing Institute)', indexing: ['SCIE'], jcr_quartile: 'Q2', rank_data: { sci: 'Q2' } },
   },
   {
-    key: 'cn-ei-pku', expected: 'EI', expectedPublisher: '',
+    key: 'intl-q1-cscd', expected: 'Q1', expectedPublisher: 'Elsevier', expectedPrimaryRank: 'JCR 分区',
+    journal: { ...base, id: 'intl-q1-cscd', name: 'International Geoscience Review', publisher: 'Elsevier B.V.', indexing: ['SCIE', 'CSCD', '北大核心'], jcr_quartile: 'Q1', rank_data: { sci: 'Q1', cscd: '是', pku: '是' } },
+  },
+  {
+    key: 'intl-cscd-no-jcr', expected: '未分区', expectedPublisher: 'Elsevier', expectedPrimaryRank: '',
+    journal: { ...base, id: 'intl-cscd-no-jcr', name: 'English Geoscience Letters', publisher: 'Elsevier B.V.', indexing: ['SCIE', 'CSCD'], rank_data: { cscd: '是' } },
+  },
+  {
+    key: 'cn-jcr-cscd', expected: 'Q2', expectedPublisher: '', expectedPrimaryRank: 'JCR 分区',
+    journal: { ...base, id: 'cn-jcr-cscd', name: '地球科学进展', publisher: '科学出版社（北京）', indexing: ['SCIE', 'CSCD'], jcr_quartile: 'Q2', rank_data: { sci: 'Q2', cscd: '是' } },
+  },
+  {
+    key: 'cn-ei-pku', expected: 'EI', expectedPublisher: '', expectedPrimaryRank: 'EI',
     journal: { ...base, id: 'cn-ei-pku', name: '工程方法学报', publisher: '科学出版社（北京）', indexing: ['EI', '北大核心', 'CSCD'], rank_data: { eii: '是', pku: '是', cscd: '是' } },
   },
   {
-    key: 'cn-pku', expected: '北核', expectedPublisher: '',
+    key: 'cn-pku', expected: '北核', expectedPublisher: '', expectedPrimaryRank: '北大核心',
     journal: { ...base, id: 'cn-pku', name: '城市科学学报', publisher: '中国科学出版传媒股份有限公司', indexing: ['北大核心', 'CSCD'], rank_data: { pku: '是', cscd: '是' } },
   },
   {
-    key: 'cn-core', expected: '核心', expectedPublisher: '',
+    key: 'cn-core', expected: '核心', expectedPublisher: '', expectedPrimaryRank: 'CSCD',
     journal: { ...base, id: 'cn-core', name: '区域研究学报', publisher: '区域研究杂志社', indexing: ['CSCD'], rank_data: { cscd: '是' } },
   },
   {
-    key: 'cn-ordinary', expected: '普通', expectedPublisher: '',
+    key: 'cn-ordinary', expected: '普通', expectedPublisher: '', expectedPrimaryRank: '',
     journal: { ...base, id: 'cn-ordinary', name: '应用研究通讯', publisher: '应用研究编辑部', indexing: [] },
   },
 ]
@@ -50,6 +62,7 @@ function App() {
       card.dataset.tierCase = item.key
       card.dataset.expected = item.expected
       card.dataset.publisherExpected = item.expectedPublisher
+      card.dataset.primaryRankExpected = item.expectedPrimaryRank
     })
     document.documentElement.dataset.visualReady = 'true'
   }, [])

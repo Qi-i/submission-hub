@@ -1,5 +1,5 @@
 import type { JournalProfile } from './preparation'
-import { journalSurfaceClassification, type RankedJournalProfile } from './journal-display'
+import { isChineseJournalIdentity, type RankedJournalProfile } from './journal-display'
 
 export type PublisherIdentity = {
   name: string
@@ -51,7 +51,8 @@ export function publisherIdentity(value?: string | null): PublisherIdentity | nu
 
 export function journalPublisherIdentity(journal?: JournalProfile | null): PublisherIdentity | null {
   if (!journal) return null
-  const tier = journalSurfaceClassification(journal as RankedJournalProfile).tier
-  if (tier.startsWith('cn-')) return null
+  // Chinese journal cards intentionally omit publisher metadata even when the journal
+  // also has a JCR quartile; publisher visibility follows journal identity, not rank surface.
+  if (isChineseJournalIdentity(journal as RankedJournalProfile)) return null
   return publisherIdentity(journal.publisher)
 }

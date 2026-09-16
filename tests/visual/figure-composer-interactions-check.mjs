@@ -25,6 +25,7 @@ try {
       sessionStorage.setItem(resetKey, '1')
     }
     localStorage.removeItem('submission-hub.figure-composer.toolbar')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v2')
   })
   await openComposer(page)
 
@@ -97,9 +98,9 @@ try {
   if (await alignCluster.getByTitle('左对齐').isDisabled()) fail('alignment controls remain disabled after multi-select')
 
   const labels = page.locator('.figure-composer__global-labels')
-  const globalLabelStyle = labels.locator('label', { hasText: '标签样式' }).locator('select').first()
+  const globalLabelStyle = labels.getByLabel('标签样式', { exact: true })
   await globalLabelStyle.selectOption('A')
-  await labels.getByRole('button', { name: '标签应用到全部' }).click()
+  await labels.getByRole('button', { name: '标签应用到全部', exact: true }).click()
   await layers.nth(0).click()
   const panelLabelStyle = await inspector.locator('label', { hasText: /^标签/ }).locator('select').first().inputValue()
   if (panelLabelStyle !== 'A') fail(`global label style did not propagate to panels (${panelLabelStyle})`)
