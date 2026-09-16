@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, CheckSquare2, ChevronDown, ChevronRight, Eraser, GripVertical, Grid3X3, Hand, Maximize2, Move, MousePointer2, Scan, SquareStack, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, CheckSquare2, ChevronDown, ChevronRight, Eraser, GripVertical, Grid3X3, Hand, Maximize2, Move, MousePointer2, Redo2, Scan, SquareStack, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { AlignMode, DistributionAxis, FigureLayoutPreset } from '../../lib/figure-composer/types'
 import './FigureComposerCoherence.css'
 
@@ -13,9 +13,13 @@ interface Props {
   gridRows: number
   gridColumns: number
   interactionMode: FigureInteractionMode
+  canUndo: boolean
+  canRedo: boolean
   onInteractionMode: (mode: FigureInteractionMode) => void
   onZoom: (value: number) => void
   onFitView: () => void
+  onUndo: () => void
+  onRedo: () => void
   onSelectAll: () => void
   onClearSelection: () => void
   onDeleteSelected: () => void
@@ -76,7 +80,7 @@ function Cluster({ clusterKey, label, collapsed, onToggle, onDragStart, onDrop, 
   </section>
 }
 
-export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutPreset, gridRows, gridColumns, interactionMode, onInteractionMode, onZoom, onFitView, onSelectAll, onClearSelection, onDeleteSelected, onAlign, onDistribute, onLayoutPreset, onGridSize, onAutoWrap, onScaleSelected }: Props) {
+export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutPreset, gridRows, gridColumns, interactionMode, canUndo, canRedo, onInteractionMode, onZoom, onFitView, onUndo, onRedo, onSelectAll, onClearSelection, onDeleteSelected, onAlign, onDistribute, onLayoutPreset, onGridSize, onAutoWrap, onScaleSelected }: Props) {
   const initial = useMemo(readToolbarState, [])
   const [order, setOrder] = useState<ClusterKey[]>(initial.order)
   const [collapsed, setCollapsed] = useState<Record<ClusterKey, boolean>>(initial.collapsed)
@@ -148,6 +152,8 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
       <button type="button" title="放大视图" aria-label="放大视图" onClick={() => onZoom(Math.min(4, zoom + 0.25))}><ZoomIn size={14} /></button>
     </>,
     edit: <>
+      <button type="button" disabled={!canUndo} title="撤销编辑" aria-label="撤销编辑" onClick={onUndo}><Undo2 size={13} /></button>
+      <button type="button" disabled={!canRedo} title="重做编辑" aria-label="重做编辑" onClick={onRedo}><Redo2 size={13} /></button>
       <button type="button" disabled={!selectedCount} title="缩小选中对象" onClick={() => onScaleSelected(.92)}>− 对象</button>
       <button type="button" disabled={!selectedCount} title="放大选中对象" onClick={() => onScaleSelected(1.08)}>+ 对象</button>
       <button type="button" disabled={!selectedCount} title="删除选中" onClick={onDeleteSelected}><Trash2 size={13} /> 删除</button>
