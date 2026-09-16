@@ -14,10 +14,25 @@ async function openComposer(page) {
   await page.locator('.figure-composer').waitFor({ state: 'visible', timeout: 10000 })
 }
 
+async function storedAssetCount(page) {
+  return page.evaluate(() => new Promise((resolve, reject) => {
+    const request = indexedDB.open('submission-hub-figure-composer')
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => {
+      const db = request.result
+      const transaction = db.transaction('assets', 'readonly')
+      const count = transaction.objectStore('assets').count()
+      count.onsuccess = () => { resolve(count.result); db.close() }
+      count.onerror = () => { reject(count.error); db.close() }
+    }
+  }))
+}
+
 try {
   const page = await browser.newPage({ viewport: { width: 1680, height: 1050 } })
   await page.addInitScript(() => {
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v2')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v3')
     localStorage.removeItem('submission-hub.figure-composer.panes')
   })
   await openComposer(page)
@@ -67,12 +82,23 @@ try {
   const redoneX = Number(await inspector.getByRole('spinbutton', { name: 'X', exact: true }).inputValue())
   if (Math.abs(redoneX - movedX) > 1) fail(`Ctrl+Shift+Z did not redo panel geometry (${undoneX} -> ${redoneX}, expected ${movedX})`)
 
+  const save = page.getByRole('button', { name: /保存本地草稿/ }).first()
+  await save.click()
+  await page.locator('.figure-composer__status').filter({ hasText: 'IndexedDB' }).waitFor({ state: 'visible', timeout: 10000 })
+  if (Number(await storedAssetCount(page)) !== 2) fail('initial save did not persist both active panel assets')
+
+  await layers.nth(0).click()
   await page.getByTitle('删除选中', { exact: true }).click()
   await page.waitForTimeout(100)
   if (await page.locator('.figure-composer__layer').count() !== 1) fail('delete selected did not remove one panel')
+  await save.click()
+  await page.waitForTimeout(150)
+  const prunedAssetCount = Number(await storedAssetCount(page))
+  if (prunedAssetCount !== 1) fail(`saving after deletion retained stale IndexedDB assets (${prunedAssetCount}, expected 1)`)
+
   await undo.click()
   await page.waitForTimeout(100)
-  if (await page.locator('.figure-composer__layer').count() !== 2) fail('undo did not restore a deleted panel and its asset')
+  if (await page.locator('.figure-composer__layer').count() !== 2) fail('undo did not restore a deleted panel and its runtime asset')
 
   const projectName = page.getByLabel('工程名称')
   await projectName.focus()
@@ -82,7 +108,7 @@ try {
   const layerCountAfterNativeUndo = await page.locator('.figure-composer__layer').count()
   if (layerCountAfterNativeUndo !== layerCountBeforeNativeUndo) fail('global undo intercepted Ctrl+Z while an input was focused')
 
-  console.log(JSON.stringify({ failures, originalX, movedX, undoneX, redoneX, layerCountBeforeNativeUndo, layerCountAfterNativeUndo }, null, 2))
+  console.log(JSON.stringify({ failures, originalX, movedX, undoneX, redoneX, prunedAssetCount, layerCountBeforeNativeUndo, layerCountAfterNativeUndo }, null, 2))
   await page.close()
 } finally {
   await browser.close()
