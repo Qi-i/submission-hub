@@ -76,22 +76,7 @@ try {
   const assetCount = Number(await storedAssetCount(page))
   if (assetCount !== 1) fail(`duplicating one panel copied its Blob instead of reusing the asset (${assetCount}, expected 1)`)
 
-  await page.keyboard.press('Delete')
-  await page.waitForTimeout(100)
-  const afterDelete = await page.locator('.figure-composer__layer').count()
-  if (afterDelete !== 1) fail(`Delete did not remove the selected duplicated panel (${afterDelete}, expected 1)`)
-
-  await page.keyboard.press('Control+z')
-  await page.waitForTimeout(100)
-  const afterUndo = await page.locator('.figure-composer__layer').count()
-  if (afterUndo !== 2) fail(`Ctrl+Z did not restore the keyboard-deleted panel (${afterUndo}, expected 2)`)
-
-  await page.keyboard.press('Escape')
-  await page.waitForTimeout(80)
-  const selectionText = await page.locator('.figure-composer__selection-count').innerText()
-  if (!selectionText.includes('未选择')) fail(`Escape did not clear panel selection (${selectionText})`)
-
-  await page.locator('.figure-composer__layer-main').first().click()
+  // Editable fields must retain native keyboard behavior instead of moving the canvas selection.
   const xBeforeInputKey = Number(await inspector.getByRole('spinbutton', { name: 'X', exact: true }).inputValue())
   const projectName = page.getByLabel('工程名称')
   await projectName.focus()
@@ -99,8 +84,32 @@ try {
   await page.waitForTimeout(80)
   const xAfterInputKey = Number(await inspector.getByRole('spinbutton', { name: 'X', exact: true }).inputValue())
   if (Math.abs(xAfterInputKey - xBeforeInputKey) > 0.1) fail('global arrow-key nudge intercepted an editable input target')
+  await page.locator('.figure-composer__canvas').click({ position: { x: 4, y: 4 } })
+  if (await page.locator('.figure-composer__selection-count').innerText().then(text => text.includes('未选择'))) {
+    await page.locator('.figure-composer__layer-main').last().click()
+  }
 
-  console.log(JSON.stringify({ failures, originalX, originalY, nudgedX, nudgedY, duplicatedCount, assetCount, afterDelete, afterUndo, selectionText, xBeforeInputKey, xAfterInputKey }, null, 2))
+  const beforeDelete = await page.locator('.figure-composer__layer').count()
+  await page.keyboard.press('Delete')
+  await page.waitForTimeout(100)
+  const afterDelete = await page.locator('.figure-composer__layer').count()
+  const expectedAfterDelete = Math.max(0, beforeDelete - 1)
+  if (afterDelete !== expectedAfterDelete) fail(`Delete did not remove the selected panel (${beforeDelete} -> ${afterDelete}, expected ${expectedAfterDelete})`)
+
+  await page.keyboard.press('Control+z')
+  await page.waitForTimeout(100)
+  const afterUndo = await page.locator('.figure-composer__layer').count()
+  if (afterUndo !== beforeDelete) fail(`Ctrl+Z did not restore the keyboard-deleted panel (${afterDelete} -> ${afterUndo}, expected ${beforeDelete})`)
+
+  if (afterUndo > 0 && (await page.locator('.figure-composer__selection-count').innerText()).includes('未选择')) {
+    await page.locator('.figure-composer__layer-main').last().click()
+  }
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(80)
+  const selectionText = await page.locator('.figure-composer__selection-count').innerText()
+  if (!selectionText.includes('未选择')) fail(`Escape did not clear panel selection (${selectionText})`)
+
+  console.log(JSON.stringify({ failures, originalX, originalY, nudgedX, nudgedY, duplicatedCount, assetCount, xBeforeInputKey, xAfterInputKey, beforeDelete, afterDelete, afterUndo, selectionText }, null, 2))
   await page.close()
 } finally {
   await browser.close()
