@@ -10,13 +10,13 @@
 
 .figure-composer__header {
   flex: 0 0 auto !important;
-  min-height: 72px !important;
-  max-height: 88px !important;
-  padding: 5px 8px !important;
+  min-height: 80px !important;
+  max-height: 118px !important;
+  padding: 7px 10px !important;
   display: grid !important;
-  grid-template-columns: minmax(185px, 235px) minmax(0, 1fr) auto !important;
+  grid-template-columns: minmax(200px, 250px) minmax(0, 1fr) auto !important;
   align-items: center !important;
-  gap: 7px !important;
+  gap: 8px !important;
 }
 
 .figure-composer__header-main {
@@ -26,23 +26,24 @@
 
 .figure-composer__header-main .figure-composer__icon-button {
   flex: 0 0 auto;
-  min-height: 27px !important;
-  height: 27px !important;
-  padding: 0 7px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0 8px !important;
 }
 
 .figure-composer__identity { min-width: 0; }
+.figure-composer__identity small { font-size: 10.5px !important; letter-spacing: .06em !important; }
 .figure-composer__identity h2 {
   margin-top: 1px !important;
-  font-size: 15px !important;
+  font-size: 17px !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .figure-composer__identity p {
   margin-top: 1px !important;
-  max-width: 220px;
-  font-size: 9px !important;
+  max-width: 250px;
+  font-size: 11px !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -53,18 +54,18 @@
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
-  gap: 4px !important;
+  gap: 5px !important;
   white-space: nowrap;
 }
 .figure-composer__header-actions > button,
 .figure-composer__header-actions > .figure-composer__preflight-chip {
-  min-height: 27px !important;
-  height: 27px !important;
+  min-height: 32px !important;
+  height: 32px !important;
   box-sizing: border-box !important;
 }
-.figure-composer__header-actions > button { padding: 0 7px !important; }
+.figure-composer__header-actions > button { padding: 0 8px !important; }
 .figure-composer__preflight-chip {
-  padding: 0 7px !important;
+  padding: 0 8px !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 4px !important;
@@ -136,14 +137,14 @@
 /* Ribbon: each group has a small title row and one aligned control row. */
 .figure-composer__header > .figure-composer__toolbar {
   min-width: 0 !important;
-  min-height: 46px !important;
-  max-height: 76px !important;
-  padding: 1px !important;
+  min-height: 52px !important;
+  max-height: 108px !important;
+  padding: 1px 0 !important;
   display: flex !important;
   flex-wrap: wrap !important;
   align-content: center !important;
   align-items: center !important;
-  gap: 3px !important;
+  gap: 4px !important;
   overflow: hidden !important;
   border: 0 !important;
   background: transparent !important;
@@ -152,25 +153,25 @@
 
 .figure-composer__tool-cluster {
   flex: 0 0 auto;
-  min-height: 42px;
-  max-height: 46px;
+  min-height: 50px;
+  max-height: 54px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   border: 1px solid color-mix(in srgb, var(--prep-border-strong) 78%, transparent);
-  border-radius: 7px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--prep-surface) 97%, transparent);
   overflow: hidden;
 }
 .figure-composer__tool-cluster[draggable='true'] { cursor: default; }
 .figure-composer__tool-cluster-head {
-  height: 14px;
-  min-height: 14px;
-  padding: 0 2px 0 4px;
+  height: 17px;
+  min-height: 17px;
+  padding: 0 3px 0 5px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 5px;
   color: var(--prep-text-muted);
   border-bottom: 1px solid color-mix(in srgb, var(--prep-border) 78%, transparent);
   background: color-mix(in srgb, var(--prep-surface-soft) 82%, transparent);
@@ -180,19 +181,19 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   cursor: grab;
 }
 .figure-composer__tool-cluster-head strong {
-  font-size: 8px;
-  line-height: 1;
+  font-size: 10px;
+  line-height: 1.1;
   font-weight: 760;
   white-space: nowrap;
 }
 .figure-composer__tool-cluster.is-collapsed {
-  width: 45px;
-  height: 42px;
-  min-height: 42px;
+  width: 54px;
+  height: 50px;
+  min-height: 50px;
 }
 .figure-composer__tool-cluster.is-collapsed .figure-composer__tool-cluster-head {
   height: 100%;
@@ -200,31 +201,31 @@
   border-bottom: 0;
 }
 .figure-composer__tool-collapse {
-  width: 14px !important;
-  min-width: 14px !important;
-  height: 14px !important;
-  min-height: 14px !important;
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
 }
 .figure-composer__tool-cluster-body {
-  min-height: 27px;
+  min-height: 32px;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 2px;
-  padding: 1px 3px 2px;
+  gap: 3px;
+  padding: 1px 4px 2px;
 }
 .figure-composer__tool-cluster-body > button,
 .figure-composer__tool-cluster-body > select {
-  min-height: 25px !important;
-  height: 25px !important;
-  border-radius: 5px !important;
-  font-size: 9.5px !important;
+  min-height: 30px !important;
+  height: 30px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
 }
-.figure-composer__tool-cluster-body > button { padding: 0 5px !important; gap: 3px !important; }
+.figure-composer__tool-cluster-body > button { padding: 0 6px !important; gap: 4px !important; }
 .figure-composer__tool-cluster-body > button.is-active {
   border-color: color-mix(in srgb, var(--prep-blue) 48%, var(--prep-border-strong)) !important;
   color: color-mix(in srgb, var(--prep-blue) 86%, var(--prep-text)) !important;
@@ -232,54 +233,54 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--prep-blue) 12%, transparent) !important;
 }
 .figure-composer__tool-cluster-body > select {
-  width: 88px !important;
-  padding: 0 20px 0 5px !important;
+  width: 104px !important;
+  padding: 0 22px 0 7px !important;
 }
 .figure-composer__compact-field {
-  min-height: 25px;
+  min-height: 30px;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 2px !important;
+  gap: 3px !important;
   margin: 0 !important;
-  font-size: 8.5px !important;
+  font-size: 10.5px !important;
   white-space: nowrap;
 }
 .figure-composer__grid-number {
-  width: 32px !important;
-  min-width: 32px !important;
-  max-width: 32px !important;
-  height: 25px !important;
-  min-height: 25px !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 30px !important;
+  min-height: 30px !important;
   padding: 0 2px !important;
   text-align: center !important;
   box-sizing: border-box !important;
 }
 .figure-composer__selection-count,
 .figure-composer__zoom-value {
-  min-height: 25px;
+  min-height: 30px;
   display: inline-flex;
   align-items: center;
   gap: 2px;
   padding: 0 3px;
   color: var(--prep-text-muted);
-  font-size: 8.5px;
+  font-size: 10.5px;
   white-space: nowrap;
 }
 
 /* Rails: dense defaults, then reveal uncommon controls through native details. */
 .figure-composer__section {
-  padding: 5px 7px !important;
+  padding: 6px 8px !important;
   border-bottom: 1px solid color-mix(in srgb, var(--prep-border) 84%, transparent) !important;
 }
 .figure-composer__section-title {
-  min-height: 18px;
-  margin-bottom: 3px !important;
+  min-height: 22px;
+  margin-bottom: 4px !important;
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.figure-composer__section-title svg { width: 12px; height: 12px; }
-.figure-composer__section-title > strong { font-size: 10px; }
+.figure-composer__section-title svg { width: 13px; height: 13px; }
+.figure-composer__section-title > strong { font-size: 11.5px; }
 .figure-composer__section-title > span {
   margin-left: auto;
   min-width: 0;
@@ -288,10 +289,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--prep-text-muted);
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 600;
 }
 .figure-composer__section-hint { display: none !important; }
+.figure-composer__project-list small,
+.figure-composer__layer-main small,
+.figure-composer__privacy-note,
+.figure-composer__source-meta span { font-size: 10px !important; }
+.figure-composer__layer-main span,
+.figure-composer__source-meta strong,
+.figure-composer__empty { font-size: 11px !important; }
 .figure-composer__local-save-note {
   display: block !important;
   margin: 0 !important;
@@ -299,8 +307,8 @@
   border: 0 !important;
   background: transparent !important;
   color: var(--prep-text-muted) !important;
-  font-size: 8px !important;
-  line-height: 1 !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
   white-space: nowrap;
 }
 
@@ -310,13 +318,13 @@
 .figure-composer__right .figure-composer__apply-all,
 .figure-composer__mini-action,
 .figure-composer__export-actions > button {
-  min-height: 27px !important;
-  height: 27px !important;
+  min-height: 31px !important;
+  height: 31px !important;
 }
 .figure-composer__left :is(input, select),
 .figure-composer__right :is(input, select) {
-  min-height: 27px !important;
-  height: 27px !important;
+  min-height: 31px !important;
+  height: 31px !important;
 }
 .figure-composer__left textarea,
 .figure-composer__right textarea { min-height: 44px !important; }
@@ -325,7 +333,7 @@
 .figure-composer__details-body > label,
 .figure-composer__export-preset {
   gap: 2px !important;
-  font-size: 8.5px !important;
+  font-size: 10.5px !important;
 }
 
 .figure-composer__import-row {
@@ -364,16 +372,16 @@
   background: color-mix(in srgb, var(--prep-surface) 92%, transparent) !important;
 }
 .figure-composer__compact-details > summary {
-  min-height: 22px !important;
-  height: 22px !important;
-  padding: 0 5px !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 6px !important;
   display: flex !important;
   align-items: center !important;
   gap: 4px !important;
   list-style: none !important;
   cursor: pointer;
   color: var(--prep-text-muted);
-  font-size: 8.5px !important;
+  font-size: 10.5px !important;
   font-weight: 700;
 }
 .figure-composer__compact-details > summary::-webkit-details-marker { display: none; }
@@ -394,7 +402,7 @@
 }
 .figure-composer__compact-details > summary > span + * { margin-left: 0; }
 .figure-composer__details-body {
-  padding: 4px 5px 5px;
+  padding: 5px 6px 6px;
   display: grid;
   gap: 4px;
   border-top: 1px solid color-mix(in srgb, var(--prep-border) 78%, transparent);
@@ -413,7 +421,7 @@
   display: inline-flex !important;
   align-items: center !important;
   gap: 3px !important;
-  font-size: 8px !important;
+  font-size: 10px !important;
   color: var(--prep-text-muted);
 }
 .figure-composer__title-color input[type='color'] {
@@ -429,7 +437,7 @@
 }
 .figure-composer__rail-inline-field {
   min-width: 0;
-  min-height: 27px;
+  min-height: 31px;
   display: grid !important;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
@@ -452,7 +460,7 @@
   position: absolute;
   right: 5px;
   color: var(--prep-text-muted);
-  font-size: 8px;
+  font-size: 9.5px;
   font-style: normal;
   pointer-events: none;
 }
@@ -460,11 +468,11 @@
 .figure-composer__mini-action {
   margin-left: auto;
   padding: 0 6px !important;
-  font-size: 8.5px !important;
+  font-size: 10.5px !important;
 }
 .figure-composer__section-title > .figure-composer__mini-action {
-  min-height: 20px !important;
-  height: 20px !important;
+  min-height: 24px !important;
+  height: 24px !important;
 }
 .figure-composer__label-core {
   display: grid;
@@ -479,9 +487,9 @@
 .figure-composer__geometry-grid { margin-bottom: 2px; }
 .figure-composer__geometry-grid label {
   min-width: 0;
-  min-height: 27px;
+  min-height: 31px;
   display: grid !important;
-  grid-template-columns: 10px minmax(0, 1fr);
+  grid-template-columns: 12px minmax(0, 1fr);
   align-items: center;
   gap: 2px !important;
 }
@@ -498,45 +506,45 @@
 .figure-composer__empty-inline { margin: 2px 0 !important; min-height: 20px !important; }
 
 .figure-composer__preflight-list {
-  max-height: 78px;
+  max-height: 104px;
   overflow-y: auto;
   display: grid;
   gap: 2px;
 }
 .figure-composer__issue {
-  min-height: 24px !important;
-  height: 24px !important;
-  padding: 0 4px !important;
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 5px !important;
   display: grid !important;
   grid-template-columns: 13px max-content minmax(0, 1fr) !important;
   align-items: center !important;
   gap: 4px !important;
   border-radius: 5px !important;
 }
-.figure-composer__issue > strong { font-size: 8.5px !important; line-height: 1 !important; }
+.figure-composer__issue > strong { font-size: 10.5px !important; line-height: 1.15 !important; }
 .figure-composer__issue > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 8.5px !important;
-  line-height: 1 !important;
+  font-size: 10.5px !important;
+  line-height: 1.15 !important;
 }
 .figure-composer__preflight-ok {
-  min-height: 24px !important;
-  height: 24px !important;
-  padding: 0 5px !important;
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 6px !important;
   display: flex !important;
   align-items: center !important;
   gap: 4px !important;
-  font-size: 8.5px !important;
+  font-size: 10.5px !important;
 }
 
 .figure-composer__export-preset {
   margin-bottom: 3px !important;
-  min-height: 27px;
+  min-height: 31px;
   display: grid !important;
-  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
   align-items: center;
 }
 .figure-composer__export-preset > span { color: var(--prep-text-muted); }
@@ -546,7 +554,7 @@
   row-gap: 3px !important;
 }
 .figure-composer__export-grid label {
-  min-height: 27px;
+  min-height: 31px;
   display: grid !important;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
@@ -555,7 +563,7 @@
 }
 .figure-composer__export-grid label > :is(input, select) { min-width: 0; width: 100%; }
 .figure-composer__export-actions {
-  min-height: 27px;
+  min-height: 31px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -569,7 +577,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--prep-text-muted);
-  font-size: 8.5px;
+  font-size: 10.5px;
 }
 .figure-composer__export-actions > button {
   flex: 0 0 auto;
@@ -583,20 +591,20 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  min-height: 24px;
-  height: 24px;
-  padding: 0 7px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   gap: 5px;
   background: color-mix(in srgb, var(--prep-surface-elevated) 97%, transparent);
   border-bottom: 1px solid var(--prep-border);
 }
-.figure-composer__rail-heading strong { font-size: 9.5px; }
+.figure-composer__rail-heading strong { font-size: 11px; }
 .figure-composer__rail-heading span { display: none !important; }
 
 @media (max-width: 1500px) {
-  .figure-composer__header { grid-template-columns: minmax(150px, 195px) minmax(0, 1fr) auto !important; }
+  .figure-composer__header { grid-template-columns: minmax(165px, 210px) minmax(0, 1fr) auto !important; }
   .figure-composer__identity p { display: none !important; }
   .figure-composer__header-actions > button span { display: none; }
   .figure-composer__tool-cluster-body > button { padding-inline: 4px !important; }

@@ -21,6 +21,7 @@ try {
     localStorage.removeItem('submission-hub.figure-composer.toolbar')
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v2')
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v3')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v4')
     localStorage.removeItem('submission-hub.figure-composer.panes')
   })
   await openComposer(page)
@@ -31,7 +32,7 @@ try {
 
   const headerBox = await page.locator('.figure-composer__header').boundingBox()
   if (!headerBox) throw new Error('Figure Composer header is not measurable')
-  if (headerBox.height > 96) fail(`workbench header is still too tall (${headerBox.height.toFixed(1)}px)`)
+  if (headerBox.height > 124) fail(`workbench header is still too tall (${headerBox.height.toFixed(1)}px)`)
 
   if (await headerToolbar.count()) {
     const toolbarOverflow = await headerToolbar.evaluate(element => ({
@@ -75,10 +76,37 @@ try {
   }))
   for (const item of clusterGeometry) {
     if (item.direction !== 'column') fail(`${item.key} tool group is still a side-label strip instead of a compact ribbon block`)
-    if (item.height > 48) fail(`${item.key} tool group is too tall (${item.height}px)`)
-    if (item.headHeight > 16) fail(`${item.key} tool group heading wastes vertical space (${item.headHeight}px)`)
+    if (item.height > 58) fail(`${item.key} tool group is too tall (${item.height}px)`)
+    if (item.headHeight > 20) fail(`${item.key} tool group heading wastes vertical space (${item.headHeight}px)`)
     if (item.bodyWrap !== 'nowrap') fail(`${item.key} tool group wraps controls (${item.bodyWrap})`)
   }
+
+  const readability = await page.locator('.figure-composer').evaluate(element => {
+    const px = (selector, property = 'fontSize') => {
+      const node = element.querySelector(selector)
+      return node instanceof HTMLElement ? parseFloat(getComputedStyle(node)[property]) || 0 : 0
+    }
+    const height = selector => {
+      const node = element.querySelector(selector)
+      return node instanceof HTMLElement ? node.getBoundingClientRect().height : 0
+    }
+    return {
+      toolFont: px('.figure-composer__tool-cluster-body > button'),
+      toolHeight: height('.figure-composer__tool-cluster-body > button'),
+      clusterLabelFont: px('.figure-composer__tool-cluster-head strong'),
+      sectionTitleFont: px('.figure-composer__section-title > strong'),
+      fieldLabelFont: px('.figure-composer__field-grid label'),
+      detailSummaryFont: px('.figure-composer__compact-details > summary'),
+      railHeadingFont: px('.figure-composer__rail-heading strong'),
+    }
+  })
+  if (readability.toolFont < 10.5) fail(`tool text regressed below readable size (${readability.toolFont}px)`)
+  if (readability.toolHeight < 29) fail(`tool controls regressed below readable height (${readability.toolHeight}px)`)
+  if (readability.clusterLabelFont < 9.5) fail(`tool group labels are too small (${readability.clusterLabelFont}px)`)
+  if (readability.sectionTitleFont < 11) fail(`rail section titles are too small (${readability.sectionTitleFont}px)`)
+  if (readability.fieldLabelFont && readability.fieldLabelFont < 10) fail(`rail field labels are too small (${readability.fieldLabelFont}px)`)
+  if (readability.detailSummaryFont && readability.detailSummaryFont < 10) fail(`collapsed detail labels are too small (${readability.detailSummaryFont}px)`)
+  if (readability.railHeadingFont < 10.5) fail(`rail headings are too small (${readability.railHeadingFont}px)`)
 
   const importButton = page.locator('.figure-composer__import')
   const importText = (await importButton.innerText()).trim().replace(/\s+/g, ' ')
@@ -89,7 +117,7 @@ try {
   const globalLayout = page.locator('.figure-composer__global-layout')
   const globalLayoutBox = await globalLayout.boundingBox()
   if (!globalLayoutBox) throw new Error('global layout panel is not measurable')
-  if (globalLayoutBox.height > 185) fail(`global layout still consumes too much rail height (${globalLayoutBox.height.toFixed(1)}px)`)
+  if (globalLayoutBox.height > 230) fail(`global layout still consumes too much rail height (${globalLayoutBox.height.toFixed(1)}px)`)
   const globalAdvanced = globalLayout.locator('.figure-composer__global-advanced')
   if (await globalAdvanced.count() !== 1 || await globalAdvanced.getAttribute('open') !== null) fail('advanced global border controls should be collapsed by default')
 
@@ -104,7 +132,7 @@ try {
   const inspector = page.locator('.figure-composer__inspector')
   const inspectorBox = await inspector.boundingBox()
   if (!inspectorBox) throw new Error('panel inspector is not measurable')
-  if (inspectorBox.height > 165) fail(`selected panel inspector is still too tall before advanced controls (${inspectorBox.height.toFixed(1)}px)`)
+  if (inspectorBox.height > 215) fail(`selected panel inspector is still too tall before advanced controls (${inspectorBox.height.toFixed(1)}px)`)
   const panelAdvanced = inspector.locator('.figure-composer__panel-advanced')
   if (await panelAdvanced.count() !== 1 || await panelAdvanced.getAttribute('open') !== null) fail('grid/crop panel controls should be collapsed under advanced parameters by default')
   const panelLabelDetails = inspector.locator('.figure-composer__panel-label-details')
@@ -114,18 +142,18 @@ try {
 
   const preflight = page.locator('[aria-label="投稿尺寸检查"]')
   const issueHeights = await preflight.locator('.figure-composer__issue').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height))
-  if (issueHeights.some(height => height > 36)) fail(`preflight reminders still consume multiple text rows (${issueHeights.map(value => value.toFixed(1)).join(', ')})`)
+  if (issueHeights.some(height => height < 28 || height > 42)) fail(`preflight reminders should stay readable and compact (${issueHeights.map(value => value.toFixed(1)).join(', ')})`)
   const preflightBox = await preflight.boundingBox()
-  if (preflightBox && preflightBox.height > 132) fail(`preflight panel remains too tall (${preflightBox.height.toFixed(1)}px)`)
+  if (preflightBox && preflightBox.height > 175) fail(`preflight panel remains too tall (${preflightBox.height.toFixed(1)}px)`)
 
   const exportPanel = page.locator('[aria-label="出版尺寸与导出"]')
   const exportBox = await exportPanel.boundingBox()
   if (!exportBox) throw new Error('export panel is not measurable')
-  if (exportBox.height > 190) fail(`publication/export panel still wastes rail height (${exportBox.height.toFixed(1)}px)`)
+  if (exportBox.height > 235) fail(`publication/export panel still wastes rail height (${exportBox.height.toFixed(1)}px)`)
   if (await exportPanel.locator('.figure-composer__export-actions').count() !== 1) fail('publication output summary and export action should share one compact action row')
 
   const railHeadings = await page.locator('.figure-composer__rail-heading').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height))
-  if (railHeadings.some(height => height > 26)) fail(`rail group headings remain too tall (${railHeadings.map(value => value.toFixed(1)).join(', ')})`)
+  if (railHeadings.some(height => height < 27 || height > 32)) fail(`rail group headings should stay readable and compact (${railHeadings.map(value => value.toFixed(1)).join(', ')})`)
 
   const viewport = page.locator('.figure-composer__canvas-viewport')
   const canvas = page.locator('.figure-composer__canvas')
@@ -191,10 +219,10 @@ try {
       buttonHeight: button instanceof HTMLElement ? button.getBoundingClientRect().height : 0,
     }
   })
-  if (sectionMetrics.paddingTop > 7 || sectionMetrics.paddingBottom > 7) fail(`side rail sections remain too loose (${sectionMetrics.paddingTop}/${sectionMetrics.paddingBottom}px)`)
-  if (sectionMetrics.buttonHeight > 30) fail(`side rail primary control remains unnecessarily tall (${sectionMetrics.buttonHeight}px)`)
+  if (sectionMetrics.paddingTop > 9 || sectionMetrics.paddingBottom > 9) fail(`side rail sections remain too loose (${sectionMetrics.paddingTop}/${sectionMetrics.paddingBottom}px)`)
+  if (sectionMetrics.buttonHeight < 30 || sectionMetrics.buttonHeight > 35) fail(`side rail primary control should be compact without shrinking (${sectionMetrics.buttonHeight}px)`)
 
-  console.log(JSON.stringify({ failures, headerBox, clusterGeometry, globalLayoutBox, inspectorBox, issueHeights, exportBox, railHeadings, zoomedViewport, maxScroll, beforePan, afterPan, sectionMetrics }, null, 2))
+  console.log(JSON.stringify({ failures, headerBox, clusterGeometry, readability, globalLayoutBox, inspectorBox, issueHeights, exportBox, railHeadings, zoomedViewport, maxScroll, beforePan, afterPan, sectionMetrics }, null, 2))
   await page.close()
 } finally {
   await browser.close()
