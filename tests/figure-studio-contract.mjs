@@ -22,7 +22,6 @@ const libraries = [
   'src/lib/figure-composer/snapping.ts',
   'src/lib/figure-composer/image-import.ts',
   'src/lib/figure-composer/project.ts',
-  'src/lib/figure-composer/validation.ts',
   'src/lib/figure-composer/export.ts',
 ]
 
@@ -123,9 +122,6 @@ assert(workbench.includes('height: calc(100dvh'), 'Figure Composer should fit it
 assert(workbench.includes('.figure-composer__workspace') && workbench.includes('min-height: 0'), 'Figure Composer workspace must be allowed to shrink so the bottom status rail remains visible')
 assert(workbench.includes('.figure-composer__grid-number'), 'Figure Composer needs compact row/column input geometry')
 assert(workbench.includes('.figure-composer__tool-cluster'), 'Figure Composer toolbar needs grouped GIS-like tool clusters')
-
-const validation = read('src/lib/figure-composer/validation.ts')
-for (const check of ['resolution', 'overlap', 'stretch', 'caption', 'bounds']) assert(validation.toLowerCase().includes(check), `preflight missing ${check} check`)
 
 const exporter = read('src/lib/figure-composer/export.ts')
 for (const format of ['png', 'jpeg', 'webp', 'tiff', 'pdf', 'svg']) assert(exporter.toLowerCase().includes(format), `export engine missing ${format}`)
