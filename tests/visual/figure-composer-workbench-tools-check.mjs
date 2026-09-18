@@ -161,6 +161,12 @@ try {
   await page.waitForTimeout(220)
   const zoomAfterFitIncrease = Number((await page.locator('.figure-composer__zoom-value').textContent() || '0').replace('%', ''))
   if (zoomAfterFitIncrease <= fittedZoom + 5) fail(`manual zoom snapped back after fit (${fittedZoom}% -> ${zoomAfterFitIncrease}%)`)
+  const panelWidthInput = globalLayout.getByLabel('单图宽度', { exact: true })
+  const panelWidthBeforeZoomEdit = Number(await panelWidthInput.inputValue())
+  await panelWidthInput.fill(String(panelWidthBeforeZoomEdit + 40))
+  await page.waitForTimeout(260)
+  const zoomAfterCanvasEdit = Number((await page.locator('.figure-composer__zoom-value').textContent() || '0').replace('%', ''))
+  if (Math.abs(zoomAfterCanvasEdit - zoomAfterFitIncrease) > 1) fail(`manual zoom reset after canvas reflow (${zoomAfterFitIncrease}% -> ${zoomAfterCanvasEdit}%)`)
   await page.getByTitle('100%', { exact: true }).click()
   await page.waitForTimeout(80)
 
@@ -226,7 +232,7 @@ try {
   if (sectionMetrics.paddingTop > 9 || sectionMetrics.paddingBottom > 9) fail(`side rail sections remain too loose (${sectionMetrics.paddingTop}/${sectionMetrics.paddingBottom}px)`)
   if (sectionMetrics.buttonHeight < 30 || sectionMetrics.buttonHeight > 35) fail(`side rail primary control should be compact without shrinking (${sectionMetrics.buttonHeight}px)`)
 
-  console.log(JSON.stringify({ failures, headerBox, clusterGeometry, readability, globalLayoutBox, inspectorBox, exportBox, railHeadings, fittedZoom, zoomAfterFitIncrease, zoomedViewport, maxScroll, beforePan, afterPan, sectionMetrics }, null, 2))
+  console.log(JSON.stringify({ failures, headerBox, clusterGeometry, readability, globalLayoutBox, inspectorBox, exportBox, railHeadings, fittedZoom, zoomAfterFitIncrease, zoomAfterCanvasEdit, zoomedViewport, maxScroll, beforePan, afterPan, sectionMetrics }, null, 2))
   await page.close()
 } finally {
   await browser.close()
