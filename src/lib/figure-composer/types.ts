@@ -11,7 +11,6 @@ export type FigureLabelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bo
 export type AlignMode = 'left' | 'right' | 'top' | 'bottom' | 'horizontal-center' | 'vertical-center'
 export type DistributionAxis = 'horizontal' | 'vertical'
 export type SnapGuideAxis = 'x' | 'y'
-export type PreflightSeverity = 'error' | 'warning' | 'info'
 
 export interface FigureLabelSettings {
   visible: boolean
@@ -158,13 +157,6 @@ export interface SnapResult {
   x: number
   y: number
   guides: FigureSnapGuide[]
-}
-
-export interface FigurePreflightIssue {
-  code: 'resolution' | 'size' | 'label' | 'bounds' | 'overlap' | 'stretch' | 'caption' | 'format'
-  severity: PreflightSeverity
-  message: string
-  panelIds: string[]
 }
 
 export const DEFAULT_LABEL_SETTINGS: FigureLabelSettings = {
