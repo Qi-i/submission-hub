@@ -74,7 +74,7 @@ export default function FigureSidebar({ project, projects, drafts, assets, busy,
       </div>
 
       <details className="figure-composer__project-meta figure-composer__compact-details">
-        <summary><FolderOpen size={13} /><strong>工程与出版信息</strong></summary>
+        <summary><FolderOpen size={13} /><strong>关联与出版信息</strong></summary>
         <div className="figure-composer__details-body">
           <label>关联草稿
             <select value={project.draftId || ''} onChange={event => onProjectField({ draftId: event.target.value || null })}>
