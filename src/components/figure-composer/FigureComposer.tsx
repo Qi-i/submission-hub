@@ -192,17 +192,24 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     })
   }, [zoom])
 
+  const applyFitCanvasRef = useRef(applyFitCanvasToViewport)
+  useEffect(() => { applyFitCanvasRef.current = applyFitCanvasToViewport }, [applyFitCanvasToViewport])
+
+  useEffect(() => {
+    if (autoFitViewRef.current) applyFitCanvasToViewport()
+  }, [applyFitCanvasToViewport])
+
   useEffect(() => {
     const viewport = canvasViewportRef.current
     if (!viewport) return
     autoFitViewRef.current = true
-    const frame = requestAnimationFrame(applyFitCanvasToViewport)
+    const frame = requestAnimationFrame(() => applyFitCanvasRef.current())
     const observer = new ResizeObserver(() => {
-      if (autoFitViewRef.current) applyFitCanvasToViewport()
+      if (autoFitViewRef.current) applyFitCanvasRef.current()
     })
     observer.observe(viewport)
     return () => { cancelAnimationFrame(frame); observer.disconnect() }
-  }, [applyFitCanvasToViewport, project.id])
+  }, [project.id])
 
   const syncDraftCount = useCallback(async (draftId: string | null) => {
     if (!draftId || !onDraftFigureCountChange) return
