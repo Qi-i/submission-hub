@@ -12,7 +12,6 @@ const components = [
   'src/components/figure-composer/FigureSidebar.tsx',
   'src/components/figure-composer/FigurePanelInspector.tsx',
   'src/components/figure-composer/FigureExportPanel.tsx',
-  'src/components/figure-composer/FigurePreflightPanel.tsx',
   'src/components/figure-composer/useFigureProjectHistory.ts',
 ]
 const libraries = [
@@ -72,6 +71,10 @@ assert(composer.includes('Times New Roman'), 'default label font must be Times N
 assert(!composer.includes('drafts[0]'), 'generic Figure Composer must not bind the first manuscript implicitly')
 assert(composer.includes('selectAllPanels'), 'Figure Composer must expose select-all for multi-panel operations')
 assert(composer.includes('fitCanvasToViewport'), 'Figure Composer must expose a one-click fit-canvas view')
+assert(composer.includes('autoFitViewRef'), 'manual zoom must be able to exit automatic fit mode')
+assert(composer.includes("window.prompt('请输入新建组图工程名称'"), 'new Figure Composer projects must prompt for a project name')
+assert(composer.includes('figure-composer__project-name-input'), 'project name must be directly editable in the workbench header')
+assert(!composer.includes('FigurePreflightPanel') && !composer.includes('投稿尺寸检查'), 'retired 投稿尺寸检查 UI must not render in Figure Composer')
 assert(composer.includes("layoutMode: 'grid'"), 'global layout changes must be able to return the canvas to grid reflow')
 assert(composer.includes('autoWrapProject(next)'), 'grid reflow must update auto-wrapped canvas bounds')
 assert(composer.includes('IndexedDB') && composer.includes('当前浏览器'), 'save semantics must explain local IndexedDB persistence')
@@ -127,6 +130,7 @@ for (const check of ['resolution', 'overlap', 'stretch', 'caption', 'bounds']) a
 const exporter = read('src/lib/figure-composer/export.ts')
 for (const format of ['png', 'jpeg', 'webp', 'tiff', 'pdf', 'svg']) assert(exporter.toLowerCase().includes(format), `export engine missing ${format}`)
 assert(exporter.includes('preserveAspectRatio'), 'SVG export must preserve explicit aspect-ratio semantics')
+assert(exporter.includes('figureExportBaseName') && exporter.includes('getFullYear') && exporter.includes('padStart(2'), 'export filenames must include project name, date and sequence')
 
 const online = read('src/components/OnlinePreparationWorkspace.tsx')
 assert(online.includes('figure_count'), 'online draft integration must synchronize figure_count')
