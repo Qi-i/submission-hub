@@ -67,13 +67,6 @@
   min-height: 28px !important;
   padding: 0 !important;
 }
-.figure-composer__identity h2 {
-  margin-top: 1px !important;
-  font-size: 17px !important;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .figure-composer__identity p {
   margin-top: 1px !important;
   max-width: 250px;
@@ -91,18 +84,11 @@
   gap: 5px !important;
   white-space: nowrap;
 }
-.figure-composer__header-actions > button,
-.figure-composer__header-actions > .figure-composer__preflight-chip {
+.figure-composer__header-actions > button {
   min-height: 32px !important;
   height: 32px !important;
   box-sizing: border-box !important;
-}
-.figure-composer__header-actions > button { padding: 0 8px !important; }
-.figure-composer__preflight-chip {
   padding: 0 8px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
 }
 
 .figure-composer__workspace {
@@ -546,41 +532,6 @@
 .figure-composer__inline-options .figure-composer__check { margin: 0 0 4px !important; }
 .figure-composer__inspector > .figure-composer__compact-details { margin-top: 3px !important; }
 .figure-composer__empty-inline { margin: 2px 0 !important; min-height: 20px !important; }
-
-.figure-composer__preflight-list {
-  max-height: 104px;
-  overflow-y: auto;
-  display: grid;
-  gap: 2px;
-}
-.figure-composer__issue {
-  min-height: 30px !important;
-  height: 30px !important;
-  padding: 0 5px !important;
-  display: grid !important;
-  grid-template-columns: 13px max-content minmax(0, 1fr) !important;
-  align-items: center !important;
-  gap: 4px !important;
-  border-radius: 5px !important;
-}
-.figure-composer__issue > strong { font-size: 10.5px !important; line-height: 1.15 !important; }
-.figure-composer__issue > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10.5px !important;
-  line-height: 1.15 !important;
-}
-.figure-composer__preflight-ok {
-  min-height: 30px !important;
-  height: 30px !important;
-  padding: 0 6px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-  font-size: 10.5px !important;
-}
 
 .figure-composer__export-preset {
   margin-bottom: 3px !important;
