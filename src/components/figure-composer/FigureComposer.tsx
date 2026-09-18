@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, FileCheck2, Plus, Save, Type, X } from 'lucide-react'
+import { ArrowLeft, Download, Plus, Save, Type, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import type { ManuscriptDraft } from '../../lib/preparation'
 import { alignPanels, distributePanels, resizePanel, translatePanels } from '../../lib/figure-composer/geometry'
@@ -8,7 +8,6 @@ import { countFigureProjectsForDraft, deleteFigureProject, listFigureProjects, l
 import { snapPanel } from '../../lib/figure-composer/snapping'
 import { exportFigureProject } from '../../lib/figure-composer/export'
 import { physicalToLogicalPx } from '../../lib/figure-composer/units'
-import { validateFigureProject } from '../../lib/figure-composer/validation'
 import {
   DEFAULT_BORDER_SETTINGS,
   DEFAULT_LABEL_SETTINGS,
@@ -26,7 +25,6 @@ import FigureCanvas from './FigureCanvas'
 import FigureExportPanel from './FigureExportPanel'
 import FigureGlobalLayoutPanel from './FigureGlobalLayoutPanel'
 import FigurePanelInspector from './FigurePanelInspector'
-import FigurePreflightPanel from './FigurePreflightPanel'
 import FigureSidebar from './FigureSidebar'
 import FigureToolbar, { type FigureInteractionMode } from './FigureToolbar'
 import useFigureProjectHistory, { isFigureHistoryEditableTarget } from './useFigureProjectHistory'
@@ -100,6 +98,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const [assets, setAssets] = useState<Map<string, RuntimeFigureAsset>>(new Map())
   const assetsRef = useRef(assets)
   const canvasViewportRef = useRef<HTMLDivElement>(null)
+  const autoFitViewRef = useRef(true)
   const [guides, setGuides] = useState<FigureSnapGuide[]>([])
   const [zoom, setZoom] = useState(1)
   const [interactionMode, setInteractionMode] = useState<FigureInteractionMode>('select')
@@ -154,11 +153,10 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [redoEdit, undoEdit])
 
-  const preflight = useMemo(() => validateFigureProject(project), [project])
   const selectedPanel = useMemo(() => project.panels.find(panel => panel.id === project.selectedPanelIds.at(-1)) || null, [project.panels, project.selectedPanelIds])
   const selectedText = useMemo(() => project.texts.find(text => text.id === project.selectedTextId) || null, [project.texts, project.selectedTextId])
 
-  const fitCanvasToViewport = useCallback(() => {
+  const applyFitCanvasToViewport = useCallback(() => {
     const viewport = canvasViewportRef.current
     if (!viewport) return
     const style = getComputedStyle(viewport)
@@ -172,7 +170,13 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     })
   }, [project.canvas.height, project.canvas.width])
 
+  const fitCanvasToViewport = useCallback(() => {
+    autoFitViewRef.current = true
+    applyFitCanvasToViewport()
+  }, [applyFitCanvasToViewport])
+
   const setZoomLevel = useCallback((value: number) => {
+    autoFitViewRef.current = false
     const nextZoom = Math.max(.1, Math.min(4, value))
     const viewport = canvasViewportRef.current
     if (!viewport) {
@@ -191,11 +195,14 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   useEffect(() => {
     const viewport = canvasViewportRef.current
     if (!viewport) return
-    const frame = requestAnimationFrame(fitCanvasToViewport)
-    const observer = new ResizeObserver(() => fitCanvasToViewport())
+    autoFitViewRef.current = true
+    const frame = requestAnimationFrame(applyFitCanvasToViewport)
+    const observer = new ResizeObserver(() => {
+      if (autoFitViewRef.current) applyFitCanvasToViewport()
+    })
     observer.observe(viewport)
     return () => { cancelAnimationFrame(frame); observer.disconnect() }
-  }, [fitCanvasToViewport, paneWidths.left, paneWidths.right, project.id])
+  }, [applyFitCanvasToViewport, project.id])
 
   const syncDraftCount = useCallback(async (draftId: string | null) => {
     if (!draftId || !onDraftFigureCountChange) return
@@ -209,12 +216,18 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   }
 
   const newProject = () => {
-    clearRuntimeAssets()
     const nextSequence = Math.max(0, ...projects.map(item => item.sequence)) + 1
-    resetProject(createEmptyFigureProject(null, nextSequence, project.role))
+    const suggestedName = `组图工程 ${nextSequence}`
+    const requestedName = window.prompt('请输入新建组图工程名称', suggestedName)
+    if (requestedName === null) return
+    clearRuntimeAssets()
+    const next = createEmptyFigureProject(null, nextSequence, project.role)
+    next.name = requestedName.trim() || suggestedName
+    resetProject(next)
+    autoFitViewRef.current = true
     setGuides([])
     setInteractionMode('select')
-    setStatus('已建立新的未命名组图；先导入图片，保存后可从“本地草稿库”重新打开。')
+    setStatus(`已新建工程“${next.name}”；先导入图片，保存后可从“本地草稿库”重新打开。`)
   }
 
   const openProject = async (projectId: string) => {
@@ -225,6 +238,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       clearRuntimeAssets()
       setAssets(loaded.assets)
       resetProject(loaded.project)
+      autoFitViewRef.current = true
       setInteractionMode('select')
       setStatus(`已从当前浏览器 IndexedDB 打开 ${loaded.project.name}。`)
     } catch (error) {
@@ -237,12 +251,15 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
   const saveProject = async () => {
     setBusy(true)
     try {
-      const usedAssetIds = new Set(project.panels.map(panel => panel.assetId))
+      const normalizedName = project.name.trim() || '未命名组图'
+      const projectToSave = normalizedName === project.name ? project : { ...project, name: normalizedName }
+      if (projectToSave !== project) replaceTransient(projectToSave)
+      const usedAssetIds = new Set(projectToSave.panels.map(panel => panel.assetId))
       const activeAssets = [...assets.values()].filter(asset => usedAssetIds.has(asset.id))
-      await saveFigureProject(project, activeAssets)
+      await saveFigureProject(projectToSave, activeAssets)
       await refreshProjects()
-      await syncDraftCount(project.draftId)
-      setStatus(`已保存本地草稿“${project.name}”到当前浏览器 IndexedDB；编辑记录与图片 Blob 均未上传服务器。`)
+      await syncDraftCount(projectToSave.draftId)
+      setStatus(`已保存本地草稿“${projectToSave.name}”到当前浏览器 IndexedDB；编辑记录与图片 Blob 均未上传服务器。`)
     } catch (error) {
       setStatus(error instanceof Error ? `保存失败：${error.message}` : '保存失败。')
     } finally {
@@ -485,7 +502,21 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     <header className="figure-composer__header">
       <div className="figure-composer__header-main">
         {onBack && <button className="figure-composer__icon-button" type="button" onClick={onBack}><ArrowLeft size={16} /><span>返回投稿准备</span></button>}
-        <div className="figure-composer__identity"><small><span>投稿准备</span><i>/</i><span>科研组图</span></small><h2>{project.name}</h2><p>{project.publicationLabel ? `出版编号：${project.publicationLabel}` : '通用科研组图工作台 · 默认不关联任何论文'}</p></div>
+        <div className="figure-composer__identity">
+          <small><span>投稿准备</span><i>/</i><span>科研组图</span></small>
+          <div className="figure-composer__project-name-row">
+            <input
+              className="figure-composer__project-name-input"
+              aria-label="工程名称"
+              value={project.name}
+              placeholder="未命名组图"
+              onChange={event => patchProjectIdentity({ name: event.target.value })}
+              onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void saveProject() } }}
+            />
+            <button className="figure-composer__project-name-save" type="button" aria-label="保存工程名称" title="保存工程" disabled={busy} onClick={() => void saveProject()}><Save size={13} /></button>
+          </div>
+          <p>{project.publicationLabel ? `出版编号：${project.publicationLabel}` : '通用科研组图工作台 · 默认不关联任何论文'}</p>
+        </div>
       </div>
       <FigureToolbar
         selectedCount={project.selectedPanelIds.length}
@@ -514,8 +545,6 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
       />
       <div className="figure-composer__header-actions">
         <button type="button" onClick={newProject}><Plus size={14} /> 新建</button>
-        <button type="button" disabled={busy} onClick={() => void saveProject()} title="保存到当前浏览器 IndexedDB，不上传图片"><Save size={14} /> 保存本地草稿</button>
-        <span className={`figure-composer__preflight-chip ${preflight.some(issue => issue.severity === 'error') ? 'error' : preflight.length ? 'warning' : 'ok'}`}><FileCheck2 size={14} /> {preflight.length ? `${preflight.length} 项检查` : '检查通过'}</span>
         <button className="primary" type="button" disabled={busy} onClick={() => void handleExport()}><Download size={14} /> 导出</button>
       </div>
     </header>
@@ -583,8 +612,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
           </section>
         </div>
         <div className="figure-composer__rail-group">
-          <div className="figure-composer__rail-heading"><strong>投稿检查与导出</strong><span>先处理检查，再设置出版尺寸</span></div>
-          <FigurePreflightPanel issues={preflight} />
+          <div className="figure-composer__rail-heading"><strong>出版与导出</strong><span>设置出版尺寸与导出格式</span></div>
           <FigureExportPanel
             project={project}
             busy={busy}

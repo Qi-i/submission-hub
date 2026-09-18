@@ -200,8 +200,19 @@ function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality?: number)
   return new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('浏览器无法编码导出文件')), mime, quality))
 }
 
+export function figureExportBaseName(project: FigureProject, now = new Date()) {
+  const projectName = project.name
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+    .replace(/[.\s]+$/g, '')
+    || '组图工程'
+  const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+  const sequence = String(Math.max(1, Math.trunc(project.sequence || 1))).padStart(2, '0')
+  return `${projectName}_${date}_${sequence}`
+}
+
 export async function exportFigureProject(project: FigureProject, assets: Map<string, RuntimeFigureAsset>, format: FigureExportFormat = project.exportSettings.format) {
-  const baseName = project.name.replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '') || 'figure'
+  const baseName = figureExportBaseName(project)
   if (format === 'svg') {
     const svg = await buildFigureSvg(project, assets)
     triggerFigureDownload(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${baseName}.svg`)

@@ -32,6 +32,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1680, height: 1050 } })
   await page.addInitScript(() => {
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v3')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v4')
     localStorage.removeItem('submission-hub.figure-composer.panes')
   })
   await openComposer(page)
@@ -70,7 +71,7 @@ try {
     }
   }
 
-  const save = page.getByRole('button', { name: /保存本地草稿/ }).first()
+  const save = page.getByRole('button', { name: '保存工程名称', exact: true })
   await save.click()
   await page.locator('.figure-composer__status').filter({ hasText: 'IndexedDB' }).waitFor({ state: 'visible', timeout: 10000 })
   const assetCount = Number(await storedAssetCount(page))

@@ -26,17 +26,21 @@ try {
     }
     localStorage.removeItem('submission-hub.figure-composer.toolbar')
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v2')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v3')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v4')
   })
   await openComposer(page)
 
   const identity = await page.locator('.figure-composer__identity').evaluate(element => ({
-    name: element.querySelector('h2')?.textContent?.trim() || '',
+    name: (element.querySelector('[aria-label="工程名称"]') instanceof HTMLInputElement ? element.querySelector('[aria-label="工程名称"]').value : ''),
     description: element.querySelector('p')?.textContent?.trim() || '',
   }))
-  const projectName = await page.getByLabel('工程名称').inputValue()
+  const projectNameInput = page.getByLabel('工程名称', { exact: true })
+  const projectName = await projectNameInput.inputValue()
   if (identity.name !== '未命名组图' || projectName !== '未命名组图') fail(`neutral project identity was lost (${identity.name} / ${projectName})`)
   if (/Figure\s*1|Supplementary\s*Figure|论文|manuscript/i.test(`${identity.name} ${projectName}`)) fail('new project is polluted by manuscript/publication identity')
   if (/Figure\s*1|Supplementary\s*Figure/i.test(identity.description)) fail(`default description exposes a generated publication number: ${identity.description}`)
+  if (!(await projectNameInput.isVisible())) fail('project name is not directly editable in the top-left identity area')
 
   const firstSection = await page.locator('.figure-composer__left > .figure-composer__section').first().locator('.figure-composer__section-title strong').textContent()
   if (firstSection?.trim() !== '图片与图层') fail(`left rail does not start with 图片与图层 (${firstSection})`)
@@ -99,7 +103,17 @@ try {
 
   const labels = page.locator('.figure-composer__global-labels')
   const globalLabelStyle = labels.getByLabel('标签样式', { exact: true })
+  const globalLabelPosition = labels.getByLabel('标签位置', { exact: true })
+  const globalLabelFontSize = labels.getByLabel('标签字号', { exact: true })
+  await globalLabelFontSize.fill('')
+  if (await globalLabelFontSize.inputValue() !== '') fail('global label font-size input cannot be cleared before retyping')
+  await globalLabelFontSize.fill('26')
+  await globalLabelFontSize.blur()
+  if (await globalLabelFontSize.inputValue() !== '26') fail(`global label font-size input did not accept a full replacement (${await globalLabelFontSize.inputValue()})`)
+  const labelControlFonts = await labels.locator('select').evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).fontSize)))
+  if (labelControlFonts.some(value => Math.abs(value - labelControlFonts[0]) > .25 || value > 11.5)) fail(`global label selects use inconsistent/oversized text (${labelControlFonts.join(', ')})`)
   await globalLabelStyle.selectOption('A')
+  await globalLabelPosition.selectOption('top-right')
   await labels.getByRole('button', { name: '标签应用到全部', exact: true }).click()
   await layers.nth(0).click()
   const panelLabelStyle = await inspector.locator('label', { hasText: /^标签/ }).locator('select').first().inputValue()
@@ -112,14 +126,25 @@ try {
   const fittedCanvasBox = await canvas.boundingBox()
   if (!viewportBox || !fittedCanvasBox) throw new Error('fit-canvas geometry is not measurable')
   if (fittedCanvasBox.width > viewportBox.width - 8 || fittedCanvasBox.height > viewportBox.height - 8) fail(`fit canvas still exceeds viewport (${fittedCanvasBox.width}×${fittedCanvasBox.height} vs ${viewportBox.width}×${viewportBox.height})`)
+  const fittedZoom = Number((await page.locator('.figure-composer__zoom-value').textContent() || '0').replace('%', ''))
+  await page.getByTitle('放大视图', { exact: true }).click()
+  await page.waitForTimeout(250)
+  const zoomAfterManualIncrease = Number((await page.locator('.figure-composer__zoom-value').textContent() || '0').replace('%', ''))
+  if (zoomAfterManualIncrease <= fittedZoom + 5) fail(`manual zoom snapped back to fitted view (${fittedZoom}% -> ${zoomAfterManualIncrease}%)`)
 
   const statusBox = await page.locator('.figure-composer__status').boundingBox()
   const composerBox = await page.locator('.figure-composer').boundingBox()
   if (!statusBox || !composerBox) throw new Error('Figure Composer status geometry is not measurable')
   if (statusBox.y + statusBox.height > 1050 || statusBox.y + statusBox.height > composerBox.y + composerBox.height + 1) fail(`bottom status rail is clipped (${JSON.stringify(statusBox)})`)
 
-  await page.getByRole('button', { name: /保存本地草稿/ }).first().click()
-  await page.locator('.figure-composer__status').filter({ hasText: 'IndexedDB' }).waitFor({ state: 'visible', timeout: 10000 })
+  await projectNameInput.fill('测试组图')
+  await page.getByRole('button', { name: '保存工程名称', exact: true }).click()
+  await page.locator('.figure-composer__status').filter({ hasText: '测试组图' }).waitFor({ state: 'visible', timeout: 10000 })
+  const downloadPromise = page.waitForEvent('download')
+  await page.locator('.figure-composer__header-actions button.primary').click()
+  const download = await downloadPromise
+  const suggestedFilename = download.suggestedFilename()
+  if (!/^测试组图_\d{8}_01\.png$/.test(suggestedFilename)) fail(`unexpected default export filename: ${suggestedFilename}`)
   if (await page.locator('.figure-composer__project-list > button').count() < 1) fail('saved project is not discoverable from the local draft library')
 
   const left = page.locator('.figure-composer__left')
@@ -168,7 +193,17 @@ try {
   }
   if (Math.abs(restored.left - stored.left) > 1 || Math.abs(restored.right - stored.right) > 1) fail(`pane widths did not survive reload (${JSON.stringify(restored)} vs ${JSON.stringify(stored)})`)
 
-  console.log(JSON.stringify({ failures, identity, firstSection, gridNumberGeometry, widthA, widthB, xA, xB, statusBox, before, after, stored, restored }, null, 2))
+  let promptMessage = ''
+  page.once('dialog', async dialog => {
+    promptMessage = dialog.message()
+    await dialog.accept('命名测试工程')
+  })
+  await page.locator('.figure-composer__header-actions').getByRole('button', { name: '新建', exact: true }).click()
+  await page.getByLabel('工程名称', { exact: true }).waitFor({ state: 'visible' })
+  if (await page.getByLabel('工程名称', { exact: true }).inputValue() !== '命名测试工程') fail('new-project naming prompt did not set the project name')
+  if (!/工程名称/.test(promptMessage)) fail(`new-project prompt does not ask for a project name (${promptMessage})`)
+
+  console.log(JSON.stringify({ failures, identity, firstSection, gridNumberGeometry, widthA, widthB, xA, xB, fittedZoom, zoomAfterManualIncrease, suggestedFilename, statusBox, before, after, stored, restored, promptMessage }, null, 2))
   await page.close()
 } finally {
   await browser.close()

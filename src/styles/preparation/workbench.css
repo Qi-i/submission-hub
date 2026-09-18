@@ -150,10 +150,6 @@
 }
 .figure-composer__layer-main b { color: var(--prep-violet) !important; }
 
-.figure-composer__preflight-chip.ok { color: var(--prep-ok) !important; background: color-mix(in srgb,var(--prep-ok) 9%,var(--prep-surface-elevated)) !important; }
-.figure-composer__preflight-chip.warning { color: var(--prep-amber) !important; background: color-mix(in srgb,var(--prep-amber) 10%,var(--prep-surface-elevated)) !important; }
-.figure-composer__preflight-chip.error { color: var(--prep-danger) !important; background: color-mix(in srgb,var(--prep-danger) 9%,var(--prep-surface-elevated)) !important; }
-.figure-composer__preflight-item,
 .figure-composer__source-meta {
   background: var(--prep-surface-elevated) !important;
   border-color: var(--prep-border) !important;

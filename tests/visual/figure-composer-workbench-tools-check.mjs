@@ -140,11 +140,8 @@ try {
   if (await panelLabelDetails.count() !== 1 || await panelLabelDetails.getAttribute('open') !== null) fail('per-panel label controls should be collapsed by default')
   if (await panelBorderDetails.count() !== 1 || await panelBorderDetails.getAttribute('open') !== null) fail('per-panel border controls should be collapsed by default')
 
-  const preflight = page.locator('[aria-label="投稿尺寸检查"]')
-  const issueHeights = await preflight.locator('.figure-composer__issue').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height))
-  if (issueHeights.some(height => height < 28 || height > 42)) fail(`preflight reminders should stay readable and compact (${issueHeights.map(value => value.toFixed(1)).join(', ')})`)
-  const preflightBox = await preflight.boundingBox()
-  if (preflightBox && preflightBox.height > 175) fail(`preflight panel remains too tall (${preflightBox.height.toFixed(1)}px)`)
+  if (await page.locator('[aria-label="投稿尺寸检查"]').count()) fail('retired 投稿尺寸检查 panel is still rendered')
+  if (await page.locator('.figure-composer__preflight-chip').count()) fail('retired preflight status chip is still rendered')
 
   const exportPanel = page.locator('[aria-label="出版尺寸与导出"]')
   const exportBox = await exportPanel.boundingBox()
@@ -157,6 +154,13 @@ try {
 
   const viewport = page.locator('.figure-composer__canvas-viewport')
   const canvas = page.locator('.figure-composer__canvas')
+  await page.getByRole('button', { name: /适配画布/ }).click()
+  await page.waitForTimeout(100)
+  const fittedZoom = Number((await page.locator('.figure-composer__zoom-value').textContent() || '0').replace('%', ''))
+  await page.getByTitle('放大视图', { exact: true }).click()
+  await page.waitForTimeout(220)
+  const zoomAfterFitIncrease = Number((await page.locator('.figure-composer__zoom-value').textContent() || '0').replace('%', ''))
+  if (zoomAfterFitIncrease <= fittedZoom + 5) fail(`manual zoom snapped back after fit (${fittedZoom}% -> ${zoomAfterFitIncrease}%)`)
   await page.getByTitle('100%', { exact: true }).click()
   await page.waitForTimeout(80)
 
@@ -222,7 +226,7 @@ try {
   if (sectionMetrics.paddingTop > 9 || sectionMetrics.paddingBottom > 9) fail(`side rail sections remain too loose (${sectionMetrics.paddingTop}/${sectionMetrics.paddingBottom}px)`)
   if (sectionMetrics.buttonHeight < 30 || sectionMetrics.buttonHeight > 35) fail(`side rail primary control should be compact without shrinking (${sectionMetrics.buttonHeight}px)`)
 
-  console.log(JSON.stringify({ failures, headerBox, clusterGeometry, readability, globalLayoutBox, inspectorBox, issueHeights, exportBox, railHeadings, zoomedViewport, maxScroll, beforePan, afterPan, sectionMetrics }, null, 2))
+  console.log(JSON.stringify({ failures, headerBox, clusterGeometry, readability, globalLayoutBox, inspectorBox, exportBox, railHeadings, fittedZoom, zoomAfterFitIncrease, zoomedViewport, maxScroll, beforePan, afterPan, sectionMetrics }, null, 2))
   await page.close()
 } finally {
   await browser.close()
