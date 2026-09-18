@@ -1,4 +1,5 @@
 import { LayoutGrid, Tags } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { FigureBorderSettings, FigureCanvasSettings, FigureLabelSettings, FigureProject } from '../../lib/figure-composer/types'
 
 interface Props {
@@ -19,6 +20,18 @@ const numberValue = (value: string, fallback: number, min?: number, max?: number
 }
 
 export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefaults, onBorderDefaults, onApplyLabelsToAll, onApplyBordersToAll }: Props) {
+  const [labelFontSizeDraft, setLabelFontSizeDraft] = useState(String(project.labelDefaults.fontSize))
+
+  useEffect(() => {
+    setLabelFontSizeDraft(String(project.labelDefaults.fontSize))
+  }, [project.labelDefaults.fontSize])
+
+  const commitLabelFontSize = () => {
+    const parsed = Number(labelFontSizeDraft)
+    const next = Number.isFinite(parsed) ? Math.max(8, Math.min(240, parsed)) : project.labelDefaults.fontSize
+    setLabelFontSizeDraft(String(next))
+    if (next !== project.labelDefaults.fontSize) onLabelDefaults({ fontSize: next })
+  }
   return <>
     <section className="figure-composer__section figure-composer__global-layout" aria-label="全局排版">
       <div className="figure-composer__section-title">
@@ -50,7 +63,16 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
       <div className="figure-composer__label-core">
         <label className="figure-composer__check"><input type="checkbox" checked={project.labelDefaults.visible} onChange={event => onLabelDefaults({ visible: event.target.checked })} /> 显示</label>
         <select aria-label="标签样式" value={project.labelDefaults.style} onChange={event => onLabelDefaults({ style: event.target.value as FigureLabelSettings['style'] })}><option value="parena">(a), (b), (c)</option><option value="a">a, b, c</option><option value="parenA">(A), (B), (C)</option><option value="A">A, B, C</option></select>
-        <input aria-label="标签字号" type="number" min="8" max="240" value={project.labelDefaults.fontSize} onChange={event => onLabelDefaults({ fontSize: numberValue(event.target.value, project.labelDefaults.fontSize, 8, 240) })} />
+        <input
+          aria-label="标签字号"
+          type="number"
+          min="8"
+          max="240"
+          value={labelFontSizeDraft}
+          onChange={event => setLabelFontSizeDraft(event.target.value)}
+          onBlur={commitLabelFontSize}
+          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
+        />
         <select aria-label="标签位置" value={project.labelDefaults.position} onChange={event => onLabelDefaults({ position: event.target.value as FigureLabelSettings['position'] })}><option value="top-left">左上</option><option value="top-right">右上</option><option value="bottom-left">左下</option><option value="bottom-right">右下</option></select>
       </div>
       <details className="figure-composer__compact-details figure-composer__label-advanced">
