@@ -33,6 +33,40 @@
 
 .figure-composer__identity { min-width: 0; }
 .figure-composer__identity small { font-size: 10.5px !important; letter-spacing: .06em !important; }
+.figure-composer__project-name-row {
+  margin-top: 1px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.figure-composer__project-name-input {
+  width: min(210px, 100%) !important;
+  min-width: 0 !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 1px 6px !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--prep-text) !important;
+  font-size: 17px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.02em;
+}
+.figure-composer__project-name-input:hover,
+.figure-composer__project-name-input:focus {
+  border-color: var(--prep-border-strong) !important;
+  background: var(--prep-surface-elevated) !important;
+}
+.figure-composer__project-name-save {
+  flex: 0 0 auto;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+}
 .figure-composer__identity h2 {
   margin-top: 1px !important;
   font-size: 17px !important;
@@ -476,12 +510,20 @@
 }
 .figure-composer__label-core {
   display: grid;
-  grid-template-columns: auto minmax(0, 1.35fr) 42px minmax(0, .8fr);
+  grid-template-columns: auto minmax(0, 1.35fr) 58px minmax(0, .8fr);
   align-items: center;
   gap: 4px;
 }
-.figure-composer__label-core > :is(select, input) { min-width: 0; width: 100%; }
-.figure-composer__label-core .figure-composer__check { margin: 0 2px 0 0 !important; white-space: nowrap; }
+.figure-composer__label-core > :is(select, input) {
+  min-width: 0;
+  width: 100%;
+  font-size: 10.5px !important;
+}
+.figure-composer__label-core .figure-composer__check {
+  margin: 0 2px 0 0 !important;
+  white-space: nowrap;
+  font-size: 10.5px !important;
+}
 .figure-composer__label-advanced { margin-top: 3px !important; }
 
 .figure-composer__geometry-grid { margin-bottom: 2px; }
