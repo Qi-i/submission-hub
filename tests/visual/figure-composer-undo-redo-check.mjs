@@ -101,7 +101,7 @@ try {
   await page.waitForTimeout(100)
   if (await page.locator('.figure-composer__layer').count() !== 2) fail('undo did not restore a deleted panel and its runtime asset')
 
-  const projectName = page.getByLabel('工程名称')
+  const projectName = page.getByLabel('工程名称', { exact: true })
   await projectName.focus()
   const layerCountBeforeNativeUndo = await page.locator('.figure-composer__layer').count()
   await page.keyboard.press('Control+z')
