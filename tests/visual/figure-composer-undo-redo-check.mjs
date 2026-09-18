@@ -33,6 +33,7 @@ try {
   await page.addInitScript(() => {
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v2')
     localStorage.removeItem('submission-hub.figure-composer.toolbar.v3')
+    localStorage.removeItem('submission-hub.figure-composer.toolbar.v4')
     localStorage.removeItem('submission-hub.figure-composer.panes')
   })
   await openComposer(page)
@@ -82,7 +83,7 @@ try {
   const redoneX = Number(await inspector.getByRole('spinbutton', { name: 'X', exact: true }).inputValue())
   if (Math.abs(redoneX - movedX) > 1) fail(`Ctrl+Shift+Z did not redo panel geometry (${undoneX} -> ${redoneX}, expected ${movedX})`)
 
-  const save = page.getByRole('button', { name: /保存本地草稿/ }).first()
+  const save = page.getByRole('button', { name: '保存工程名称', exact: true })
   await save.click()
   await page.locator('.figure-composer__status').filter({ hasText: 'IndexedDB' }).waitFor({ state: 'visible', timeout: 10000 })
   if (Number(await storedAssetCount(page)) !== 2) fail('initial save did not persist both active panel assets')
