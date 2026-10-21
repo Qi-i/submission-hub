@@ -179,6 +179,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     return ()=>{cancelled=true}
   },[selected,userId])
   const selectedAccount=useMemo(()=>accounts.find(a=>a.id===active?.account_id),[accounts,active])
+  const suggestedPaper = useMemo(()=>{
+    if(!active?.extraction?.manuscript_no||active.paper_id)return null
+    const target=String(active.extraction.manuscript_no).trim().toLowerCase()
+    return papers.find(p=>p.manuscript_no?.trim().toLowerCase()===target)||null
+  },[active,papers])
   const canGoNext=(page+1)*PAGE_SIZE<total
   const reviewPending=counts.pending
   const cloudReady=accounts.filter(a=>a.enabled&&a.cloud_state==='ready').length
@@ -339,6 +344,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>原文归档</span><strong>{active.cloud_archive_path?'私有云原文已归档':active.archived_locally?'本地原文已归档':'尚无原文备份'}</strong></div>
             </div>
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
+            {suggestedPaper&&<div className="am-link-suggestion">
+              <div><Link2 size={16}/><span>根据稿件编号，可能关联：<strong>{suggestedPaper.title}</strong></span></div>
+              <button type="button" disabled={busy==='message'} onClick={()=>void saveMessage({paper_id:suggestedPaper.id})}>确认关联</button>
+            </div>}
             <div className="am-review-controls">
               <label>学术邮件类型<select value={active.category} disabled={busy==='message'} onChange={e=>void saveMessage({category:e.target.value})}>{Object.entries(categories).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
               {active.category==='review_invite'&&<label>审稿处理状态<select value={active.review_response||'pending'} disabled={busy==='message'} onChange={e=>void saveMessage({review_response:e.target.value})}>{Object.entries(responseLabels).map(([key,label])=><option value={key} key={key}>{label}</option>)}</select></label>}
