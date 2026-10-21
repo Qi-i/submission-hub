@@ -32,3 +32,12 @@
 .mail-subnav{display:flex;gap:5px;margin:10px 24px 14px;padding:5px;border:1px solid var(--border-color,var(--border,#d6dee8));border-radius:10px;width:max-content;max-width:calc(100% - 48px)}
 .mail-subnav button{background:transparent;border:0;border-radius:7px;color:var(--text-secondary);padding:8px 16px;cursor:pointer;font-size:13px}
 .mail-subnav button.active{background:var(--bg-card,var(--bg-elevated,#fff));box-shadow:0 1px 6px #00000015;color:var(--text-primary);font-weight:600}
+
+/* Secure cloud mailbox onboarding */
+.mail-cloud-config{padding:14px;margin-top:12px;border-radius:10px;border:1px solid var(--border-color,var(--border,#d6dee8));background:var(--bg-secondary,var(--bg-surface,#f2f6fa))}
+.mail-cloud-config>strong{font-size:13px}
+.mail-cloud-config>p{font-size:11px;color:var(--text-secondary);margin:7px 0 10px;line-height:1.7}
+.mail-cloud-config input{flex:1;min-width:180px}
+.mail-account .mail-add{margin:6px 0 0;gap:6px}
+.mail-account .mail-add button{padding:6px 8px;white-space:normal;font-size:11px}
+@media(max-width:600px){.mail-cloud-config input{flex-basis:100%}}
