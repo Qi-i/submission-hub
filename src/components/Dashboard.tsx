@@ -380,7 +380,7 @@ export default function Dashboard() {
                 <button type="button" role="menuitem" onClick={() => { setUserMenuOpen(false); if (isDemo) exitDemo(); else void signOut() }}>
                   <LogOut size={15}/> {isDemo ? '退出演示' : '退出登录'}</button>
               </div>}
-            </div>
+            </div>}
           </div>
         </div>
       </header>
