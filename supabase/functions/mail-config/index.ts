@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 const ORIGINS=['https://qi-i.github.io','http://localhost:5173','http://127.0.0.1:5173']
 function response(body:unknown,status=200,origin=''){
-  return new Response(JSON.stringify(body),{status,headers:{
+  return new Response(status===204?null:JSON.stringify(body),{status,headers:{
     'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',
     'Access-Control-Allow-Origin':ORIGINS.includes(origin)?origin:'https://qi-i.github.io',
     'Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type'
