@@ -127,6 +127,15 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(false)}
   }
+  const downloadOriginal=async(path:string)=>{
+    setBusy(true)
+    try{
+      const {data,error:downloadError}=await supabase.storage.from('mail-originals').createSignedUrl(path,120)
+      if(downloadError||!data?.signedUrl)throw new Error(downloadError?.message||'无法创建私有文件链接')
+      window.open(data.signedUrl,'_blank','noopener,noreferrer')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(false)}
+  }
   const manualSync=async(id:string)=>{
     setBusy(true)
     try{
@@ -217,6 +226,8 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
           <p className="mail-meta">时间：{niceTime(active.received_at)} · 来源：{accounts.find(a=>a.id===active.account_id)?.address||'未知邮箱'}</p>
           <p className="mail-meta">文件夹：{active.first_folder} → {active.last_folder} · {active.cloud_archive_path?'原文已保存私有云':active.archived_locally?'原文已保存本地':'未确认原文备份'}</p>
           {active.deadline&&<p className="mail-warning">需要关注的日期：{active.deadline}</p>}
+          {active.cloud_archive_path&&<button className="btn btn-ghost btn-sm" disabled={busy}
+            onClick={()=>void downloadOriginal(active.cloud_archive_path!)}>查看原始 EML（私有临时链接）</button>}
           <div className="mail-fields"><label><Link2 size={14}/> 关联投稿
             <select value={active.paper_id||''} disabled={busy} onChange={e=>void saveMessage(active.id,{paper_id:e.target.value||null})}>
               <option value="">暂不关联</option>{papers.map(p=><option key={p.id} value={p.id}>{p.title} {p.journal||''} {p.manuscript_no||''}</option>)}
