@@ -24,7 +24,7 @@ Deno.serve(async req=>{
   owner=auth.data.user.id
  }
  let q=admin.from('mail_preferences')
-   .select('user_id,ai_enabled,ai_key_ready,ai_model,ai_daily_limit,ai_analyze_existing,updated_at')
+   .select('user_id,ai_enabled,ai_key_ready,ai_model,ai_daily_limit,ai_analyze_existing,ai_started_at')
    .eq('ai_enabled',true).eq('ai_key_ready',true).gt('ai_daily_limit',0)
  if(owner)q=q.eq('user_id',owner)
  const settings=await q.limit(20)
