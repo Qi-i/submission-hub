@@ -122,7 +122,7 @@ async function scanAccount(admin:any,account:any){
   if(!/^\* OK/i.test(banner))throw new Error('IMAP greeting unavailable')
   if(account.auth_kind==='xoauth2'){
    const auth=encoder.encode('\x00'+account.address+'\x00'+secretRes.data)
-   await imap.cmd('AUTHENTICATE PLAIN '+btoa(String.fromCharCode(...auth)))
+   await imap.cmd('AUTHENTICATE XOAUTH2 '+btoa('user='+account.address+'\\x01auth=Bearer '+secretRes.data+'\\x01\\x01'))
   }else await imap.cmd('LOGIN '+imapString(account.address)+' '+imapString(secretRes.data))
   const directory=await folders(imap)
   const state=await admin.rpc('mail_get_scan_state',{p_account_id:account.id})
@@ -131,7 +131,7 @@ async function scanAccount(admin:any,account:any){
   for(const folder of directory){
    if(processed>=MAX_PER_RUN||Date.now()-now>TIME_BUDGET_MS)break
    try{
-    await imap.cmd('EXAMINE '+imapString(folder.name))
+    const examined=await imap.cmd('EXAMINE '+imapString(folder.name))
    }catch{continue}
    const status=await imap.cmd('UID SEARCH ALL')
    const ids:number[]=[]
@@ -174,13 +174,13 @@ async function scanAccount(admin:any,account:any){
      const body=String(parsed.text||parsed.html||'').replace(/<[^>]*>/g,' ').slice(0,60000)
      const subject=String(parsed.subject||'').slice(0,1024)
      const [category,importance]=classify(subject,body)
-     const sender=parsed.from?.address?.[0]
+     const sender=parsed.from && 'address' in parsed.from ? parsed.from : null
      const inserted=await admin.from('mail_messages').insert({
        user_id:account.user_id,account_id:account.id,remote_key:remoteKey,
        internet_message_id:messageId.slice(0,512),
        first_folder:folder.spam?'Junk':folder.name,
        last_folder:folder.name,
-       received_at:parsed.date ? new Date(parsed.date).toISOString():null,
+       received_at:parsed.date && !Number.isNaN(Date.parse(parsed.date)) ? new Date(parsed.date).toISOString():null,
        sender_name:sender?.name||'',sender_address:sender?.address||'',
        recipient_address:account.address,subject,
        snippet:body.replace(/\s+/g,' ').slice(0,800),body_text:body,
@@ -219,7 +219,7 @@ Deno.serve(async req=>{
  }
  let preferred=''
  try {const body=await req.json(); preferred=String(body.account_id||'')}catch{}
- let query=admin.from('mail_accounts').select('*').eq('cloud_state','ready').eq('enabled',true)
+ let query=admin.from('mail_accounts').select('*').in('cloud_state',['ready','error']).eq('enabled',true)
  if(!isCron){
   if(!preferred)return apiResponse({error:'account_id required'},400)
   query=query.eq('user_id',userId).eq('id',preferred)
