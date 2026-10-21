@@ -120,6 +120,16 @@ function extract(body:string){
  const candidate=/(?:manuscript\s*(?:id|number|no\.?|#)|稿件编号|稿号)\s*[:：#]?\s*([\w.\-/]{5,70})/i.exec(body)
  return candidate?{manuscript_no:candidate[1]}:{}
 }
+function extractDeadline(source:string):string|null{
+  // Only explicit deadlines, not arbitrary dates in the body.
+  const pattern=/(?:review\s+(?:due|deadline)|response\s+deadline|respond\s+by|reply\s+by|please\s+respond\s+by|审稿截止(?:日期|时间)?|回复截止(?:日期|时间)?|请于)[^\n]{0,80}?(\d{4})[年/.\-]\s*(\d{1,2})[月/.\-]\s*(\d{1,2})日?/i
+  const match=pattern.exec(source.slice(0,12000))
+  if(!match)return null
+  const [year,month,day]=match.slice(1,4).map(Number)
+  const date=new Date(Date.UTC(year,month-1,day))
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()+1!==month||date.getUTCDate()!==day)return null
+  return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')
+}
 function allowed(host:string,provider:string){
  const allow:Record<string,string[]>={
   coremail:['xju.edu.cn','cugb.edu.cn'],qq:['imap.qq.com'],'126':['imap.126.com'],
@@ -210,6 +220,7 @@ async function scanAccount(admin:any,account:any){
        recipient_address:account.address,subject,
        snippet:body.replace(/\s+/g,' ').slice(0,800),body_text:body,
        category,importance,extraction:extract(subject+' '+body.slice(0,2500)),
+       deadline:extractDeadline(subject+'\n'+body.slice(0,12000)),
        cloud_archive_path:archivePath,archived_locally:false
      })
      if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))throw new Error('Mail index save failed')
