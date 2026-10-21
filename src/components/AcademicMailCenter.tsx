@@ -38,11 +38,30 @@ type Message = {
   archived_locally: boolean
   cloud_archive_path: string | null
   extraction: Record<string, unknown> | null
+  ai_summary: string | null
+  ai_tags: string[] | null
+  ai_action: string | null
+  ai_priority: number | null
+  ai_state: string
 }
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
 type Scope = 'all' | 'review_invite' | 'pending' | 'submission_update' | 'important' | 'spam'
-type Workspace = 'inbox' | 'accounts'
+type Workspace = 'inbox' | 'accounts' | 'personalize'
 type CountSummary = { all: number; review: number; pending: number; important: number; spam: number }
+type SavedView = {id:string;title:string;kind:Scope}
+type MailPref = {user_id:string;workspace:{compact?:boolean;show_statistics?:boolean;views?:SavedView[]};
+ ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;ai_key_ready:boolean;last_ai_error:string|null}
+const DEFAULT_VIEWS:SavedView[]=[
+ {id:'all',title:'全部邮件',kind:'all'},
+ {id:'important',title:'重要邮件',kind:'important'},
+ {id:'submission',title:'投稿往来',kind:'submission_update'},
+ {id:'spam',title:'垃圾邮件备份',kind:'spam'},
+]
+const VIEW_KINDS:Record<Scope,string>={
+ all:'全部邮件',important:'重要邮件',review_invite:'审稿邀请',pending:'待答复审稿',
+ submission_update:'投稿往来',spam:'垃圾箱保全'
+}
+
 const PAGE_SIZE = 40
 const categories: Record<string, string> = {
   review_invite: '审稿邀请', submission_update: '投稿进展', editorial: '编辑往来',
@@ -72,6 +91,10 @@ const folderQuery = 'first_folder.ilike.%junk%,first_folder.ilike.%spam%,first_f
 
 export default function AcademicMailCenter({userId}: {userId: string}) {
   const [workspace, setWorkspace] = useState<Workspace>('inbox')
+  const [pref,setPref] = useState<MailPref|null>(null)
+  const [newViewTitle,setNewViewTitle] = useState('')
+  const [newViewKind,setNewViewKind] = useState<Scope>('review_invite')
+  const [aiApiKey,setAiApiKey] = useState('')
   const [accounts, setAccounts] = useState<Account[]>([])
   const [papers, setPapers] = useState<Paper[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -113,14 +136,16 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
-    const [a,p,all,review,pending,important,spam] = await Promise.all([
+    const [a,p,all,review,pending,important,spam,prefResult] = await Promise.all([
       accountQuery, papersQuery, base(), base().eq('category','review_invite'),
       base().eq('category','review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().gte('importance',2), base().or(folderQuery),
+      (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
     ])
-    const failed = [a,p,all,review,pending,important,spam].find(x=>x.error)
+    const failed = [a,p,all,review,pending,important,spam,prefResult].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
+    setPref(prefResult.data||null)
     setPapers(p.data||[])
     setCounts({all:all.count||0,review:review.count||0,pending:pending.count||0,important:important.count||0,spam:spam.count||0})
   }, [userId])
@@ -129,7 +154,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,extraction',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,extraction,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
@@ -186,6 +211,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   },[active,papers])
   const canGoNext=(page+1)*PAGE_SIZE<total
   const reviewPending=counts.pending
+  const savedViews=(pref?.workspace?.views?.length?pref.workspace.views:DEFAULT_VIEWS).filter(v=>v&&VIEW_KINDS[v.kind])
   const cloudReady=accounts.filter(a=>a.enabled&&a.cloud_state==='ready').length
 
   const callFunction=async(path:string,payload:Record<string,unknown>)=>{
@@ -263,7 +289,30 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
-  const pickScope=(next:Scope)=>{setScope(next);setPage(0)}
+  const savePref=async(changes:Partial<MailPref>)=>{
+    setBusy('pref')
+    try{
+      const next={...pref,...changes,user_id:userId}
+      const {error:err}=await (supabase.from('mail_preferences') as any).upsert(next,{onConflict:'user_id'})
+      if(err)throw err
+      setPref(next as MailPref)
+      setNotice('设置已保存；界面立即生效，无需重新部署')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
+  }
+  const saveViews=async(views:SavedView[])=>void savePref({workspace:{...(pref?.workspace||{}),views}})
+  const setAIKey=async()=>{
+    if(!aiApiKey.trim())return
+    setBusy('aikey')
+    try{
+      await callFunction('mail-ai-settings',{action:'save_key',api_key:aiApiKey.trim()})
+      setAiApiKey('')
+      setNotice('API Key 已加密保存；还需主动开启自动分析')
+      await loadMetadata()
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
+  }
+    const pickScope=(next:Scope)=>{setScope(next);setPage(0)}
   const goToAccounts=()=>{setWorkspace('accounts');setNotice('');setError('')}
   const refresh=async()=>{setNotice('');await Promise.all([loadMessages(),loadMetadata()])}
 
