@@ -5,6 +5,7 @@ import {
   FileText, Inbox, Link2, Mail, MailCheck, Plus, RefreshCw, Search, Settings2,
   ShieldCheck, Sparkles, X
 } from 'lucide-react'
+import MailPersonalization, {DEFAULT_MAIL_VIEWS,MAIL_VIEW_KINDS,type MailViewKind,type MailSettings} from './MailPersonalization'
 import './AcademicMailCenter.css'
 
 type Account = {
@@ -45,23 +46,9 @@ type Message = {
   ai_state: string
 }
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
-type Scope = 'all' | 'review_invite' | 'pending' | 'submission_update' | 'important' | 'spam'
+type Scope = MailViewKind
 type Workspace = 'inbox' | 'accounts' | 'personalize'
 type CountSummary = { all: number; review: number; pending: number; important: number; spam: number }
-type SavedView = {id:string;title:string;kind:Scope}
-type MailPref = {user_id:string;workspace:{compact?:boolean;show_statistics?:boolean;views?:SavedView[]};
- ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;ai_key_ready:boolean;last_ai_error:string|null}
-const DEFAULT_VIEWS:SavedView[]=[
- {id:'all',title:'全部邮件',kind:'all'},
- {id:'important',title:'重要邮件',kind:'important'},
- {id:'submission',title:'投稿往来',kind:'submission_update'},
- {id:'spam',title:'垃圾邮件备份',kind:'spam'},
-]
-const VIEW_KINDS:Record<Scope,string>={
- all:'全部邮件',important:'重要邮件',review_invite:'审稿邀请',pending:'待答复审稿',
- submission_update:'投稿往来',spam:'垃圾箱保全'
-}
-
 const PAGE_SIZE = 40
 const categories: Record<string, string> = {
   review_invite: '审稿邀请', submission_update: '投稿进展', editorial: '编辑往来',
@@ -91,10 +78,7 @@ const folderQuery = 'first_folder.ilike.%junk%,first_folder.ilike.%spam%,first_f
 
 export default function AcademicMailCenter({userId}: {userId: string}) {
   const [workspace, setWorkspace] = useState<Workspace>('inbox')
-  const [pref,setPref] = useState<MailPref|null>(null)
-  const [newViewTitle,setNewViewTitle] = useState('')
-  const [newViewKind,setNewViewKind] = useState<Scope>('review_invite')
-  const [aiApiKey,setAiApiKey] = useState('')
+  const [pref,setPref] = useState<MailSettings|null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
   const [papers, setPapers] = useState<Paper[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -210,7 +194,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     return papers.find(p=>p.manuscript_no?.trim().toLowerCase()===target)||null
   },[active,papers])
   const canGoNext=(page+1)*PAGE_SIZE<total
-  const savedViews=(pref?.workspace?.views?.length?pref.workspace.views:DEFAULT_VIEWS).filter(v=>v&&VIEW_KINDS[v.kind])
+  const savedViews=(pref?.workspace?.views?.length?pref.workspace.views:DEFAULT_MAIL_VIEWS).filter(v=>v&&MAIL_VIEW_KINDS[v.kind])
   const cloudReady=accounts.filter(a=>a.enabled&&a.cloud_state==='ready').length
 
   const callFunction=async(path:string,payload:Record<string,unknown>)=>{
@@ -309,6 +293,27 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       setNotice('API Key 已加密保存；还需主动开启自动分析')
       await loadMetadata()
     }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
+  }
+    const savePref=async(change:Partial<MailSettings>):Promise<void>=>{
+    setBusy('pref')
+    try{
+      const next={...pref,...change,user_id:userId}
+      const {error:err}=await (supabase.from('mail_preferences') as any)
+        .upsert(next,{onConflict:'user_id'})
+      if(err)throw err
+      setPref(next as MailSettings)
+      setNotice('已保存，页面配置立即生效，无需重新发布')
+    }catch(e){setError(e instanceof Error?e.message:String(e));throw e}
+    finally{setBusy(null)}
+  }
+  const saveAIKey=async(key:string):Promise<void>=>{
+    setBusy('ai-key')
+    try{
+      await callFunction('mail-ai-settings',{action:'save_key',api_key:key})
+      setNotice('API Key 已在云端加密保存')
+      await loadMetadata()
+    }catch(e){setError(e instanceof Error?e.message:String(e));throw e}
     finally{setBusy(null)}
   }
     const pickScope=(next:Scope)=>{setScope(next);setPage(0)}
@@ -439,7 +444,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </section>)}
       </div>
       <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>定时采集不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
-    </>}
+    </>:<MailPersonalization settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey}/>}
     <footer className="am-footer"><Archive size={13}/> 邮件正文只作为不可信资料处理，不执行其中的操作指令；识别结果不会自动改写投稿状态。</footer>
   </main>
 }
