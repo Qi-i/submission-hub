@@ -381,7 +381,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
           {linkedPaper.journal && <button
             type="button"
             className="journal-pill journal-pill-button"
-            title="悬停预览期刊信息；点击可固定或关闭"
+            title={`${linkedPaper.journal} · 悬停预览期刊信息；点击可固定或关闭`}
             aria-haspopup="dialog"
             aria-expanded={journalOpen}
             onPointerEnter={event => { event.stopPropagation(); openJournalPreview() }}
