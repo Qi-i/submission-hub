@@ -210,7 +210,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     return papers.find(p=>p.manuscript_no?.trim().toLowerCase()===target)||null
   },[active,papers])
   const canGoNext=(page+1)*PAGE_SIZE<total
-  const reviewPending=counts.pending
   const savedViews=(pref?.workspace?.views?.length?pref.workspace.views:DEFAULT_VIEWS).filter(v=>v&&VIEW_KINDS[v.kind])
   const cloudReady=accounts.filter(a=>a.enabled&&a.cloud_state==='ready').length
 
@@ -338,15 +337,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     <nav className="am-tabs" aria-label="邮件中心导航">
       <button type="button" className={workspace==='inbox'?'active':''} onClick={()=>setWorkspace('inbox')}><Inbox size={16}/> 邮件工作台</button>
       <button type="button" className={workspace==='accounts'?'active':''} onClick={goToAccounts}><Settings2 size={16}/> 邮箱与同步</button>
+      <button type="button" className={workspace==='personalize'?'active':''} onClick={()=>{setWorkspace('personalize');setNotice('');setError('')}}><Sparkles size={16}/> 自定义与 AI</button>
     </nav>
 
     {workspace==='inbox'?<>
-      <div className="am-stats">
-        <button type="button" className={scope==='all'?'active':''} onClick={()=>pickScope('all')}><span>全部归档</span><strong>{counts.all}</strong></button>
-        <button type="button" className={scope==='pending'?'active':''} onClick={()=>pickScope('pending')}><span>待答复审稿邀请</span><strong>{reviewPending}</strong></button>
-        <button type="button" className={scope==='important'?'active':''} onClick={()=>pickScope('important')}><span>重点关注</span><strong>{counts.important}</strong></button>
-        <button type="button" className={scope==='spam'?'active':''} onClick={()=>pickScope('spam')}><span>垃圾箱保全</span><strong>{counts.spam}</strong></button>
-      </div>
+      {pref?.workspace?.show_statistics!==false&&<div className="am-stats am-dynamic-views">
+        {savedViews.map(view=><button type="button" key={view.id} className={scope===view.kind?'active':''} onClick={()=>pickScope(view.kind)}><span>{view.title}</span>
+          <strong>{view.kind==='all'?counts.all:view.kind==='important'?counts.important:view.kind==='spam'?counts.spam:view.kind==='pending'?counts.pending:view.kind==='review_invite'?counts.review:'—'}</strong></button>)}
+      </div>}
 
       <div className="am-controls">
         <label className="am-search"><Search size={17}/><input aria-label="跨邮箱全文检索" placeholder="搜索稿件编号、期刊、主题、发件人或正文…" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button type="button" onClick={()=>setSearch('')} aria-label="清空搜索"><X size={14}/></button>}</label>
@@ -367,7 +365,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <button type="button" className="am-main-button" onClick={()=>{setWorkspace('accounts');setShowAdd(true)}}>添加邮箱 <ChevronRight size={16}/></button>
       </div>}
 
-      <section className={'am-workspace '+(mobileDetail?'show-detail':'')} aria-label="邮件列表和阅读区">
+      <section className={'am-workspace '+(mobileDetail?'show-detail':'')+(pref?.workspace?.compact?' am-compact':'')} aria-label="邮件列表和阅读区">
         <aside className="am-list-pane">
           <div className="am-list-heading"><span>邮件列表 <small>{total.toLocaleString('zh-CN')} 封匹配</small></span><span>{page+1} / {Math.max(1,Math.ceil(total/PAGE_SIZE))} 页</span></div>
           <div className="am-message-list" aria-busy={loading}>
@@ -376,8 +374,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             {!loading&&messages.map(m=><button type="button" key={m.id} className={'am-message '+(selected===m.id?'selected':'')} onClick={()=>{setSelected(m.id);setMobileDetail(true)}}>
               <div className="am-msg-from"><strong>{m.sender_name||m.sender_address||'未知发件人'}</strong><time>{shortDate(m.received_at)}</time></div>
               <div className="am-msg-subject">{m.subject||'（无主题）'}</div>
-              <p>{m.snippet||'无邮件预览'}</p>
-              <div className="am-msg-labels"><span className={'am-chip am-cat-'+m.category}>{categories[m.category]||'其他'}</span>{m.importance>=2&&<span className="am-chip">重要</span>}{isSpam(m)&&<span className="am-chip am-spam">垃圾箱来源</span>}{m.deadline&&<span className="am-chip am-deadline"><Clock3 size={11}/>{m.deadline}</span>}</div>
+              <p>{m.ai_summary||m.snippet||'无邮件预览'}</p>
+              <div className="am-msg-labels"><span className={'am-chip am-cat-'+m.category}>{categories[m.category]||'其他'}</span>{(m.ai_priority??m.importance)>=2&&<span className="am-chip">重要</span>}{isSpam(m)&&<span className="am-chip am-spam">垃圾箱来源</span>}{m.deadline&&<span className="am-chip am-deadline"><Clock3 size={11}/>{m.deadline}</span>}{m.ai_state==='done'&&<span className="am-chip am-ai-label">AI 已分析</span>}</div>
             </button>)}
           </div>
           <div className="am-pager"><button type="button" disabled={page===0} onClick={()=>setPage(n=>Math.max(0,n-1))}>上一页</button><span>{total?Math.min(page*PAGE_SIZE+1,total)+'–'+Math.min((page+1)*PAGE_SIZE,total):'0'} / {total}</span><button type="button" disabled={!canGoNext} onClick={()=>setPage(n=>n+1)}>下一页</button></div>
@@ -393,6 +391,12 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>原文归档</span><strong>{active.cloud_archive_path?'私有云原文已归档':active.archived_locally?'本地原文已归档':'尚无原文备份'}</strong></div>
             </div>
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
+            {active.ai_summary&&<div className="am-ai-result">
+              <div className="am-ai-result-title"><Sparkles size={15}/> AI 初步分析 <small>仅供参考</small></div>
+              <p>{active.ai_summary}</p>
+              {!!active.ai_tags?.length&&<div className="am-ai-tags">{active.ai_tags.map(tag=><span key={tag}>{tag}</span>)}</div>}
+              {active.ai_action&&<div className="am-ai-action"><strong>建议：</strong>{active.ai_action}</div>}
+            </div>}
             {suggestedPaper&&<div className="am-link-suggestion">
               <div><Link2 size={16}/><span>根据稿件编号，可能关联：<strong>{suggestedPaper.title}</strong></span></div>
               <button type="button" disabled={busy==='message'} onClick={()=>void saveMessage({paper_id:suggestedPaper.id})}>确认关联</button>
