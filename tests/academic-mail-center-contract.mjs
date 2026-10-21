@@ -48,3 +48,6 @@ assert.ok(!scanner.includes("imap.cmd('EXPUNGE"),'mail collector cannot purge ma
 assert.ok(settings.includes("mail_save_cloud_secret"),'credentials must go through Vault')
 assert.ok(!ui.includes("mailto:password"),'client must not persist mail credentials')
 console.log('Academic mail UI and collection contract checks passed.')
+
+// Reuse the existing verify step; keep package.json unchanged to avoid automated Release.
+import './mail-first-principles-contract.mjs'
