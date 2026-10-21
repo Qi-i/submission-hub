@@ -152,7 +152,7 @@ async function scanAccount(admin:any,account:any){
   const raw=await Deno.connect({hostname:host,port})
   try{
    const bootstrap=new Imap(raw)
-   if(!/^\\* OK/i.test(await bootstrap.line()))throw Error('IMAP greeting unavailable')
+   if(!/^\* OK/i.test(await bootstrap.line()))throw Error('IMAP greeting unavailable')
    await bootstrap.cmd('STARTTLS')
    conn=await Deno.startTls(raw,{hostname:host})
    imap=new Imap(conn)
@@ -160,7 +160,7 @@ async function scanAccount(admin:any,account:any){
  }else{
   conn=await Deno.connectTls({hostname:host,port})
   imap=new Imap(conn)
-  if(!/^\\* OK/i.test(await imap.line()))throw Error('IMAP greeting unavailable')
+  if(!/^\* OK/i.test(await imap.line()))throw Error('IMAP greeting unavailable')
  }
  const now=Date.now()
  let processed=0
