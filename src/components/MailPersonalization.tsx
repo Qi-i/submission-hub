@@ -74,7 +74,7 @@ export default function MailPersonalization({settings,busy,onUpdate,onSaveKey}:P
     <label>Z.AI API Key<input type="password" autoComplete="new-password" value={apiKey}
       onChange={e=>setApiKey(e.target.value)} placeholder={settings?.ai_key_ready?'已配置；输入可替换':'粘贴专用 API Key'}/></label>
     <button type="button" className="am-main-button" disabled={!apiKey.trim()||busy}
-      onClick={()=>{void onSaveKey(apiKey.trim()).then(()=>setApiKey(''))}}>加密保存</button>
+      onClick={()=>{void onSaveKey(apiKey.trim()).then(()=>setApiKey('')).catch(()=>{})}}>加密保存</button>
    </div>
    <div className="am-add-form">
     <label>免费模型<select disabled={busy} value={settings?.ai_model||'glm-4.7-flash'}
