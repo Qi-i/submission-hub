@@ -1,0 +1,22 @@
+{
+  "archive_dir": "D:/SubmissionHub-MailArchive",
+  "ingest_url": "https://grrwxtlauqcfnerckijn.supabase.co/functions/v1/mail-ingest",
+  "accounts": [
+    {
+      "account_id": "COPY_ACCOUNT_ID_FROM_SUBMISSION_HUB",
+      "username": "your-student@stu.xju.edu.cn",
+      "host": "REPLACE_WITH_IMAP_HOST",
+      "port": 993,
+      "auth": "password",
+      "password_env": "MAIL_XJU_STUDENT_PASSWORD"
+    },
+    {
+      "account_id": "COPY_SECOND_ACCOUNT_ID_FROM_SUBMISSION_HUB",
+      "username": "your-name@qq.com",
+      "host": "imap.qq.com",
+      "port": 993,
+      "auth": "password",
+      "password_env": "MAIL_QQ_APP_PASSWORD"
+    }
+  ]
+}

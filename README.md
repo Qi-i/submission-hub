@@ -91,6 +91,7 @@ FigMergeStudio 的核心工作流已重构为 Submission Hub 原生 React + Type
 | 期刊比较 | 并列比较质量、费用、速度、OA、收录和风险信息 |
 | 投稿管理 | 工作流、看板和按期刊视图；主状态、后台原文、时间线和下一步 |
 | 审稿分析 | 中英文状态归一化、返修轮次、阶段耗时、自定义时间线区间 |
+| 学术邮件中心（开发中） | 云端 IMAP 归档、垃圾箱保全、邮件检索、审稿邀请识别与论文关联；Gmail/Outlook OAuth2 接入待配置 |
 | 私有附件 | 私有存储上传、预览、替换、删除及生命周期清理 |
 | 成果归档 | DOI、见刊链接、卷期页码、引用格式、检索证明和见刊文件 |
 | 账户与同步 | GitHub/邮箱账户、Luminous/Luminous X、亮/暗主题与多设备同步 |
@@ -141,6 +142,10 @@ Submission Hub 保留两套使用同一数据与业务逻辑的界面：
 最终离线版冻结在：[`v2.0.1-offline-final`](https://github.com/Qi-i/submission-hub/releases/tag/v2.0.1-offline-final)。
 
 冻结源码为 `830cd645ee74f33ab41fd28e4bbafcd1fee31841`。Release 中的 `submission-hub-offline.html` 为最终受维护单 HTML，保留 localStorage、本地备份和离线核心工作流；它不会获得 `v2.1.0` 及之后的新功能。
+
+## 学术邮件与审稿中心（开发分支）
+
+云端采集方案、凭据加密、定时任务及限制见 [docs/academic-mail-center.md](docs/academic-mail-center.md)。无需本地 Python 或常开电脑，现阶段暂未连接真实邮箱，也尚未发布到在线网站。
 
 ## 本地开发
 

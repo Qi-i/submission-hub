@@ -4,3 +4,8 @@ dist-offline
 .env
 .env.local
 *.local
+
+# Private academic mail archiving and credentials
+mail_collector.json
+mail-archive/
+*.eml

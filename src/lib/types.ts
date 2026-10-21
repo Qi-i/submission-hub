@@ -7,6 +7,9 @@ export interface Database {
       journal_profiles: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
       research_topics: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
       manuscript_drafts: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      mail_accounts: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      mail_messages: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
+      mail_collector_keys: { Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any> }
     }
     Views: Record<string, any>
     Functions: Record<string, any>
