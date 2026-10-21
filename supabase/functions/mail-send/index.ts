@@ -7,12 +7,12 @@ const json=(x:any,status=200)=>new Response(status===204?null:JSON.stringify(x),
  'Access-Control-Allow-Methods':'POST,OPTIONS',
  'Access-Control-Allow-Headers':'authorization,apikey,content-type'
 }})
-function allowed(host:string,provider:string){
- const suffix:Record<string,string[]>={
-  coremail:['xju.edu.cn','cugb.edu.cn'],qq:['smtp.qq.com'],'126':['smtp.126.com']
- }
- return /^[a-z0-9.-]{4,180}$/.test(host)&&!host.includes('..')&&
-  (suffix[provider]||[]).some(s=>host===s||host.endsWith('.'+s))
+async function ensurePublic(host:string){
+ if(!/^(?=.{4,190}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(host)||/(^|\.)(local|localhost|internal|lan|home|onion|arpa|test|invalid)$/.test(host))throw Error('Unsafe SMTP hostname')
+ const a=await Deno.resolveDns(host,'A').catch(()=>[] as string[]) as string[]
+ const b=await Deno.resolveDns(host,'AAAA').catch(()=>[] as string[]) as string[]
+ if(!a.length&&!b.length)throw Error('SMTP DNS lookup failed')
+ if(a.some(ip=>{const p=ip.split('.').map(Number),[x,y]=p;return p.length!==4||p.some(n=>n<0||n>255)||x===0||x===10||x===127||x>=224||x===169&&y===254||x===172&&y>=16&&y<=31||x===192&&y===168||x===100&&y>=64&&y<=127||x===192&&y===0||x===198&&y>=18&&y<=19})||b.some(ip=>/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(ip)||/::ffff:/i.test(ip)))throw Error('Blocked private SMTP address')
 }
 function encodeBase64(str:string){
  const bytes=encoder.encode(str)
@@ -27,7 +27,7 @@ function safeAddress(value:unknown){
 }
 class SMTP{
   buf=''
-  constructor(public conn:Deno.TlsConn){}
+  constructor(public conn:Deno.Conn){}
   async line(){
    while(!this.buf.includes('\n')){
     const b=new Uint8Array(4096);const n=await this.conn.read(b)
@@ -72,7 +72,10 @@ Deno.serve(async req=>{
  const account=await admin.from('mail_accounts').select('*').eq('id',id).eq('user_id',auth.data.user.id).eq('enabled',true).maybeSingle()
  if(account.error||!account.data)return json({error:'Account unavailable'},404)
  const a=account.data
- if(!a.smtp_host||!allowed(a.smtp_host,a.provider))return json({error:'请先为此邮箱设置官方 SMTP 服务器'},422)
+ if(!a.smtp_host)return json({error:'请先配置 SMTP 服务器'},422)
+ const port=Number(a.smtp_port||465),security=a.smtp_security||'ssl'
+ if(!(port===465&&security==='ssl'||port===587&&security==='starttls'))return json({error:'安全端口必须为 SMTP 465/SSL 或587/STARTTLS'},422)
+ try{await ensurePublic(a.smtp_host)}catch(e){return json({error:e instanceof Error?e.message:'SMTP 地址不安全'},422)}
  let to='',subject='',content='',replyTo=''
  try{
   to=safeAddress(body.to)
@@ -86,12 +89,22 @@ Deno.serve(async req=>{
  if(secret.error||!secret.data)return json({error:'请先配置邮箱授权码'},422)
  let client:SMTP|null=null
  try{
-  const conn=await Deno.connectTls({hostname:a.smtp_host,port:465})
+  let conn:Deno.Conn
+  if(security==='starttls'){
+    const raw=await Deno.connect({hostname:a.smtp_host,port})
+    try{
+      const start=new SMTP(raw)
+      await start.expect(220)
+      await start.cmd('EHLO submission-hub.local',250)
+      await start.cmd('STARTTLS',220)
+      conn=await Deno.startTls(raw,{hostname:a.smtp_host})
+    }catch(e){try{raw.close()}catch{}throw e}
+  }else{conn=await Deno.connectTls({hostname:a.smtp_host,port})}
   client=new SMTP(conn)
-  await client.expect(220)
+  if(security==='ssl')await client.expect(220)
   await client.cmd('EHLO submission-hub.local',250)
   await client.cmd('AUTH LOGIN',334)
-  await client.cmd(encodeBase64(a.address),334)
+  await client.cmd(encodeBase64(a.smtp_username||a.address),334)
   await client.cmd(encodeBase64(secret.data),235)
   await client.cmd('MAIL FROM:<'+safeAddress(a.address)+'>',250)
   await client.cmd('RCPT TO:<'+to+'>',250)
