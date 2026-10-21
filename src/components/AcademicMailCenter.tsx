@@ -18,6 +18,7 @@ type Account = {
   last_error: string | null
   cloud_state: string
   imap_host: string | null
+  smtp_host: string | null
   last_checked_at: string | null
 }
 type Message = {
@@ -44,6 +45,7 @@ type Message = {
   ai_action: string | null
   ai_priority: number | null
   ai_state: string
+  internet_message_id?: string | null
 }
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
 type Scope = MailViewKind
@@ -103,6 +105,13 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [setupId, setSetupId] = useState<string | null>(null)
   const [imapHost, setImapHost] = useState('')
   const [appPassword, setAppPassword] = useState('')
+  const [smtpHost,setSmtpHost] = useState('')
+  const [showCompose,setShowCompose] = useState(false)
+  const [composeAccount,setComposeAccount] = useState('')
+  const [composeTo,setComposeTo] = useState('')
+  const [composeSubject,setComposeSubject] = useState('')
+  const [composeBody,setComposeBody] = useState('')
+  const [replyId,setReplyId] = useState('')
   const listSequence = useRef(0)
 
   useEffect(() => {
@@ -114,7 +123,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   const loadMetadata = useCallback(async () => {
     const accountQuery = (supabase.from('mail_accounts') as any)
-      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,last_checked_at')
+      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,last_checked_at')
       .eq('user_id', userId).order('created_at', {ascending: true})
     const papersQuery = (supabase.from('papers') as any)
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
@@ -138,7 +147,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,extraction,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
@@ -226,12 +235,13 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const setupAccount=(a:Account)=>{
     setSetupId(a.id);setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':''))
     setAppPassword('')
+    setSmtpHost(a.smtp_host||(a.provider==='qq'?'smtp.qq.com':a.provider==='126'?'smtp.126.com':''))
   }
   const saveConfiguration=async()=>{
     if(!setupId||!imapHost||!appPassword)return
     setBusy('configure')
     try{
-      await callFunction('mail-config',{action:'configure',account_id:setupId,host:imapHost.trim(),password:appPassword})
+      await callFunction('mail-config',{action:'configure',account_id:setupId,host:imapHost.trim(),smtp_host:smtpHost.trim(),password:appPassword})
       setAppPassword('');setSetupId(null);setImapHost('')
       setNotice('已加密保存客户端凭据；可点击「立即检查」验证')
       await loadMetadata()
@@ -314,6 +324,26 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       setNotice('API Key 已在云端加密保存')
       await loadMetadata()
     }catch(e){setError(e instanceof Error?e.message:String(e));throw e}
+    finally{setBusy(null)}
+  }
+    const compose=(reply=false)=>{
+    setComposeAccount(active?.account_id||accounts.find(a=>a.smtp_host)?.id||'')
+    setComposeTo(reply?(active?.sender_address||''):'')
+    setComposeSubject(reply?(active?.subject?.startsWith('Re:')?active.subject:'Re: '+(active?.subject||'')):'')
+    setComposeBody('')
+    setReplyId(reply?(active?.internet_message_id||''):'')
+    setShowCompose(true)
+  }
+  const sendMail=async()=>{
+    if(!composeAccount||!composeTo.trim()||!composeSubject.trim()||!composeBody.trim())return
+    if(!confirm('确认使用选定邮箱发送邮件？发送后无法撤回。'))return
+    setBusy('send')
+    try{
+      await callFunction('mail-send',{account_id:composeAccount,to:composeTo.trim(),
+        subject:composeSubject.trim(),content:composeBody,reply_to:replyId})
+      setShowCompose(false);setComposeBody('')
+      setNotice('邮件已交给 SMTP 服务器；稍后可在发件箱同步检查')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
     const pickScope=(next:Scope)=>{setScope(next);setPage(0)}
