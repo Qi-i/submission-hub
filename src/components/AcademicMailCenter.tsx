@@ -42,6 +42,7 @@ type Message = {
   archived_locally: boolean
   cloud_archive_path: string | null
   extraction: Record<string, unknown> | null
+  ai_category: string | null
   ai_summary: string | null
   ai_tags: string[] | null
   ai_action: string | null
@@ -141,8 +142,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
     const [a,p,all,review,pending,important,spam,prefResult] = await Promise.all([
-      accountQuery, papersQuery, base(), base().eq('category','review_invite'),
-      base().eq('category','review_invite').or('review_response.is.null,review_response.eq.pending'),
+      accountQuery, papersQuery, base(), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
+      base().or('category.eq.review_invite,ai_category.eq.review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().or('importance.gte.2,ai_priority.gte.2'), base().or(folderQuery),
       (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
     ])
@@ -158,11 +159,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
-    if(scope==='review_invite'||scope==='pending'||scope==='submission_update') q=q.eq('category',scope==='pending'?'review_invite':scope)
+    if(scope==='review_invite'||scope==='pending'||scope==='submission_update'){const target=scope==='pending'?'review_invite':scope;q=q.or('category.eq.'+target+',ai_category.eq.'+target)}
     if(scope==='pending') q=q.or('review_response.is.null,review_response.eq.pending')
     if(scope==='important') q=q.or('importance.gte.2,ai_priority.gte.2')
     if(accountFilter!=='all') q=q.eq('account_id',accountFilter)
@@ -426,7 +427,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div className="am-msg-from"><strong>{m.sender_name||m.sender_address||'未知发件人'}</strong><time>{shortDate(m.received_at)}</time></div>
               <div className="am-msg-subject">{m.subject||'（无主题）'}</div>
               <p>{m.ai_summary||m.snippet||'无邮件预览'}</p>
-              <div className="am-msg-labels"><span className={'am-chip am-cat-'+m.category}>{categories[m.category]||'其他'}</span>{(m.ai_priority??m.importance)>=2&&<span className="am-chip">重要</span>}{isSpam(m)&&<span className="am-chip am-spam">垃圾箱来源</span>}{m.deadline&&<span className="am-chip am-deadline"><Clock3 size={11}/>{m.deadline}</span>}{m.ai_state==='done'&&<span className="am-chip am-ai-label">AI 已分析</span>}</div>
+              <div className="am-msg-labels"><span className={'am-chip am-cat-'+m.category}>{categories[m.category]||'其他'}</span>{(m.ai_priority??m.importance)>=2&&<span className="am-chip">重要</span>}{isSpam(m)&&<span className="am-chip am-spam">垃圾箱来源</span>}{m.deadline&&<span className="am-chip am-deadline"><Clock3 size={11}/>{m.deadline}</span>}{m.ai_category&&m.ai_category!=='other'&&<span className="am-chip am-ai-label">AI：{categories[m.ai_category]||m.ai_category}</span>}</div>
             </button>)}
           </div>
           <div className="am-pager"><button type="button" disabled={page===0} onClick={()=>setPage(n=>Math.max(0,n-1))}>上一页</button><span>{total?Math.min(page*PAGE_SIZE+1,total)+'–'+Math.min((page+1)*PAGE_SIZE,total):'0'} / {total}</span><button type="button" disabled={!canGoNext} onClick={()=>setPage(n=>n+1)}>下一页</button></div>
@@ -442,6 +443,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>原文归档</span><strong>{active.cloud_archive_path?'私有云原文已归档':active.archived_locally?'本地原文已归档':'尚无原文备份'}</strong></div>
             </div>
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
+            {active.ai_category&&<div className="am-ai-category-suggestion"><Sparkles size={14}/> AI 识别：{categories[active.ai_category]||active.ai_category} · 分类建议独立保存，不会覆盖手动分类</div>}
             {active.ai_summary&&<div className="am-ai-result">
               <div className="am-ai-result-title"><Sparkles size={15}/> AI 初步分析 <small>仅供参考</small></div>
               <p>{active.ai_summary}</p>
