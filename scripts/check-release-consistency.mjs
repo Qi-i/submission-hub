@@ -47,7 +47,7 @@ if (fs.existsSync(path.join(root, releaseAuditDocument))) {
 assert(readme.includes(`docs/releases/${tag}.md`), `README does not link ${releaseDocument}`)
 assert(readme.includes(`version-${tag.replaceAll('-', '--')}`) || readme.includes(`version-${tag}`), `README version badge does not identify ${tag}`)
 assert(readme.includes(`当前版本：\`${tag}\``), `README current-version line does not identify ${tag}`)
-assert(readme.includes('投稿管理 → 期刊中心 → 投稿准备 → 个人统计 → 后台管理'), 'README does not document the five-module primary navigation')
+assert(readme.includes('投稿管理 → 期刊中心 → 邮件聚合 → 投稿准备 → 个人统计 → 后台管理'), 'README must document the six-module primary navigation while the version remains unchanged')
 
 assert(releaseWorkflow.includes("require('./package.json').version"), 'online release workflow does not derive the version from package.json')
 assert(releaseWorkflow.includes('docs/releases/v${VERSION}.md'), 'online release workflow does not load version-matched release notes')
