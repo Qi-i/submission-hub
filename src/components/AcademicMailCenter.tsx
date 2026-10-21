@@ -132,7 +132,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const [a,p,all,review,pending,important,spam,prefResult] = await Promise.all([
       accountQuery, papersQuery, base(), base().eq('category','review_invite'),
       base().eq('category','review_invite').or('review_response.is.null,review_response.eq.pending'),
-      base().gte('importance',2), base().or(folderQuery),
+      base().or('importance.gte.2,ai_priority.gte.2'), base().or(folderQuery),
       (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
     ])
     const failed = [a,p,all,review,pending,important,spam,prefResult].find(x=>x.error)
@@ -153,7 +153,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
     if(scope==='review_invite'||scope==='pending'||scope==='submission_update') q=q.eq('category',scope==='pending'?'review_invite':scope)
     if(scope==='pending') q=q.or('review_response.is.null,review_response.eq.pending')
-    if(scope==='important') q=q.gte('importance',2)
+    if(scope==='important') q=q.or('importance.gte.2,ai_priority.gte.2')
     if(accountFilter!=='all') q=q.eq('account_id',accountFilter)
     const term=debouncedSearch.replace(/[^一-鿿\p{L}\p{N}\s._-]/gu,' ').slice(0,100).trim()
     const keywordOr=term?'subject.ilike.%'+term+'%,sender_address.ilike.%'+term+'%,body_text.ilike.%'+term+'%':''
@@ -314,7 +314,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       if(err)throw err
       setPref(next as MailSettings)
       setNotice('已保存，页面配置立即生效，无需重新发布')
-    }catch(e){setError(e instanceof Error?e.message:String(e));throw e}
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
   const saveAIKey=async(key:string):Promise<void>=>{
