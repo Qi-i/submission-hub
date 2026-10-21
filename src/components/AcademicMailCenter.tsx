@@ -424,7 +424,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           </>}
         </article>
       </section>
-    </>:<>
+    </>:workspace==='accounts'?<>
       <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>独立管理七个邮箱的连接状态和云端归档，不在网页或 GitHub 中保留明文凭据。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(x=>!x)}><Plus size={15}/> 添加邮箱</button></div>
       {showAdd&&<div className="am-form-panel"><strong>添加邮箱账户</strong><div className="am-add-form">
         <label>邮箱地址<input type="email" placeholder="name@stu.xju.edu.cn" value={newAddress} onChange={e=>setNewAddress(e.target.value)} autoComplete="email"/></label>
