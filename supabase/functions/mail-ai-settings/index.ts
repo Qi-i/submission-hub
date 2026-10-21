@@ -60,12 +60,20 @@ Deno.serve(async req=>{
   if(!secret.data)return reply({error:'请先保存 GLM API Key'},422)
   return reply(await modelTest(preset,model,secret.data))
  }
- if(action==='save_endpoint_key'||action==='test_endpoint'){
+ if(action==='save_endpoint_key'||action==='test_endpoint'||action==='delete_endpoint'){
   const id=String(body.endpoint_id||'')
   if(!/^[a-f0-9-]{36}$/i.test(id))return reply({error:'模型服务编号无效'},422)
   const lookup=await db.from('mail_ai_endpoints').select('*').eq('id',id).eq('user_id',userId).maybeSingle()
   if(lookup.error||!lookup.data)return reply({error:'找不到当前用户的模型接口'},404)
   const endpoint=lookup.data
+  if(action==='delete_endpoint'){
+   const affected=await db.from('mail_preferences').select('ai_endpoint_id').eq('user_id',userId).maybeSingle()
+   if(affected.data?.ai_endpoint_id===id)await db.from('mail_preferences').update({ai_endpoint_id:null,ai_enabled:false,ai_allow_paid:false}).eq('user_id',userId)
+   const removed=await db.rpc('mail_destroy_endpoint_secret',{p_endpoint_id:id})
+   if(removed.error)return reply({error:'无法清理加密凭据'},500)
+   const deleted=await db.from('mail_ai_endpoints').delete().eq('id',id).eq('user_id',userId)
+   return deleted.error?reply({error:'删除接口失败'},500):reply({ok:true})
+  }
   try{await verifyUrl(endpoint.api_url)}catch(e){return reply({error:e instanceof Error?e.message:'接口地址不安全'},422)}
   if(action==='save_endpoint_key'){
    const secret=String(body.api_key||'').trim()
