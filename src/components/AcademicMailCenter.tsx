@@ -1,29 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { Mail, Search, RefreshCw, Plus, KeyRound, ShieldCheck, AlertTriangle, Inbox, Link2 } from 'lucide-react'
+import { Mail, Search, RefreshCw, Plus, AlertTriangle, Inbox, Link2 } from 'lucide-react'
 import './AcademicMailCenter.css'
 
 type Account = {
   id: string; address: string; display_name: string; provider: string
   enabled: boolean; last_sync_at: string | null; last_error: string | null
+  cloud_state: string; imap_host: string | null; last_checked_at: string | null
 }
 type Message = {
   id: string; account_id: string; subject: string; sender_name: string | null
   sender_address: string | null; received_at: string | null; first_folder: string
   last_folder: string; body_text: string; snippet: string; category: string
   importance: number; deadline: string | null; paper_id: string | null
-  review_response: string | null; archived_locally: boolean
+  review_response: string | null; archived_locally: boolean; cloud_archive_path: string | null
   extraction: Record<string, unknown> | null
 }
 type PaperOption = {id: string; title: string; journal: string | null; manuscript_no: string | null}
-type CollectorKey = {id: string; label: string; created_at: string; revoked_at: string | null}
 const labels: Record<string,string> = {
   all:'全部分类',review_invite:'审稿邀请',submission_update:'投稿进展',
   editorial:'学术往来',suspicious:'疑似风险',other:'其他邮件',
 }
 const niceTime = (date: string | null) => date ? new Date(date).toLocaleString('zh-CN',{hour12:false}) : '未知时间'
-const hex = (array: Uint8Array) => Array.from(array).map(b=>b.toString(16).padStart(2,'0')).join('')
-const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mail-ingest`
+const functionBase = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
 
 export default function AcademicMailCenter({userId}:{userId:string}) {
   const [accounts,setAccounts]=useState<Account[]>([])
@@ -31,7 +30,6 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
   const [matchCount,setMatchCount]=useState(0)
   const [delayedSearch,setDelayedSearch]=useState('')
   const [papers,setPapers]=useState<PaperOption[]>([])
-  const [keys,setKeys]=useState<CollectorKey[]>([])
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [category,setCategory]=useState('all')
@@ -42,8 +40,9 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
   const [address,setAddress]=useState('')
   const [provider,setProvider]=useState('coremail')
   const [busy,setBusy]=useState(false)
-  const [newToken,setNewToken]=useState('')
-  const [keyLabel,setKeyLabel]=useState('本地 IMAP 采集器')
+  const [setupId,setSetupId]=useState<string | null>(null)
+  const [imapHost,setImapHost]=useState('')
+  const [appPassword,setAppPassword]=useState('')
 
   useEffect(()=>{const timer=window.setTimeout(()=>setDelayedSearch(search),300);return ()=>window.clearTimeout(timer)},[search])
   const load = useCallback(async () => {
@@ -53,13 +52,12 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
     if(accountId!=='all') messagesQuery=messagesQuery.eq('account_id',accountId)
     const sanitized=delayedSearch.trim().replace(/[^\p{L}\p{N}\s.-]/gu,' ').slice(0,90).trim()
     if(sanitized) messagesQuery=messagesQuery.or(`subject.ilike.%${sanitized}%,sender_address.ilike.%${sanitized}%,body_text.ilike.%${sanitized}%`)
-    const [accountRes,messageRes,paperRes,keyRes]=await Promise.all([
+    const [accountRes,messageRes,paperRes]=await Promise.all([
       (supabase.from('mail_accounts') as any).select('*').eq('user_id',userId).order('created_at',{ascending:true}),
       messagesQuery,
       (supabase.from('papers') as any).select('id,title,journal,manuscript_no').eq('user_id',userId).order('updated_at',{ascending:false}),
-      (supabase.from('mail_collector_keys') as any).select('id,label,created_at,revoked_at').eq('user_id',userId).order('created_at',{ascending:false}),
     ])
-    const failure=[accountRes,messageRes,paperRes,keyRes].find(result=>result.error)
+    const failure=[accountRes,messageRes,paperRes].find(result=>result.error)
     if (failure?.error) setError(failure.error.message)
     else {
       setError('')
@@ -67,7 +65,6 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
       setMessages(messageRes.data||[])
       setMatchCount(messageRes.count||0)
       setPapers(paperRes.data||[])
-      setKeys(keyRes.data||[])
     }
     setLoading(false)
   },[userId,category,accountId,delayedSearch])
@@ -109,35 +106,41 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
     if(err) setError(err.message)
     else {setAdding(false);setAddress('');await load()}
   }
-  const generateToken=async ()=>{
+  const userCall=async(path:string,payload:Record<string,unknown>)=>{
+    const {data:{session},error:authError}=await supabase.auth.getSession()
+    if(authError||!session?.access_token)throw new Error('请先登录')
+    const result=await fetch(`${functionBase}/${path}`,{
+      method:'POST',headers:{'Authorization':`Bearer ${session.access_token}`,'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    })
+    const json=await result.json()
+    if(!result.ok||json.error)throw new Error(json.detail||json.error||'云端请求失败')
+    return json
+  }
+  const configure=async()=>{
+    if(!setupId)return
     setBusy(true)
-    try {
-      const bytes=new Uint8Array(32)
-      crypto.getRandomValues(bytes)
-      const token=hex(bytes)
-      const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)))
-      const {error:err}=await (supabase.from('mail_collector_keys') as any).insert({
-        user_id:userId,label:keyLabel.trim()||'本地 IMAP 采集器',token_hash:hex(digest)
-      })
-      if(err) throw err
-      setNewToken(token)
+    try{
+      await userCall('mail-config',{action:'configure',account_id:setupId,host:imapHost,password:appPassword})
+      setAppPassword('');setSetupId(null);setImapHost('')
       await load()
-    } catch(e){setError(e instanceof Error?e.message:String(e))}
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(false)}
   }
-  const revokeToken=async(id:string)=>{
-    if(!confirm('撤销后采集程序将无法继续写入。确认撤销？'))return
+  const manualSync=async(id:string)=>{
     setBusy(true)
-    const {error:err}=await (supabase.from('mail_collector_keys') as any).update({revoked_at:new Date().toISOString()}).eq('id',id).eq('user_id',userId)
-    setBusy(false)
-    if(err)setError(err.message)
-    else await load()
+    try{
+      const result=await userCall('mail-cloud-collector',{account_id:id})
+      if(result.detail)throw new Error(result.detail)
+      await load()
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(false)}
   }
 
   return <main className="academic-mail-center">
     <div className="mail-heading">
       <div><span className="mail-eyebrow">ACADEMIC MAIL INTELLIGENCE</span><h2><Mail size={21}/> 学术邮件与审稿管理</h2>
-        <p>七邮箱统一索引、垃圾邮件保全、审稿邀请识别与投稿关联。每分钟刷新索引。</p></div>
+        <p>云端 IMAP 归档、垃圾邮件保全、审稿邀请识别与投稿关联。每分钟刷新索引。</p></div>
       <button className="btn btn-ghost btn-sm" onClick={()=>void load()} title="刷新邮件索引"><RefreshCw size={15}/> 刷新</button>
     </div>
     {error&&<div role="alert" className="mail-error"><AlertTriangle size={16}/>{error}<button onClick={()=>setError('')}>关闭</button></div>}
@@ -159,23 +162,36 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
       </div>}
       <div className="mail-account-grid">
         {accounts.map(a=><div key={a.id} className="mail-account">
-          <strong>{a.display_name||a.address}</strong><small>{a.provider.toUpperCase()} · {a.last_sync_at?'上次同步 '+niceTime(a.last_sync_at):'尚未接入采集器'}</small>
+          <strong>{a.display_name||a.address}</strong>
+          <small>{a.provider.toUpperCase()} · {a.last_sync_at?'上次成功 '+niceTime(a.last_sync_at):'尚未同步'} </small>
+          <small>{a.cloud_state==='ready'?'云端采集已启用':a.cloud_state==='error'?'采集异常':'尚未完成云端授权'}</small>
           {a.last_error&&<small className="mail-warning">{a.last_error}</small>}
-          <button className="mail-copy-id" title="复制给采集器使用" onClick={()=>void navigator.clipboard.writeText(a.id)}>复制账户 ID</button>
+          {['coremail','qq','126'].includes(a.provider)?<div className="mail-add">
+            <button className="btn btn-ghost btn-sm" onClick={()=>{
+              setSetupId(a.id);setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':''));
+              setAppPassword('')
+            }}>配置云端 IMAP</button>
+            {a.cloud_state==='ready'||a.cloud_state==='error'?<button className="btn btn-ghost btn-sm" disabled={busy}
+              onClick={()=>void manualSync(a.id)}>立即检查</button>:null}
+          </div>:<small>Google / Outlook 需独立 OAuth2 授权，尚未启用自动采集。</small>}
         </div>)}
-        {!accounts.length&&<p className="mail-empty">尚未添加邮箱。添加记录后，在本地采集器配置 IMAP 凭据。</p>}
+        {!accounts.length&&<p className="mail-empty">添加邮箱后即可配置云端采集，无需电脑运行。</p>}
       </div>
+      {setupId&&<div className="mail-cloud-config">
+        <strong>云端邮箱授权（TLS 993）</strong>
+        <p>仅支持对应学校、126 或 QQ 的官方 IMAP 服务器。凭据经 HTTPS 传送后由 Supabase Vault 加密保存，不写入网页或仓库。</p>
+        <div className="mail-add">
+          <input aria-label="IMAP服务器" autoComplete="off" placeholder="学校官方 IMAP 服务器" value={imapHost} onChange={e=>setImapHost(e.target.value)}/>
+          <input type="password" aria-label="邮箱 IMAP 授权码或客户端密码" autoComplete="new-password" placeholder="IMAP 授权码／客户端密码"
+            value={appPassword} onChange={e=>setAppPassword(e.target.value)}/>
+          <button className="btn btn-primary btn-sm" disabled={busy||!appPassword||!imapHost} onClick={()=>void configure()}>保存并启用</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{setSetupId(null);setAppPassword('')}}>取消</button>
+        </div>
+      </div>}
     </div>
     <div className="mail-credentials">
-      <div className="mail-section-head"><h3><KeyRound size={16}/> 采集器授权</h3></div>
-      <p>仅生成写入邮件索引的独立令牌；不存储邮箱密码。生成后只显示一次，妥善保存在本机。</p>
-      <div className="mail-add"><input aria-label="令牌名称" value={keyLabel} onChange={e=>setKeyLabel(e.target.value)}/>
-        <button className="btn btn-ghost btn-sm" disabled={busy} onClick={()=>void generateToken()}><ShieldCheck size={14}/> 生成采集令牌</button></div>
-      {newToken&&<div className="mail-token"><code>{newToken}</code><button className="btn btn-ghost btn-sm" onClick={()=>void navigator.clipboard.writeText(newToken)}>复制</button>
-        <button className="btn btn-ghost btn-sm" onClick={()=>setNewToken('')}>已保存，隐藏</button></div>}
-      <small>写入端点：<code>{endpoint}</code></small>
-      {keys.filter(k=>!k.revoked_at).map(k=><div className="mail-key-row" key={k.id}><span>{k.label} · {niceTime(k.created_at)}</span>
-        <button disabled={busy} onClick={()=>void revokeToken(k.id)}>撤销</button></div>)}
+      <div className="mail-section-head"><h3>云端自动归档</h3></div>
+      <p>Supabase 定时任务在云端轮流检查已授权邮箱。原始 EML 保存到私有云存储，自动保留垃圾邮件，不受邮箱服务器后续清理影响。学校邮箱使用前请确认单位的数据管理规定。</p>
     </div>
     <div className="mail-searchbar"><div className="mail-query"><Search size={16}/>
       <input aria-label="搜索邮件" placeholder="检索所有归档邮件的发件人、主题和正文" value={search} onChange={e=>setSearch(e.target.value)}/></div>
@@ -199,7 +215,7 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
           <h3>{active.subject||'（无主题）'}</h3>
           <p className="mail-meta">发件人：{active.sender_name||''} {active.sender_address||''}</p>
           <p className="mail-meta">时间：{niceTime(active.received_at)} · 来源：{accounts.find(a=>a.id===active.account_id)?.address||'未知邮箱'}</p>
-          <p className="mail-meta">文件夹：{active.first_folder} → {active.last_folder} · {active.archived_locally?'原文已保存本地':'未确认原文备份'}</p>
+          <p className="mail-meta">文件夹：{active.first_folder} → {active.last_folder} · {active.cloud_archive_path?'原文已保存私有云':active.archived_locally?'原文已保存本地':'未确认原文备份'}</p>
           {active.deadline&&<p className="mail-warning">需要关注的日期：{active.deadline}</p>}
           <div className="mail-fields"><label><Link2 size={14}/> 关联投稿
             <select value={active.paper_id||''} disabled={busy} onChange={e=>void saveMessage(active.id,{paper_id:e.target.value||null})}>
@@ -216,6 +232,6 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
         </>}
       </div>
     </div>
-    <p className="mail-footnote">一次最多展示300封，检索条件在服务器端应用；上方审稿/重点/垃圾箱计数仅统计当前已加载的邮件。邮件内容仅作为分析线索；不执行邮件中的操作指令，不自动改变投稿状态。原始 EML 应在采集设备独立保存。</p>
+    <p className="mail-footnote">一次最多展示300封，检索条件在服务器端应用；上方审稿/重点/垃圾箱计数仅统计当前已加载的邮件。邮件内容仅作为分析线索；不执行邮件中的操作指令，不自动改变投稿状态。原始 EML 保存于受权限控制的私有云存储。</p>
   </main>
 }
