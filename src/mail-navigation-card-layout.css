@@ -214,3 +214,17 @@ html[data-ui] body .lx-board-stack .paper-card-v3:not(.journal-center-card) > :i
  html[data-ui] body .academic-mail-center .am-workspace{display:block}
  .header-account-dropdown{width:210px}
 }
+
+/* Override historical navigation flex-order mapping in global-navigation-search-enhancements. */
+html[data-ui] body .header-tabs > button[data-main-nav-key='dashboard'] {order:1 !important}
+html[data-ui] body .header-tabs > button[data-main-nav-key='journals'] {order:2 !important}
+html[data-ui] body .header-tabs > button[data-main-nav-key='mail'] {order:3 !important}
+html[data-ui] body .header-tabs > button[data-main-nav-key='preparation'] {order:4 !important}
+html[data-ui] body .header-tabs > button[data-main-nav-key='stats'] {order:5 !important}
+html[data-ui] body .header-tabs > button[data-main-nav-key='admin'] {order:6 !important}
+@media(max-width:1450px){
+ html[data-ui] body .app-header .header-left-cluster{min-width:0 !important;gap:12px !important}
+ html[data-ui] body .app-header .header-brand{min-width:0 !important}
+ html[data-ui] body .app-header .header-tabs {min-width:0 !important;max-width:100%;overflow-x:auto !important;scrollbar-width:none}
+ html[data-ui] body .app-header .header-tabs::-webkit-scrollbar{display:none}
+}
