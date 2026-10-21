@@ -163,7 +163,8 @@ async function scanAccount(admin:any,account:any){
    }
    if(!ids.length)continue
    ids.sort((a,b)=>a-b)
-   const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]||'0'
+   const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]
+   if(!uidv)throw new Error('IMAP server omitted UIDVALIDITY; refusing unsafe incremental cursor')
    const hash=await digest(folder.name)
    const key=hash.slice(0,32)+'-'+uidv
    // Bootstrap near the newest messages so expiring Spam is captured first.
