@@ -38,6 +38,6 @@ Supabase Cron 每 10 分钟依次检查已验证的邮箱。采集使用只读 I
 
 ## 配套实现
 
-数据库迁移 `012` 至 `024`；云端 Edge Functions 包括 `mail-config`、`mail-cloud-collector`、`mail-send`、`mail-ai-settings`、`mail-ai-analyze`；React 页面 `AcademicMailCenter` 和 `MailPersonalization`。检查命令 `npm run verify`，附加的邮箱架构测试为 `npm run check:mail-audit`。
+数据库迁移 `012` 至 `024`；云端 Edge Functions 包括 `mail-config`、`mail-cloud-collector`、`mail-send`、`mail-ai-settings`、`mail-ai-analyze`；React 页面 `AcademicMailCenter` 和 `MailPersonalization`。检查命令 `npm run verify`，新增架构审查已并入现有 `npm run check:mail-center`（独立运行：`node tests/mail-first-principles-contract.mjs`）。
 
 当前在线版保持 `v2.1.0`，此后对邮件模块的修复不会自动创建 GitHub Release 或额外安装包。
