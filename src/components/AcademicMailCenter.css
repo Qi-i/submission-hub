@@ -164,3 +164,10 @@
  .am-account-data{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){.am-stats button{transition:none}}
+
+.am-link-suggestion{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid rgba(65,121,178,.25);border-radius:9px;background:var(--am-selected);margin-top:12px;padding:10px 12px;font-size:11px}
+.am-link-suggestion>div{display:flex;gap:8px;align-items:center;min-width:0;line-height:1.5}
+.am-link-suggestion>div svg{flex:none;color:var(--am-blue)}
+.am-link-suggestion strong{overflow-wrap:anywhere}
+.am-link-suggestion button{flex:none;border:1px solid var(--am-blue);border-radius:7px;background:var(--am-surface);padding:7px 9px;cursor:pointer;color:var(--am-blue);font-size:11px}
+@media(max-width:700px){.am-link-suggestion{align-items:flex-start;flex-direction:column}}
