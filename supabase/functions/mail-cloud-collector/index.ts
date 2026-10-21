@@ -75,7 +75,16 @@ class Imap {
     return {lines,literal}
    }
    const size=/\{(\d+)\}$/.exec(line)
-   if(size&&wantLiteral)literal=await this.bytes(Number(size[1]))
+   if(size){
+    const raw=await this.bytes(Number(size[1]))
+    if(wantLiteral)literal=raw
+    else {
+      if(raw.length>4096)throw new Error('Oversized IMAP folder response')
+      const name=decoder.decode(raw).replace(/[\r\n]/g,' ')
+      lines.push(line.replace(/\{\d+\}$/,'')+'"'+name.replace(/"/g,'\\"')+'"')
+      continue
+    }
+   }
    lines.push(line)
   }
  }
