@@ -28,7 +28,7 @@ type Message = {
   received_at: string | null
   first_folder: string
   last_folder: string
-  body_text: string
+  body_text?: string
   snippet: string
   category: string
   importance: number
@@ -83,6 +83,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [page, setPage] = useState(0)
   const [total, setTotal] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
+  const [activeBody, setActiveBody] = useState('')
+  const [bodyLoading, setBodyLoading] = useState(false)
   const [mobileDetail, setMobileDetail] = useState(false)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -126,7 +128,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,body_text,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,extraction',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,extraction',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
@@ -157,6 +159,21 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   },[loadMetadata,loadMessages])
 
   const active=useMemo(()=>messages.find(m=>m.id===selected)||null,[messages,selected])
+  useEffect(()=>{
+    if(!selected){setActiveBody('');setBodyLoading(false);return}
+    let cancelled=false
+    setActiveBody('')
+    setBodyLoading(true)
+    void (async()=>{
+      const {data,error:detailError}=await (supabase.from('mail_messages') as any)
+        .select('body_text').eq('user_id',userId).eq('id',selected).maybeSingle()
+      if(cancelled)return
+      setBodyLoading(false)
+      if(detailError){setError(detailError.message);return}
+      setActiveBody(data?.body_text||'')
+    })()
+    return ()=>{cancelled=true}
+  },[selected,userId])
   const selectedAccount=useMemo(()=>accounts.find(a=>a.id===active?.account_id),[accounts,active])
   const canGoNext=(page+1)*PAGE_SIZE<total
   const reviewPending=counts.review
@@ -323,7 +340,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               {active.category==='review_invite'&&<label>审稿处理状态<select value={active.review_response||'pending'} disabled={busy==='message'} onChange={e=>void saveMessage({review_response:e.target.value})}>{Object.entries(responseLabels).map(([key,label])=><option value={key} key={key}>{label}</option>)}</select></label>}
               <label><Link2 size={13}/> 关联投稿<select value={active.paper_id||''} disabled={busy==='message'} onChange={e=>void saveMessage({paper_id:e.target.value||null})}><option value="">暂不关联稿件</option>{papers.map(p=><option value={p.id} key={p.id}>{p.title} · {p.journal||p.manuscript_no||'未指定期刊'}</option>)}</select></label>
             </div>
-            <div className="am-reader-content"><div className="am-reader-content-head"><span>邮件正文</span>{active.cloud_archive_path&&<button type="button" disabled={busy==='download'} onClick={()=>void downloadOriginal()}><Download size={14}/> 原始 EML</button>}</div><pre>{active.body_text||active.snippet||'无可读取的正文'}</pre></div>
+            <div className="am-reader-content"><div className="am-reader-content-head"><span>邮件正文</span>{active.cloud_archive_path&&<button type="button" disabled={busy==='download'} onClick={()=>void downloadOriginal()}><Download size={14}/> 原始 EML</button>}</div><pre>{bodyLoading?'正在读取邮件正文…':activeBody||active.snippet||'无可读取的正文'}</pre></div>
           </>}
         </article>
       </section>
