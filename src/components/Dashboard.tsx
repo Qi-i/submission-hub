@@ -355,7 +355,6 @@ export default function Dashboard() {
               <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
               {!isDemo && <button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入完整备份"><Upload size={14} /> 导入</button>}
               {!isDemo && <button className="btn btn-ghost btn-sm" onClick={() => void handleExport()} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>}
-}
             </div>
             {!isDemo && tab === 'dashboard' && <button className="btn btn-primary btn-sm lx-new-paper" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}
             {user && <div className="header-user-menu" ref={userMenuRef}>
