@@ -39,7 +39,7 @@ Deno.serve(async req=>{
     .select('id,user_id,subject,sender_address,body_text,received_at,ai_state')
     .eq('user_id',pref.user_id).eq('ai_state','pending')
     .order('first_saved_at',{ascending:true}).limit(4)
-  if(!pref.ai_analyze_existing)mquery=mquery.gte('first_saved_at',pref.updated_at)
+  if(!pref.ai_analyze_existing){if(!pref.ai_started_at)continue;mquery=mquery.gte('first_saved_at',pref.ai_started_at)}
   const result=await mquery
   if(result.error)continue
   for(const m of result.data||[]){
