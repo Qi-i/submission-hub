@@ -145,11 +145,14 @@ async function scanAccount(admin:any,account:any){
    const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]||'0'
    const hash=await digest(folder.name)
    const key=hash.slice(0,32)+'-'+uidv
-   const cursor:any=byName.get(key)||{recent_uid:0,backfill_before:null}
+   // Bootstrap near the newest messages so expiring Spam is captured first.
+   // Then catch up monotonically, without skipping bursts larger than one batch.
+   const stored:any=byName.get(key)
+   const bootstrap=ids[Math.max(0,ids.length-13)]-1
+   const cursor:any=stored||{recent_uid:bootstrap,backfill_before:bootstrap+1}
    const recent=Number(cursor.recent_uid||0)
    const bound=cursor.backfill_before===null?Infinity:Number(cursor.backfill_before)
-   const max=ids[ids.length-1]
-   const newUids=ids.filter(v=>v>recent).reverse().slice(0,Math.min(4,MAX_FOLDER))
+   const newUids=ids.filter(v=>v>recent).slice(0,Math.min(4,MAX_FOLDER))
    const selected=new Set(newUids)
    const oldUids=ids.filter(v=>v<bound&&!selected.has(v)).reverse().slice(0,MAX_FOLDER-newUids.length)
    const candidates=[...newUids,...oldUids].slice(0,Math.min(MAX_FOLDER,MAX_PER_RUN-processed))
