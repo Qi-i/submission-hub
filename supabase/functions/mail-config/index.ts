@@ -70,7 +70,7 @@ Deno.serve(async req=>{
   const old=await db.rpc('mail_read_cloud_secret',{p_account_id:id})
   if(!pwd&&!old.data)return answer({error:'请填写客户端授权码'},422)
   if(pwd){const stored=await db.rpc('mail_save_cloud_secret',{p_account_id:id,p_secret:pwd});if(stored.error)return answer({error:'加密保存授权失败'},500)}
-  const update=await db.from('mail_accounts').update({imap_host:host,imap_port:imapPort,imap_security:imapSecurity,imap_username:String(body.imap_username||a.address).trim().slice(0,320),smtp_host:smtp||null,smtp_port:smtpPort,smtp_security:smtpSecurity,smtp_username:String(body.smtp_username||a.address).trim().slice(0,320),cloud_state:'ready',enabled:true,last_error:null}).eq('id',id).eq('user_id',auth.data.user.id)
+  const update=await db.from('mail_accounts').update({imap_host:host,imap_port:imapPort,imap_security:imapSecurity,imap_username:String(body.imap_username||a.address).trim().slice(0,320),smtp_host:smtp||null,smtp_port:smtpPort,smtp_security:smtpSecurity,smtp_username:String(body.smtp_username||a.address).trim().slice(0,320),cloud_state:'not_configured',enabled:true,last_error:null}).eq('id',id).eq('user_id',auth.data.user.id)
   return update.error?answer({error:'保存失败'},500):answer({ok:true,message:'配置已保存，请运行登录测试'})
  }
  if(body.action==='test'){
@@ -81,7 +81,13 @@ Deno.serve(async req=>{
    try{await verify(host,Number(kind==='imap'?a.imap_port:a.smtp_port),kind==='imap'?a.imap_security||'ssl':a.smtp_security||'ssl',kind,kind==='imap'?a.imap_username||a.address:a.smtp_username||a.address,secret.data);results[kind]={ok:true,message:'TLS 连接及身份验证通过'+(kind==='smtp'?'（未实际发送邮件）':'')}}
    catch(e){results[kind]={ok:false,message:e instanceof Error?e.message:'连接失败'}}
   }
-  return answer({ok:!!(results.imap as any)?.ok,results})
+  const ok=!!(results.imap as any)?.ok
+  await db.from('mail_accounts').update({
+   cloud_state:ok?'ready':'not_configured',
+   last_error:ok?null:String((results.imap as any)?.message||'IMAP 尚未通过安全登录测试').slice(0,160),
+   last_checked_at:new Date().toISOString()
+  }).eq('id',id).eq('user_id',auth.data.user.id)
+  return answer({ok,results})
  }
  if(body.action==='disable'){const r=await db.from('mail_accounts').update({enabled:false}).eq('id',id).eq('user_id',auth.data.user.id);return r.error?answer({error:'暂停失败'},500):answer({ok:true})}
  return answer({error:'不支持的操作'},400)
