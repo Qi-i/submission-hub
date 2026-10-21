@@ -38,13 +38,16 @@ Deno.serve(async req=>{
     if(!['coremail','qq','126'].includes(account.provider))
       return response({error:'Gmail/Outlook require OAuth2; app-password setup is disabled.'},422,origin)
     const host=String(body.host||'').trim().toLowerCase()
+    const smtpHost=String(body.smtp_host||'').trim().toLowerCase()
+    if(smtpHost && !allowedHost(smtpHost,account.provider))
+      return response({error:'SMTP host is not approved for this provider'},422,origin)
     const password=String(body.password||'')
     if(!allowedHost(host,account.provider))return response({error:'IMAP host is not approved for this provider'},422,origin)
     if(password.length<4||password.length>4096)return response({error:'Missing app password or IMAP authorization code'},422,origin)
     const saved=await admin.rpc('mail_save_cloud_secret',{p_account_id:id,p_secret:password})
     if(saved.error)return response({error:'Credential storage failed'},500,origin)
     const updated=await admin.from('mail_accounts').update({
-      imap_host:host,imap_port:993,auth_kind:'password',
+      imap_host:host,imap_port:993,smtp_host:smtpHost||null,smtp_port:465,auth_kind:'password',
       cloud_state:'ready',last_error:null,enabled:true
     }).eq('id',id).eq('user_id',userId)
     if(updated.error)return response({error:'Mailbox settings failed'},500,origin)
