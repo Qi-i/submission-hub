@@ -64,7 +64,7 @@ const responseLabels: Record<string,string> = {
 const providerLabels: Record<string,string> = {
   other: '自定义 IMAP / SMTP',
   coremail: 'Coremail', qq: 'QQ 邮箱', '126': '126 邮箱',
-  gmail: 'Gmail', outlook: 'Outlook', other: '其他 IMAP',
+  gmail: 'Gmail', outlook: 'Outlook',
 }
 const niceDate = (date?: string | null) => date
   ? new Date(date).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
