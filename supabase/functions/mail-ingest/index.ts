@@ -57,6 +57,13 @@ Deno.serve(async (req: Request) => {
   })
   if (entries.some(m=>!m.remote_key)) return json({error:'Missing remote_key'},400)
   if (entries.length) {
+    // Keep the first observed folder even after a message moves out of Spam/Junk.
+    const {data:existing,error:readError}=await admin.from('mail_messages')
+      .select('remote_key,first_folder').eq('account_id',account.id)
+      .in('remote_key',entries.map(m=>m.remote_key))
+    if(readError) return json({error:'Archive lookup failed'},500)
+    const firstFolders=new Map((existing||[]).map(m=>[m.remote_key,m.first_folder]))
+    for(const m of entries) m.first_folder=firstFolders.get(m.remote_key)||m.first_folder
     const {error}=await admin.from('mail_messages').upsert(entries,{onConflict:'account_id,remote_key'})
     if (error) return json({error:'Write failed',detail:error.message},500)
   }
