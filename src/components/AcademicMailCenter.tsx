@@ -362,7 +362,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           <span className="am-state-dot"/>{cloudReady?cloudReady+' 个邮箱采集中':'等待邮箱授权'}
         </span>
         <button type="button" className="am-icon-button" onClick={()=>void refresh()} title="刷新数据" aria-label="刷新数据"><RefreshCw size={17}/></button>
-        <button type="button" className="am-main-button" onClick={goToAccounts}><Settings2 size={15}/> 邮箱管理</button>
+        <button type="button" className="am-main-button" onClick={()=>compose(false)}><Plus size={15}/> 写邮件</button>
+        <button type="button" className="am-quiet-button" onClick={goToAccounts}><Settings2 size={15}/> 邮箱管理</button>
       </div>
     </header>
 
@@ -441,7 +442,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               {active.category==='review_invite'&&<label>审稿处理状态<select value={active.review_response||'pending'} disabled={busy==='message'} onChange={e=>void saveMessage({review_response:e.target.value})}>{Object.entries(responseLabels).map(([key,label])=><option value={key} key={key}>{label}</option>)}</select></label>}
               <label><Link2 size={13}/> 关联投稿<select value={active.paper_id||''} disabled={busy==='message'} onChange={e=>void saveMessage({paper_id:e.target.value||null})}><option value="">暂不关联稿件</option>{papers.map(p=><option value={p.id} key={p.id}>{p.title} · {p.journal||p.manuscript_no||'未指定期刊'}</option>)}</select></label>
             </div>
-            <div className="am-reader-content"><div className="am-reader-content-head"><span>邮件正文</span>{active.cloud_archive_path&&<button type="button" disabled={busy==='download'} onClick={()=>void downloadOriginal()}><Download size={14}/> 原始 EML</button>}</div><pre>{bodyLoading?'正在读取邮件正文…':activeBody||active.snippet||'无可读取的正文'}</pre></div>
+            <div className="am-reader-content"><div className="am-reader-content-head"><span>邮件正文</span>
+              <button type="button" disabled={!active.sender_address} onClick={()=>compose(true)}>回复</button>{active.cloud_archive_path&&<button type="button" disabled={busy==='download'} onClick={()=>void downloadOriginal()}><Download size={14}/> 原始 EML</button>}</div><pre>{bodyLoading?'正在读取邮件正文…':activeBody||active.snippet||'无可读取的正文'}</pre></div>
           </>}
         </article>
       </section>
@@ -467,6 +469,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           {setupId===a.id&&<div className="am-form-panel am-config-form">
             <strong>配置安全云端连接</strong><p>仅在此处填写授权码；将通过 HTTPS 写入 Supabase Vault。学校邮箱应填写官方 IMAP 主机，端口固定为 TLS 993。</p>
             <div className="am-add-form"><label>IMAP 服务器<input value={imapHost} onChange={e=>setImapHost(e.target.value)} placeholder="官方 IMAP 主机" autoComplete="off"/></label>
+              <label>SMTP 服务器（用于发信，465 / TLS）<input value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} placeholder="如 smtp.qq.com"/></label>
               <label>客户端授权码 / 专用密码<input type="password" value={appPassword} onChange={e=>setAppPassword(e.target.value)} autoComplete="new-password" placeholder="请勿使用其他账号的授权码"/></label>
               <button type="button" className="am-main-button" disabled={busy!==null||!imapHost||!appPassword} onClick={()=>void saveConfiguration()}>加密保存</button><button type="button" className="am-quiet-button" onClick={()=>{setSetupId(null);setAppPassword('')}}>取消</button>
             </div>
@@ -475,6 +478,22 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       </div>
       <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>定时采集不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
     </>:<MailPersonalization settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey}/>}
+    {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
+      <div className="am-compose">
+        <header><strong>撰写邮件</strong><button type="button" onClick={()=>setShowCompose(false)} aria-label="关闭"><X size={17}/></button></header>
+        <label>发件邮箱<select value={composeAccount} onChange={e=>setComposeAccount(e.target.value)}>
+          <option value="">请选择已配置 SMTP 的邮箱</option>
+          {accounts.filter(a=>a.smtp_host&&a.enabled).map(a=><option value={a.id} key={a.id}>{a.address}</option>)}
+        </select></label>
+        <label>收件人<input type="email" value={composeTo} onChange={e=>setComposeTo(e.target.value)} placeholder="person@example.com"/></label>
+        <label>主题<input value={composeSubject} onChange={e=>setComposeSubject(e.target.value)} placeholder="邮件主题"/></label>
+        <label>正文<textarea rows={11} value={composeBody} onChange={e=>setComposeBody(e.target.value)} placeholder="输入纯文本邮件…"/></label>
+        <footer><span>使用 SSL/TLS SMTP 发出；发送前需确认。</span>
+          <button type="button" className="am-quiet-button" onClick={()=>setShowCompose(false)}>取消</button>
+          <button type="button" className="am-main-button" disabled={!composeAccount||!composeTo.trim()||!composeSubject.trim()||!composeBody.trim()||busy!==null} onClick={()=>void sendMail()}>{busy==='send'?'发送中…':'确认并发送'}</button>
+        </footer>
+      </div>
+    </div>}
     <footer className="am-footer"><Archive size={13}/> 邮件正文只作为不可信资料处理，不执行其中的操作指令；识别结果不会自动改写投稿状态。</footer>
   </main>
 }
