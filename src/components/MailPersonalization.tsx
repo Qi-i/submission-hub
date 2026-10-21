@@ -88,7 +88,7 @@ export default function MailPersonalization({settings,busy,onUpdate,onSaveKey}:P
     </select></label>
    </div>
    <label className="am-option"><input type="checkbox" checked={!!settings?.ai_enabled}
-     disabled={!settings?.ai_key_ready||busy} onChange={e=>void onUpdate({ai_enabled:e.target.checked})}/>
+     disabled={!settings?.ai_key_ready||busy} onChange={e=>void onUpdate({ai_enabled:e.target.checked,...(e.target.checked?{ai_started_at:new Date().toISOString()}: {})})}/>
       开启自动分析（默认关闭，需主动授权）</label>
    <label className="am-option"><input type="checkbox" checked={!!settings?.ai_analyze_existing}
      disabled={busy} onChange={e=>void onUpdate({ai_analyze_existing:e.target.checked})}/>
