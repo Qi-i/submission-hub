@@ -282,29 +282,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
-  const savePref=async(changes:Partial<MailPref>)=>{
-    setBusy('pref')
-    try{
-      const next={...pref,...changes,user_id:userId}
-      const {error:err}=await (supabase.from('mail_preferences') as any).upsert(next,{onConflict:'user_id'})
-      if(err)throw err
-      setPref(next as MailPref)
-      setNotice('设置已保存；界面立即生效，无需重新部署')
-    }catch(e){setError(e instanceof Error?e.message:String(e))}
-    finally{setBusy(null)}
-  }
-  const saveViews=async(views:SavedView[])=>void savePref({workspace:{...(pref?.workspace||{}),views}})
-  const setAIKey=async()=>{
-    if(!aiApiKey.trim())return
-    setBusy('aikey')
-    try{
-      await callFunction('mail-ai-settings',{action:'save_key',api_key:aiApiKey.trim()})
-      setAiApiKey('')
-      setNotice('API Key 已加密保存；还需主动开启自动分析')
-      await loadMetadata()
-    }catch(e){setError(e instanceof Error?e.message:String(e))}
-    finally{setBusy(null)}
-  }
     const savePref=async(change:Partial<MailSettings>):Promise<void>=>{
     setBusy('pref')
     try{
