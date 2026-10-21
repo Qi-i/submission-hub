@@ -234,3 +234,22 @@
 .am-test-results span{font-size:11px;overflow-wrap:anywhere}
 @media(max-width:850px){.am-server-grid{grid-template-columns:1fr}}
 @media(max-width:500px){.am-test-results{grid-template-columns:1fr}}
+
+/* Runtime-configured model endpoints and prompt editor share the same input system. */
+.am-choice-label{display:flex;flex-direction:column;gap:7px;margin:12px 0;font-size:11px;color:var(--am-muted)}
+.am-choice-label select,.am-choice-label textarea{width:100%;min-width:0;max-width:100%;background:var(--am-surface);color:var(--am-ink);border:1px solid var(--am-line);border-radius:8px;padding:10px 11px;font-size:12px;line-height:1.6}
+.am-choice-label textarea{resize:vertical;min-height:110px;font-family:inherit}
+.am-model-preset,.am-model-editor{border:1px solid var(--am-line);border-radius:10px;background:var(--am-soft);padding:13px;margin:12px 0}
+.am-model-preset strong,.am-model-editor strong,.am-section-heading strong{font-size:12px}
+.am-model-preset small{display:block;color:var(--am-muted);font-size:10px;margin-top:8px}
+.am-model-editor .am-full-field{flex-basis:100%}
+.am-endpoint-list{margin:16px 0 12px}
+.am-section-heading span{color:var(--am-muted);font-size:11px}
+.am-endpoint-row{display:flex;align-items:center;gap:8px;border-top:1px solid var(--am-line);padding:12px 0}
+.am-endpoint-row>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.am-endpoint-row strong{font-size:12px;color:var(--am-ink)}
+.am-endpoint-row small{font-size:10px;color:var(--am-muted);overflow-wrap:anywhere}
+.am-endpoint-row button{flex:none;display:flex;align-items:center;justify-content:center;border:1px solid var(--am-line);background:var(--am-surface);border-radius:7px;padding:7px 9px;color:var(--am-ink);cursor:pointer;font-size:11px;min-height:30px}
+.am-endpoint-row button:hover{border-color:var(--am-blue)}
+.am-model-editor .am-add-form label{min-width:180px}
+@media(max-width:700px){.am-endpoint-row{flex-wrap:wrap}.am-endpoint-row>div{flex-basis:100%}}
