@@ -266,6 +266,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     try{
       const data=await callFunction('mail-config',{action:'test',account_id:id})
       setConnectionResults(data.results||{})
+      await loadMetadata()
       const entries=Object.entries(data.results||{}) as [string,{ok:boolean;message:string}][]
       setNotice(entries.length?entries.map(([kind,result])=>kind.toUpperCase()+': '+(result.ok?'验证成功':'验证失败')).join('，'):'尚未保存服务器配置')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
