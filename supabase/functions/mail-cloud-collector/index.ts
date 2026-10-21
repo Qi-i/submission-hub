@@ -121,8 +121,8 @@ async function scanAccount(admin:any,account:any){
   const banner=await imap.line()
   if(!/^\* OK/i.test(banner))throw new Error('IMAP greeting unavailable')
   if(account.auth_kind==='xoauth2'){
-   const auth=encoder.encode('\x00'+account.address+'\x00'+secretRes.data)
-   await imap.cmd('AUTHENTICATE XOAUTH2 '+btoa('user='+account.address+'\\x01auth=Bearer '+secretRes.data+'\\x01\\x01'))
+
+   await imap.cmd('AUTHENTICATE XOAUTH2 '+btoa('user='+account.address+String.fromCharCode(1)+'auth=Bearer '+secretRes.data+String.fromCharCode(1,1)))
   }else await imap.cmd('LOGIN '+imapString(account.address)+' '+imapString(secretRes.data))
   const directory=await folders(imap)
   const state=await admin.rpc('mail_get_scan_state',{p_account_id:account.id})
@@ -142,7 +142,7 @@ async function scanAccount(admin:any,account:any){
    }
    if(!ids.length)continue
    ids.sort((a,b)=>a-b)
-   const uidv=/UIDVALIDITY\s+(\d+)/i.exec((await imap.cmd('NOOP')).lines.join(' '))?.[1]||'0'
+   const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]||'0'
    const hash=await digest(folder.name)
    const key=hash.slice(0,32)+'-'+uidv
    const cursor:any=byName.get(key)||{recent_uid:0,backfill_before:null}
