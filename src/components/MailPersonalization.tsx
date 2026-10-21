@@ -5,7 +5,7 @@ export type MailViewKind='all'|'important'|'review_invite'|'pending'|'submission
 export type MailView={id:string;title:string;kind:MailViewKind}
 export type MailSettings={
  user_id:string;workspace:{compact?:boolean;show_statistics?:boolean;views?:MailView[]};
- ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;
+ ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;ai_started_at?:string|null;
  ai_key_ready:boolean;last_ai_error:string|null
 }
 export const DEFAULT_MAIL_VIEWS:MailView[]=[
