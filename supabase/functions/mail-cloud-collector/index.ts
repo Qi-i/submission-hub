@@ -141,8 +141,9 @@ async function scanAccount(admin:any,account:any){
   const byName=new Map((state.data||[]).map((s:any)=>[s.folder_key,s]))
   for(const folder of directory){
    if(processed>=MAX_PER_RUN||Date.now()-now>TIME_BUDGET_MS)break
+   let examined: {lines:string[];literal:Uint8Array|null}
    try{
-    const examined=await imap.cmd('EXAMINE '+imapString(folder.name))
+    examined=await imap.cmd('EXAMINE '+imapString(folder.name))
    }catch{continue}
    const status=await imap.cmd('UID SEARCH ALL')
    const ids:number[]=[]
