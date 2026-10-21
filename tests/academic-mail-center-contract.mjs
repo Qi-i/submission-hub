@@ -12,7 +12,7 @@ const dashboard=file('src/components/Dashboard.tsx')
 for(const required of [
   "'inbox' | 'accounts'", "PAGE_SIZE = 40", "loadMetadata", "loadMessages",
   "debouncedSearch", "activeBody", "select('body_text')", "pending",
-  "review_response", "cloud_archive_path", "createSignedUrl",
+  "review_response", "cloud_archive_path", "createSignedUrl", "suggestedPaper",
   "mail-config", "mail-cloud-collector",
 ])assert.ok(ui.includes(required),'missing mail UI contract: '+required)
 assert.ok(ui.includes("setSelected(current=>"),'selection should survive background refresh')
@@ -24,7 +24,7 @@ for(const required of ['.am-workspace','.am-reader','.am-account-card','@media(m
 assert.ok(dashboard.includes("dashboardPanel === 'mail'"),'dashboard route missing')
 for(const required of [
   "Deno.connectTls", "EXAMINE ", "BODY.PEEK[]", "UIDVALIDITY", "UID SEARCH ALL",
-  "mail-originals", "cloud_archive_path", "decodeModifiedUtf7",
+  "mail-originals", "cloud_archive_path", "decodeModifiedUtf7", "extractDeadline",
   "mail_check_cron_token", "mail_read_cloud_secret"
 ])assert.ok(scanner.includes(required),'missing cloud archiver contract: '+required)
 assert.ok(!scanner.includes("imap.cmd('STORE"),'mail collector cannot mutate server mail flags')
