@@ -32,7 +32,8 @@
     "check:preparation-unified": "node tests/preparation-unified-contract.mjs",
     "check:workspace-recovery": "node tests/workspace-recovery-contract.mjs",
     "check:online-only": "node tests/online-only-contract.mjs",
-    "verify": "npm run check:release && npm run check:privacy && npm run check:figure-studio && npm run check:preparation-unified && npm run check:workspace-recovery && npm run check:online-only && node tests/journal-auto-catalog-check.mjs && npm run check:journal-selection && npm run check:journal-rank-display && node tests/visual/document-storage-check.mjs && npm run build",
+    "check:mail-center": "node tests/academic-mail-center-contract.mjs",
+    "verify": "npm run check:release && npm run check:privacy && npm run check:figure-studio && npm run check:preparation-unified && npm run check:workspace-recovery && npm run check:online-only && npm run check:mail-center && node tests/journal-auto-catalog-check.mjs && npm run check:journal-selection && npm run check:journal-rank-display && node tests/visual/document-storage-check.mjs && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
