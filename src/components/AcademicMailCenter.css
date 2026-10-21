@@ -200,3 +200,14 @@
 .am-option input{accent-color:var(--am-blue);width:15px;height:15px}
 .am-disclaimer{padding:10px 12px;background:var(--am-soft);border-radius:8px;margin:12px 0 0!important}
 @media(max-width:700px){.am-personal-section{padding:13px}.am-view-row{flex-wrap:wrap}.am-view-row span{min-width:70px}.am-dynamic-views{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.am-compose-backdrop{position:fixed;inset:0;z-index:2000;background:rgba(14,27,43,.48);display:flex;align-items:center;justify-content:center;padding:18px}
+.am-compose{max-width:650px;width:100%;max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:12px;padding:20px;background:var(--am-surface);border-radius:13px;box-shadow:0 20px 75px rgba(0,0,0,.2);border:1px solid var(--am-line)}
+.am-compose>header{display:flex;justify-content:space-between;align-items:center;font-size:16px;border-bottom:1px solid var(--am-line);padding-bottom:13px}
+.am-compose>header button{border:0;background:transparent;color:var(--am-muted);cursor:pointer}
+.am-compose>label{font-size:12px;color:var(--am-muted);display:flex;flex-direction:column;gap:5px}
+.am-compose input,.am-compose select,.am-compose textarea{background:var(--am-surface);color:var(--am-ink);border:1px solid var(--am-line);border-radius:7px;padding:9px 11px;width:100%;font-size:12px}
+.am-compose textarea{font-family:inherit;resize:vertical;min-height:160px}
+.am-compose>footer{display:flex;align-items:center;justify-content:flex-end;gap:9px}
+.am-compose>footer span{flex:1;color:var(--am-muted);font-size:11px}
+@media(max-width:700px){.am-compose{padding:14px}.am-compose>footer{flex-wrap:wrap}.am-compose>footer span{flex-basis:100%}}
