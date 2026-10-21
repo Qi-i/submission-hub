@@ -200,10 +200,16 @@ async function scanAccount(admin:any,account:any){
   return {processed,checkedFolders:directory.length}
  }finally{try{conn.close()}catch{}}
 }
-const apiResponse=(data:unknown,status=200)=>new Response(JSON.stringify(data),{
- status,headers:{'content-type':'application/json','cache-control':'no-store'}
+const apiResponse=(data:unknown,status=200)=>new Response(status===204?null:JSON.stringify(data),{
+ status,headers:{
+  'content-type':'application/json','cache-control':'no-store',
+  'Access-Control-Allow-Origin':'https://qi-i.github.io',
+  'Access-Control-Allow-Headers':'authorization,apikey,content-type',
+  'Access-Control-Allow-Methods':'POST,OPTIONS'
+ }
 })
 Deno.serve(async req=>{
+ if(req.method==='OPTIONS')return apiResponse(null,204)
  if(req.method!=='POST')return apiResponse({error:'POST only'},405)
  if(!PROJECT||!SERVICE)return apiResponse({error:'Project configuration missing'},500)
  const admin=createClient(PROJECT,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}})
