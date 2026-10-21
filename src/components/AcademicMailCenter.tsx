@@ -28,6 +28,8 @@ const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mail-ingest`
 export default function AcademicMailCenter({userId}:{userId:string}) {
   const [accounts,setAccounts]=useState<Account[]>([])
   const [messages,setMessages]=useState<Message[]>([])
+  const [matchCount,setMatchCount]=useState(0)
+  const [delayedSearch,setDelayedSearch]=useState('')
   const [papers,setPapers]=useState<PaperOption[]>([])
   const [keys,setKeys]=useState<CollectorKey[]>([])
   const [loading,setLoading]=useState(true)
@@ -43,10 +45,17 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
   const [newToken,setNewToken]=useState('')
   const [keyLabel,setKeyLabel]=useState('本地 IMAP 采集器')
 
+  useEffect(()=>{const timer=window.setTimeout(()=>setDelayedSearch(search),300);return ()=>window.clearTimeout(timer)},[search])
   const load = useCallback(async () => {
+    let messagesQuery=(supabase.from('mail_messages') as any).select('*',{count:'exact'})
+      .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false}).limit(300)
+    if(category!=='all') messagesQuery=messagesQuery.eq('category',category)
+    if(accountId!=='all') messagesQuery=messagesQuery.eq('account_id',accountId)
+    const sanitized=delayedSearch.trim().replace(/[^\p{L}\p{N}\s.-]/gu,' ').slice(0,90).trim()
+    if(sanitized) messagesQuery=messagesQuery.or(`subject.ilike.%${sanitized}%,sender_address.ilike.%${sanitized}%,body_text.ilike.%${sanitized}%`)
     const [accountRes,messageRes,paperRes,keyRes]=await Promise.all([
       (supabase.from('mail_accounts') as any).select('*').eq('user_id',userId).order('created_at',{ascending:true}),
-      (supabase.from('mail_messages') as any).select('*').eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false}).limit(300),
+      messagesQuery,
       (supabase.from('papers') as any).select('id,title,journal,manuscript_no').eq('user_id',userId).order('updated_at',{ascending:false}),
       (supabase.from('mail_collector_keys') as any).select('id,label,created_at,revoked_at').eq('user_id',userId).order('created_at',{ascending:false}),
     ])
@@ -56,11 +65,12 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
       setError('')
       setAccounts(accountRes.data||[])
       setMessages(messageRes.data||[])
+      setMatchCount(messageRes.count||0)
       setPapers(paperRes.data||[])
       setKeys(keyRes.data||[])
     }
     setLoading(false)
-  },[userId])
+  },[userId,category,accountId,delayedSearch])
   useEffect(()=>{
     void load()
     const timer=window.setInterval(()=>void load(),60000)
@@ -133,7 +143,7 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
     {error&&<div role="alert" className="mail-error"><AlertTriangle size={16}/>{error}<button onClick={()=>setError('')}>关闭</button></div>}
     <div className="mail-overview">
       <div><strong>{accounts.length}</strong><span>已添加邮箱</span></div>
-      <div><strong>{messages.length}</strong><span>最近索引邮件（最多300）</span></div>
+      <div><strong>{matchCount}</strong><span>符合当前筛选的邮件</span></div>
       <div><strong>{counts.reviews}</strong><span>潜在审稿邀请</span></div>
       <div><strong>{counts.important}</strong><span>重要邮件</span></div>
       <div><strong>{counts.spam}</strong><span>来自垃圾邮件</span></div>
@@ -168,7 +178,7 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
         <button disabled={busy} onClick={()=>void revokeToken(k.id)}>撤销</button></div>)}
     </div>
     <div className="mail-searchbar"><div className="mail-query"><Search size={16}/>
-      <input aria-label="搜索邮件" placeholder="搜索发件人、主题、正文（已读取的最新300封）" value={search} onChange={e=>setSearch(e.target.value)}/></div>
+      <input aria-label="搜索邮件" placeholder="检索所有归档邮件的发件人、主题和正文" value={search} onChange={e=>setSearch(e.target.value)}/></div>
       <select aria-label="邮件分类" value={category} onChange={e=>setCategory(e.target.value)}>{Object.entries(labels).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
       <select aria-label="邮箱筛选" value={accountId} onChange={e=>setAccountId(e.target.value)}><option value="all">全部邮箱</option>
         {accounts.map(a=><option key={a.id} value={a.id}>{a.address}</option>)}</select>
@@ -206,6 +216,6 @@ export default function AcademicMailCenter({userId}:{userId:string}) {
         </>}
       </div>
     </div>
-    <p className="mail-footnote">邮件内容仅作为分析线索；不执行邮件中的操作指令，不自动改变投稿状态。原始 EML 应在采集设备独立保存。</p>
+    <p className="mail-footnote">一次最多展示300封，检索条件在服务器端应用；上方审稿/重点/垃圾箱计数仅统计当前已加载的邮件。邮件内容仅作为分析线索；不执行邮件中的操作指令，不自动改变投稿状态。原始 EML 应在采集设备独立保存。</p>
   </main>
 }
