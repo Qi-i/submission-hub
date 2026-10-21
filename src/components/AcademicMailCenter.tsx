@@ -514,7 +514,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </section>)}
       </div>
       <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>定时采集不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
-    </>:<MailPersonalization settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey}/>}
+    </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
       <div className="am-compose">
         <header><strong>撰写邮件</strong><button type="button" onClick={()=>setShowCompose(false)} aria-label="关闭"><X size={17}/></button></header>
