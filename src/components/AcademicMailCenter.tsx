@@ -477,7 +477,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           <div className="am-account-actions">
             {isSupported(a)?<>
               <button type="button" onClick={()=>setupAccount(a)}><Settings2 size={14}/>{a.cloud_state==='ready'?'编辑连接':'配置收发信'}</button>
-              {a.imap_host&&<button type="button" disabled={busy!==null} onClick={()=>void testAccount(a.id)}>测试连接</button>
+              {a.imap_host&&<button type="button" disabled={busy!==null} onClick={()=>void testAccount(a.id)}>测试连接</button>}
               {['ready','error'].includes(a.cloud_state)&&<button type="button" disabled={busy!==null} onClick={()=>void manualSync(a.id)}><RefreshCw size={14}/>{busy==='sync-'+a.id?'检查中…':'立即检查'}</button>}
             </>:<span>该服务商需要独立的 OAuth2 授权，当前版本尚未实现自动采集。</span>}
           </div>
