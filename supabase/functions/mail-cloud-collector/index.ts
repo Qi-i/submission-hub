@@ -81,7 +81,17 @@ class Imap {
  }
  async close(){try{await this.cmd('LOGOUT')}catch{}try{this.conn.close()}catch{}}
 }
-type Folder={name:string,spam:boolean}
+function decodeModifiedUtf7(raw:string){
+ return raw.replace(/&([A-Za-z0-9+,]*)-/g,(_m,segment:string)=>{
+  if(!segment)return '&'
+  try{
+   const base64=segment.replace(/,/g,'/')+'='.repeat((4-segment.length%4)%4)
+   const decoded=atob(base64)
+   return new TextDecoder('utf-16be').decode(Uint8Array.from(decoded,c=>c.charCodeAt(0)))
+  }catch{return '&'+segment+'-'}
+ })
+}
+type Folder={name:string,display:string,spam:boolean}
 async function folders(imap:Imap):Promise<Folder[]>{
  const result=await imap.cmd('LIST "" "*"')
  const list:Folder[]=[]
@@ -92,7 +102,8 @@ async function folders(imap:Imap):Promise<Folder[]>{
   let name=m[1]
   if(name.startsWith('"'))name=name.slice(1,-1).replace(/\\(["\\])/g,'$1')
   if(name.length>300||/\r|\n/.test(name))continue
-  list.push({name,spam:/spam|junk|垃圾|\\Junk/i.test(line)})
+  const display=decodeModifiedUtf7(name)
+  list.push({name,display,spam:/spam|junk|垃圾|\\Junk/i.test(line+' '+display)})
  }
  return list.sort((a,b)=>Number(b.spam)-Number(a.spam)).slice(0,30)
 }
@@ -181,8 +192,8 @@ async function scanAccount(admin:any,account:any){
      const inserted=await admin.from('mail_messages').insert({
        user_id:account.user_id,account_id:account.id,remote_key:remoteKey,
        internet_message_id:messageId.slice(0,512),
-       first_folder:folder.spam?'Junk':folder.name,
-       last_folder:folder.name,
+       first_folder:folder.spam?'Junk':folder.display,
+       last_folder:folder.display,
        received_at:parsed.date && !Number.isNaN(Date.parse(parsed.date)) ? new Date(parsed.date).toISOString():null,
        sender_name:sender?.name||'',sender_address:sender?.address||'',
        recipient_address:account.address,subject,
