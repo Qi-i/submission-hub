@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
@@ -18,19 +18,20 @@ import JournalCenterWorkspace from './JournalCenterWorkspace'
 import type { PreparationSection } from './preparation/PreparationNavigation'
 import AccountSettingsModal from './AccountSettingsModal'
 import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusBar'
-import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb, BookOpen } from 'lucide-react'
+import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb, BookOpen, Mail, MessageSquareText, UserCircle, ExternalLink } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
 import AcademicMailCenter from './AcademicMailCenter'
 
 type ViewFilter = 'all' | 'me' | 'author'
-type Tab = 'preparation' | 'journals' | 'dashboard' | 'stats' | 'admin'
+type Tab = 'preparation' | 'journals' | 'dashboard' | 'mail' | 'stats' | 'admin'
 type StatusFilter = 'all' | string
 
 const TAB_LABELS: Record<Tab, string> = {
   preparation: '投稿准备工作区',
   journals: '期刊中心',
   dashboard: '投稿管理控制台',
+  mail: '邮件聚合',
   stats: '个人统计分析舱',
   admin: '后台管理中心',
 }
@@ -39,6 +40,7 @@ const TAB_SUBTITLES: Record<Tab, string> = {
   preparation: '组织选题、论文草稿和目标期刊，形成清晰的投稿前流程。',
   journals: '集中管理期刊档案、投稿入口、评价指标、费用与横向比较。',
   dashboard: '集中管理与跟踪学术投稿的状态、作者、期刊和版本链。',
+  mail: '统一收发、检索与归档学术邮件。',
   stats: '从投稿状态、周期、期刊与作者维度审视个人成果进展。',
   admin: '管理系统账户、权限和后台配置。',
 }
@@ -79,10 +81,11 @@ export default function Dashboard() {
   const [showTools, setShowTools] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
-  const [dashboardPanel, setDashboardPanel] = useState<'papers' | 'mail'>('papers')
   const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
   const [preparationSection, setPreparationSection] = useState<PreparationSection>('overview')
   const [showSettings, setShowSettings] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const [transferring, setTransferring] = useState(false)
 
   const canAccessAdmin = user?.is_admin === true && !isDemo
@@ -90,8 +93,24 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (tab === 'admin' && !canAccessAdmin) setTab('dashboard')
-    if ((tab === 'preparation' || tab === 'journals') && isDemo) setTab('dashboard')
+    if ((tab === 'preparation' || tab === 'journals' || tab === 'mail') && isDemo) setTab('dashboard')
   }, [tab, canAccessAdmin, isDemo])
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    const onPointer = (event: PointerEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) setUserMenuOpen(false)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setUserMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [userMenuOpen])
 
   const closeTools = () => {
     setShowTools(false)
@@ -100,6 +119,7 @@ export default function Dashboard() {
 
   const changeTab = (next: Tab) => {
     closeTools()
+    setUserMenuOpen(false)
     if (next === 'preparation') setPreparationSection('overview')
     setTab(next)
   }
@@ -317,11 +337,12 @@ export default function Dashboard() {
         <div className="header-left-cluster">
           <div className="header-brand"><div className="header-logo">SH</div><div><div className="header-title">Submission Hub</div><div className="header-subtitle">学术投稿与成果管理</div></div></div>
           <nav className="header-tabs" aria-label="主导航">
-            {!isDemo && <button className={tab === 'preparation' ? 'active' : ''} onClick={() => changeTab('preparation')}><Lightbulb size={14} /> 投稿准备</button>}
-            {!isDemo && <button className={tab === 'journals' ? 'active' : ''} onClick={() => changeTab('journals')}><BookOpen size={14} /> 期刊中心</button>}
-            <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => changeTab('dashboard')}><FileText size={14} /> 投稿管理</button>
-            <button className={tab === 'stats' ? 'active' : ''} onClick={() => changeTab('stats')}><BarChart3 size={14} /> 个人统计</button>
-            {canAccessAdmin && <button className={tab === 'admin' ? 'active' : ''} onClick={() => changeTab('admin')}><Shield size={14} /> 后台管理</button>}
+            <button data-main-nav-key="dashboard" className={tab === 'dashboard' ? 'active' : ''} onClick={() => changeTab('dashboard')}><FileText size={14} /> 投稿管理</button>
+            {!isDemo && <button data-main-nav-key="journals" className={tab === 'journals' ? 'active' : ''} onClick={() => changeTab('journals')}><BookOpen size={14} /> 期刊中心</button>}
+            {!isDemo && <button data-main-nav-key="mail" className={tab === 'mail' ? 'active' : ''} onClick={() => changeTab('mail')}><Mail size={14} /> 邮件聚合</button>}
+            {!isDemo && <button data-main-nav-key="preparation" className={tab === 'preparation' ? 'active' : ''} onClick={() => changeTab('preparation')}><Lightbulb size={14} /> 投稿准备</button>}
+            <button data-main-nav-key="stats" className={tab === 'stats' ? 'active' : ''} onClick={() => changeTab('stats')}><BarChart3 size={14} /> 个人统计</button>
+            {canAccessAdmin && <button data-main-nav-key="admin" className={tab === 'admin' ? 'active' : ''} onClick={() => changeTab('admin')}><Shield size={14} /> 后台管理</button>}
           </nav>
         </div>
 
@@ -329,25 +350,48 @@ export default function Dashboard() {
 
         <div className="header-actions">
           <div className="header-utility-stack">
-            {tab === 'dashboard' && dashboardPanel === 'papers' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
+            {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
             <div className="header-utility-grid">
               <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
               {!isDemo && <button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入完整备份"><Upload size={14} /> 导入</button>}
               {!isDemo && <button className="btn btn-ghost btn-sm" onClick={() => void handleExport()} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>}
-              {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { closeTools(); setShowSettings(true) }} title="个人设置"><Settings size={15} /></button>}
+}
             </div>
-            {!isDemo && tab === 'dashboard' && dashboardPanel === 'papers' && <button className="btn btn-primary btn-sm lx-new-paper" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}
-            {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
+            {!isDemo && tab === 'dashboard' && <button className="btn btn-primary btn-sm lx-new-paper" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}
+            {user && <div className="header-user-menu" ref={userMenuRef}>
+              <button type="button" className="header-user header-user-trigger" aria-haspopup="menu" aria-expanded={userMenuOpen}
+                onClick={() => setUserMenuOpen(open => !open)} title="账户菜单">
+                {user.avatar_url ? <img src={user.avatar_url} alt="" /> : <UserCircle size={21}/>}
+                <span>{user.display_name || user.username}</span><ChevronDown size={13} className={userMenuOpen ? 'rotated' : ''}/>
+              </button>
+              {userMenuOpen && <div className="header-account-dropdown" role="menu" aria-label="账户操作">
+                <div className="header-account-identity">{user.display_name || user.username}<small>Submission Hub</small></div>
+                {!isDemo && <button type="button" role="menuitem" onClick={() => { setUserMenuOpen(false); setShowSettings(true) }}>
+                  <Settings size={15}/> 个人设置</button>}
+                <button type="button" role="menuitem" onClick={() => { cycleTheme(); setUserMenuOpen(false) }}>
+                  {mode === 'light' ? <Moon size={15}/> : mode === 'dark' ? <Monitor size={15}/> : <Sun size={15}/>} 切换主题</button>
+                <div className="header-account-divider"/>
+                <a role="menuitem" href="https://github.com/Qi-i/submission-hub/issues/new?template=bug_report.yml"
+                  target="_blank" rel="noopener noreferrer" onClick={() => setUserMenuOpen(false)}>
+                  <MessageSquareText size={15}/> 问题反馈 <ExternalLink size={12}/></a>
+                <a role="menuitem" href="https://github.com/Qi-i/submission-hub/issues/new?template=feature_request.yml"
+                  target="_blank" rel="noopener noreferrer" onClick={() => setUserMenuOpen(false)}>
+                  <Lightbulb size={15}/> 功能建议 <ExternalLink size={12}/></a>
+                <div className="header-account-divider"/>
+                <button type="button" role="menuitem" onClick={() => { setUserMenuOpen(false); if (isDemo) exitDemo(); else void signOut() }}>
+                  <LogOut size={15}/> {isDemo ? '退出演示' : '退出登录'}</button>
+              </div>}
+            </div>
           </div>
         </div>
       </header>
 
-      {uiMode === 'luminous-x' && tab !== 'journals' && <LuminousXStatusBar
+      {uiMode === 'luminous-x' && tab !== 'journals' && tab !== 'mail' && <LuminousXStatusBar
         modeLabel={TAB_LABELS[tab]}
         subtitle={TAB_SUBTITLES[tab]}
         recordCount={papers.length}
         layoutMode={layoutMode}
-        onLayoutModeChange={tab === 'dashboard' && dashboardPanel === 'papers' ? setLayoutMode : undefined}
+        onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
         preparationSection={preparationSection}
       />}
 
@@ -355,19 +399,15 @@ export default function Dashboard() {
 
       {tab === 'journals' && user && !isDemo && <JournalCenterWorkspace userId={user.id} onChanged={() => { void loadJournalProfiles() }} />}
 
+      {tab === 'mail' && user && !isDemo && <AcademicMailCenter userId={user.id} />}
+
       {tab === 'dashboard' && <>
-        {!isDemo && <div className="mail-subnav" aria-label="投稿管理内容切换">
-          <button className={dashboardPanel === 'papers' ? 'active' : ''} onClick={() => setDashboardPanel('papers')}>投稿记录</button>
-          <button className={dashboardPanel === 'mail' ? 'active' : ''} onClick={() => setDashboardPanel('mail')}>学术邮件与审稿</button>
-        </div>}
-        {dashboardPanel === 'mail' && !isDemo && user ? <AcademicMailCenter userId={user.id} /> : <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
           {stats.map(status => <MetricCard key={status.key} icon={status.emoji} value={status.count} label={status.label} helper="点击筛选" color={status.color} tone={`${status.color}18`} active={statusFilter === status.key} onClick={() => setStatusFilter(statusFilter === status.key ? 'all' : status.key)} />)}
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
         <ActionCenter papers={papers} onOpen={isDemo ? undefined : openPaperForm} />
         {paperCollection}
-        </>}
       </>}
 
       {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} authorName={user?.author_name || ''} />}
