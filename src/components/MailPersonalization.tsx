@@ -97,8 +97,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   if(!confirm('删除这个模型接口？删除后该接口不再参与自动分析。'))return
   setSaving(true)
   try{if(settings?.ai_endpoint_id===id)await onUpdate({ai_endpoint_id:null,ai_enabled:false})
-   const r=await (supabase.from('mail_ai_endpoints') as any).delete().eq('id',id).eq('user_id',userId)
-   if(r.error)throw r.error
+   await call('delete_endpoint',{endpoint_id:id})
    if(editId===id)resetDraft()
    await reload()
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
