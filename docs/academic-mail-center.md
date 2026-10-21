@@ -45,3 +45,15 @@
 - 未授权 POST 被拒绝；Vault 内部定时令牌通过服务器端鉴权；
 - Cron 已注册，并且没有已配置邮箱时不会调用采集器；
 - RLS 已启用。**目前没有完成实际邮箱授权，也没有真实邮件同步；邮箱数和归档邮件数均为 0。**
+
+## 2026-10-21 新增：数据驱动界面与邮件智能分析
+
+- 投稿管理 → 学术邮件与审稿 → 「自定义与 AI」：自定义工作台快捷入口的名称、顺序、显示/隐藏；选择紧凑列表；全部保存在 `public.mail_preferences.workspace`，修改后立即生效，无需重新发布。
+- 审稿邀请作为可选筛选，不再默认占用固定统计卡片；可通过邮件正文和数据库索引直接在 ChatGPT 里检索。
+- 新增 `mail_preferences` RLS 用户级设置、`mail_messages.ai_summary` / `ai_tags` / `ai_action` / `ai_priority` 等字段，AI 分析结果只在归档成功后更新，和原始 EML 保持分离。
+- 默认关闭 AI。明确配置 Z.AI API Key（保存在 Vault）并开启后，才按 10 分钟的云端任务分析待处理新邮件，每天最多 0–50 封，单次运行最多四封。模型严格只允许 `glm-4.7-flash` 或 `glm-4.5-flash`，不允许付费 `glm-4.7` / FlashX 自动回退。若服务商返回付费限制错误会自动停用。
+- 官方价格表（实时规则可能调整）：https://docs.z.ai/guides/overview/pricing 。自由预算仍受到 Supabase Free 存储/函数限制，公开 GitHub Actions standard ubuntu runner 免费。
+- 用户明确开启 AI 时记录 `ai_started_at`；默认只分析此后新收到的邮件。只有明确打开「分析历史邮件」才允许对旧邮件调用外部 AI。外发的邮件文本限制在前 4400 字符，不发送附件，邮件中的命令不被执行。
+- Web 中另增加 SMTP 发信/回复纯文本：Coremail / QQ / 126 必须先配置允许范围内的官方 SMTP 主机（TLS 465）；邮件发送前弹窗确认，邮件提交后不能撤销。未有真实邮箱授权前只完成代码和接口安全检查，不能宣称发送成功。Gmail/Outlook 依然待 OAuth2。
+- 关键新文件：`MailPersonalization.tsx`；`supabase/016_mail_ai_preferences.sql`、`017_mail_free_ai_schedule.sql`、`018_mail_ai_start_guard.sql`、`019_mail_smtp_fields.sql`、`020_mail_ai_cron_guard.sql`；`mail-ai-settings`、`mail-ai-analyze`、`mail-send` Edge Functions。
+- 邮件目前为 0 封，尚无法进行真实收发、分类精度或模型鉴权的端到端验证。连接学校邮件前请确认允许将邮件上传到个人云端以及自愿向 Z.AI 提交正文。
