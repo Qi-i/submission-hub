@@ -253,3 +253,5 @@
 .am-endpoint-row button:hover{border-color:var(--am-blue)}
 .am-model-editor .am-add-form label{min-width:180px}
 @media(max-width:700px){.am-endpoint-row{flex-wrap:wrap}.am-endpoint-row>div{flex-basis:100%}}
+
+.am-ai-category-suggestion{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--am-blue);padding:8px 0;line-height:1.55}
