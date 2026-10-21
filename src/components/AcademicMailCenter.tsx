@@ -40,9 +40,9 @@ type Message = {
   extraction: Record<string, unknown> | null
 }
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
-type Scope = 'all' | 'review_invite' | 'submission_update' | 'important' | 'spam'
+type Scope = 'all' | 'review_invite' | 'pending' | 'submission_update' | 'important' | 'spam'
 type Workspace = 'inbox' | 'accounts'
-type CountSummary = { all: number; review: number; important: number; spam: number }
+type CountSummary = { all: number; review: number; pending: number; important: number; spam: number }
 const PAGE_SIZE = 40
 const categories: Record<string, string> = {
   review_invite: '审稿邀请', submission_update: '投稿进展', editorial: '编辑往来',
@@ -75,7 +75,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [papers, setPapers] = useState<Paper[]>([])
   const [messages, setMessages] = useState<Message[]>([])
-  const [counts, setCounts] = useState<CountSummary>({all:0,review:0,important:0,spam:0})
+  const [counts, setCounts] = useState<CountSummary>({all:0,review:0,pending:0,important:0,spam:0})
   const [scope, setScope] = useState<Scope>('all')
   const [accountFilter, setAccountFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -113,15 +113,16 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
-    const [a,p,all,review,important,spam] = await Promise.all([
+    const [a,p,all,review,pending,important,spam] = await Promise.all([
       accountQuery, papersQuery, base(), base().eq('category','review_invite'),
+      base().eq('category','review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().gte('importance',2), base().or(folderQuery),
     ])
-    const failed = [a,p,all,review,important,spam].find(x=>x.error)
+    const failed = [a,p,all,review,pending,important,spam].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
     setPapers(p.data||[])
-    setCounts({all:all.count||0,review:review.count||0,important:important.count||0,spam:spam.count||0})
+    setCounts({all:all.count||0,review:review.count||0,pending:pending.count||0,important:important.count||0,spam:spam.count||0})
   }, [userId])
 
   const loadMessages = useCallback(async () => {
@@ -132,12 +133,15 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
-    if(scope==='review_invite'||scope==='submission_update') q=q.eq('category',scope)
+    if(scope==='review_invite'||scope==='pending'||scope==='submission_update') q=q.eq('category',scope==='pending'?'review_invite':scope)
+    if(scope==='pending') q=q.or('review_response.is.null,review_response.eq.pending')
     if(scope==='important') q=q.gte('importance',2)
-    if(scope==='spam') q=q.or(folderQuery)
     if(accountFilter!=='all') q=q.eq('account_id',accountFilter)
     const term=debouncedSearch.replace(/[^一-鿿\p{L}\p{N}\s._-]/gu,' ').slice(0,100).trim()
-    if(term) q=q.or('subject.ilike.%'+term+'%,sender_address.ilike.%'+term+'%,body_text.ilike.%'+term+'%')
+    const keywordOr=term?'subject.ilike.%'+term+'%,sender_address.ilike.%'+term+'%,body_text.ilike.%'+term+'%':''
+    if(scope==='spam'&&keywordOr) q=q.or('and(or('+folderQuery+'),or('+keywordOr+'))')
+    else if(scope==='spam') q=q.or(folderQuery)
+    else if(keywordOr) q=q.or(keywordOr)
     const result=await q
     if(sequence!==listSequence.current) return
     setLoading(false)
@@ -176,7 +180,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   },[selected,userId])
   const selectedAccount=useMemo(()=>accounts.find(a=>a.id===active?.account_id),[accounts,active])
   const canGoNext=(page+1)*PAGE_SIZE<total
-  const reviewPending=counts.review
+  const reviewPending=counts.pending
   const cloudReady=accounts.filter(a=>a.enabled&&a.cloud_state==='ready').length
 
   const callFunction=async(path:string,payload:Record<string,unknown>)=>{
@@ -285,7 +289,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     {workspace==='inbox'?<>
       <div className="am-stats">
         <button type="button" className={scope==='all'?'active':''} onClick={()=>pickScope('all')}><span>全部归档</span><strong>{counts.all}</strong></button>
-        <button type="button" className={scope==='review_invite'?'active':''} onClick={()=>pickScope('review_invite')}><span>审稿邀请</span><strong>{reviewPending}</strong></button>
+        <button type="button" className={scope==='pending'?'active':''} onClick={()=>pickScope('pending')}><span>待答复审稿邀请</span><strong>{reviewPending}</strong></button>
         <button type="button" className={scope==='important'?'active':''} onClick={()=>pickScope('important')}><span>重点关注</span><strong>{counts.important}</strong></button>
         <button type="button" className={scope==='spam'?'active':''} onClick={()=>pickScope('spam')}><span>垃圾箱保全</span><strong>{counts.spam}</strong></button>
       </div>
@@ -298,7 +302,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </select>
         <select aria-label="邮件类型" value={scope} onChange={e=>pickScope(e.target.value as Scope)}>
           <option value="all">所有类型</option>
-          <option value="review_invite">审稿邀请</option><option value="submission_update">投稿进展</option>
+          <option value="pending">待答复邀请</option><option value="review_invite">全部审稿邀请</option><option value="submission_update">投稿进展</option>
           <option value="important">重点关注</option><option value="spam">垃圾邮件来源</option>
         </select>
       </div>
