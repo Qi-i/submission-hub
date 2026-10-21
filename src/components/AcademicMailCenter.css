@@ -28,3 +28,7 @@
 .mail-warning{color:#bd7625!important}.mail-footnote{margin:12px 0}
 @media(max-width:950px){.mail-overview{grid-template-columns:repeat(3,minmax(0,1fr))}.mail-layout{grid-template-columns:1fr}.mail-list,.mail-detail{max-height:48vh}}
 @media(max-width:600px){.academic-mail-center{padding:12px}.mail-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.mail-query{flex-basis:100%}.mail-heading h2{font-size:18px}}
+
+.mail-subnav{display:flex;gap:5px;margin:10px 24px 14px;padding:5px;border:1px solid var(--border-color,var(--border,#d6dee8));border-radius:10px;width:max-content;max-width:calc(100% - 48px)}
+.mail-subnav button{background:transparent;border:0;border-radius:7px;color:var(--text-secondary);padding:8px 16px;cursor:pointer;font-size:13px}
+.mail-subnav button.active{background:var(--bg-card,var(--bg-elevated,#fff));box-shadow:0 1px 6px #00000015;color:var(--text-primary);font-weight:600}
