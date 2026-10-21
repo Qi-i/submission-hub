@@ -21,6 +21,7 @@ import LuminousXStatusBar, { type LuminousXLayoutMode } from './LuminousXStatusB
 import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, Sun, Moon, Monitor, BarChart3, Shield, X, Settings, Lightbulb, BookOpen } from 'lucide-react'
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
+import AcademicMailCenter from './AcademicMailCenter'
 
 type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'preparation' | 'journals' | 'dashboard' | 'stats' | 'admin'
@@ -78,6 +79,7 @@ export default function Dashboard() {
   const [showTools, setShowTools] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [dashboardPanel, setDashboardPanel] = useState<'papers' | 'mail'>('papers')
   const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
   const [preparationSection, setPreparationSection] = useState<PreparationSection>('overview')
   const [showSettings, setShowSettings] = useState(false)
@@ -327,14 +329,14 @@ export default function Dashboard() {
 
         <div className="header-actions">
           <div className="header-utility-stack">
-            {tab === 'dashboard' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
+            {tab === 'dashboard' && dashboardPanel === 'papers' && <div className={`header-toolbox ${showTools ? 'open' : ''}`}><button className={`btn btn-ghost btn-sm toolbar-toggle ${hasActiveTools ? 'active' : ''}`} onClick={() => { setShowTools(!showTools); setShowFilterDrop(false) }}><Filter size={13} /> 检索筛选 <span className="toolbar-count-mini">{filtered.length}</span> <ChevronDown size={12} className={showTools ? 'rotated' : ''} /></button>{toolPanel}</div>}
             <div className="header-utility-grid">
               <button className="btn btn-ghost btn-sm btn-icon theme-toggle-btn" onClick={cycleTheme} title={mode === 'light' ? '浅色模式' : mode === 'dark' ? '深色模式' : '跟随系统'}>{mode === 'light' ? <Sun size={15} /> : mode === 'dark' ? <Moon size={15} /> : <Monitor size={15} />}</button>
               {!isDemo && <button className="btn btn-ghost btn-sm" onClick={handleImport} disabled={transferring} title="导入完整备份"><Upload size={14} /> 导入</button>}
               {!isDemo && <button className="btn btn-ghost btn-sm" onClick={() => void handleExport()} disabled={transferring} title="备份投稿和准备数据"><Download size={14} /> {transferring ? '处理中' : '备份'}</button>}
               {user && !isDemo && <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { closeTools(); setShowSettings(true) }} title="个人设置"><Settings size={15} /></button>}
             </div>
-            {!isDemo && tab === 'dashboard' && <button className="btn btn-primary btn-sm lx-new-paper" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}
+            {!isDemo && tab === 'dashboard' && dashboardPanel === 'papers' && <button className="btn btn-primary btn-sm lx-new-paper" onClick={() => openPaperForm('new')}><Plus size={14} /> 新建投稿</button>}
             {user && <div className="header-user">{user.avatar_url && <img src={user.avatar_url} alt="" />}<span>{user.display_name || user.username}</span><button className="btn btn-ghost btn-sm btn-icon" onClick={isDemo ? exitDemo : signOut} title="退出" style={{ border: 'none', padding: 0, width: 28, height: 28 }}><LogOut size={14} /></button></div>}
           </div>
         </div>
@@ -345,7 +347,7 @@ export default function Dashboard() {
         subtitle={TAB_SUBTITLES[tab]}
         recordCount={papers.length}
         layoutMode={layoutMode}
-        onLayoutModeChange={tab === 'dashboard' ? setLayoutMode : undefined}
+        onLayoutModeChange={tab === 'dashboard' && dashboardPanel === 'papers' ? setLayoutMode : undefined}
         preparationSection={preparationSection}
       />}
 
@@ -354,12 +356,18 @@ export default function Dashboard() {
       {tab === 'journals' && user && !isDemo && <JournalCenterWorkspace userId={user.id} onChanged={() => { void loadJournalProfiles() }} />}
 
       {tab === 'dashboard' && <>
+        {!isDemo && <div className="mail-subnav" aria-label="投稿管理内容切换">
+          <button className={dashboardPanel === 'papers' ? 'active' : ''} onClick={() => setDashboardPanel('papers')}>投稿记录</button>
+          <button className={dashboardPanel === 'mail' ? 'active' : ''} onClick={() => setDashboardPanel('mail')}>学术邮件与审稿</button>
+        </div>}
+        {dashboardPanel === 'mail' && !isDemo && user ? <AcademicMailCenter userId={user.id} /> : <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
           {stats.map(status => <MetricCard key={status.key} icon={status.emoji} value={status.count} label={status.label} helper="点击筛选" color={status.color} tone={`${status.color}18`} active={statusFilter === status.key} onClick={() => setStatusFilter(statusFilter === status.key ? 'all' : status.key)} />)}
           <MetricCard icon="📊" value={papers.length} label="总计" helper="全部记录" color="var(--text-primary)" tone="var(--bg-elevated)" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         </div>
         <ActionCenter papers={papers} onOpen={isDemo ? undefined : openPaperForm} />
         {paperCollection}
+        </>}
       </>}
 
       {tab === 'stats' && <PersonalStats papers={papers} currentUsername={user?.username || ''} authorName={user?.author_name || ''} />}
