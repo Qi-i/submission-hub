@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   AlertCircle, Archive, ArrowLeft, Check, ChevronRight, Clock3, Download,
@@ -782,7 +782,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                 <div className="am-label-chooser"><span><Tag size={13}/> 自定义标签</span>
                   <div>{labels.length?labels.map(t=><button type="button" key={t.id} disabled={busy==='message'}
                     className={(active.user_labels||[]).includes(t.name)?'selected':''}
-                    onClick={()=>void toggleLabel(t.name)} style={{'--tag-color':t.color} as React.CSSProperties}>
+                    onClick={()=>void toggleLabel(t.name)} style={{'--tag-color':t.color} as CSSProperties}>
                     <span className="am-color-point" style={{background:t.color}}/>{t.name}{(active.user_labels||[]).includes(t.name)&&<Check size={12}/>}</button>):
                     <button type="button" onClick={()=>setManageCollections(true)}>先在顶部「整理」中新建标签</button>}</div>
                 </div>
