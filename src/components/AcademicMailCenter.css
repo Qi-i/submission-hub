@@ -313,3 +313,297 @@
 .am-route-position button:disabled{opacity:.4;cursor:not-allowed}
 .am-route-test{flex:0 0 auto;white-space:nowrap}
 @media(max-width:800px){.am-route-row{flex-wrap:wrap}.am-route-detail{flex-basis:calc(100% - 30px)}.am-route-position{margin-left:24px}}
+
+/* 2026-10-22 · Luminous unified multi-colour glass system.
+ * Shared site theme tokens remain authoritative; bright accents are scoped to Mail only.
+ * Visual intensity is progressive: hero > module cards > controls.
+ */
+html[data-ui] body .academic-mail-center{
+ --am-blue:#548aff;--am-violet:#8272ec;--am-cyan:#26b9ce;
+ --am-orange:#f69b66;--am-green:#37af87;
+ --am-ink:var(--text-primary,#233453);
+ --am-muted:var(--text-secondary,#6f829b);
+ --am-line:color-mix(in srgb,var(--border-default,#adbed3) 67%,transparent);
+ --am-surface:color-mix(in srgb,var(--bg-elevated,#fff) 83%,transparent);
+ --am-soft:color-mix(in srgb,var(--bg-elevated,#fff) 64%,var(--bg-surface,#eef3fb));
+ --am-selected:color-mix(in srgb,var(--accent,#548aff) 10%,var(--bg-elevated,#fff));
+ background:
+  radial-gradient(ellipse 37% 23% at 2% 1%,rgba(113,154,252,.095),transparent 98%),
+  radial-gradient(ellipse 37% 32% at 98% 12%,rgba(164,120,238,.08),transparent 97%);
+ border-radius:16px;
+ color:var(--am-ink);
+}
+html[data-ui] body .academic-mail-center .am-header{
+ position:relative;
+ display:grid;grid-template-columns:minmax(240px,1fr) minmax(350px,1.45fr);
+ align-items:center;gap:18px;
+ min-height:151px;padding:23px 25px;
+ overflow:hidden;border-radius:20px;
+ border:1px solid color-mix(in srgb,var(--am-blue) 19%,var(--am-line));
+ background:
+  radial-gradient(ellipse 50% 150% at 0% 50%,rgba(95,136,248,.16),transparent 84%),
+  radial-gradient(ellipse 42% 130% at 90% 20%,rgba(137,105,233,.14),transparent 90%),
+  linear-gradient(105deg,rgba(90,178,219,.07),rgba(125,100,232,.06)),
+  var(--am-surface);
+ box-shadow:0 12px 35px rgba(38,68,124,.085);
+ backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+}
+.academic-mail-center .am-header::after{
+ content:'';position:absolute;top:0;left:21%;right:21%;height:1px;
+ background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);
+ pointer-events:none;
+}
+.academic-mail-center .am-header h2{
+ font-size:clamp(21px,2.1vw,27px);font-weight:780;line-height:1.3;
+ letter-spacing:-.025em;margin:8px 0 7px;
+}
+.academic-mail-center .am-header p{font-size:12px;line-height:1.65;max-width:450px}
+.academic-mail-center .am-kicker{
+ width:max-content;max-width:100%;border:1px solid rgba(102,121,230,.16);
+ border-radius:999px;padding:5px 10px;
+ background:rgba(123,139,243,.08);color:var(--am-violet);
+ font-size:10px;letter-spacing:.055em;
+}
+.academic-mail-center .am-header-actions{
+ display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;min-width:0;
+}
+.academic-mail-center .am-hero-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0}
+.academic-mail-center .am-hero-tile{
+ display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;
+ gap:3px 7px;min-height:72px;border-radius:14px;padding:11px 12px;
+ border:1px solid color-mix(in srgb,var(--bg-elevated,#fff) 80%,rgba(98,132,206,.5));
+ background:color-mix(in srgb,var(--bg-elevated,#fff) 79%,transparent);
+ box-shadow:0 4px 14px rgba(57,82,127,.055);
+ backdrop-filter:blur(14px);min-width:0;
+}
+.am-hero-tile>svg{grid-column:1;grid-row:1;color:var(--tile-color);width:16px}
+.am-hero-tile>span{grid-column:2;grid-row:1;min-width:0;font-size:10px;color:var(--am-muted);white-space:nowrap}
+.am-hero-tile>strong{grid-column:1/-1;grid-row:2;font-size:21px;font-weight:790;line-height:1.2}
+.am-hero-tile>strong small{font-size:12px;color:var(--am-muted)}
+.am-hero-tile>strong.am-hero-state{font-size:12px;color:var(--tile-color);letter-spacing:.025em}
+.am-hero-tile-blue{--tile-color:#4c83f6}.am-hero-tile-violet{--tile-color:#8d6ce4}.am-hero-tile-green{--tile-color:#32a785}
+.academic-mail-center .am-header-actions>.am-main-button,.academic-mail-center .am-header-actions>.am-quiet-button{
+ min-height:39px;padding-inline:12px;white-space:nowrap;
+}
+html[data-ui] body .academic-mail-center .am-main-button{
+ border-color:transparent;border-radius:11px;min-height:37px;
+ background:linear-gradient(120deg,#4d86f5,#7770ec 68%,#8573df);color:#fff;
+ font-size:12px;font-weight:700;
+ box-shadow:0 7px 17px rgba(92,106,222,.18);
+ transition:filter .17s,transform .17s,box-shadow .17s;
+}
+html[data-ui] body .academic-mail-center .am-main-button:hover:not(:disabled){
+ filter:brightness(1.06);transform:translateY(-1px);
+ box-shadow:0 9px 20px rgba(92,106,222,.24);
+}
+html[data-ui] body .academic-mail-center .am-quiet-button,
+html[data-ui] body .academic-mail-center .am-icon-button{
+ border-radius:11px;border:1px solid var(--am-line);
+ background:color-mix(in srgb,var(--bg-elevated,#fff) 76%,transparent);
+ backdrop-filter:blur(12px);color:var(--am-ink);
+}
+html[data-ui] body .academic-mail-center .am-tabs{
+ display:flex;gap:7px;width:max-content;max-width:100%;
+ border:1px solid var(--am-line);padding:5px;margin:13px 0 18px;
+ border-radius:15px;background:color-mix(in srgb,var(--bg-elevated,#fff) 80%,transparent);
+ box-shadow:0 5px 15px rgba(36,60,101,.06);overflow-x:auto;
+}
+.academic-mail-center .am-tabs button{
+ border:0;border-radius:10px;padding:10px 16px;
+ color:var(--am-muted);font-size:12px;white-space:nowrap;transition:.18s ease;
+}
+.academic-mail-center .am-tabs button:hover:not(.active){background:var(--am-selected);color:var(--am-ink)}
+html[data-ui] body .academic-mail-center .am-tabs button.active{
+ color:#fff;background:linear-gradient(115deg,#568ef4,#8170e8);
+ box-shadow:0 5px 13px rgba(96,119,216,.22);font-weight:750;
+}
+.academic-mail-center .am-stats button{
+ position:relative;min-height:101px;border-radius:15px;
+ border:1px solid var(--am-line);
+ background:var(--am-surface);box-shadow:0 6px 18px rgba(35,74,130,.065);
+ overflow:hidden;padding:15px 17px;backdrop-filter:blur(18px);
+}
+.academic-mail-center .am-stats button::before{
+ content:'';position:absolute;inset:0 auto 0 0;width:3px;opacity:.75;
+ background:var(--stat-accent);
+}
+.academic-mail-center .am-stats button:nth-child(4n+1){--stat-accent:#5e9afa}
+.academic-mail-center .am-stats button:nth-child(4n+2){--stat-accent:#9869ed}
+.academic-mail-center .am-stats button:nth-child(4n+3){--stat-accent:#29b7bb}
+.academic-mail-center .am-stats button:nth-child(4n+4){--stat-accent:#ec9c6f}
+.academic-mail-center .am-stats button:hover,.academic-mail-center .am-stats button.active{
+ border-color:color-mix(in srgb,var(--stat-accent) 53%,var(--am-line));
+ background:color-mix(in srgb,var(--stat-accent) 8%,var(--am-surface));
+ transform:translateY(-1px);
+}
+.academic-mail-center .am-stats button strong{font-size:25px;font-weight:790}
+html[data-ui] body .academic-mail-center .am-search,
+html[data-ui] body .academic-mail-center .am-controls select,
+html[data-ui] body .academic-mail-center .am-server-fieldset input,
+html[data-ui] body .academic-mail-center .am-server-fieldset select,
+html[data-ui] body .academic-mail-center .am-add-form input,
+html[data-ui] body .academic-mail-center .am-add-form select,
+html[data-ui] body .academic-mail-center .am-choice-label select,
+html[data-ui] body .academic-mail-center .am-choice-label textarea{
+ background:color-mix(in srgb,var(--bg-elevated,#fff) 85%,transparent);
+ color:var(--am-ink);border-radius:11px;border:1px solid var(--am-line);
+}
+html[data-ui] body .academic-mail-center :is(input,select,textarea):focus-visible{
+ outline:2px solid rgba(105,132,246,.43);outline-offset:2px;
+}
+html[data-ui] body .academic-mail-center .am-list-pane,
+html[data-ui] body .academic-mail-center .am-reader,
+html[data-ui] body .academic-mail-center .am-form-panel,
+html[data-ui] body .academic-mail-center .am-storage-note{
+ border:1px solid var(--am-line);border-radius:17px;background:var(--am-surface);
+ box-shadow:0 8px 28px rgba(34,63,109,.075);
+ backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+html[data-ui] body .academic-mail-center .am-workspace{gap:14px}
+.academic-mail-center .am-message{transition:background .13s;cursor:pointer}
+.academic-mail-center .am-message.selected{background:linear-gradient(90deg,rgba(99,140,240,.12),rgba(112,104,231,.055));box-shadow:inset 3px 0 0 #6b83ed}
+.academic-mail-center .am-chip{border-radius:7px;line-height:1.35;padding:3px 8px}
+html[data-ui] body .academic-mail-center .am-account-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;
+}
+html[data-ui] body .academic-mail-center .am-account-card{
+ --provider-accent:#6994e8;
+ position:relative;overflow:hidden;
+ min-width:0;border-radius:18px;padding:19px 20px;
+ background:var(--am-surface);
+ border:1px solid color-mix(in srgb,var(--provider-accent) 20%,var(--am-line));
+ box-shadow:0 8px 26px rgba(40,73,125,.075);backdrop-filter:blur(20px);
+ transition:box-shadow .16s,transform .16s;
+}
+html[data-ui] body .academic-mail-center .am-account-card:hover{
+ box-shadow:0 12px 31px rgba(40,73,125,.11);transform:translateY(-1px);
+}
+.academic-mail-center .am-account-card::before{
+ content:'';position:absolute;top:0;left:0;right:0;height:3px;
+ background:linear-gradient(90deg,var(--provider-accent),transparent 95%);
+}
+.academic-mail-center .am-account-card[data-provider="outlook"]{--provider-accent:#338edd}
+.academic-mail-center .am-account-card[data-provider="qq"]{--provider-accent:#5c9ae9}
+.academic-mail-center .am-account-card[data-provider="126"]{--provider-accent:#ee9b70}
+.academic-mail-center .am-account-card[data-provider="coremail"]{--provider-accent:#4db8b4}
+.academic-mail-center .am-account-card[data-provider="gmail"]{--provider-accent:#dd7a88}
+.academic-mail-center .am-account-card[data-provider="other"]{--provider-accent:#9d80e7}
+html[data-ui] body .academic-mail-center .am-account-card:has(.am-config-form,.am-oauth-panel){
+ grid-column:1/-1;transform:none;
+}
+.academic-mail-center .am-account-mark{
+ width:44px;height:44px;border-radius:14px;
+ color:var(--provider-accent);background:color-mix(in srgb,var(--provider-accent) 13%,var(--am-surface));
+}
+.academic-mail-center .am-account-data{gap:11px;padding:15px 0 13px}
+.academic-mail-center .am-account-data>div{
+ padding:10px 11px;background:color-mix(in srgb,var(--provider-accent) 5%,var(--am-soft));
+ border-radius:10px;min-width:0;
+}
+.academic-mail-center .am-account-actions button{
+ border-radius:9px;min-height:34px;background:var(--am-surface);
+ transition:background .15s,border-color .15s;
+}
+.academic-mail-center .am-account-actions button:hover{
+ background:color-mix(in srgb,var(--provider-accent) 9%,var(--am-surface));
+ border-color:color-mix(in srgb,var(--provider-accent) 45%,var(--am-line));
+}
+.academic-mail-center .am-account-state{font-weight:700}
+html[data-ui] body .academic-mail-center .am-personalization{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+ width:100%;max-width:none;align-items:start;
+}
+.academic-mail-center .am-personalization>header{grid-column:1/-1;padding:2px 0 8px}
+html[data-ui] body .academic-mail-center .am-personal-section{
+ position:relative;overflow:hidden;min-width:0;
+ margin:0;padding:19px 20px 23px;border-radius:17px;
+ border:1px solid var(--am-line);background:var(--am-surface);
+ box-shadow:0 9px 27px rgba(38,67,117,.07);
+ backdrop-filter:blur(17px);
+}
+.academic-mail-center .am-personal-section:nth-of-type(1){--module-accent:#489ed0}
+.academic-mail-center .am-personal-section:nth-of-type(2){--module-accent:#9374e7}
+.academic-mail-center .am-personal-section:nth-of-type(3){--module-accent:#35b39c}
+.academic-mail-center .am-personal-section:nth-of-type(4){--module-accent:#ee9b6d}
+.academic-mail-center .am-personal-section::before{
+ content:'';position:absolute;top:0;left:0;right:0;height:3px;
+ background:linear-gradient(90deg,var(--module-accent,#648cf5),transparent);
+}
+.academic-mail-center .am-personal-section h4{
+ display:flex;align-items:center;gap:10px;margin:1px 0 13px;
+ font-size:14px;color:var(--am-ink);
+}
+.academic-mail-center .am-personal-section h4>svg{
+ box-sizing:content-box;color:var(--module-accent,#648cf5);
+ padding:9px;border-radius:10px;
+ background:color-mix(in srgb,var(--module-accent,#648cf5) 12%,var(--am-surface));
+}
+html[data-ui] body .academic-mail-center .am-route-row,
+html[data-ui] body .academic-mail-center .am-model-preset,
+html[data-ui] body .academic-mail-center .am-model-editor,
+html[data-ui] body .academic-mail-center .am-server-fieldset{
+ border-radius:13px;border:1px solid var(--am-line);
+ background:color-mix(in srgb,var(--bg-elevated,#fff) 71%,transparent);
+}
+.academic-mail-center .am-route-row.selected{
+ border-color:rgba(92,177,157,.4);
+ background:linear-gradient(120deg,rgba(74,180,149,.095),rgba(113,145,239,.06)),var(--am-surface);
+}
+.academic-mail-center .am-option{line-height:1.55}
+.academic-mail-center .am-option input[type=checkbox],
+.academic-mail-center .am-route-checkbox input[type=checkbox]{accent-color:#7783ed}
+.academic-mail-center .am-settings-heading{margin:12px 0 16px}
+.academic-mail-center .am-storage-note{background:linear-gradient(110deg,rgba(69,166,190,.095),rgba(114,124,235,.055)),var(--am-surface)}
+.academic-mail-center .am-storage-note svg{color:#4aaabc}
+.academic-mail-center .am-oauth-panel{
+ margin:15px 0 0;padding:19px;
+ border-radius:15px;border:1px solid rgba(64,143,230,.24);
+ background:linear-gradient(120deg,rgba(73,153,242,.09),rgba(133,111,225,.045)),var(--am-surface);
+}
+.academic-mail-center .am-oauth-panel-head{display:flex;align-items:center;gap:12px}
+.academic-mail-center .am-oauth-panel-head>div:last-child{min-width:0;flex:1}
+.academic-mail-center .am-oauth-panel-head strong{font-size:14px}
+.academic-mail-center .am-oauth-panel-head p{font-size:11px;color:var(--am-muted);line-height:1.6;margin:5px 0 0}
+.academic-mail-center .am-oauth-icon{
+ width:41px;height:41px;display:flex;align-items:center;justify-content:center;
+ border-radius:13px;background:linear-gradient(145deg,#408ee8,#6b7cea);color:#fff;flex:0 0 auto
+}
+.academic-mail-center .am-oauth-form{display:flex;align-items:end;gap:11px;flex-wrap:wrap;margin:17px 0 11px}
+.academic-mail-center .am-oauth-form label{display:flex;flex:1;flex-direction:column;gap:6px;min-width:250px;font-size:11px;color:var(--am-muted)}
+.academic-mail-center .am-oauth-form input{border:1px solid var(--am-line);background:var(--am-surface);border-radius:10px;min-height:38px;padding:8px 11px;color:var(--am-ink);width:100%;font-size:12px}
+.academic-mail-center .am-oauth-form>a{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--am-blue);text-decoration:none;padding:10px 0}
+.academic-mail-center .am-oauth-help{font-size:11px;line-height:1.72;color:var(--am-muted);margin:12px 0}
+.academic-mail-center .am-device-auth{margin:13px 0 0;padding:17px;border-radius:13px;background:var(--am-surface);border:1px solid var(--am-line)}
+.academic-mail-center .am-device-auth>span,.academic-mail-center .am-device-auth>small{display:block;color:var(--am-muted);font-size:11px}
+.academic-mail-center .am-device-auth>strong{display:block;font-size:26px;letter-spacing:.12em;color:var(--am-ink);font-variant-numeric:tabular-nums;margin:9px 0}
+.academic-mail-center .am-device-auth>div{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.academic-mail-center .am-device-auth .am-main-button{text-decoration:none}
+.academic-mail-center .am-oauth-connected{display:flex;align-items:center;gap:8px;color:#2b997e;font-size:12px;margin:14px 0 0}
+@media(max-width:1440px){
+ html[data-ui] body .academic-mail-center .am-header{grid-template-columns:1fr;gap:15px}
+ .academic-mail-center .am-header-actions{grid-template-columns:1fr auto auto auto}
+}
+@media(max-width:1000px){
+ html[data-ui] body .academic-mail-center .am-personalization{grid-template-columns:minmax(0,1fr)}
+ html[data-ui] body .academic-mail-center .am-account-list{grid-template-columns:minmax(0,1fr)}
+ html[data-ui] body .academic-mail-center .am-account-card:has(.am-config-form,.am-oauth-panel){grid-column:auto}
+}
+@media(max-width:720px){
+ html[data-ui] body .academic-mail-center .am-header{padding:17px;border-radius:15px}
+ .academic-mail-center .am-header-actions{display:flex;align-items:center;flex-wrap:wrap}
+ .academic-mail-center .am-hero-tiles{flex:1 0 100%;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .academic-mail-center .am-hero-tile{min-height:65px;padding:8px;gap:2px 4px}
+ .academic-mail-center .am-hero-tile>span{font-size:9px}
+ .academic-mail-center .am-hero-tile>strong{font-size:18px}
+ .academic-mail-center .am-tabs{width:100%;gap:3px;padding:4px}
+ .academic-mail-center .am-tabs button{font-size:11px;padding:10px 9px}
+ .academic-mail-center .am-account-data{grid-template-columns:1fr 1fr;gap:6px}
+ .academic-mail-center .am-account-data>div:last-child{grid-column:1/-1}
+ html[data-ui] body .academic-mail-center .am-personal-section{padding:16px}
+ .academic-mail-center .am-device-auth>strong{font-size:22px}
+}
+@media(prefers-reduced-motion:reduce){
+ .academic-mail-center .am-account-card,
+ .academic-mail-center .am-stats button,
+ .academic-mail-center .am-main-button{transition:none!important;transform:none!important}
+}
