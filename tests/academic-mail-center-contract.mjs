@@ -21,7 +21,23 @@ assert.ok(ui.includes("page*PAGE_SIZE"),'mail list should support server-side pa
 assert.ok(ui.includes("and(or("),'combined spam/full text filter must preserve both conditions')
 for(const required of ['.am-workspace','.am-reader','.am-account-card','@media(max-width:700px)'])
   assert.ok(css.includes(required),'missing responsive UI element: '+required)
-assert.ok(dashboard.includes("dashboardPanel === 'mail'"),'dashboard route missing')
+assert.ok(dashboard.includes("tab === 'mail' && user"),'first-class mail route missing')
+assert.ok(dashboard.includes('data-main-nav-key="mail"'),'mail must be in top-level menu')
+assert.ok(!dashboard.includes('mail-subnav'),'legacy tiny subnav must be removed')
+assert.ok(!dashboard.includes('dashboardPanel'),'mail must not be nested within Dashboard')
+assert.ok(dashboard.includes('header-account-dropdown'),'settings/feedback must be inside avatar dropdown')
+const cardCss=file('src/mail-navigation-card-layout.css')
+const appStyles=file('src/app-styles.ts')
+const main=file('src/main.tsx')
+const paperCard=file('src/components/PaperCardEnhanced.tsx')
+assert.ok(cardCss.includes('.journal-pill-text') && cardCss.includes('-webkit-line-clamp: 2'), 'journal names must show up to two lines')
+assert.ok(cardCss.includes('.paper-journal-slot') && cardCss.includes('width: 100% !important'), 'journal width must be unrestricted')
+assert.ok(cardCss.includes('.app-layout > .academic-mail-center'), 'mail page must use the whole main width')
+assert.ok(appStyles.includes("import './mail-navigation-card-layout.css'"),'mail layout override must be loaded')
+assert.ok(appStyles.indexOf("import './mail-navigation-card-layout.css'") > appStyles.indexOf("import './styles/submission-family-card-coherence.css'"),'mail override must follow legacy card geometry')
+assert.ok(!main.includes('<ProjectFeedback />'),'feedback must not appear in header tools')
+assert.ok(paperCard.includes('${linkedPaper.journal} · 悬停预览期刊信息'),'journal title tooltip must contain full name')
+
 for(const required of [
   "Deno.connectTls", "EXAMINE ", "BODY.PEEK[]", "UIDVALIDITY", "UID SEARCH ALL",
   "mail-originals", "cloud_archive_path", "decodeModifiedUtf7", "extractDeadline",
@@ -32,3 +48,6 @@ assert.ok(!scanner.includes("imap.cmd('EXPUNGE"),'mail collector cannot purge ma
 assert.ok(settings.includes("mail_save_cloud_secret"),'credentials must go through Vault')
 assert.ok(!ui.includes("mailto:password"),'client must not persist mail credentials')
 console.log('Academic mail UI and collection contract checks passed.')
+
+// Reuse the existing verify step; keep package.json unchanged to avoid automated Release.
+import './mail-first-principles-contract.mjs'

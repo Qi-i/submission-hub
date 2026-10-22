@@ -1,62 +1,94 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-const ORIGINS=['https://qi-i.github.io','http://localhost:5173','http://127.0.0.1:5173']
-function response(body:unknown,status=200,origin=''){
-  return new Response(status===204?null:JSON.stringify(body),{status,headers:{
-    'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',
-    'Access-Control-Allow-Origin':ORIGINS.includes(origin)?origin:'https://qi-i.github.io',
-    'Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type'
-  }})
+import {createClient} from 'npm:@supabase/supabase-js@2.49.4'
+const enc=new TextEncoder(),dec=new TextDecoder()
+const heads={'content-type':'application/json','cache-control':'no-store','access-control-allow-origin':'https://qi-i.github.io','access-control-allow-headers':'authorization,apikey,content-type','access-control-allow-methods':'POST,OPTIONS'}
+const answer=(body:unknown,status=200)=>new Response(status===204?null:JSON.stringify(body),{status,headers:heads})
+const validHost=(h:string)=>/^(?=.{4,190}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(h)&&!/(^|\.)(local|localhost|internal|lan|home|onion|arpa|test|invalid)$/.test(h)
+const safe4=(s:string)=>{const p=s.split('.').map(Number);if(p.length!==4||p.some(n=>n<0||n>255||!Number.isInteger(n)))return false;const [a,b]=p;return !(a===0||a===10||a===127||a>=224||a===169&&b===254||a===172&&b>=16&&b<=31||a===192&&b===168||a===100&&b>=64&&b<=127||a===192&&b===0||a===198&&b>=18&&b<=19)}
+const safe6=(s:string)=>!(/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(s)||/::ffff:/i.test(s))
+async function guard(host:string){if(!validHost(host))throw Error('主机名必须是公网域名，不能使用 IP/内网地址');const a=await Deno.resolveDns(host,'A').catch(()=>[] as string[]) as string[];const b=await Deno.resolveDns(host,'AAAA').catch(()=>[] as string[]) as string[];if(!a.length&&!b.length)throw Error('域名无法解析，请检查服务器地址');if(a.some(x=>!safe4(x))||b.some(x=>!safe6(x)))throw Error('服务器解析为保留或内网地址，拒绝连接')}
+const quote=(s:string)=>'"'+s.replace(/[\r\n\0]/g,'').replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'
+const b64=(s:string)=>{const v=enc.encode(s);let x='';for(const b of v)x+=String.fromCharCode(b);return btoa(x)}
+class Lines{
+ buf=''
+ constructor(public conn:Deno.Conn){}
+ async line(){while(!this.buf.includes('\n')){const b=new Uint8Array(8192);const n=await this.conn.read(b);if(n===null)throw Error('服务器断开连接');this.buf+=dec.decode(b.subarray(0,n));if(this.buf.length>65536)throw Error('响应太长')}const i=this.buf.indexOf('\n'),v=this.buf.slice(0,i).replace(/\r$/,'');this.buf=this.buf.slice(i+1);return v}
+ async write(s:string){await this.conn.write(enc.encode(s+'\r\n'))}
+ async smtp(code:number){for(let i=0;i<40;i++){const l=await this.line();if(!/^\d{3}[ -]/.test(l))throw Error('SMTP 响应错误');if(Number(l.slice(0,3))!==code)throw Error('SMTP 返回 '+l.slice(0,3));if(l[3]===' ')return}throw Error('SMTP 多行响应超限')}
+ async imap(tag:string){for(let i=0;i<40;i++){const l=await this.line();if(l.startsWith(tag+' ')){if(!new RegExp('^'+tag+' OK\\b','i').test(l))throw Error('IMAP 验证失败');return}}throw Error('IMAP 无最终响应')}
 }
-function allowedHost(host:string,provider:string){
-  const suffixes:Record<string,string[]>={
-    coremail:['xju.edu.cn','cugb.edu.cn'],
-    qq:['imap.qq.com'], '126':['imap.126.com'],
-  }
-  if(!/^[a-z0-9.-]{4,180}$/.test(host)||host.includes('..'))return false
-  return (suffixes[provider]||[]).some(s=> host===s||host.endsWith('.'+s))
+async function open(host:string,port:number,security:string,kind:'imap'|'smtp'){
+ await guard(host)
+ if(security==='ssl')return Deno.connectTls({hostname:host,port})
+ const sock=await Deno.connect({hostname:host,port})
+ try{const l=new Lines(sock);if(kind==='imap'){if(!/^\* OK/i.test(await l.line()))throw Error('IMAP 未就绪');await l.write('A001 STARTTLS');await l.imap('A001')}else{await l.smtp(220);await l.write('EHLO submission-hub.local');await l.smtp(250);await l.write('STARTTLS');await l.smtp(220)}return await Deno.startTls(sock,{hostname:host})}catch(e){try{sock.close()}catch{};throw e}
+}
+async function verify(host:string,port:number,security:string,kind:'imap'|'smtp',username:string,password:string){
+ const conn=await open(host,port,security,kind)
+ try{const l=new Lines(conn)
+  if(kind==='imap'){if(security==='ssl'&&!/^\* OK/i.test(await l.line()))throw Error('IMAP 未就绪');await l.write('A002 LOGIN '+quote(username)+' '+quote(password));await l.imap('A002')}
+  else{if(security==='ssl')await l.smtp(220);await l.write('EHLO submission-hub.local');await l.smtp(250);await l.write('AUTH LOGIN');await l.smtp(334);await l.write(b64(username));await l.smtp(334);await l.write(b64(password));await l.smtp(235)}
+ }finally{try{conn.close()}catch{}}
+}
+async function discover(address:string,provider:string){
+ const domain=address.split('@')[1].toLowerCase()
+ const roots:Record<string,[string,string,number,string]>={qq:['imap.qq.com','smtp.qq.com',465,'ssl'],'126':['imap.126.com','smtp.126.com',465,'ssl'],gmail:['imap.gmail.com','smtp.gmail.com',465,'ssl'],outlook:['outlook.office365.com','smtp.office365.com',587,'starttls']}
+ const result:any[]=[]
+ const put=(type:string,host:string,port:number,security:string,source:string)=>{if(validHost(host)&&!result.some(x=>x.type===type&&x.host===host&&x.port===port))result.push({type,host,port,security,source})}
+ if(roots[provider]){const [im,sm,p,sec]=roots[provider];put('imap',im,993,'ssl','服务商预设');put('smtp',sm,p,sec,'服务商预设')}
+ else{for(const p of ['mail','imap'])put('imap',p+'.'+domain,993,'ssl','按域名推测，需测试');for(const p of ['mail','smtp'])put('smtp',p+'.'+domain,465,'ssl','按域名推测，需测试')}
+ for(const [key,type] of [['_imaps._tcp.','imap'],['_submission._tcp.','smtp'],['_submissions._tcp.','smtp']] as const){const records=await Deno.resolveDns(key+domain,'SRV').catch(()=>[]) as Deno.SrvRecord[];for(const r of records.slice(0,3)){const port=Number(r.port);if(type==='imap'?[993,143].includes(port):[465,587].includes(port))put(type,r.target.replace(/\.$/,''),port,[993,465].includes(port)?'ssl':'starttls','DNS SRV')}}
+ return result
 }
 Deno.serve(async req=>{
-  const origin=req.headers.get('origin')||''
-  if(req.method==='OPTIONS')return response(null,204,origin)
-  if(req.method!=='POST')return response({error:'POST only'},405,origin)
-  const jwt=(req.headers.get('authorization')||'').replace(/^Bearer /i,'')
-  if(!jwt)return response({error:'Sign in required'},401,origin)
-  const url=Deno.env.get('SUPABASE_URL'),service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if(!url||!service)return response({error:'Server is not configured'},500,origin)
-  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
-  const auth=await admin.auth.getUser(jwt)
-  if(auth.error||!auth.data.user)return response({error:'Invalid login'},401,origin)
-  const userId=auth.data.user.id
-  let body:Record<string,unknown>
-  try {body=await req.json()} catch{return response({error:'Invalid JSON'},400,origin)}
-  const id=String(body.account_id||'')
-  if(!/^[a-f\d-]{36}$/i.test(id))return response({error:'Invalid account id'},400,origin)
-  const {data:account,error:lookup}=await admin.from('mail_accounts')
-     .select('id,user_id,provider,address').eq('id',id).eq('user_id',userId).maybeSingle()
-  if(lookup||!account)return response({error:'Account not found'},404,origin)
-  if(body.action==='configure'){
-    if(!['coremail','qq','126'].includes(account.provider))
-      return response({error:'Gmail/Outlook require OAuth2; app-password setup is disabled.'},422,origin)
-    const host=String(body.host||'').trim().toLowerCase()
-    const smtpHost=String(body.smtp_host||'').trim().toLowerCase()
-    if(smtpHost && !allowedHost(smtpHost,account.provider))
-      return response({error:'SMTP host is not approved for this provider'},422,origin)
-    const password=String(body.password||'')
-    if(!allowedHost(host,account.provider))return response({error:'IMAP host is not approved for this provider'},422,origin)
-    if(password.length<4||password.length>4096)return response({error:'Missing app password or IMAP authorization code'},422,origin)
-    const saved=await admin.rpc('mail_save_cloud_secret',{p_account_id:id,p_secret:password})
-    if(saved.error)return response({error:'Credential storage failed'},500,origin)
-    const updated=await admin.from('mail_accounts').update({
-      imap_host:host,imap_port:993,smtp_host:smtpHost||null,smtp_port:465,auth_kind:'password',
-      cloud_state:'ready',last_error:null,enabled:true
-    }).eq('id',id).eq('user_id',userId)
-    if(updated.error)return response({error:'Mailbox settings failed'},500,origin)
-    return response({ok:true,cloud_state:'ready'},200,origin)
+ if(req.method==='OPTIONS')return answer(null,204)
+ if(req.method!=='POST')return answer({error:'POST only'},405)
+ const url=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+ if(!url||!key)return answer({error:'服务端未配置'},500)
+ const db=createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}})
+ const jwt=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'')
+ const auth=await db.auth.getUser(jwt)
+ if(auth.error||!auth.data.user)return answer({error:'登录已过期'},401)
+ let body:Record<string,unknown>
+ try{body=await req.json()}catch{return answer({error:'请求格式不正确'},400)}
+ const id=String(body.account_id||'')
+ if(!/^[a-f0-9-]{36}$/i.test(id))return answer({error:'邮箱编号无效'},400)
+ const found=await db.from('mail_accounts').select('*').eq('id',id).eq('user_id',auth.data.user.id).maybeSingle()
+ if(found.error||!found.data)return answer({error:'找不到对应邮箱'},404)
+ const a=found.data
+ if(body.action==='discover')return answer({candidates:await discover(a.address,a.provider)})
+ if(body.action==='configure'){
+  if(!['coremail','qq','126','other'].includes(a.provider))return answer({error:'该服务商需要 OAuth2 授权，暂不支持密码方式'},422)
+  const host=String(body.host||'').trim().toLowerCase(),smtp=String(body.smtp_host||'').trim().toLowerCase()
+  const imapPort=Number(body.imap_port||993),smtpPort=Number(body.smtp_port||465)
+  const imapSecurity=String(body.imap_security||'ssl'),smtpSecurity=String(body.smtp_security||'ssl')
+  if(!([993,143].includes(imapPort)&&[465,587].includes(smtpPort)&&
+    (imapPort===993?imapSecurity==='ssl':imapSecurity==='starttls')&&
+    (smtpPort===465?smtpSecurity==='ssl':smtpSecurity==='starttls')))return answer({error:'支持的安全组合：IMAP 993/SSL 或143/STARTTLS；SMTP 465/SSL 或587/STARTTLS'},422)
+  try{await guard(host);if(smtp)await guard(smtp)}catch(e){return answer({error:e instanceof Error?e.message:'服务器地址错误'},422)}
+  const pwd=String(body.password||'')
+  if(pwd&& (pwd.length<4||pwd.length>4096))return answer({error:'客户端授权码长度不正确'},422)
+  const old=await db.rpc('mail_read_cloud_secret',{p_account_id:id})
+  if(!pwd&&!old.data)return answer({error:'请填写客户端授权码'},422)
+  if(pwd){const stored=await db.rpc('mail_save_cloud_secret',{p_account_id:id,p_secret:pwd});if(stored.error)return answer({error:'加密保存授权失败'},500)}
+  const update=await db.from('mail_accounts').update({imap_host:host,imap_port:imapPort,imap_security:imapSecurity,imap_username:String(body.imap_username||a.address).trim().slice(0,320),smtp_host:smtp||null,smtp_port:smtpPort,smtp_security:smtpSecurity,smtp_username:String(body.smtp_username||a.address).trim().slice(0,320),cloud_state:'not_configured',enabled:true,last_error:null}).eq('id',id).eq('user_id',auth.data.user.id)
+  return update.error?answer({error:'保存失败'},500):answer({ok:true,message:'配置已保存，请运行登录测试'})
+ }
+ if(body.action==='test'){
+  const secret=await db.rpc('mail_read_cloud_secret',{p_account_id:id})
+  if(!secret.data)return answer({error:'请先保存客户端授权码'},422)
+  const results:Record<string,unknown>={}
+  for(const kind of ['imap','smtp'] as const){const host=kind==='imap'?a.imap_host:a.smtp_host;if(!host)continue
+   try{await verify(host,Number(kind==='imap'?a.imap_port:a.smtp_port),kind==='imap'?a.imap_security||'ssl':a.smtp_security||'ssl',kind,kind==='imap'?a.imap_username||a.address:a.smtp_username||a.address,secret.data);results[kind]={ok:true,message:'TLS 连接及身份验证通过'+(kind==='smtp'?'（未实际发送邮件）':'')}}
+   catch(e){results[kind]={ok:false,message:e instanceof Error?e.message:'连接失败'}}
   }
-  if(body.action==='disable'){
-    const result=await admin.from('mail_accounts').update({enabled:false}).eq('id',id).eq('user_id',userId)
-    if(result.error)return response({error:'Unable to disable'},500,origin)
-    return response({ok:true},200,origin)
-  }
-  return response({error:'Unknown action'},400,origin)
+  const ok=!!(results.imap as any)?.ok
+  await db.from('mail_accounts').update({
+   cloud_state:ok?'ready':'not_configured',
+   last_error:ok?null:String((results.imap as any)?.message||'IMAP 尚未通过安全登录测试').slice(0,160),
+   last_checked_at:new Date().toISOString()
+  }).eq('id',id).eq('user_id',auth.data.user.id)
+  return answer({ok,results})
+ }
+ if(body.action==='disable'){const r=await db.from('mail_accounts').update({enabled:false}).eq('id',id).eq('user_id',auth.data.user.id);return r.error?answer({error:'暂停失败'},500):answer({ok:true})}
+ return answer({error:'不支持的操作'},400)
 })

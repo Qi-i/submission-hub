@@ -19,6 +19,8 @@ type Account = {
   cloud_state: string
   imap_host: string | null
   smtp_host: string | null
+  imap_port: number; smtp_port: number; imap_security: string; smtp_security: string
+  imap_username: string | null; smtp_username: string | null
   last_checked_at: string | null
 }
 type Message = {
@@ -40,6 +42,7 @@ type Message = {
   archived_locally: boolean
   cloud_archive_path: string | null
   extraction: Record<string, unknown> | null
+  ai_category: string | null
   ai_summary: string | null
   ai_tags: string[] | null
   ai_action: string | null
@@ -60,15 +63,16 @@ const responseLabels: Record<string,string> = {
   pending: '待答复', accepted: '已接受', declined: '已拒绝', completed: '已完成',
 }
 const providerLabels: Record<string,string> = {
+  other: '自定义 IMAP / SMTP',
   coremail: 'Coremail', qq: 'QQ 邮箱', '126': '126 邮箱',
-  gmail: 'Gmail', outlook: 'Outlook', other: '其他 IMAP',
+  gmail: 'Gmail', outlook: 'Outlook',
 }
 const niceDate = (date?: string | null) => date
   ? new Date(date).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   : '尚无记录'
 const shortDate = (date?: string | null) => date ? new Date(date).toLocaleDateString('zh-CN') : '未知日期'
 const isSpam = (message: Message) => /spam|junk|垃圾/i.test(message.first_folder + ' ' + message.last_folder)
-const isSupported = (account: Account) => ['coremail','qq','126'].includes(account.provider)
+const isSupported = (account: Account) => ['coremail','qq','126','other'].includes(account.provider)
 const describeStatus = (account: Account) => {
   if (!isSupported(account)) return '需要 OAuth2 授权'
   if (!account.enabled) return '已暂停'
@@ -106,6 +110,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [imapHost, setImapHost] = useState('')
   const [appPassword, setAppPassword] = useState('')
   const [smtpHost,setSmtpHost] = useState('')
+  const [imapPort,setImapPort] = useState(993)
+  const [smtpPort,setSmtpPort] = useState(465)
+  const [imapSecurity,setImapSecurity] = useState('ssl')
+  const [smtpSecurity,setSmtpSecurity] = useState('ssl')
+  const [imapUsername,setImapUsername] = useState('')
+  const [smtpUsername,setSmtpUsername] = useState('')
+  const [suggestions,setSuggestions] = useState<{type:'imap'|'smtp';host:string;port:number;security:string;source:string}[]>([])
+  const [connectionResults,setConnectionResults] = useState<Record<string,{ok:boolean;message:string}>>({})
   const [showCompose,setShowCompose] = useState(false)
   const [composeAccount,setComposeAccount] = useState('')
   const [composeTo,setComposeTo] = useState('')
@@ -123,15 +135,15 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   const loadMetadata = useCallback(async () => {
     const accountQuery = (supabase.from('mail_accounts') as any)
-      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,last_checked_at')
+      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at')
       .eq('user_id', userId).order('created_at', {ascending: true})
     const papersQuery = (supabase.from('papers') as any)
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
     const [a,p,all,review,pending,important,spam,prefResult] = await Promise.all([
-      accountQuery, papersQuery, base(), base().eq('category','review_invite'),
-      base().eq('category','review_invite').or('review_response.is.null,review_response.eq.pending'),
+      accountQuery, papersQuery, base(), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
+      base().or('category.eq.review_invite,ai_category.eq.review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().or('importance.gte.2,ai_priority.gte.2'), base().or(folderQuery),
       (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
     ])
@@ -147,11 +159,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
-    if(scope==='review_invite'||scope==='pending'||scope==='submission_update') q=q.eq('category',scope==='pending'?'review_invite':scope)
+    if(scope==='review_invite'||scope==='pending'||scope==='submission_update'){const target=scope==='pending'?'review_invite':scope;q=q.or('category.eq.'+target+',ai_category.eq.'+target)}
     if(scope==='pending') q=q.or('review_response.is.null,review_response.eq.pending')
     if(scope==='important') q=q.or('importance.gte.2,ai_priority.gte.2')
     if(accountFilter!=='all') q=q.eq('account_id',accountFilter)
@@ -233,17 +245,44 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     finally{setBusy(null)}
   }
   const setupAccount=(a:Account)=>{
-    setSetupId(a.id);setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':''))
-    setAppPassword('')
+    setSetupId(a.id)
+    setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':''))
     setSmtpHost(a.smtp_host||(a.provider==='qq'?'smtp.qq.com':a.provider==='126'?'smtp.126.com':''))
+    setImapPort(a.imap_port||993);setSmtpPort(a.smtp_port||465)
+    setImapSecurity(a.imap_security||'ssl');setSmtpSecurity(a.smtp_security||'ssl')
+    setImapUsername(a.imap_username||a.address);setSmtpUsername(a.smtp_username||a.address)
+    setAppPassword('');setSuggestions([]);setConnectionResults({})
+  }
+  const discover=async(id:string)=>{
+    setBusy('discover')
+    try{
+      const data=await callFunction('mail-config',{action:'discover',account_id:id})
+      setSuggestions(data.candidates||[])
+      setNotice((data.candidates||[]).length?'已获取服务商及 DNS 配置建议，选择后请测试连接':'未发现公开的自动配置记录，请手动填写官方参数')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
+  }
+  const testAccount=async(id:string)=>{
+    setBusy('test-'+id);setConnectionResults({})
+    try{
+      const data=await callFunction('mail-config',{action:'test',account_id:id})
+      setConnectionResults(data.results||{})
+      await loadMetadata()
+      const entries=Object.entries(data.results||{}) as [string,{ok:boolean;message:string}][]
+      setNotice(entries.length?entries.map(([kind,result])=>kind.toUpperCase()+': '+(result.ok?'验证成功':'验证失败')).join('，'):'尚未保存服务器配置')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
   }
   const saveConfiguration=async()=>{
-    if(!setupId||!imapHost||!appPassword)return
+    if(!setupId||!imapHost)return
     setBusy('configure')
     try{
-      await callFunction('mail-config',{action:'configure',account_id:setupId,host:imapHost.trim(),smtp_host:smtpHost.trim(),password:appPassword})
-      setAppPassword('');setSetupId(null);setImapHost('')
-      setNotice('已加密保存客户端凭据；可点击「立即检查」验证')
+      await callFunction('mail-config',{action:'configure',account_id:setupId,
+        host:imapHost.trim(),imap_port:imapPort,imap_security:imapSecurity,imap_username:imapUsername.trim(),
+        smtp_host:smtpHost.trim(),smtp_port:smtpPort,smtp_security:smtpSecurity,smtp_username:smtpUsername.trim(),
+        password:appPassword})
+      setAppPassword('')
+      setNotice('配置已加密保存。请点击「测试连接」验证 IMAP 和 SMTP 登录。')
       await loadMetadata()
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
@@ -388,7 +427,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div className="am-msg-from"><strong>{m.sender_name||m.sender_address||'未知发件人'}</strong><time>{shortDate(m.received_at)}</time></div>
               <div className="am-msg-subject">{m.subject||'（无主题）'}</div>
               <p>{m.ai_summary||m.snippet||'无邮件预览'}</p>
-              <div className="am-msg-labels"><span className={'am-chip am-cat-'+m.category}>{categories[m.category]||'其他'}</span>{(m.ai_priority??m.importance)>=2&&<span className="am-chip">重要</span>}{isSpam(m)&&<span className="am-chip am-spam">垃圾箱来源</span>}{m.deadline&&<span className="am-chip am-deadline"><Clock3 size={11}/>{m.deadline}</span>}{m.ai_state==='done'&&<span className="am-chip am-ai-label">AI 已分析</span>}</div>
+              <div className="am-msg-labels"><span className={'am-chip am-cat-'+m.category}>{categories[m.category]||'其他'}</span>{(m.ai_priority??m.importance)>=2&&<span className="am-chip">重要</span>}{isSpam(m)&&<span className="am-chip am-spam">垃圾箱来源</span>}{m.deadline&&<span className="am-chip am-deadline"><Clock3 size={11}/>{m.deadline}</span>}{m.ai_category&&m.ai_category!=='other'&&<span className="am-chip am-ai-label">AI：{categories[m.ai_category]||m.ai_category}</span>}</div>
             </button>)}
           </div>
           <div className="am-pager"><button type="button" disabled={page===0} onClick={()=>setPage(n=>Math.max(0,n-1))}>上一页</button><span>{total?Math.min(page*PAGE_SIZE+1,total)+'–'+Math.min((page+1)*PAGE_SIZE,total):'0'} / {total}</span><button type="button" disabled={!canGoNext} onClick={()=>setPage(n=>n+1)}>下一页</button></div>
@@ -404,6 +443,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>原文归档</span><strong>{active.cloud_archive_path?'私有云原文已归档':active.archived_locally?'本地原文已归档':'尚无原文备份'}</strong></div>
             </div>
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
+            {active.ai_category&&<div className="am-ai-category-suggestion"><Sparkles size={14}/> AI 识别：{categories[active.ai_category]||active.ai_category} · 分类建议独立保存，不会覆盖手动分类</div>}
             {active.ai_summary&&<div className="am-ai-result">
               <div className="am-ai-result-title"><Sparkles size={15}/> AI 初步分析 <small>仅供参考</small></div>
               <p>{active.ai_summary}</p>
@@ -428,7 +468,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>独立管理七个邮箱的连接状态和云端归档，不在网页或 GitHub 中保留明文凭据。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(x=>!x)}><Plus size={15}/> 添加邮箱</button></div>
       {showAdd&&<div className="am-form-panel"><strong>添加邮箱账户</strong><div className="am-add-form">
         <label>邮箱地址<input type="email" placeholder="name@stu.xju.edu.cn" value={newAddress} onChange={e=>setNewAddress(e.target.value)} autoComplete="email"/></label>
-        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook（OAuth2 待接入）</option></select></label>
+        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook（OAuth2 待接入）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
         <button type="button" className="am-main-button" disabled={busy!==null} onClick={()=>void addAccount()}>保存账户</button><button type="button" className="am-quiet-button" onClick={()=>setShowAdd(false)}>取消</button>
       </div></div>}
       <div className="am-account-list">
@@ -439,22 +479,45 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           {a.last_error&&<p className="am-account-error"><AlertCircle size={14}/>{a.last_error}</p>}
           <div className="am-account-actions">
             {isSupported(a)?<>
-              <button type="button" onClick={()=>setupAccount(a)}><Settings2 size={14}/>{a.cloud_state==='ready'?'重新授权':'配置 IMAP'}</button>
+              <button type="button" onClick={()=>setupAccount(a)}><Settings2 size={14}/>{a.cloud_state==='ready'?'编辑连接':'配置收发信'}</button>
+              {a.imap_host&&<button type="button" disabled={busy!==null} onClick={()=>void testAccount(a.id)}>测试连接</button>}
               {['ready','error'].includes(a.cloud_state)&&<button type="button" disabled={busy!==null} onClick={()=>void manualSync(a.id)}><RefreshCw size={14}/>{busy==='sync-'+a.id?'检查中…':'立即检查'}</button>}
             </>:<span>该服务商需要独立的 OAuth2 授权，当前版本尚未实现自动采集。</span>}
           </div>
           {setupId===a.id&&<div className="am-form-panel am-config-form">
-            <strong>配置安全云端连接</strong><p>仅在此处填写授权码；将通过 HTTPS 写入 Supabase Vault。学校邮箱应填写官方 IMAP 主机，端口固定为 TLS 993。</p>
-            <div className="am-add-form"><label>IMAP 服务器<input value={imapHost} onChange={e=>setImapHost(e.target.value)} placeholder="官方 IMAP 主机" autoComplete="off"/></label>
-              <label>SMTP 服务器（用于发信，465 / TLS）<input value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} placeholder="如 smtp.qq.com"/></label>
-              <label>客户端授权码 / 专用密码<input type="password" value={appPassword} onChange={e=>setAppPassword(e.target.value)} autoComplete="new-password" placeholder="请勿使用其他账号的授权码"/></label>
-              <button type="button" className="am-main-button" disabled={busy!==null||!imapHost||!appPassword} onClick={()=>void saveConfiguration()}>加密保存</button><button type="button" className="am-quiet-button" onClick={()=>{setSetupId(null);setAppPassword('')}}>取消</button>
+            <div className="am-section-heading"><strong>收发信配置</strong><button type="button" className="am-quiet-button" disabled={busy!==null} onClick={()=>void discover(a.id)}>自动发现服务器</button></div>
+            <p>可使用官方参数或 DNS SRV 建议。仅允许加密连接：IMAP 993/SSL、143/STARTTLS；SMTP 465/SSL、587/STARTTLS。服务器证书必须有效。</p>
+            {!!suggestions.length&&<div className="am-server-suggestions">{suggestions.map((s,i)=>
+              <button type="button" key={s.type+s.host+i} onClick={()=>{
+                if(s.type==='imap'){setImapHost(s.host);setImapPort(s.port);setImapSecurity(s.security)}
+                else{setSmtpHost(s.host);setSmtpPort(s.port);setSmtpSecurity(s.security)}
+              }}><span>{s.type.toUpperCase()}</span> {s.host}:{s.port} · {s.security==='ssl'?'SSL/TLS':'STARTTLS'} <small>{s.source}</small></button>)}</div>}
+            <div className="am-server-grid">
+              <fieldset className="am-server-fieldset"><legend>收信 · IMAP</legend>
+                <label>协议<select disabled><option>IMAP（同步文件夹及垃圾箱）</option></select></label>
+                <label>服务器<input value={imapHost} onChange={e=>setImapHost(e.target.value)} placeholder="如 mail.xju.edu.cn"/></label>
+                <div className="am-server-pair"><label>端口<select value={imapPort} onChange={e=>{const p=Number(e.target.value);setImapPort(p);setImapSecurity(p===993?'ssl':'starttls')}}><option value={993}>993</option><option value={143}>143</option></select></label>
+                  <label>安全连接<select value={imapSecurity} onChange={e=>{setImapSecurity(e.target.value);setImapPort(e.target.value==='ssl'?993:143)}}><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option></select></label></div>
+                <label>登录用户名<input value={imapUsername} onChange={e=>setImapUsername(e.target.value)} placeholder={a.address}/></label>
+              </fieldset>
+              <fieldset className="am-server-fieldset"><legend>发信 · SMTP</legend>
+                <label>协议<select disabled><option>SMTP（发信及回复）</option></select></label>
+                <label>服务器<input value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} placeholder="如 smtp.qq.com"/></label>
+                <div className="am-server-pair"><label>端口<select value={smtpPort} onChange={e=>{const p=Number(e.target.value);setSmtpPort(p);setSmtpSecurity(p===465?'ssl':'starttls')}}><option value={465}>465</option><option value={587}>587</option></select></label>
+                  <label>安全连接<select value={smtpSecurity} onChange={e=>{setSmtpSecurity(e.target.value);setSmtpPort(e.target.value==='ssl'?465:587)}}><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option></select></label></div>
+                <label>登录用户名<input value={smtpUsername} onChange={e=>setSmtpUsername(e.target.value)} placeholder={a.address}/></label>
+              </fieldset>
             </div>
+            <div className="am-add-form"><label>客户端授权码 / 专用密码<input type="password" value={appPassword} onChange={e=>setAppPassword(e.target.value)} autoComplete="new-password" placeholder={a.imap_host?'已保存；不修改可留空':'输入邮箱客户端授权码'}/></label>
+              <button type="button" className="am-main-button" disabled={busy!==null||!imapHost||(!a.imap_host&&!appPassword)} onClick={()=>void saveConfiguration()}>加密保存配置</button>
+              <button type="button" className="am-quiet-button" disabled={busy!==null||!a.imap_host} onClick={()=>void testAccount(a.id)}>测试连接</button>
+              <button type="button" className="am-quiet-button" onClick={()=>{setSetupId(null);setAppPassword('');setSuggestions([])}}>关闭</button></div>
+            {!!Object.keys(connectionResults).length&&<div className="am-test-results">{Object.entries(connectionResults).map(([key,result])=><div key={key} className={result.ok?'ok':'error'}><strong>{key.toUpperCase()} {result.ok?'连接成功':'连接失败'}</strong><span>{result.message}</span></div>)}</div>}
           </div>}
         </section>)}
       </div>
       <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>定时采集不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
-    </>:<MailPersonalization settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey}/>}
+    </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
       <div className="am-compose">
         <header><strong>撰写邮件</strong><button type="button" onClick={()=>setShowCompose(false)} aria-label="关闭"><X size={17}/></button></header>

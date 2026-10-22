@@ -1,100 +1,183 @@
-import { useState } from 'react'
-import { AlertCircle, ArrowDown, ArrowUp, Plus, Settings2, Sparkles, X } from 'lucide-react'
-
+import {useCallback,useEffect,useState} from 'react'
+import {AlertCircle,ArrowDown,ArrowUp,CheckCircle2,Plus,Settings2,Sparkles,Trash2,X} from 'lucide-react'
+import {supabase} from '../lib/supabase'
 export type MailViewKind='all'|'important'|'review_invite'|'pending'|'submission_update'|'spam'
 export type MailView={id:string;title:string;kind:MailViewKind}
 export type MailSettings={
  user_id:string;workspace:{compact?:boolean;show_statistics?:boolean;views?:MailView[]};
  ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;ai_started_at?:string|null;
- ai_key_ready:boolean;last_ai_error:string|null
+ ai_key_ready:boolean;last_ai_error:string|null;ai_endpoint_id?:string|null;ai_system_prompt?:string;ai_allow_paid?:boolean
 }
+type Endpoint={id:string;label:string;api_url:string;model:string;declared_free:boolean;allow_paid:boolean;key_ready:boolean;last_test_at:string|null;last_test_status:string|null}
 export const DEFAULT_MAIL_VIEWS:MailView[]=[
  {id:'all',title:'全部邮件',kind:'all'},
  {id:'important',title:'重要邮件',kind:'important'},
  {id:'submission',title:'投稿往来',kind:'submission_update'},
- {id:'spam',title:'垃圾邮件备份',kind:'spam'},
+ {id:'spam',title:'垃圾邮件备份',kind:'spam'}
 ]
 export const MAIL_VIEW_KINDS:Record<MailViewKind,string>={
  all:'全部邮件',important:'重要邮件',review_invite:'审稿邀请',
  pending:'待答复审稿',submission_update:'投稿往来',spam:'垃圾邮件'
 }
-
-type Props={
- settings:MailSettings|null
- busy:boolean
- onUpdate:(change:Partial<MailSettings>)=>Promise<void>
- onSaveKey:(key:string)=>Promise<void>
-}
-export default function MailPersonalization({settings,busy,onUpdate,onSaveKey}:Props){
+const DEFAULT_PROMPT='请概述邮件主题、关键事实与待处理事项，并判断重要性、可能的处理期限及与投稿论文的关联。没有依据的信息不要推测。'
+type Props={userId:string;settings:MailSettings|null;busy:boolean;
+ onUpdate:(changes:Partial<MailSettings>)=>Promise<void>;
+ onSaveKey:(key:string)=>Promise<void>}
+export default function MailPersonalization({userId,settings,busy,onUpdate,onSaveKey}:Props){
  const [newTitle,setNewTitle]=useState('')
  const [newKind,setNewKind]=useState<MailViewKind>('review_invite')
  const [apiKey,setApiKey]=useState('')
- const views=(settings?.workspace?.views?.length?settings.workspace.views:DEFAULT_MAIL_VIEWS)
-   .filter(v=>v&&MAIL_VIEW_KINDS[v.kind])
+ const [prompt,setPrompt]=useState(DEFAULT_PROMPT)
+ const [endpoints,setEndpoints]=useState<Endpoint[]>([])
+ const [editId,setEditId]=useState<string|null>(null)
+ const [label,setLabel]=useState('')
+ const [url,setUrl]=useState('')
+ const [model,setModel]=useState('')
+ const [free,setFree]=useState(false)
+ const [paid,setPaid]=useState(false)
+ const [endpointKey,setEndpointKey]=useState('')
+ const [testing,setTesting]=useState<string|null>(null)
+ const [testResult,setTestResult]=useState('')
+ const [localError,setLocalError]=useState('')
+ const [saving,setSaving]=useState(false)
+ useEffect(()=>setPrompt(settings?.ai_system_prompt||DEFAULT_PROMPT),[settings?.ai_system_prompt])
+ const reload=useCallback(async()=>{
+  const r=await (supabase.from('mail_ai_endpoints') as any).select('id,label,api_url,model,declared_free,allow_paid,key_ready,last_test_at,last_test_status').eq('user_id',userId).order('created_at',{ascending:true})
+  if(r.error)setLocalError(r.error.message)
+  else setEndpoints((r.data||[]) as Endpoint[])
+ },[userId])
+ useEffect(()=>{void reload()},[reload])
+ const call=async(action:string,details:Record<string,unknown>={})=>{
+  const {data,error}=await supabase.auth.getSession()
+  if(error||!data.session?.access_token)throw Error('请先重新登录')
+  const response=await fetch(import.meta.env.VITE_SUPABASE_URL+'/functions/v1/mail-ai-settings',{
+   method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},
+   body:JSON.stringify({action,...details})
+  })
+  const result=await response.json()
+  if(!response.ok||result.error)throw Error(result.error||result.message||'操作失败')
+  return result
+ }
+ const views=(settings?.workspace?.views?.length?settings.workspace.views:DEFAULT_MAIL_VIEWS).filter(v=>v&&MAIL_VIEW_KINDS[v.kind])
  const updateViews=(next:MailView[])=>onUpdate({workspace:{...(settings?.workspace||{}),views:next}})
- const updateWorkspace=(fields:Partial<MailSettings['workspace']>)=>
-  onUpdate({workspace:{...(settings?.workspace||{}),...fields}})
+ const updateWorkspace=(fields:Partial<MailSettings['workspace']>)=>onUpdate({workspace:{...(settings?.workspace||{}),...fields}})
+ const resetDraft=()=>{setEditId(null);setLabel('');setUrl('');setModel('');setFree(false);setPaid(false);setEndpointKey('')}
+ const normalizeUrl=(s:string)=>{const candidate=s.trim().replace(/\/+$/,'');return candidate.endsWith('/chat/completions')?candidate:candidate+'/chat/completions'}
+ const saveEndpoint=async()=>{
+  setLocalError('');setTestResult('')
+  let candidate=''
+  try{
+   candidate=normalizeUrl(url)
+   const parsed=new URL(candidate)
+   if(parsed.protocol!=='https:'||parsed.port||parsed.username||parsed.password||parsed.search||parsed.hash||!/^[a-z\d.-]+\.[a-z]{2,}$/i.test(parsed.hostname))throw Error('必须填写公网 HTTPS API 地址，不支持 IP、内网、非标准端口')
+   if(!label.trim()||!model.trim())throw Error('请填写服务名称与模型 ID')
+  }catch(e){setLocalError(e instanceof Error?e.message:String(e));return}
+  setSaving(true)
+  try{
+   let id=editId
+   if(id){const r=await (supabase.from('mail_ai_endpoints') as any).update({label:label.trim().slice(0,80),api_url:candidate,model:model.trim().slice(0,128),declared_free:free,allow_paid:paid,updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',userId);if(r.error)throw r.error}
+   else{const r=await (supabase.from('mail_ai_endpoints') as any).insert({user_id:userId,label:label.trim().slice(0,80),api_url:candidate,model:model.trim().slice(0,128),declared_free:free,allow_paid:paid}).select('id').single();if(r.error)throw r.error;id=r.data.id}
+   if(endpointKey.trim())await call('save_endpoint_key',{endpoint_id:id,api_key:endpointKey.trim()})
+   await reload();resetDraft()
+   setTestResult('模型接口已保存。点击「测试模型」进行少量 token 的真实连接检测。')
+  }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
+  finally{setSaving(false)}
+ }
+ const startEdit=(e:Endpoint)=>{setEditId(e.id);setLabel(e.label);setUrl(e.api_url);setModel(e.model);setFree(e.declared_free);setPaid(e.allow_paid);setEndpointKey('');setTestResult('');setLocalError('')}
+ const test=async(id:string|null)=>{
+  setTesting(id||'default');setLocalError('');setTestResult('')
+  try{
+   const r=await call(id?'test_endpoint':'test',id?{endpoint_id:id}:{})
+   setTestResult((r.ok?'连接成功：':'连接失败：')+(r.message||'未知响应')+(r.latency_ms?' · '+r.latency_ms+'ms':''))
+   if(id)await reload()
+  }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
+  finally{setTesting(null)}
+ }
+ const remove=async(id:string)=>{
+  if(!confirm('删除这个模型接口？删除后该接口不再参与自动分析。'))return
+  setSaving(true)
+  try{if(settings?.ai_endpoint_id===id)await onUpdate({ai_endpoint_id:null,ai_enabled:false})
+   await call('delete_endpoint',{endpoint_id:id})
+   if(editId===id)resetDraft()
+   await reload()
+  }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
+  finally{setSaving(false)}
+ }
+ const chosen=endpoints.find(e=>e.id===settings?.ai_endpoint_id)
+ const ready=chosen?chosen.key_ready:!!settings?.ai_key_ready
+ const paidWarning=!!chosen&&!chosen.declared_free
  return <section className="am-personalization">
-  <header><h3>个性化邮件工作台</h3>
-   <p>快捷入口、显示密度和 AI 设置直接同步到数据库，无需重新发布网页。</p></header>
+  <header><h3>邮件工作台设置</h3><p>分类、AI 模型与指令保存在 Supabase，修改后无需重新发布。</p></header>
+  {localError&&<div className="am-alert" role="alert"><AlertCircle size={16}/><span>{localError}</span><button type="button" onClick={()=>setLocalError('')} aria-label="关闭"><X size={14}/></button></div>}
+  {testResult&&<div className={testResult.startsWith('连接失败')?'am-alert':'am-notice'} role="status">{testResult.startsWith('连接失败')?<AlertCircle size={16}/>:<CheckCircle2 size={16}/>}<span>{testResult}</span></div>}
   <div className="am-personal-section">
-   <h4><Settings2 size={16}/> 自定义快捷入口</h4>
-   <p>仅显示常用内容。审稿邀请可随时添加或取消，不占固定栏目。</p>
-   <div className="am-view-editor">
-    {views.map((view,index)=><div className="am-view-row" key={view.id}>
-     <input aria-label={view.title+'名称'} defaultValue={view.title} key={view.id+':'+view.title}
-      onBlur={e=>{if(e.target.value.trim()!==view.title)void updateViews(views.map(v=>v.id===view.id?{...v,title:e.target.value.trim().slice(0,16)||v.title}:v))}}/>
-     <span>{MAIL_VIEW_KINDS[view.kind]}</span>
-     <button type="button" title="向前移动" aria-label="向前移动" disabled={busy||index===0}
-      onClick={()=>{const next=[...views];[next[index],next[index-1]]=[next[index-1],next[index]];void updateViews(next)}}><ArrowUp size={15}/></button>
-     <button type="button" title="向后移动" aria-label="向后移动" disabled={busy||index===views.length-1}
-      onClick={()=>{const next=[...views];[next[index],next[index+1]]=[next[index+1],next[index]];void updateViews(next)}}><ArrowDown size={15}/></button>
-     <button type="button" aria-label="移除快捷入口" title="移除" disabled={busy}
-      onClick={()=>void updateViews(views.filter(v=>v.id!==view.id))}><X size={15}/></button>
+   <h4><Settings2 size={16}/> 快捷分类</h4>
+   <p>不固定审稿邀请栏目。可按使用频率自行增加、调整顺序与名称。</p>
+   <div className="am-view-editor">{views.map((v,i)=><div className="am-view-row" key={v.id}>
+    <input key={v.id+v.title} aria-label={v.title+'名称'} defaultValue={v.title} onBlur={e=>{const name=e.target.value.trim().slice(0,16);if(name&&name!==v.title)void updateViews(views.map(x=>x.id===v.id?{...x,title:name}:x))}}/>
+    <span>{MAIL_VIEW_KINDS[v.kind]}</span>
+    <button type="button" aria-label="上移" disabled={busy||i===0} onClick={()=>{const x=[...views];[x[i-1],x[i]]=[x[i],x[i-1]];void updateViews(x)}}><ArrowUp size={15}/></button>
+    <button type="button" aria-label="下移" disabled={busy||i===views.length-1} onClick={()=>{const x=[...views];[x[i+1],x[i]]=[x[i],x[i+1]];void updateViews(x)}}><ArrowDown size={15}/></button>
+    <button type="button" aria-label="删除" disabled={busy} onClick={()=>void updateViews(views.filter(x=>x.id!==v.id))}><X size={15}/></button>
+   </div>)}</div>
+   <div className="am-add-form"><label>入口名称<input value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="例如：审稿邀请"/></label>
+    <label>类型<select value={newKind} onChange={e=>setNewKind(e.target.value as MailViewKind)}>{Object.entries(MAIL_VIEW_KINDS).map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label>
+    <button type="button" className="am-main-button" disabled={!newTitle.trim()||views.length>=8||busy} onClick={()=>{void updateViews([...views,{id:crypto.randomUUID(),title:newTitle.trim().slice(0,16),kind:newKind}]);setNewTitle('')}}><Plus size={14}/> 添加入口</button>
+   </div>
+   <label className="am-option"><input type="checkbox" checked={settings?.workspace?.show_statistics!==false} disabled={busy} onChange={e=>void updateWorkspace({show_statistics:e.target.checked})}/> 显示快捷分类</label>
+   <label className="am-option"><input type="checkbox" checked={!!settings?.workspace?.compact} disabled={busy} onChange={e=>void updateWorkspace({compact:e.target.checked})}/> 紧凑型邮件列表</label>
+  </div>
+  <div className="am-personal-section">
+   <h4><Sparkles size={16}/> AI 服务与模型</h4>
+   <p>内置 GLM 免费 Flash 模型，并可添加多个符合 OpenAI Chat Completions 协议的 HTTPS 接口。密钥保存在服务端 Vault，不会保存到浏览器或 GitHub。</p>
+   <label className="am-choice-label">当前分析服务
+    <select value={settings?.ai_endpoint_id||''} onChange={e=>void onUpdate({ai_endpoint_id:e.target.value||null,ai_enabled:false,ai_allow_paid:false})}>
+     <option value="">Z.AI · GLM 免费 Flash</option>
+     {endpoints.map(e=><option key={e.id} value={e.id}>{e.label} · {e.model}</option>)}
+    </select></label>
+   {!chosen?<div className="am-model-preset">
+    <div className="am-add-form"><label>默认 GLM 模型<select value={settings?.ai_model||'glm-4.7-flash'} onChange={e=>void onUpdate({ai_model:e.target.value})} disabled={busy}>
+     <option value="glm-4.7-flash">GLM-4.7-Flash</option><option value="glm-4.5-flash">GLM-4.5-Flash</option></select></label>
+     <label>GLM API Key<input type="password" autoComplete="new-password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder={settings?.ai_key_ready?'Key 已保存，留空不修改':'填写 API Key'}/></label>
+     <button type="button" className="am-main-button" disabled={!apiKey.trim()||busy} onClick={()=>void onSaveKey(apiKey.trim()).then(()=>setApiKey('')).catch(()=>{})}>保存 Key</button>
+     <button type="button" className="am-quiet-button" disabled={!settings?.ai_key_ready||!!testing||busy} onClick={()=>void test(null)}>{testing==='default'?'测试中…':'测试 GLM 连接'}</button>
+    </div><small>{settings?.ai_key_ready?'GLM API Key 已加密保存。测试将实际调用少量 token。':'请先添加 API Key 后测试。'}</small>
+   </div>:<div className="am-model-preset"><strong>{chosen.label}</strong><p>模型：{chosen.model} · {chosen.key_ready?'Key 已保存':'Key 未配置'} · {chosen.last_test_status==='ok'?'上次测试成功':chosen.last_test_status||'尚未测试'}</p>
+    <button type="button" className="am-quiet-button" disabled={!chosen.key_ready||!!testing||busy} onClick={()=>void test(chosen.id)}>{testing===chosen.id?'测试中…':'测试选中模型'}</button></div>}
+   <div className="am-endpoint-list"><div className="am-section-heading"><strong>自定义 API 列表</strong><span>{endpoints.length} 个</span></div>
+    {endpoints.map(e=><div key={e.id} className="am-endpoint-row">
+     <div><strong>{e.label}</strong><small>{e.model} · {e.declared_free?'自定义标记为免费':'可能收费'} · {e.key_ready?'已授权':'未授权'}</small></div>
+     <button type="button" disabled={busy||saving} onClick={()=>startEdit(e)}>编辑</button>
+     <button type="button" disabled={!e.key_ready||!!testing||busy} onClick={()=>void test(e.id)}>测试</button>
+     <button type="button" disabled={busy||saving} onClick={()=>void remove(e.id)} aria-label="删除接口"><Trash2 size={14}/></button>
     </div>)}
    </div>
-   <div className="am-add-form">
-    <label>新增入口<input value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="例如：审稿邀请"/></label>
-    <label>筛选条件<select value={newKind} onChange={e=>setNewKind(e.target.value as MailViewKind)}>
-     {Object.entries(MAIL_VIEW_KINDS).map(([k,v])=><option value={k} key={k}>{v}</option>)}
-    </select></label>
-    <button type="button" className="am-main-button" disabled={!newTitle.trim()||views.length>=8||busy}
-     onClick={()=>{void updateViews([...views,{id:crypto.randomUUID(),title:newTitle.trim().slice(0,16),kind:newKind}]);setNewTitle('')}}><Plus size={14}/>添加</button>
+   <div className="am-model-editor"><strong>{editId?'编辑自定义 API':'新增自定义 API'}</strong>
+    <div className="am-add-form">
+     <label>服务名称<input value={label} onChange={e=>setLabel(e.target.value)} placeholder="例如：OpenRouter"/></label>
+     <label>模型 ID<input value={model} onChange={e=>setModel(e.target.value)} placeholder="例如：provider/model-id"/></label>
+     <label className="am-full-field">API Base URL 或 Chat Completions 完整地址<input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://api.example.com/v1/chat/completions"/></label>
+     <label>API Key<input type="password" autoComplete="new-password" value={endpointKey} onChange={e=>setEndpointKey(e.target.value)} placeholder={editId?'留空保持原 Key':'填写接口授权 Key'}/></label>
+    </div>
+    <label className="am-option"><input type="checkbox" checked={free} onChange={e=>setFree(e.target.checked)}/> 该模型由我确认属于免费调用</label>
+    <label className="am-option"><input type="checkbox" checked={paid} onChange={e=>setPaid(e.target.checked)}/> 允许此接口参与可能收费的自动调用（还需二次全局授权）</label>
+    <div className="am-add-form"><button type="button" className="am-main-button" disabled={saving||busy||!url||!model||!label} onClick={()=>void saveEndpoint()}>{saving?'保存中…':'保存接口'}</button>
+     {editId&&<button type="button" className="am-quiet-button" onClick={resetDraft}>取消编辑</button>}</div>
    </div>
-   <label className="am-option"><input type="checkbox" checked={settings?.workspace?.show_statistics!==false}
-     disabled={busy} onChange={e=>void updateWorkspace({show_statistics:e.target.checked})}/> 显示快捷分类</label>
-   <label className="am-option"><input type="checkbox" checked={!!settings?.workspace?.compact}
-     disabled={busy} onChange={e=>void updateWorkspace({compact:e.target.checked})}/> 紧凑型邮件列表</label>
   </div>
-
   <div className="am-personal-section">
-   <h4><Sparkles size={16}/> 免费 AI 邮件摘要</h4>
-   <p>自动对新收到的邮件提取中文摘要、简短标签及处理建议。仅选择官方免费 Flash 模型；邮件正文片段将提交至 Z.AI，请遵守学校相关数据外发规定。</p>
-   <div className="am-add-form">
-    <label>Z.AI API Key<input type="password" autoComplete="new-password" value={apiKey}
-      onChange={e=>setApiKey(e.target.value)} placeholder={settings?.ai_key_ready?'已配置；输入可替换':'粘贴专用 API Key'}/></label>
-    <button type="button" className="am-main-button" disabled={!apiKey.trim()||busy}
-      onClick={()=>{void onSaveKey(apiKey.trim()).then(()=>setApiKey('')).catch(()=>{})}}>加密保存</button>
-   </div>
-   <div className="am-add-form">
-    <label>免费模型<select disabled={busy} value={settings?.ai_model||'glm-4.7-flash'}
-      onChange={e=>void onUpdate({ai_model:e.target.value})}>
-      <option value="glm-4.7-flash">GLM-4.7-Flash（默认）</option>
-      <option value="glm-4.5-flash">GLM-4.5-Flash（免费备选）</option>
-    </select></label>
-    <label>每日最多分析<select disabled={busy} value={settings?.ai_daily_limit??20}
-      onChange={e=>void onUpdate({ai_daily_limit:Number(e.target.value)})}>
-      {[0,5,10,20,30,50].map(value=><option value={value} key={value}>{value} 封</option>)}
-    </select></label>
-   </div>
-   <label className="am-option"><input type="checkbox" checked={!!settings?.ai_enabled}
-     disabled={!settings?.ai_key_ready||busy} onChange={e=>void onUpdate({ai_enabled:e.target.checked,...(e.target.checked?{ai_started_at:new Date().toISOString()}: {})})}/>
-      开启自动分析（默认关闭，需主动授权）</label>
-   <label className="am-option"><input type="checkbox" checked={!!settings?.ai_analyze_existing}
-     disabled={busy} onChange={e=>void onUpdate({ai_analyze_existing:e.target.checked})}/>
-      同时分析历史邮件（占用每日免费限额）</label>
-   {settings?.last_ai_error&&<div className="am-account-error"><AlertCircle size={14}/>{settings.last_ai_error}</div>}
-   <p className="am-disclaimer">严格禁止付费 GLM-4.7 / FlashX 自动回退。请求若被服务商以付费或权限状态拒绝，将暂停自动分析。免费资格、速率限制请以服务商官网为准。</p>
+   <h4>分析指令与自动处理</h4>
+   <p>指令可直接修改，保留固定的邮件安全隔离和 JSON 输出约束。自动分析只会发送邮件正文片段到你选定的模型服务。</p>
+   <label className="am-choice-label">分析系统指令<textarea rows={5} maxLength={6000} value={prompt} onChange={e=>setPrompt(e.target.value)} /></label>
+   <div className="am-add-form"><button type="button" className="am-main-button" disabled={!prompt.trim()||busy||prompt===settings?.ai_system_prompt} onClick={()=>void onUpdate({ai_system_prompt:prompt.trim()})}>保存分析指令</button>
+    <button type="button" className="am-quiet-button" onClick={()=>setPrompt(DEFAULT_PROMPT)}>恢复默认文本</button></div>
+   <div className="am-add-form"><label>每日最多自动分析<select value={settings?.ai_daily_limit??20} disabled={busy} onChange={e=>void onUpdate({ai_daily_limit:Number(e.target.value)})}>{[0,5,10,20,30,50].map(n=><option value={n} key={n}>{n} 封</option>)}</select></label></div>
+   {paidWarning&&<label className="am-option"><input type="checkbox" checked={!!settings?.ai_allow_paid} disabled={busy} onChange={e=>void onUpdate({ai_allow_paid:e.target.checked,ai_enabled:false})}/> 我了解该自定义模型可能产生费用，并明确允许自动调用</label>}
+   <label className="am-option"><input type="checkbox" disabled={busy||!ready||settings?.ai_daily_limit===0||(paidWarning&&!chosen?.declared_free&&!(chosen?.allow_paid&&settings?.ai_allow_paid))} checked={!!settings?.ai_enabled}
+     onChange={e=>void onUpdate({ai_enabled:e.target.checked,...e.target.checked?{ai_started_at:new Date().toISOString()}: {}})}/> 开启后台自动摘要、标签、优先级和行动建议（默认关闭）</label>
+   <label className="am-option"><input type="checkbox" disabled={busy} checked={!!settings?.ai_analyze_existing} onChange={e=>void onUpdate({ai_analyze_existing:e.target.checked})}/> 同时分析历史邮件</label>
+   {settings?.last_ai_error&&<p className="am-account-error"><AlertCircle size={14}/>{settings.last_ai_error}</p>}
+   <p className="am-disclaimer">测试模型会发送简单探针并使用少量 token，可能产生费用。自定义接口的免费额度由服务商决定；系统不自动切换付费模型。校园邮件外发应符合所在单位的数据管理要求。</p>
   </div>
  </section>
 }

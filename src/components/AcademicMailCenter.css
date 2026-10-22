@@ -211,3 +211,47 @@
 .am-compose>footer{display:flex;align-items:center;justify-content:flex-end;gap:9px}
 .am-compose>footer span{flex:1;color:var(--am-muted);font-size:11px}
 @media(max-width:700px){.am-compose{padding:14px}.am-compose>footer{flex-wrap:wrap}.am-compose>footer span{flex-basis:100%}}
+
+/* Connection editor uses the same surface, controls, and 12px typography as other settings. */
+.am-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.am-section-heading strong{font-size:13px}
+.am-server-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.am-server-fieldset{min-width:0;margin:0;border:1px solid var(--am-line);border-radius:10px;padding:12px;background:var(--am-surface);display:flex;flex-direction:column;gap:9px}
+.am-server-fieldset legend{font-size:12px;font-weight:750;color:var(--am-ink);padding:0 6px}
+.am-server-fieldset label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:11px;color:var(--am-muted)}
+.am-server-fieldset input,.am-server-fieldset select{width:100%;min-width:0;padding:9px;border-radius:8px;border:1px solid var(--am-line);background:var(--am-surface);color:var(--am-ink);font-size:12px}
+.am-server-fieldset select:disabled{opacity:.72}
+.am-server-pair{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.am-server-suggestions{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.am-server-suggestions button{border:1px solid var(--am-line);background:var(--am-surface);color:var(--am-ink);border-radius:8px;padding:8px;font-size:11px;cursor:pointer;text-align:left}
+.am-server-suggestions button:hover{border-color:var(--am-blue);background:var(--am-selected)}
+.am-server-suggestions span{font-weight:750;color:var(--am-blue)}
+.am-server-suggestions small{display:block;font-size:10px;color:var(--am-muted);margin-top:3px}
+.am-test-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+.am-test-results>div{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-radius:8px;font-size:11px;border:1px solid var(--am-line)}
+.am-test-results .ok{border-color:rgba(38,160,110,.35);background:rgba(38,160,110,.06)}
+.am-test-results .error{border-color:rgba(200,65,60,.32);background:rgba(200,65,60,.06)}
+.am-test-results span{font-size:11px;overflow-wrap:anywhere}
+@media(max-width:850px){.am-server-grid{grid-template-columns:1fr}}
+@media(max-width:500px){.am-test-results{grid-template-columns:1fr}}
+
+/* Runtime-configured model endpoints and prompt editor share the same input system. */
+.am-choice-label{display:flex;flex-direction:column;gap:7px;margin:12px 0;font-size:11px;color:var(--am-muted)}
+.am-choice-label select,.am-choice-label textarea{width:100%;min-width:0;max-width:100%;background:var(--am-surface);color:var(--am-ink);border:1px solid var(--am-line);border-radius:8px;padding:10px 11px;font-size:12px;line-height:1.6}
+.am-choice-label textarea{resize:vertical;min-height:110px;font-family:inherit}
+.am-model-preset,.am-model-editor{border:1px solid var(--am-line);border-radius:10px;background:var(--am-soft);padding:13px;margin:12px 0}
+.am-model-preset strong,.am-model-editor strong,.am-section-heading strong{font-size:12px}
+.am-model-preset small{display:block;color:var(--am-muted);font-size:10px;margin-top:8px}
+.am-model-editor .am-full-field{flex-basis:100%}
+.am-endpoint-list{margin:16px 0 12px}
+.am-section-heading span{color:var(--am-muted);font-size:11px}
+.am-endpoint-row{display:flex;align-items:center;gap:8px;border-top:1px solid var(--am-line);padding:12px 0}
+.am-endpoint-row>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.am-endpoint-row strong{font-size:12px;color:var(--am-ink)}
+.am-endpoint-row small{font-size:10px;color:var(--am-muted);overflow-wrap:anywhere}
+.am-endpoint-row button{flex:none;display:flex;align-items:center;justify-content:center;border:1px solid var(--am-line);background:var(--am-surface);border-radius:7px;padding:7px 9px;color:var(--am-ink);cursor:pointer;font-size:11px;min-height:30px}
+.am-endpoint-row button:hover{border-color:var(--am-blue)}
+.am-model-editor .am-add-form label{min-width:180px}
+@media(max-width:700px){.am-endpoint-row{flex-wrap:wrap}.am-endpoint-row>div{flex-basis:100%}}
+
+.am-ai-category-suggestion{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--am-blue);padding:8px 0;line-height:1.55}
