@@ -1721,3 +1721,109 @@ html[data-ui] body .academic-mail-center .am-account-dialog .am-account-card:hov
  .academic-mail-center .am-account-dialog .am-account-data{grid-template-columns:1fr 1fr}
  .academic-mail-center .am-account-dialog .am-account-data>div:last-child{grid-column:1/-1}
 }
+
+/* Mail configuration: one continuous reading flow, no equal-height empty grid columns. */
+html[data-ui] body .academic-mail-center .am-personalization{
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ grid-template-columns:none;
+ max-width:1280px;
+ margin-inline:auto;
+ gap:12px;
+}
+html[data-ui] body .academic-mail-center .am-personalization>header{
+ width:100%;padding:0;margin:1px 0 0;
+}
+html[data-ui] body .academic-mail-center .am-personal-section{
+ width:100%;padding:15px 18px;
+}
+html[data-ui] body .academic-mail-center .am-personalization .am-view-editor{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px 16px;
+}
+.academic-mail-center .am-personalization .am-view-row{min-width:0}
+.academic-mail-center .am-personalization .am-view-row input{width:auto;flex:1}
+.academic-mail-center .am-model-editor>summary,
+.academic-mail-center .am-advanced-models>summary,
+.academic-mail-center .am-analysis-settings>summary{
+ display:flex;align-items:center;justify-content:space-between;
+ font-size:14px;font-weight:700;color:var(--am-ink);
+ cursor:pointer;list-style:none;padding:4px 0;
+}
+.academic-mail-center .am-model-editor>summary::-webkit-details-marker,
+.academic-mail-center .am-advanced-models>summary::-webkit-details-marker,
+.academic-mail-center .am-analysis-settings>summary::-webkit-details-marker{display:none}
+.academic-mail-center .am-model-editor>summary::after,
+.academic-mail-center .am-advanced-models>summary::after,
+.academic-mail-center .am-analysis-settings>summary::after{
+ content:'+';font-size:21px;line-height:1;font-weight:500;color:var(--am-muted);
+}
+.academic-mail-center :is(.am-model-editor,.am-advanced-models,.am-analysis-settings)[open]>summary::after{content:'−'}
+html[data-ui] body .academic-mail-center .am-model-editor:not([open]){padding:11px 14px;margin-bottom:0}
+html[data-ui] body .academic-mail-center .am-advanced-models:not([open]),
+html[data-ui] body .academic-mail-center .am-analysis-settings:not([open]){padding-block:12px}
+html[data-ui] body .academic-mail-center .am-personal-section p.am-disclaimer{display:none}
+@media(max-width:850px){
+ html[data-ui] body .academic-mail-center .am-personalization .am-view-editor{grid-template-columns:1fr}
+}
+
+/* Mailbox overview: source and historical sync figures are primary, not settings. */
+html[data-ui] body .academic-mail-center .am-account-overview{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));
+ gap:11px;
+}
+html[data-ui] body .academic-mail-center .am-account-summary{
+ display:grid;
+ grid-template-columns:42px minmax(0,1fr) auto;
+ grid-template-rows:auto;
+ align-items:start;
+ gap:11px;
+ min-height:132px;
+ padding:14px 15px;
+}
+.academic-mail-center .am-account-summary .am-account-mark{grid-column:1;grid-row:1}
+.academic-mail-center .am-account-summary-main{grid-column:2;grid-row:1;gap:5px}
+.academic-mail-center .am-account-summary-main strong{font-size:14px}
+.academic-mail-center .am-account-summary-main small{font-size:12px}
+.academic-mail-center .am-account-summary-main>span{font-size:12px;white-space:normal;line-height:1.45}
+.academic-mail-center .am-account-metrics{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:2px 0}
+.academic-mail-center .am-account-metrics span{
+ padding:4px 8px;border-radius:6px;
+ background:var(--am-soft);color:var(--am-ink);
+ white-space:nowrap;font-size:12px;
+}
+.academic-mail-center .am-account-metrics b{font-variant-numeric:tabular-nums;font-weight:800}
+.academic-mail-center .am-account-summary-actions{
+ grid-column:3;grid-row:1;
+ display:flex;flex-direction:column;align-items:stretch;gap:8px;
+ min-width:85px;
+}
+html[data-ui] body .academic-mail-center .am-account-summary-actions .am-account-state{
+ align-self:stretch;display:block;text-align:center;white-space:nowrap;grid-column:auto;grid-row:auto;
+}
+.academic-mail-center .am-account-summary-actions>a{
+ display:flex;align-items:center;justify-content:center;gap:6px;
+ padding:7px 9px;border-radius:8px;border:1px solid var(--am-line);
+ background:var(--am-surface);text-decoration:none;color:var(--am-ink);
+ font-size:12px;white-space:nowrap;
+}
+.academic-mail-center .am-account-summary-actions>a:hover{color:var(--am-blue);border-color:var(--am-blue)}
+.academic-mail-center .am-account-summary-actions .am-account-open{
+ grid-column:auto;grid-row:auto;padding:7px 9px;
+}
+.academic-mail-center .am-source-webmail{
+ display:inline-flex;align-items:center;gap:5px;
+ margin-top:5px;font-weight:650;color:var(--am-blue);text-decoration:none;font-size:12px;
+}
+@media(max-width:530px){
+ html[data-ui] body .academic-mail-center .am-account-summary{
+  grid-template-columns:35px minmax(0,1fr);padding:12px;
+ }
+ .academic-mail-center .am-account-summary-actions{
+  grid-column:2;grid-row:2;flex-direction:row;flex-wrap:wrap;align-items:center;
+ }
+ .academic-mail-center .am-account-summary-actions>a{flex:0 0 auto}
+}

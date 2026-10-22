@@ -46,6 +46,7 @@ type Message = {
   last_folder: string
   body_text?: string
   snippet: string
+  storage_tier: 'full'|'text'|'index'
   category: string
   importance: number
   deadline: string | null
@@ -68,6 +69,7 @@ type Message = {
 type MailFolder = {id:string; name:string; color:string; sort_order:number}
 type MailLabel = {id:string; name:string; color:string}
 type MailTranslation = {translated_text:string; source_hash:string; model_name:string}
+type AccountProgress = {account_id:string;archived_count:number;full_count:number;text_count:number;index_count:number;scanned_folders:number;backfill_pending:number;history_complete:boolean;last_added_at:string|null;last_added_count:number}
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
 type Scope = MailViewKind
 type Workspace = 'inbox' | 'accounts' | 'personalize'
@@ -88,12 +90,38 @@ const providerLabels: Record<string,string> = {
   coremail: 'Coremail', qq: 'QQ 邮箱', '126': '126 邮箱',
   gmail: 'Gmail', outlook: 'Outlook',
 }
+const webmailHome=(account:Account):string|null=>{
+ const address=account.address.toLowerCase()
+ if(account.provider==='qq')return 'https://mail.qq.com/'
+ if(account.provider==='126')return 'https://mail.126.com/'
+ if(account.provider==='gmail')return 'https://mail.google.com/mail/?authuser='+encodeURIComponent(account.address)
+ if(account.provider==='outlook')return /@(?:[a-z0-9.-]*onmicrosoft\.com|[a-z0-9.-]*edu\.[a-z]+)$/i.test(address)
+   ?'https://outlook.office.com/mail/':'https://outlook.live.com/mail/'
+ if(address.endsWith('@email.cugb.edu.cn'))return 'https://www.email.cugb.edu.cn/coremail/index.jsp?nodetect=true'
+ if(address.endsWith('@xju.edu.cn'))return 'https://mail.xju.edu.cn/coremail/index.jsp'
+ if(address.endsWith('@mail.cugb.edu.cn'))return 'https://mail.cugb.edu.cn/'
+ return null
+}
+const messageSourceUrl=(account:Account,message:Message):string|null=>{
+ if(account.provider==='outlook'){
+  const raw=message.extraction?.webmail_url
+  if(typeof raw==='string'){
+   try{
+    const u=new URL(raw)
+    if(u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&
+       ['outlook.office.com','outlook.live.com','outlook.office365.com'].includes(u.hostname.toLowerCase()))
+     return u.href
+   }catch{}
+  }
+ }
+ return webmailHome(account)
+}
 const niceDate = (date?: string | null) => date
   ? new Date(date).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   : '尚无记录'
 const shortDate = (date?: string | null) => date ? new Date(date).toLocaleDateString('zh-CN') : '未知日期'
 const isSpam = (message: Message) => /spam|junk|垃圾/i.test(message.first_folder + ' ' + message.last_folder)
-const isSupported = (account: Account) => ['coremail','qq','126','other'].includes(account.provider)
+const isSupported = (account: Account) => ['coremail','qq','126','gmail','other'].includes(account.provider)
 const describeStatus = (account: Account) => {
   if (!account.enabled) return '已暂停'
   if (account.provider==='outlook')return account.cloud_state==='ready'?'Graph 已连接':account.cloud_state==='error'?'Graph 连接异常':'等待 Microsoft 授权'
@@ -127,6 +155,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [workspace, setWorkspace] = useState<Workspace>('inbox')
   const [pref,setPref] = useState<MailSettings|null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [accountProgress,setAccountProgress]=useState<Record<string,AccountProgress>>({})
   const [folders,setFolders] = useState<MailFolder[]>([])
   const [labels,setLabels] = useState<MailLabel[]>([])
   const [folderFilter,setFolderFilter] = useState('all')
@@ -207,18 +236,20 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
-    const [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult] = await Promise.all([
-      accountQuery, papersQuery, base(), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
+    const [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult,progressResult] = await Promise.all([
+      accountQuery, papersQuery, base().neq('storage_tier','index'), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
       base().or('category.eq.review_invite,ai_category.eq.review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().or('importance.gte.2,ai_priority.gte.2'), base().or(folderQuery),
        base().or('category.eq.submission_update,ai_category.eq.submission_update'),
       (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
        (supabase.from('mail_folders') as any).select('id,name,color,sort_order').eq('user_id',userId).order('sort_order').order('name'),
        (supabase.from('mail_labels') as any).select('id,name,color').eq('user_id',userId).order('name'),
+       (supabase as any).rpc('mail_account_progress'),
     ])
-    const failed = [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult].find(x=>x.error)
+    const failed = [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult,progressResult].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
+    setAccountProgress(Object.fromEntries(((progressResult.data||[]) as AccountProgress[]).map(v=>[v.account_id,v])))
     setFolders(folderResult.data||[])
     setLabels(labelResult.data||[])
     setPref(prefResult.data||null)
@@ -230,13 +261,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state,user_note,user_labels,virtual_folder_id',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,storage_tier,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state,user_note,user_labels,virtual_folder_id',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
     if(scope==='review_invite'||scope==='pending'||scope==='submission_update'){const target=scope==='pending'?'review_invite':scope;q=q.or('category.eq.'+target+',ai_category.eq.'+target)}
     if(scope==='pending') q=q.or('review_response.is.null,review_response.eq.pending')
     if(scope==='important') q=q.or('importance.gte.2,ai_priority.gte.2')
+    if(scope==='all'&&accountFilter==='all'&&!debouncedSearch)q=q.neq('storage_tier','index')
     if(accountFilter!=='all') q=q.eq('account_id',accountFilter)
     if(folderFilter==='unfiled')q=q.is('virtual_folder_id',null)
     else if(folderFilter!=='all')q=q.eq('virtual_folder_id',folderFilter)
@@ -415,8 +447,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   },[oauth?.accountId,oauth?.expiresAt,oauth?.interval,oauth?.waiting])
     const setupAccount=(a:Account)=>{
     setSetupId(a.id)
-    setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':''))
-    setSmtpHost(a.smtp_host||(a.provider==='qq'?'smtp.qq.com':a.provider==='126'?'smtp.126.com':''))
+    setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':a.provider==='gmail'?'imap.gmail.com':''))
+    setSmtpHost(a.smtp_host||(a.provider==='qq'?'smtp.qq.com':a.provider==='126'?'smtp.126.com':a.provider==='gmail'?'smtp.gmail.com':''))
     setImapPort(a.imap_port||993);setSmtpPort(a.smtp_port||465)
     setImapSecurity(a.imap_security||'ssl');setSmtpSecurity(a.smtp_security||'ssl')
     setImapUsername(a.imap_username||a.address);setSmtpUsername(a.smtp_username||a.address)
@@ -571,7 +603,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       })
       setTranslation({translated_text:r.translation,source_hash:'',model_name:r.model||''})
       setTranslationVisible(true)
-      setNotice(r.cached?'已读取缓存译文':r.truncated?'已翻译前 8500 字；完整原文仍可对照阅读':'翻译完成，已缓存供下次阅读')
+      setNotice(r.cached?'已加载译文':r.truncated?'已翻译部分正文':'翻译完成')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setTranslationLoading(false)}
   }
@@ -594,7 +626,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         .upsert(next,{onConflict:'user_id'})
       if(err)throw err
       setPref(next as MailSettings)
-      setNotice('已保存，页面配置立即生效，无需重新发布')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
@@ -652,7 +683,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div className="am-header-actions">
         <div className="am-command-status" aria-label="邮件服务状态">
           <span className="am-status-account" title="已连接并启用自动采集的邮箱"><span className="am-status-dot"/>邮箱 {cloudReady}/{accounts.length}</span>
-          <span className="am-status-ai" title="GPT 按需分析：网页不自动调用外部 AI"><Sparkles size={13}/>GPT 按需</span>
         </div>
         <button type="button" className="am-icon-button" onClick={()=>void refresh()} title="刷新数据" aria-label="刷新数据"><RefreshCw size={17}/></button>
         <button type="button" className="am-main-button" onClick={()=>compose(false)}><Plus size={15}/> 写邮件</button>
@@ -728,9 +758,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div className="am-msg-from"><div className="am-from-group">
                 {accounts.find(a=>a.id===m.account_id)&&<span className="am-source-badge"
                   title={accounts.find(a=>a.id===m.account_id)?.address}>
-                  {accounts.find(a=>a.id===m.account_id)?.logo_url
-                  ?<img referrerPolicy="no-referrer" alt="" src={accounts.find(a=>a.id===m.account_id)?.logo_url||''}/>
-                  :accounts.find(a=>a.id===m.account_id)?.logo_symbol||providerSymbols[accounts.find(a=>a.id===m.account_id)?.provider||'other']}
+                  {accounts.find(a=>a.id===m.account_id)?.logo_symbol||providerSymbols[accounts.find(a=>a.id===m.account_id)?.provider||'other']}
                   </span>}
                 <strong>{m.sender_name||m.sender_address||'未知发件人'}</strong>
                 </div><time>{shortDate(m.received_at)}</time></div>
@@ -753,17 +781,16 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>发件人</span><strong>{active.sender_name||'未填写'} <small>{active.sender_address||''}</small></strong></div>
               <div><span>收件时间</span><strong>{niceDate(active.received_at)}</strong></div>
               <div><span>来源邮箱 / 服务器文件夹</span><strong className="am-reader-source">
-                  <span className="am-source-badge">{selectedAccount?.logo_url
-                    ?<img referrerPolicy="no-referrer" alt="" src={selectedAccount.logo_url}/>
-                    :selectedAccount?.logo_symbol||providerSymbols[selectedAccount?.provider||'other']}</span>
+                  <span className="am-source-badge">{selectedAccount?.logo_symbol||providerSymbols[selectedAccount?.provider||'other']}</span>
                   {selectedAccount?logoLabel(selectedAccount):'未知邮箱'} · {active.first_folder}</strong>
                   <small title={selectedAccount?.address}>{selectedAccount?.address}</small></div>
-              <div><span>原文归档</span><strong>{active.cloud_archive_path?'私有云原文已归档':active.archived_locally?'本地原文已归档':'尚无原文备份'}</strong></div>
+              <div><span>保存方式</span><strong>{active.storage_tier==='index'?'仅索引 · 原邮箱查看':active.storage_tier==='text'?'正文 · 不存附件':active.cloud_archive_path?'完整原文归档':'正文记录'}</strong>
+               {selectedAccount&&messageSourceUrl(selectedAccount,active)&&<a className="am-source-webmail" href={messageSourceUrl(selectedAccount,active)||undefined} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> {active.extraction?.webmail_url?'在原邮箱查看此邮件':'打开原邮箱'}</a>}</div>
             </div>
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
             {active.ai_category&&<div className="am-ai-category-suggestion"><Sparkles size={14}/> AI 识别：{categories[active.ai_category]||active.ai_category} · 分类建议独立保存，不会覆盖手动分类</div>}
             {active.ai_summary&&<div className="am-ai-result">
-              <div className="am-ai-result-title"><Sparkles size={15}/> AI 初步分析 <small>仅供参考</small></div>
+              <div className="am-ai-result-title"><Sparkles size={15}/> AI 分析</div>
               <p>{active.ai_summary}</p>
               {!!active.ai_tags?.length&&<div className="am-ai-tags">{active.ai_tags.map(tag=><span key={tag}>{tag}</span>)}</div>}
               {active.ai_action&&<div className="am-ai-action"><strong>建议：</strong>{active.ai_action}</div>}
@@ -793,7 +820,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               </div>
             </div>
             <div className="am-annotation-panel">
-              <div className="am-annotation-title"><StickyNote size={15}/>备注与跨邮箱整理 <small>仅保存到 Submission Hub，不修改原邮件</small></div>
+              <div className="am-annotation-title"><StickyNote size={15}/>备注与跨邮箱整理</div>
               <div className="am-annotation-grid">
                 <label><Folder size={13}/> 虚拟文件夹
                   <select value={active.virtual_folder_id||''} disabled={busy==='message'} onChange={e=>void saveMessage({virtual_folder_id:e.target.value||null})}>
@@ -824,24 +851,41 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </article>
       </section>
     </>:workspace==='accounts'?<>
-      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>集中查看所有邮箱的连接状态、异常与最近同步；点击卡片进入收发信、同步和来源标识设置。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(true)}><Plus size={15}/> 添加邮箱</button></div>
+      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(true)}><Plus size={15}/> 添加邮箱</button></div>
       {showAdd&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setShowAdd(false)}}>
         <div className="am-account-dialog am-account-add-dialog" role="dialog" aria-modal="true" aria-label="添加邮箱">
          <header className="am-dialog-header"><strong>添加邮箱</strong><button type="button" aria-label="关闭添加邮箱" onClick={()=>setShowAdd(false)}><X size={18}/></button></header>
          <div className="am-form-panel"><strong>邮箱账户信息</strong><div className="am-add-form">
         <label>邮箱地址<input type="email" placeholder="name@stu.xju.edu.cn" value={newAddress} onChange={e=>setNewAddress(e.target.value)} autoComplete="email"/></label>
-        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook / Hotmail（Microsoft OAuth2）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
+        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（应用专用密码）</option><option value="outlook">Outlook / Hotmail（Microsoft OAuth2）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
         <button type="button" className="am-main-button" disabled={busy!==null} onClick={()=>void addAccount()}>保存账户</button><button type="button" className="am-quiet-button" onClick={()=>setShowAdd(false)}>取消</button>
       </div></div></div></div>}
       <div className="am-account-overview" aria-label="多邮箱连接概览">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
-        {accounts.map(a=><article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
-          <div className="am-account-mark am-brand-mark">{a.logo_url?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>:a.logo_symbol||providerSymbols[a.provider]||<Mail size={18}/>}</div>
-          <div className="am-account-summary-main"><strong>{logoLabel(a)}</strong><small title={a.address}>{a.address}</small>
-            <span title={a.last_error||undefined}>{a.last_error?'最近采集异常 · 历史邮件仍保留':'最近成功同步 '+niceDate(a.last_sync_at)}</span></div>
-          <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span>
-          <button type="button" className="am-account-open" onClick={()=>{setDetailAccountId(a.id);setSetupId(null);setOauthPanelId(null);setBrandEditing(null);setConnectionResults({})}}><Settings2 size={14}/> 详情与设置</button>
-        </article>)}
+        {accounts.map(a=>{
+          const stats=accountProgress[a.id]
+          const home=webmailHome(a)
+          return <article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
+           <div className="am-account-mark am-brand-mark">{a.logo_symbol||providerSymbols[a.provider]||<Mail size={18}/>}</div>
+           <div className="am-account-summary-main">
+            <strong>{logoLabel(a)}</strong><small title={a.address}>{a.address}</small>
+            <div className="am-account-metrics">
+             <span>归档 <b>{stats?.archived_count??0}</b> 封</span>
+             <span>完整 {stats?.full_count??0}</span>
+             <span>轻量 {(stats?.text_count??0)+(stats?.index_count??0)}</span>
+            </div>
+            <span>上次新增 {stats?.last_added_at?niceDate(stats.last_added_at)+' · '+stats.last_added_count+' 封':'暂无记录'}</span>
+            <span>成功同步 {niceDate(a.last_sync_at)}{a.cloud_state==='error'?' · 最近检查失败':''}</span>
+            <span>{stats?.history_complete?'历史归档已完成':
+             '历史归档进行中 · 已记录 '+(stats?.scanned_folders??0)+'/'+(a.last_scanned_folders||0)+' 个文件夹'}</span>
+           </div>
+           <div className="am-account-summary-actions">
+            <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span>
+            {home&&<a href={home} target="_blank" rel="noopener noreferrer" title="在邮箱服务商官方网站查看原始邮件">原邮箱 <ExternalLink size={13}/></a>}
+            <button type="button" className="am-account-open" onClick={()=>{setDetailAccountId(a.id);setSetupId(null);setOauthPanelId(null);setBrandEditing(null);setConnectionResults({})}}><Settings2 size={14}/> 设置</button>
+           </div>
+          </article>
+        })}
       </div>
       {detailAccountId&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setDetailAccountId(null)}}>
        <div className="am-account-dialog" role="dialog" aria-modal="true" aria-label="邮箱详情与设置">
@@ -849,9 +893,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <div className="am-account-list">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
         {accounts.filter(a=>a.id===detailAccountId).map(a=><section key={a.id} className="am-account-card" data-provider={a.provider}>
-          <div className="am-account-heading"><div className="am-account-mark am-brand-mark">{a.logo_url
-             ?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>
-             :a.logo_symbol||providerSymbols[a.provider]||<Mail size={19}/>}</div>
+          <div className="am-account-heading"><div className="am-account-mark am-brand-mark">{a.logo_symbol||providerSymbols[a.provider]||<Mail size={19}/>}</div>
              <div className="am-account-name"><strong>{logoLabel(a)}</strong><small>{a.address} · {providerLabels[a.provider]||a.provider}</small></div>
              <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
           <div className="am-account-data">
@@ -892,7 +934,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             <div><button type="button" className="am-main-button" disabled={busy!==null}
               onClick={()=>void saveBrand(a)}>保存来源标识</button>
               <button type="button" className="am-quiet-button" onClick={()=>setBrandEditing(null)}>取消</button></div>
-            <small>头像优先显示 Logo；无 Logo 时显示自定义文字。每封邮件均保留原邮箱地址以便溯源。</small>
+        
           </div>}
           {a.provider==='outlook'&&oauthPanelId===a.id&&<div className="am-oauth-panel">
             <div className="am-oauth-panel-head"><div className="am-oauth-icon"><KeyRound size={18}/></div>
@@ -916,7 +958,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                 <Copy size={14}/> 复制验证码</button>
                 <a className="am-main-button" href={oauth.verificationUri} target="_blank" rel="noopener noreferrer">
                  <ExternalLink size={14}/> 打开微软授权页</a></div>
-              <small>在 Microsoft 网页输入验证码后，系统按官方间隔自动检查结果。有效期剩余约 {Math.max(0,Math.ceil((oauth.expiresAt-Date.now())/60000))} 分钟。</small>
+              <small>有效期剩余 {Math.max(0,Math.ceil((oauth.expiresAt-Date.now())/60000))} 分钟</small>
             </div>}
             {a.cloud_state==='ready'&&<p className="am-oauth-connected"><CheckCircle2 size={15}/>
               已授权：{a.oauth_identity||a.address} · Microsoft Graph 读取及发送邮件</p>}
@@ -971,7 +1013,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           </div>}
         </section>)}
         </div></div></div>}
-      <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>历史邮件按文件夹断点分批归档，后续只增量同步；普通 IMAP 邮箱无法直接推送到本站，使用低频后台检查，不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
     </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey} onToast={showToast} onRefresh={loadMetadata}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
       <div className="am-compose">
