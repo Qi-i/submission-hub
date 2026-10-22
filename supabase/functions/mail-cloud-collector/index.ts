@@ -165,13 +165,18 @@ async function scanAccount(admin:any,account:any){
  }
  const now=Date.now()
  let processed=0
- let openedFolders=0, advertisedMessages=0, foundUids=0, folderOpenErrors=0
+ let openedFolders=0, advertisedMessages=0, foundUids=0, folderOpenErrors=0, firstOpenStatus='unknown'
  try{
   if(account.auth_kind==='xoauth2'){
 
    await imap.cmd('AUTHENTICATE XOAUTH2 '+btoa('user='+account.address+String.fromCharCode(1)+'auth=Bearer '+secretRes.data+String.fromCharCode(1,1)))
   }else await imap.cmd('LOGIN '+imapString(account.imap_username||account.address)+' '+imapString(secretRes.data))
   const directory=await folders(imap)
+  // The canonical INBOX must always be addressable even when a gateway
+  // returns a non-standard LIST suffix that the folder-name parser misses.
+  if(account.provider==='126'&&!directory.some(f=>f.name.toUpperCase()==='INBOX')){
+   directory.unshift({name:'INBOX',display:'收件箱',spam:false})
+  }
   const state=await admin.rpc('mail_get_scan_state',{p_account_id:account.id})
   if(state.error)throw new Error('Unable to load scan cursor')
   const byName=new Map((state.data||[]).map((s:any)=>[s.folder_key,s]))
@@ -185,7 +190,14 @@ async function scanAccount(admin:any,account:any){
     // never uses STORE/EXPUNGE and retrieves mail via BODY.PEEK[] only.
     if(account.provider!=='126'){folderOpenErrors++;continue}
     try{examined=await imap.cmd('SELECT '+imapString(folder.name))}
-    catch{folderOpenErrors++;continue}
+    catch(e){
+     folderOpenErrors++
+     if(firstOpenStatus==='unknown'){
+      const response=String(e instanceof Error?e.message:e)
+      firstOpenStatus=/\\bBAD\\b/i.test(response)?'BAD':/\\bNO\\b/i.test(response)?'NO':'transport'
+     }
+     continue
+    }
    }
    openedFolders++
    advertisedMessages+=Number(/\* (\d+) EXISTS/i.exec(examined.lines.join(' '))?.[1]||0)
@@ -293,7 +305,7 @@ async function scanAccount(admin:any,account:any){
    if(save.error)throw new Error('Scan cursor update failed')
    if(!completed)break
   }
-  if(directory.length>0&&openedFolders===0)throw new Error('IMAP discovered folders but none could be opened; check mailbox permissions')
+  if(directory.length>0&&openedFolders===0)throw new Error('IMAP found folders but EXAMINE/SELECT failed (response '+firstOpenStatus+'); check folder names and mailbox permissions')
   if(advertisedMessages>0&&foundUids===0)throw new Error('IMAP reports '+advertisedMessages+' messages, but UID SEARCH returned zero; refusing false successful sync')
   return {processed,checkedFolders:directory.length,openedFolders,folderOpenErrors,advertisedMessages,foundUids}
  }finally{try{conn.close()}catch{}}
