@@ -3,6 +3,8 @@ import {readFileSync} from 'node:fs'
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
 const ui=read('src/components/AcademicMailCenter.tsx')
 const settings=read('src/components/MailPersonalization.tsx')
+const translator=read('supabase/functions/mail-translate/index.ts')
+const chunkSchema=read('supabase/042_mail_resumable_translation.sql')
 const cfg=read('supabase/functions/mail-config/index.ts')
 const oauth=read('supabase/functions/mail-outlook-oauth/index.ts')
 const collector=read('supabase/functions/mail-cloud-collector/index.ts')
@@ -12,6 +14,17 @@ const uiStyles=read('src/components/AcademicMailCenter.css')
 const sql=read('supabase/036_mail_gpt_on_demand.sql')
 const realtime=read('supabase/037_mail_realtime_inserts.sql')
 const tests=[
+ ['Mail translation no longer uses arbitrary site daily quota',
+  !translator.includes('mail_claim_ai_slot')&&!translator.includes('source.slice(0,8500)')&&!settings.includes('每日 AI 请求上限')],
+ ['Full mail translation is chunked and resumable',
+  translator.includes('chunksOf(source)')&&translator.includes('chunkIndex')&&
+  translator.includes('mail_translation_chunks')&&ui.includes('已完成 ')&&ui.includes('chunk_index:index')],
+ ['Long translations have dynamic output budget and no 25k result truncation',
+  translator.includes('max_tokens:Math.min(6500')&&chunkSchema.includes('drop constraint if exists mail_translations_translated_text_check')],
+ ['Provider 429 preserves error code instead of treating it as app daily limit',
+  translator.includes('safeUpstreamCode')&&translator.includes('HTTP 429')&&
+  translator.includes('不等于网站每日次数已用完')],
+
  ['Background collection excludes failed accounts',collector.includes("query=query.eq('cloud_state','ready')")&&noRetry.includes("cloud_state = 'ready'")],
  ['Failure stops retries and retains last successful timestamp',collector.includes("next_attempt_at:null,last_processed:0")&&!collector.includes("retryAfter")&&noRetry.includes("set next_attempt_at=null")],
  ['Failed mailboxes may be checked manually without renewed password',collector.includes("query=query.eq('user_id',userId).eq('id',preferred).in('cloud_state',['ready','error'])")],
