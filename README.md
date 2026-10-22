@@ -186,3 +186,6 @@ npm run verify
 ## License
 
 项目自身许可见仓库中的 License 文件；第三方组件与迁移来源见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+
+**邮箱模块维护说明：** 新增 SMTP 独立授权码、保存后自动验证、邮箱同步暂停/恢复、采集失败重试退避与真实状态显示；更换 AI 接口或模型时自动重新授权。查看 [邮件聚合完整说明](docs/academic-mail-center.md)。这些调整不更改当前版本号，也不新增 Release。
