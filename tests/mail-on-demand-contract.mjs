@@ -5,6 +5,8 @@ const ui=read('src/components/AcademicMailCenter.tsx')
 const settings=read('src/components/MailPersonalization.tsx')
 const cfg=read('supabase/functions/mail-config/index.ts')
 const oauth=read('supabase/functions/mail-outlook-oauth/index.ts')
+const collector=read('supabase/functions/mail-cloud-collector/index.ts')
+const cron=read('supabase/038_mail_due_only_cron.sql')
 const sql=read('supabase/036_mail_gpt_on_demand.sql')
 const realtime=read('supabase/037_mail_realtime_inserts.sql')
 const tests=[
@@ -14,6 +16,9 @@ const tests=[
  ['CUGB connection error distinguishes DNS/TLS/auth failures',cfg.includes('域名解析失败')&&cfg.includes('TLS 握手')&&cfg.includes('服务器拒绝账号认证')],
  ['Microsoft login no longer foregrounds Azure developer portal',ui.includes('<details className="am-oauth-help">')&&oauth.includes('MAIL_MICROSOFT_CLIENT_ID')],
  ['No misleading automatic model enablement',settings.includes('后台 AI 定时分析已停用')&&!settings.includes('onUpdate({ai_enabled:e.target.checked')],
+ ['IMAP incremental check avoids repeated SEARCH ALL',collector.includes("searchIds('UID '+(savedRecent+1)+':*')")&&collector.includes('savedBefore>1?searchIds')&&collector.includes("[await searchIds('ALL')]" )],
+ ['Scheduled collector skips mailboxes in backoff',cron.includes('next_attempt_at <= now()')],
+ ['Shared Microsoft application takes precedence',oauth.includes('managedId||body.client_id||account.oauth_client_id')],
  ['AI worker cron is removed without affecting collection cron',sql.includes("cron.unschedule('submission_hub_mail_free_ai_10min')")&&!sql.includes("cron.unschedule('submission_hub_cloud_mail_10min')")]
 ]
 for(const [name,passed] of tests)assert.ok(passed,'Mail on-demand regression: '+name)
