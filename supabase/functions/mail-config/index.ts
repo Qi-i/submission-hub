@@ -23,7 +23,14 @@ async function open(host:string,port:number,security:string,kind:'imap'|'smtp'){
 async function verify(host:string,port:number,security:string,kind:'imap'|'smtp',username:string,password:string){
  const conn=await open(host,port,security,kind)
  try{const l=new Lines(conn)
-  if(kind==='imap'){if(security==='ssl'&&!/^\* OK/i.test(await l.line()))throw Error('IMAP 未就绪');await l.write('A002 LOGIN '+quote(username)+' '+quote(password));await l.imap('A002')}
+  if(kind==='imap'){if(security==='ssl'&&!/^\* OK/i.test(await l.line()))throw Error('IMAP 未就绪');await l.write('A002 LOGIN '+quote(username)+' '+quote(password));await l.imap('A002')
+   if(host==='imap.126.com'){
+    await l.write('A003 ID ("name" "Submission Hub" "version" "1.0" "vendor" "Qi-i")')
+    await l.imap('A003')
+    await l.write('A004 EXAMINE "INBOX"')
+    await l.imap('A004')
+   }
+  }
   else{if(security==='ssl')await l.smtp(220);await l.write('EHLO submission-hub.local');await l.smtp(250);await l.write('AUTH LOGIN');await l.smtp(334);await l.write(b64(username));await l.smtp(334);await l.write(b64(password));await l.smtp(235)}
  }finally{try{conn.close()}catch{}}
 }
