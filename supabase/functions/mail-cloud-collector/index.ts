@@ -340,13 +340,15 @@ Deno.serve(async req=>{
  }
  let preferred=''
  try {const body=await req.json(); preferred=String(body.account_id||'')}catch{}
- let query=admin.from('mail_accounts').select('*').in('cloud_state',['ready','error']).eq('enabled',true)
+ let query=admin.from('mail_accounts').select('*').eq('enabled',true)
  if(!isCron){
   if(!preferred)return apiResponse({error:'account_id required'},400)
-  query=query.eq('user_id',userId).eq('id',preferred)
+  // Allow an explicit user-triggered check of an error account.
+  query=query.eq('user_id',userId).eq('id',preferred).in('cloud_state',['ready','error'])
  }else{
   // Automatic retries back off instead of hammering bad credentials every 10 minutes.
-  query=query.or('next_attempt_at.is.null,next_attempt_at.lte.'+new Date().toISOString())
+  // Errors require explicit user intervention. Do not schedule automatic retries.
+  query=query.eq('cloud_state','ready')
  }
  const rows=await query.order('last_checked_at',{ascending:true,nullsFirst:true}).limit(10)
  if(rows.error)return apiResponse({error:'Account scan lookup failed'},500)
@@ -367,12 +369,13 @@ Deno.serve(async req=>{
  }catch(e){
   const err=cleanError(e)
   const failures=Math.min(8,Number(account.consecutive_failures||0)+1)
-  const minutes=[30,120,360,720,1440][Math.min(failures-1,4)]
-  const retryAfter=new Date(Date.now()+minutes*60_000).toISOString()
+  // Preserve last_sync_at and archived MIME: a transient failure must never
+  // be presented as loss of historical connection or automatically retried.
   await admin.from('mail_accounts').update({
     last_error:err,cloud_state:'error',consecutive_failures:failures,
-    next_attempt_at:retryAfter,last_processed:0
+    next_attempt_at:null,last_processed:0
   }).eq('id',account.id)
-  return apiResponse({checked:1,error:'Mailbox scan failed',detail:err,retry_after:retryAfter},200)
+  return apiResponse({checked:1,error:'Mailbox scan failed',detail:err,
+    retry_paused:true,message:'自动重试已停止；保留既有归档，可手动检查连接'},200)
  }
 })
