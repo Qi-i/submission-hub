@@ -52,15 +52,63 @@ Deno.serve(async req=>{
  if(!url||!key)return answer({error:'服务端未配置'},500)
  const db=createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}})
  const jwt=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'')
- const auth=await db.auth.getUser(jwt)
- if(auth.error||!auth.data.user)return answer({error:'登录已过期'},401)
  let body:Record<string,unknown>
  try{body=await req.json()}catch{return answer({error:'请求格式不正确'},400)}
+ // Server-side diagnostics may use the existing Vault-protected collector cron
+ // credential, but only for read-only IMAP/SMTP authentication probes.
+ // No credential or mailbox content is included in the response.
+ const serviceProbe=body.action==='probe' &&
+  (await db.rpc('mail_check_cron_token',{p_token:jwt})).data===true
+ const auth=serviceProbe?null:await db.auth.getUser(jwt)
+ if(!serviceProbe && (auth?.error||!auth?.data.user))return answer({error:'登录已过期'},401)
  const id=String(body.account_id||'')
  if(!/^[a-f0-9-]{36}$/i.test(id))return answer({error:'邮箱编号无效'},400)
- const found=await db.from('mail_accounts').select('*').eq('id',id).eq('user_id',auth.data.user.id).maybeSingle()
+ let lookup=db.from('mail_accounts').select('*').eq('id',id)
+ if(!serviceProbe)lookup=lookup.eq('user_id',auth!.data.user!.id)
+ const found=await lookup.maybeSingle()
  if(found.error||!found.data)return answer({error:'找不到对应邮箱'},404)
  const a=found.data
+ if(body.action==='probe'){
+  if(!serviceProbe)return answer({error:'服务器诊断需要服务端授权'},403)
+  if(a.provider==='outlook')return answer({error:'Outlook 需要交互式 OAuth2 授权'},422)
+  const secret=await db.rpc('mail_read_cloud_secret',{p_account_id:id})
+  if(secret.error||!secret.data)return answer({error:'尚未保存邮箱授权凭据'},422)
+  const variant=String(body.variant||'saved')
+  if(!['saved','official','fallback'].includes(variant))return answer({error:'不支持的诊断配置'},422)
+  if(variant!=='saved' && !String(a.address||'').toLowerCase().endsWith('@email.cugb.edu.cn'))
+   return answer({error:'仅支持 CUGB 邮箱使用官方及备选服务器探测'},422)
+  const imapHost=variant==='official'?'imap.email.cugb.edu.cn':
+   variant==='fallback'?'edu.icoremail.net':String(a.imap_host||'')
+  const smtpHost=variant==='official'?'smtp.email.cugb.edu.cn':
+   variant==='fallback'?'edu.icoremail.net':String(a.smtp_host||'')
+  const results:Record<string,unknown>={}
+  for(const kind of ['imap','smtp'] as const){
+   const host=kind==='imap'?imapHost:smtpHost
+   if(!host){results[kind]={ok:false,detail:'尚未配置服务器'};continue}
+   const port=variant==='saved'?Number(kind==='imap'?a.imap_port:a.smtp_port):kind==='imap'?993:465
+   const security=variant==='saved'?String(kind==='imap'?a.imap_security:a.smtp_security):'ssl'
+   const username=String(kind==='imap'?a.imap_username||a.address:a.smtp_username||a.address)
+   try{
+    await guard(host)
+    let key=String(secret.data)
+    if(kind==='smtp' && a.smtp_has_separate_key){
+     const smtp=await db.rpc('mail_read_smtp_secret',{p_account_id:id})
+     if(smtp.error||!smtp.data)throw new Error('SMTP 专用凭据不可用')
+     key=String(smtp.data)
+    }
+    await verify(host,port,security,kind,username,key)
+    results[kind]={ok:true,detail:'TLS 与账户身份验证通过'}
+   }catch(e){
+    const v=String(e instanceof Error?e.message:e)
+     .replace(/[\\r\\n]/g,' ').replace(/(?:password|secret|token|authorization)\s*[:=]\s*\S+/gi,'[redacted]')
+    results[kind]={ok:false,detail:v.slice(0,150)}
+   }
+  }
+  return answer({ok:!!(results.imap as any)?.ok&&!!(results.smtp as any)?.ok,
+   variant,imap:{host:imapHost,port:variant==='saved'?a.imap_port:993,...(results.imap as object)},
+   smtp:{host:smtpHost,port:variant==='saved'?a.smtp_port:465,...(results.smtp as object)},
+   message:'仅测试登录，不读取邮件、不发信、不修改账户状态或服务器配置'})
+ }
  if(body.action==='discover')return answer({candidates:await discover(a.address,a.provider)})
  if(body.action==='configure'){
   if(!['coremail','qq','126','other'].includes(a.provider))return answer({error:'该服务商需要 OAuth2 授权，暂不支持密码方式'},422)
