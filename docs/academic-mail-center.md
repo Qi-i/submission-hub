@@ -102,3 +102,11 @@ OAuth2 设备授权码放在私有数据库并由 Vault 加密，15 分钟左右
 邮件正文右上角「翻译对照」展示原文与简体中文 / English 译文，并提供按需翻译。使用已加密配置的免费 GLM Flash 或已测试、已声明免费的自定义模型；故障路由仅在用户启用时尝试下一免费模型。绝不自动调用收费模型；每次真实请求计入每日 AI 次数。每次翻译只传送源正文前 8500 字，余下原文仍可阅读。译文独立存储且含源文本 SHA-256 指纹，重复访问优先命中缓存，便于区分机器译文和真实邮件。
 
 版本保持 v2.1.0，仅更新 GitHub Pages、Supabase migration / Edge Function，无新增 Release 或安装包。
+
+
+## 当前邮箱同步与 GPT 按需处理（2026-10-22 修订）
+
+- 已执行 `036_mail_gpt_on_demand.sql`：后台模型定时任务停用，邮件 AI 状态保留为待处理，不由前端自动发送原文给外部 AI。可在用户主动发出 ChatGPT 请求时，通过已授权 Supabase 连接读取邮件、分析并回写 `ai_summary`、`ai_tags`、`ai_priority`、`ai_category`、`ai_action` 等字段；邮件原文、人工备注和人工分类不应被 GPT 改写。ChatGPT 不能因数据库新增一行而自行启动对话；若需要无人值守的即时 GPT 分析，须另外实现授权任务调度/模型 API，且存在模型费用和数据出站风险。
+- IMAP 一次完成文件夹的历史 UID 发现，并持久保存逐文件夹游标；后续只查询大于已处理游标的新 UID，以及尚未完成回填的旧 UID。服务器无法普遍提供云端 Webhook，故每 10 分钟的低频 Cron 仅作轻量检查；无可同步邮箱或全部处于退避期时，SQL 不触发 Edge Function。
+- Outlook 用户通过 Microsoft 设备登录页授权。网站管理员首次需要注册 Microsoft Entra 公共客户端，并在 Edge Secrets 配置 `MAIL_MICROSOFT_CLIENT_ID`，之后普通用户不用进入 Azure 管理中心。尚未配置这一站点凭据时，Outlook OAuth 仍不能完成。
+- CUGB 个性化邮箱设置示例提供 `imap.email.cugb.edu.cn:993`（SSL）与 `smtp.email.cugb.edu.cn:465`（SSL）。校方公开客户端指南还使用 `www.email.cugb.edu.cn`，遇到 SSL 问题可尝试校方列出的 `edu.icoremail.net`；它们是可选主机，不代表身份认证已经通过。务必使用完整邮箱登录名并确认邮箱客户端协议权限及密码/授权码。测试会分别报告 DNS/TLS/超时/认证层的故障，且不会发送测试邮件。
