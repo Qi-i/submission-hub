@@ -12,6 +12,8 @@ const personal=read('src/components/MailPersonalization.tsx')
 const migration=read('supabase/021_mail_connection_custom_models.sql')
 const endpointCleanup=read('supabase/023_mail_endpoint_cleanup.sql')
 const category=read('supabase/024_mail_ai_category.sql')
+const smtpMigration=read('supabase/025_mail_health_smtp_secret.sql')
+const aiReauthMigration=read('supabase/026_mail_ai_endpoint_reauthorization.sql')
 const theme=read('src/mail-navigation-card-layout.css')
 const app=read('src/components/Dashboard.tsx')
 for(const [name,condition] of [
@@ -39,5 +41,16 @@ for(const [name,condition] of [
  ['responsive mail full width',theme.includes('.app-layout > .academic-mail-center')],
  ['journal display wraps',theme.includes('-webkit-line-clamp: 2')&&theme.includes('.journal-pill-text')],
  ['settings and feedback in avatar',app.includes('header-account-dropdown')&&app.includes('问题反馈')],
+ ['SMTP independent credential isolated in Vault',smtpMigration.includes('mail_private.smtp_credentials')&&smtpMigration.includes('vault.create_secret')],
+ ['SMTP sender honors separate key',sender.includes('smtp_has_separate_key')&&sender.includes('mail_read_smtp_secret')],
+ ['separate SMTP tested, not falsely marked verified',config.includes("mail_read_smtp_secret")&&config.includes("action==='test'")],
+ ['automatic failures back off',collector.includes('next_attempt_at.lte.')&&collector.includes('consecutive_failures:failures')],
+ ['manual sync errors surfaced to UI',ui.includes("if(result.error)throw Error(result.detail||result.error)")],
+ ['save-and-verify uses real IMAP login',ui.includes("action:'test',account_id:setupId")],
+ ['mailbox pause and safe resume',ui.includes('toggleCollection')&&config.includes("body.action==='enable'")],
+ ['account health visible',ui.includes('next_attempt_at')&&ui.includes('last_scanned_folders')],
+ ['AI endpoint change disables old authorization',aiReauthMigration.includes('new.key_ready:=false')&&aiReauthMigration.includes('ai_enabled=false')],
+ ['old API keys never implicitly follow a new URL',personal.includes('模型配置已保存')&&aiReauthMigration.includes('new.api_url is distinct from old.api_url')],
+
 ])assert.ok(condition,'Mail architecture contract failed: '+name)
-console.log('Two-pass mail integration contract: 24/24 invariants.')
+console.log('Extended mail resilience and security contract: 34/34 invariants.')
