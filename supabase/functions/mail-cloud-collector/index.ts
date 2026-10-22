@@ -327,7 +327,7 @@ async function scanAccount(admin:any,account:any){
         throw Error('Private archive upload failed')
       }
       const body=String(parsed.text||parsed.html||'').replaceAll(String.fromCharCode(0),'')
-       .replace(/<[^>]*>/g,' ').slice(0,full?60000:12000)
+       .replace(/<[^>]*>/g,' ').slice(0,full?60000:80000)
       const subject=String(parsed.subject||headerSubject).replaceAll(String.fromCharCode(0),'').slice(0,1024)
       const [category,importance]=classify(subject,body)
       const inserted=await admin.from('mail_messages').insert({

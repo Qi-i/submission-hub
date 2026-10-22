@@ -326,7 +326,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     translationJob.current++
     setTranslationLoading(false)
     setTranslationProgress(null)
-  },[selected])
+  },[selected,translationLang])
   useEffect(()=>{
     if(!selected){setActiveBody('');setBodyLoading(false);return}
     let cancelled=false
@@ -610,7 +610,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     setTranslationProgress(null)
     try{
       let index=0
-      for(let attempts=0;attempts<100;attempts++){
+      for(let attempts=0;attempts<1000;attempts++){
         const r=await callFunction('mail-translate',{
           message_id:id,target_language:lang,chunk_index:index
         })
