@@ -59,3 +59,5 @@ import './mail-dense-layout-contract.mjs'
 import './mail-viewport-design-contract.mjs'
 
 import './mail-organization-contract.mjs'
+
+import './mail-on-demand-contract.mjs'
