@@ -326,7 +326,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     translationJob.current++
     setTranslationLoading(false)
     setTranslationProgress(null)
-  },[selected,translationLang])
+  },[selected,translationLang,translationVisible])
   useEffect(()=>{
     if(!selected){setActiveBody('');setBodyLoading(false);return}
     let cancelled=false
@@ -603,7 +603,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(null)}
   }
   const runTranslation=async()=>{
-    if(!active||translationLoading)return
+    if(!active)return
     const job=++translationJob.current
     const id=active.id,lang=translationLang
     setTranslationLoading(true)
@@ -636,6 +636,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       if(job===translationJob.current)setTranslationLoading(false)
     }
   }
+  useEffect(()=>{
+    // Opening bilingual view or changing the target language begins translating
+    // immediately. Completed segments are cached server-side, so no extra calls.
+    if(translationVisible&&active)void runTranslation()
+  },[translationVisible,selected,translationLang])
     const downloadOriginal=async()=>{
     if(!active?.cloud_archive_path)return
     setBusy('download')
@@ -831,7 +836,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
             <div className="am-reader-content"><div className="am-reader-content-head"><span>邮件正文</span>
               <div className="am-reader-actions">
-                <button type="button" className={translationVisible?'active':''} onClick={()=>setTranslationVisible(v=>!v)}><Languages size={14}/> {translationVisible?'关闭对照':'翻译对照'}</button>
+                <button type="button" className={translationVisible?'active':''}
+                 onClick={()=>{
+                  if(translationVisible)setTranslationVisible(false)
+                  else {setTranslationLang('zh');setTranslationVisible(true)}
+                 }}><Languages size={14}/> {translationVisible?'关闭对照':'对照翻译'}</button>
                 <button type="button" disabled={!active.sender_address} onClick={()=>compose(true)}>回复</button>
                 {active.cloud_archive_path&&<button type="button" disabled={busy==='download'} onClick={()=>void downloadOriginal()}><Download size={14}/> 原始 EML</button>}
               </div></div>
@@ -839,13 +848,13 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                 <label>译文语言 <select value={translationLang} onChange={e=>setTranslationLang(e.target.value as 'zh'|'en')}>
                   <option value="zh">简体中文</option><option value="en">English</option></select></label>
                 <button type="button" disabled={translationLoading||bodyLoading} onClick={()=>void runTranslation()}>
-                 <Languages size={14}/>{translationLoading?'翻译中…':translation?'重新查询 / 生成':'生成译文'}</button>
+                 <Languages size={14}/>{translationLoading?'翻译中…':'重试 / 续传'}</button>
                 {translationProgress&&<span>已完成 {translationProgress.done}/{translationProgress.total} 段</span>}
               </div>}
               <div className={translationVisible?'am-parallel-text':'am-single-text'}>
                 <div className="am-original-col"><strong>原文</strong><pre>{bodyLoading?'正在读取邮件正文…':readableMailText(activeBody||active.snippet||'无可读取的正文')}</pre></div>
                 {translationVisible&&<div className="am-translation-col"><strong>译文 · {translationLang==='zh'?'中文':'English'} {translation?.model_name?'· '+translation.model_name:''}</strong>
-                  <pre>{translation?.translated_text||'尚无译文。选择目标语言并点击「生成译文」。'}</pre></div>}
+                  <pre>{translation?.translated_text||translationLoading?'正在翻译邮件…':'译文尚未生成，可点击重试。'}</pre></div>}
               </div>
             </div>
             <div className="am-annotation-panel">
