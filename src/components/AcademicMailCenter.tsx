@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import {
   AlertCircle, Archive, ArrowLeft, Check, ChevronRight, Clock3, Download,
   FileText, Inbox, Link2, Mail, MailCheck, Plus, RefreshCw, Search, Settings2,
-  ShieldCheck, Sparkles, PauseCircle, PlayCircle, KeyRound, Copy, ExternalLink, CheckCircle2, X
+  ShieldCheck, Sparkles, PauseCircle, PlayCircle, KeyRound, Copy, ExternalLink, CheckCircle2, Folder, Tag, Languages, StickyNote, Trash2, X
 } from 'lucide-react'
 import MailPersonalization, {DEFAULT_MAIL_VIEWS,MAIL_VIEW_KINDS,type MailViewKind,type MailSettings} from './MailPersonalization'
 import MailToast, {type MailToastKind} from './MailToast'
@@ -31,6 +31,9 @@ type Account = {
   oauth_client_id: string | null
   oauth_identity: string | null
   auth_kind: string
+  short_label: string
+  logo_symbol: string
+  logo_url: string | null
 }
 type Message = {
   id: string
@@ -57,8 +60,14 @@ type Message = {
   ai_action: string | null
   ai_priority: number | null
   ai_state: string
+  user_note: string
+  user_labels: string[]
+  virtual_folder_id: string | null
   internet_message_id?: string | null
 }
+type MailFolder = {id:string; name:string; color:string; sort_order:number}
+type MailLabel = {id:string; name:string; color:string}
+type MailTranslation = {translated_text:string; source_hash:string; model_name:string}
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
 type Scope = MailViewKind
 type Workspace = 'inbox' | 'accounts' | 'personalize'
@@ -71,6 +80,9 @@ const categories: Record<string, string> = {
 const responseLabels: Record<string,string> = {
   pending: '待答复', accepted: '已接受', declined: '已拒绝', completed: '已完成',
 }
+const providerSymbols:Record<string,string> = {coremail:'C',qq:'Q','126':'126',gmail:'G',outlook:'O',other:'@'}
+const folderColors=['#4F83E9','#9B75D9','#36A897','#E6A465','#E37A91']
+const logoLabel=(a:Account)=>a.short_label?.trim()||a.display_name?.trim()||a.address.split('@')[0]
 const providerLabels: Record<string,string> = {
   other: '自定义 IMAP / SMTP',
   coremail: 'Coremail', qq: 'QQ 邮箱', '126': '126 邮箱',
@@ -115,6 +127,22 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [workspace, setWorkspace] = useState<Workspace>('inbox')
   const [pref,setPref] = useState<MailSettings|null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [folders,setFolders] = useState<MailFolder[]>([])
+  const [labels,setLabels] = useState<MailLabel[]>([])
+  const [folderFilter,setFolderFilter] = useState('all')
+  const [labelFilter,setLabelFilter] = useState('all')
+  const [folderNew,setFolderNew] = useState('')
+  const [labelNew,setLabelNew] = useState('')
+  const [manageCollections,setManageCollections] = useState(false)
+  const [noteDraft,setNoteDraft] = useState('')
+  const [translation,setTranslation] = useState<MailTranslation|null>(null)
+  const [translationLang,setTranslationLang] = useState<'zh'|'en'>('zh')
+  const [translationVisible,setTranslationVisible] = useState(false)
+  const [translationLoading,setTranslationLoading] = useState(false)
+  const [brandEditing,setBrandEditing] = useState<string|null>(null)
+  const [brandShort,setBrandShort] = useState('')
+  const [brandSymbol,setBrandSymbol] = useState('')
+  const [brandUrl,setBrandUrl] = useState('')
   const [oauthClientId,setOauthClientId] = useState('')
   const [oauthPanelId,setOauthPanelId] = useState<string|null>(null)
   const [oauth,setOauth] = useState<{accountId:string;userCode:string;interval:number;
@@ -168,26 +196,30 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     return () => window.clearTimeout(timer)
   }, [search])
   useEffect(() => { setPage(0); setSelected(null); setMobileDetail(false) },
-    [scope, accountFilter, debouncedSearch])
+    [scope, accountFilter, folderFilter, labelFilter, debouncedSearch])
 
   const loadMetadata = useCallback(async () => {
     const accountQuery = (supabase.from('mail_accounts') as any)
-      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at,consecutive_failures,next_attempt_at,last_processed,last_scanned_folders,smtp_has_separate_key,oauth_client_id,oauth_identity,auth_kind')
+      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at,consecutive_failures,next_attempt_at,last_processed,last_scanned_folders,smtp_has_separate_key,oauth_client_id,oauth_identity,auth_kind,short_label,logo_symbol,logo_url')
       .eq('user_id', userId).order('created_at', {ascending: true})
     const papersQuery = (supabase.from('papers') as any)
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
-    const [a,p,all,review,pending,important,spam,submission,prefResult] = await Promise.all([
+    const [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult] = await Promise.all([
       accountQuery, papersQuery, base(), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
       base().or('category.eq.review_invite,ai_category.eq.review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().or('importance.gte.2,ai_priority.gte.2'), base().or(folderQuery),
        base().or('category.eq.submission_update,ai_category.eq.submission_update'),
       (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
+       (supabase.from('mail_folders') as any).select('id,name,color,sort_order').eq('user_id',userId).order('sort_order').order('name'),
+       (supabase.from('mail_labels') as any).select('id,name,color').eq('user_id',userId).order('name'),
     ])
-    const failed = [a,p,all,review,pending,important,spam,submission,prefResult].find(x=>x.error)
+    const failed = [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
+    setFolders(folderResult.data||[])
+    setLabels(labelResult.data||[])
     setPref(prefResult.data||null)
     setPapers(p.data||[])
     setCounts({all:all.count||0,review:review.count||0,pending:pending.count||0,important:important.count||0,spam:spam.count||0,submission:submission.count||0})
@@ -197,7 +229,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state,user_note,user_labels,virtual_folder_id',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
@@ -205,6 +237,9 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     if(scope==='pending') q=q.or('review_response.is.null,review_response.eq.pending')
     if(scope==='important') q=q.or('importance.gte.2,ai_priority.gte.2')
     if(accountFilter!=='all') q=q.eq('account_id',accountFilter)
+    if(folderFilter==='unfiled')q=q.is('virtual_folder_id',null)
+    else if(folderFilter!=='all')q=q.eq('virtual_folder_id',folderFilter)
+    if(labelFilter!=='all')q=q.contains('user_labels',[labelFilter])
     const term=debouncedSearch.replace(/[^一-鿿\p{L}\p{N}\s._-]/gu,' ').slice(0,100).trim()
     const keywordOr=term?'subject.ilike.%'+term+'%,sender_address.ilike.%'+term+'%,body_text.ilike.%'+term+'%':''
     if(scope==='spam'&&keywordOr) q=q.or('and(or('+folderQuery+'),or('+keywordOr+'))')
@@ -218,7 +253,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     setMessages(items)
     setTotal(result.count||0)
     setSelected(current=>current && items.some(m=>m.id===current) ? current : items[0]?.id||null)
-  },[userId,page,scope,accountFilter,debouncedSearch])
+  },[userId,page,scope,accountFilter,folderFilter,labelFilter,debouncedSearch])
 
   useEffect(()=>{void loadMetadata()},[loadMetadata])
   useEffect(()=>{void loadMessages()},[loadMessages])
@@ -249,6 +284,19 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   // Each selected message starts at its title; do not carry over the scroll
   // offset from a previously viewed long newsletter or review correspondence.
   useEffect(()=>{if(readerRef.current)readerRef.current.scrollTop=0},[selected])
+  useEffect(()=>{setNoteDraft(active?.user_note||'')},[active?.id,active?.user_note])
+  useEffect(()=>{
+    setTranslation(null)
+    if(!selected||!translationVisible)return
+    let cancelled=false
+    void (async()=>{
+      const r=await (supabase.from('mail_translations') as any)
+       .select('translated_text,source_hash,model_name').eq('user_id',userId)
+       .eq('message_id',selected).eq('target_language',translationLang).maybeSingle()
+      if(!cancelled&&r.data)setTranslation(r.data)
+    })()
+    return ()=>{cancelled=true}
+  },[userId,selected,translationLang,translationVisible])
   const selectedAccount=useMemo(()=>accounts.find(a=>a.id===active?.account_id),[accounts,active])
   const suggestedPaper = useMemo(()=>{
     if(!active?.extraction?.manuscript_no||active.paper_id)return null
