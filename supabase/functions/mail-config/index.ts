@@ -34,7 +34,7 @@ async function discover(address:string,provider:string){
  const put=(type:string,host:string,port:number,security:string,source:string)=>{if(validHost(host)&&!result.some(x=>x.type===type&&x.host===host&&x.port===port))result.push({type,host,port,security,source})}
  if(roots[provider]){const [im,sm,p,sec]=roots[provider];put('imap',im,993,'ssl','服务商预设');put('smtp',sm,p,sec,'服务商预设')}
  else{for(const p of ['mail','imap'])put('imap',p+'.'+domain,993,'ssl','按域名推测，需测试');for(const p of ['mail','smtp'])put('smtp',p+'.'+domain,465,'ssl','按域名推测，需测试')}
- for(const [key,type] of [['_imaps._tcp.','imap'],['_submission._tcp.','smtp'],['_submissions._tcp.','smtp']] as const){const records=await Deno.resolveDns(key+domain,'SRV').catch(()=>[]) as Deno.SrvRecord[];for(const r of records.slice(0,3)){const port=Number(r.port);if(type==='imap'?[993,143].includes(port):[465,587].includes(port))put(type,r.target.replace(/\.$/,''),port,[993,465].includes(port)?'ssl':'starttls','DNS SRV')}}
+ for(const [key,type] of [['_imaps._tcp.','imap'],['_submission._tcp.','smtp'],['_submissions._tcp.','smtp']] as const){const records=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(key+domain,'SRV').catch(()=>[]):Promise.resolve([])) as Deno.SrvRecord[];for(const r of records.slice(0,3)){const port=Number(r.port);if(type==='imap'?[993,143].includes(port):[465,587].includes(port))put(type,r.target.replace(/\.$/,''),port,[993,465].includes(port)?'ssl':'starttls','DNS SRV')}}
  return result
 }
 Deno.serve(async req=>{
