@@ -1,4 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.49.4'
+import PostalMime from 'npm:postal-mime@4.0.7'
+import {chunksOf,nextMissingChunk} from './chunks.mjs'
 const cors={'Content-Type':'application/json','Cache-Control':'no-store',
  'Access-Control-Allow-Origin':'https://qi-i.github.io',
  'Access-Control-Allow-Methods':'POST,OPTIONS',
@@ -30,23 +32,14 @@ const hash=async(s:string)=>[...new Uint8Array(await crypto.subtle.digest('SHA-2
 type Route={model:string;url:string;key:string;name:string}
 // Keep all content in order. Break long mail by paragraphs when possible,
 // with headroom for translation expansion and model output tokens.
-function chunksOf(source:string,size=2600):string[]{
- const out:string[]=[]
- let pos=0
- while(pos<source.length){
-  let end=Math.min(pos+size,source.length)
-  if(end<source.length){
-   const from=pos+Math.floor(size*0.58)
-   const look=source.slice(from,end)
-   const stop=Math.max(look.lastIndexOf('\n'),look.lastIndexOf('。'),
-    look.lastIndexOf('！'),look.lastIndexOf('？'),look.lastIndexOf('. '))
-   if(stop>=0)end=from+stop+1
-   if(end<source.length&&/^[\uDC00-\uDFFF]$/.test(source[end]))end++
-  }
-  out.push(source.slice(pos,end))
-  pos=end
- }
- return out
+const limitMeaning=(code:string|null,host:string)=>{
+ if(!code||(!host.includes('bigmodel.cn')&&!host.includes('api.z.ai')))return '模型服务临时限制'
+ return ({
+  '1302':'模型端并发数过高','1303':'模型端请求频率超限',
+  '1304':'模型服务的今日额度已满','1305':'模型流量限制',
+  '1308':'模型用量已达上限','1312':'当前模型繁忙',
+  '1113':'账户余额或资源不足'
+ } as Record<string,string>)[code]||'模型服务临时限制'
 }
 const safeUpstreamCode=(v:unknown)=>{
  if(typeof v!=='number'&&typeof v!=='string')return null
@@ -70,15 +63,33 @@ Deno.serve(async req=>{
     !Number.isSafeInteger(chunkIndex)||chunkIndex<0||chunkIndex>=1000)
   return response({error:'邮件、目标语言或段落编号无效'},422)
  const [mail,prefResult]=await Promise.all([
-  db.from('mail_messages').select('id,user_id,subject,body_text,snippet').eq('user_id',uid).eq('id',id).maybeSingle(),
+  db.from('mail_messages').select('id,user_id,account_id,subject,body_text,snippet,cloud_archive_path').eq('user_id',uid).eq('id',id).maybeSingle(),
   db.from('mail_preferences').select('*').eq('user_id',uid).maybeSingle()
  ])
  if(mail.error||!mail.data)return response({error:'邮件不存在或无权访问'},404)
  const pref=prefResult.data
  if(!pref)return response({error:'尚未配置翻译模型'},422)
- const source=String(mail.data.body_text||mail.data.snippet||'').trim()
+ let source=String(mail.data.body_text||mail.data.snippet||'').trim()
  if(!source)return response({error:'原邮件没有可翻译的正文'},422)
+ // The index caps full-archive text at 60,000 characters. When reached,
+ // recover the whole body from the owner's existing private MIME archive.
+ if(String(mail.data.body_text||'').length>=59000&&mail.data.cloud_archive_path){
+  const path=String(mail.data.cloud_archive_path),prefix=uid+'/'+mail.data.account_id+'/'
+  if(!path.startsWith(prefix)||!/\/[a-f0-9]{64}\.eml$/i.test(path))
+   return response({error:'原文归档路径验证失败'},422)
+  const original=await db.storage.from('mail-originals').download(path)
+  if(original.error||!original.data)return response({error:'完整原文暂时无法读取'},503)
+  try{
+   const bytes=new Uint8Array(await original.data.arrayBuffer())
+   if(bytes.length>12*1024*1024)return response({error:'原文超过单次解析限制'},413)
+   const parsed=await PostalMime.parse(bytes)
+   const whole=String(parsed.text||parsed.html||'').replaceAll(String.fromCharCode(0),'')
+    .replace(/<[^>]*>/g,' ').trim()
+   if(whole.length>source.length)source=whole
+  }catch{return response({error:'原始邮件解析失败'},422)}
+ }
  const chunks=chunksOf(source)
+ if(chunks.length>1000)return response({error:'邮件正文超过当前支持的分段数量'},413)
  if(chunkIndex>=chunks.length)return response({error:'段落编号超出邮件长度'},422)
  const excerpt=chunks[chunkIndex]
  const sourceHash=await hash(source)
@@ -91,7 +102,7 @@ Deno.serve(async req=>{
   if(result.error)throw Error('分段缓存读取失败')
   const rows=result.data||[]
   if(rows.length!==chunks.length||rows.some((r:any,i:number)=>r.chunk_index!==i))
-   return {complete:false,completed:rows.length}
+   return {complete:false,completed:rows.length,next_index:nextMissingChunk(chunks.length,rows.map((r:any)=>r.chunk_index))}
   const translation=rows.map((r:any)=>r.translated_text).join('\n\n')
   const model=[...new Set(rows.map((r:any)=>r.model_name))].join(' / ').slice(0,150)
   const saved=await db.from('mail_translations').upsert({
@@ -114,7 +125,7 @@ Deno.serve(async req=>{
   try{
    const done=await finish()
    return response({ok:true,cached:true,...done,chunk_total:chunks.length,
-     chunk_index:chunkIndex,next_index:chunkIndex+1})
+     chunk_index:chunkIndex,next_index:done.next_index??chunkIndex+1})
   }catch{return response({error:'分段译文合并失败'},500)}
  }
  const custom=pref.ai_endpoint_id
@@ -167,9 +178,9 @@ Deno.serve(async req=>{
      const retry=r.headers.get('retry-after')||''
      const seconds=Number(retry)
      retrySeconds=Number.isFinite(seconds)&&seconds>0?Math.min(3600,Math.ceil(seconds)):0
-     failure='模型端返回 HTTP 429'+(code?'（错误码 '+code+'）':'')+
-      '，不等于网站每日次数已用完。'+
-      (retrySeconds?'建议 '+retrySeconds+' 秒后继续。':'请稍后继续。')
+     failure=limitMeaning(code,route.url)+(code?'（'+code+'）':'')+
+      '，与网站翻译次数无关。'+
+      (retrySeconds?'建议 '+retrySeconds+' 秒后续传。':'稍后可继续。')
      if(!pref.ai_failover_enabled)break
      continue
     }
@@ -181,16 +192,17 @@ Deno.serve(async req=>{
    const data=await r.json()
    const translated=data?.choices?.[0]?.message?.content
    if(typeof translated!=='string'||!translated.trim()){failure='模型没有返回译文';continue}
+   if(translated.length>24000)return response({error:'译文段落超出存储限制，需要缩小分段'},422)
    const saved=await db.from('mail_translation_chunks').upsert({
     user_id:uid,message_id:id,target_language:lang,source_hash:sourceHash,
-    chunk_index:chunkIndex,translated_text:translated.slice(0,24000),
+    chunk_index:chunkIndex,translated_text:translated,
     model_name:route.name,updated_at:new Date().toISOString()
    },{onConflict:'user_id,message_id,target_language,source_hash,chunk_index'})
    if(saved.error)return response({error:'本段翻译成功，但保存失败'},500)
    try{
     const done=await finish()
     return response({ok:true,cached:false,...done,chunk_index:chunkIndex,
-     chunk_total:chunks.length,next_index:chunkIndex+1})
+     chunk_total:chunks.length,next_index:done.next_index??chunkIndex+1})
    }catch{return response({error:'本段已保存，但完整译文合并失败'},500)}
   }catch(e){failure=e instanceof Error&&e.name==='AbortError'?'免费模型响应超时':'免费模型暂时无法访问'}
   finally{clearTimeout(timer)}

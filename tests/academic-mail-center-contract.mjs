@@ -62,3 +62,5 @@ import './mail-viewport-design-contract.mjs'
 import './mail-organization-contract.mjs'
 
 import './mail-on-demand-contract.mjs'
+
+import './mail-translation-runtime-contract.mjs'
