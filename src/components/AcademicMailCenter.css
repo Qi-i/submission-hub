@@ -855,3 +855,275 @@ html[data-ui] body .academic-mail-center .am-reader{
 @media(prefers-reduced-motion:reduce){
  .academic-mail-center .am-stats button{transform:none!important}
 }
+
+/* 2026-10-22 / Reader-first two-row command layout.
+   Desktop: title+navigation+actions on one line; counters+search+filters on the next.
+   Unlike the old banners, this composition does not shrink email typography. */
+html[data-ui] body .academic-mail-center{
+  padding:8px 16px 20px;
+  background:transparent;
+}
+html[data-ui] body .academic-mail-center .am-command-header{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:nowrap;gap:14px;
+  min-height:54px;margin:0 0 7px;padding:7px 12px;
+  border-radius:13px;background:var(--am-surface);
+  box-shadow:0 4px 14px rgba(38,68,124,.045);
+}
+.academic-mail-center .am-command-header::after{display:none}
+.academic-mail-center .am-command-header .am-header-copy{
+  flex:0 0 auto;min-width:0;
+}
+.academic-mail-center .am-command-header .am-header-copy h2{
+  font-size:17px;line-height:1.25;margin:0;white-space:nowrap;
+  letter-spacing:-.015em;
+}
+html[data-ui] body .academic-mail-center .am-command-header .am-tabs{
+  display:flex;align-items:center;flex:0 1 auto;
+  gap:3px;margin:0;padding:3px;min-height:37px;
+  border-radius:10px;box-shadow:none;
+}
+.academic-mail-center .am-command-header .am-tabs button{
+  min-height:31px;gap:6px;padding:6px 11px;
+  font-size:12px;border-radius:8px;white-space:nowrap;
+}
+.academic-mail-center .am-command-header .am-tabs button svg{
+  width:14px;height:14px;
+}
+.academic-mail-center .am-command-header .am-header-actions{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:7px;flex:1 1 auto;flex-wrap:nowrap;
+  min-width:0;
+}
+.academic-mail-center .am-command-status{
+  display:flex;align-items:center;justify-content:flex-end;
+  min-width:0;gap:6px;margin-right:2px;
+}
+.academic-mail-center .am-command-status>span{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 9px;white-space:nowrap;border-radius:8px;
+  border:1px solid var(--am-line);
+  background:color-mix(in srgb,var(--bg-elevated,#fff) 81%,transparent);
+  color:var(--am-muted);font-size:11px;font-weight:600;
+}
+.academic-mail-center .am-status-dot{
+  width:6px;height:6px;background:#48b9a2;border-radius:50%;
+  box-shadow:0 0 0 3px rgba(72,185,162,.12);
+}
+.academic-mail-center .am-status-ai.is-active{color:#2c9e79}
+.academic-mail-center .am-command-header .am-header-actions>.am-main-button{
+  min-height:34px;padding:6px 12px;font-size:12px;
+}
+.academic-mail-center .am-command-header .am-header-actions>.am-icon-button{
+  flex:0 0 34px;width:34px;min-height:34px;
+}
+.academic-mail-center .am-filterbar{
+  display:grid;grid-template-columns:minmax(390px,.78fr) minmax(0,1.22fr);
+  align-items:stretch;gap:7px;margin:0 0 8px;
+}
+html[data-ui] body .academic-mail-center .am-filterbar .am-stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+  gap:5px;align-items:stretch;margin:0;
+}
+html[data-ui] body .academic-mail-center .am-filterbar .am-stats button{
+  display:flex;flex-direction:row;align-items:center;
+  justify-content:space-between;gap:6px;min-width:0;
+  min-height:40px;padding:7px 10px;border-radius:9px;
+  box-shadow:none;
+}
+.academic-mail-center .am-filterbar .am-stats button span{
+  font-size:11px;min-width:0;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.academic-mail-center .am-filterbar .am-stats button strong{
+  font-size:15px;line-height:1.2;flex:0 0 auto;
+}
+.academic-mail-center .am-filterbar .am-stats button::before{
+  width:2px;
+}
+html[data-ui] body .academic-mail-center .am-filterbar .am-controls{
+  display:flex;align-items:stretch;gap:6px;
+  min-width:0;margin:0;flex-wrap:nowrap;
+}
+html[data-ui] body .academic-mail-center .am-filterbar .am-search{
+  flex:1 1 auto;min-width:180px;
+  min-height:40px;border-radius:9px;
+}
+.academic-mail-center .am-filterbar .am-search input{
+  padding:7px 0;font-size:13px;min-width:0;
+}
+html[data-ui] body .academic-mail-center .am-filterbar .am-controls select{
+  flex:0 1 155px;min-width:113px;max-width:185px;
+  min-height:40px;border-radius:9px;
+  padding:7px 9px;font-size:12px;
+}
+html[data-ui] body .academic-mail-center .am-workspace{
+  grid-template-columns:minmax(325px,.82fr) minmax(0,1.36fr);
+  gap:9px;align-items:stretch;
+}
+.academic-mail-center .am-list-heading{
+  min-height:43px;padding:10px 15px;
+  font-size:13px;
+}
+.academic-mail-center .am-list-heading small,
+.academic-mail-center .am-list-heading>span:last-child{
+  font-size:11.5px;
+}
+.academic-mail-center .am-message-list{
+  height:clamp(425px,calc(100dvh - 247px),1000px);
+}
+.academic-mail-center .am-message{
+  padding:12px 14px;gap:5px;
+}
+.academic-mail-center .am-msg-from strong{
+  font-size:12.5px;line-height:1.4;
+}
+.academic-mail-center .am-msg-from time{
+  font-size:11px;
+}
+.academic-mail-center .am-msg-subject{
+  font-size:14px;line-height:1.43;font-weight:680;
+  -webkit-line-clamp:2;
+}
+.academic-mail-center .am-message p{
+  font-size:12.5px;line-height:1.5;
+  -webkit-line-clamp:1;
+}
+.academic-mail-center .am-chip{
+  font-size:10.5px;padding:4px 7px;
+  min-height:21px;
+}
+.academic-mail-center .am-pager{
+  min-height:42px;padding:7px 12px;font-size:12px;
+}
+html[data-ui] body .academic-mail-center .am-reader{
+  height:clamp(490px,calc(100dvh - 170px),1080px);
+  padding:16px 19px;min-height:0;
+}
+.academic-mail-center .am-reader-top h3{
+  font-size:19px;line-height:1.43;
+}
+.academic-mail-center .am-reader-top{
+  padding-bottom:12px;
+}
+.academic-mail-center .am-meta{
+  gap:9px;padding:11px 0;
+}
+.academic-mail-center .am-meta span{
+  font-size:11px;
+}
+.academic-mail-center .am-meta strong{
+  font-size:12.5px;line-height:1.45;
+  max-height:none;overflow-wrap:anywhere;
+}
+.academic-mail-center .am-meta small{
+  font-size:11.5px;
+}
+.academic-mail-center .am-reader-content{
+  padding:12px 0 0;
+}
+.academic-mail-center .am-reader-content-head{
+  min-height:33px;font-size:13px;
+}
+.academic-mail-center .am-reader-content-head button{
+  font-size:12.5px;
+}
+.academic-mail-center .am-reader-content pre{
+  padding:13px 15px;min-height:200px;
+  margin:10px 0 15px;
+  font-size:14.5px;line-height:1.78;
+  letter-spacing:0;
+}
+.academic-mail-center .am-review-controls label{
+  font-size:11.5px;
+}
+.academic-mail-center .am-review-controls select{
+  font-size:13px;
+}
+@media(max-width:1330px){
+  html[data-ui] body .academic-mail-center .am-command-header{
+    flex-wrap:wrap;row-gap:6px;
+  }
+  .academic-mail-center .am-command-header .am-header-actions{
+    margin-left:auto;
+  }
+  .academic-mail-center .am-filterbar{
+    grid-template-columns:1fr;
+    gap:6px;
+  }
+  html[data-ui] body .academic-mail-center .am-filterbar .am-stats{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .academic-mail-center .am-command-status>span{
+    padding:6px 8px;
+  }
+}
+@media(max-width:920px){
+  html[data-ui] body .academic-mail-center .am-command-header{
+    justify-content:flex-start;
+  }
+  .academic-mail-center .am-command-header .am-tabs{
+    order:3;flex:1 1 100%;
+  }
+  .academic-mail-center .am-command-header .am-header-actions{
+    margin-left:auto;flex:0 0 auto;
+  }
+  html[data-ui] body .academic-mail-center .am-workspace{
+    grid-template-columns:minmax(250px,.84fr) minmax(0,1.16fr);
+  }
+  .academic-mail-center .am-meta{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:700px){
+  html[data-ui] body .academic-mail-center{padding:7px 9px 15px}
+  html[data-ui] body .academic-mail-center .am-command-header{
+    display:flex;flex-wrap:wrap;padding:9px 10px;gap:7px;
+  }
+  .academic-mail-center .am-command-header .am-header-copy h2{
+    font-size:16px;
+  }
+  .academic-mail-center .am-command-header .am-header-actions{
+    margin-left:auto;
+  }
+  .academic-mail-center .am-command-status{display:none}
+  html[data-ui] body .academic-mail-center .am-command-header .am-tabs{
+    order:3;width:100%;flex:1 1 100%;
+  }
+  .academic-mail-center .am-command-header .am-tabs button{
+    flex:1 1 0;justify-content:center;font-size:11px;padding:8px 5px;
+  }
+  .academic-mail-center .am-filterbar{gap:6px}
+  html[data-ui] body .academic-mail-center .am-filterbar .am-stats{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  html[data-ui] body .academic-mail-center .am-filterbar .am-controls{
+    flex-wrap:wrap;
+  }
+  html[data-ui] body .academic-mail-center .am-filterbar .am-search{
+    min-width:100%;flex:1 1 100%;
+  }
+  html[data-ui] body .academic-mail-center .am-filterbar .am-controls select{
+    flex:1 1 40%;min-width:0;max-width:none;
+  }
+  .academic-mail-center .am-message-list{
+    height:clamp(425px,55dvh,760px);
+  }
+  html[data-ui] body .academic-mail-center .am-reader{
+    display:none;height:auto;max-height:none;padding:15px;
+  }
+  html[data-ui] body .academic-mail-center .am-workspace.show-detail .am-reader{
+    display:block;height:auto;max-height:calc(100dvh - 170px);
+  }
+  .academic-mail-center .am-msg-subject{font-size:14px}
+  .academic-mail-center .am-reader-content pre{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  .academic-mail-center .am-command-header *,
+  .academic-mail-center .am-filterbar *{
+    transition:none!important;
+  }
+}
+
+/* User-created views may change count; hidden summaries should never reserve blank columns. */
+html[data-ui] body .academic-mail-center .am-filterbar.no-views{grid-template-columns:minmax(0,1fr)}

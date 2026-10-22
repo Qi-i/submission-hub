@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import {
   AlertCircle, Archive, ArrowLeft, Check, ChevronRight, Clock3, Download,
   FileText, Inbox, Link2, Mail, MailCheck, Plus, RefreshCw, Search, Settings2,
-  ShieldCheck, Sparkles, PauseCircle, PlayCircle, KeyRound, Copy, ExternalLink, CheckCircle2, Server, Layers3, X
+  ShieldCheck, Sparkles, PauseCircle, PlayCircle, KeyRound, Copy, ExternalLink, CheckCircle2, X
 } from 'lucide-react'
 import MailPersonalization, {DEFAULT_MAIL_VIEWS,MAIL_VIEW_KINDS,type MailViewKind,type MailSettings} from './MailPersonalization'
 import MailToast, {type MailToastKind} from './MailToast'
@@ -489,38 +489,31 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const refresh=async()=>{setNotice('');await Promise.all([loadMessages(),loadMetadata()])}
 
   return <main className="academic-mail-center">
-    <header className="am-header">
+    <header className="am-header am-command-header">
       <div className="am-header-copy">
-        <div className="am-kicker"><Sparkles size={13}/> SUBMISSION HUB / MAIL INTELLIGENCE</div>
         <h2>学术邮件与审稿</h2>
-        <p>跨邮箱聚合 · 原文归档 · 智能处理 · 投稿关联</p>
       </div>
+      <nav className="am-tabs" aria-label="邮件中心导航">
+        <button type="button" className={workspace==='inbox'?'active':''} onClick={()=>setWorkspace('inbox')}><Inbox size={16}/> 邮件工作台</button>
+        <button type="button" className={workspace==='accounts'?'active':''} onClick={goToAccounts}><Settings2 size={16}/> 邮箱与同步</button>
+        <button type="button" className={workspace==='personalize'?'active':''} onClick={()=>{setWorkspace('personalize');setNotice('');setError('')}}><Sparkles size={16}/> 自定义与 AI</button>
+      </nav>
       <div className="am-header-actions">
-        <div className="am-hero-tiles" aria-label="邮件中心状态">
-          <div className="am-hero-tile am-hero-tile-blue"><Server size={15}/>
-            <span>已连接邮箱</span><strong>{cloudReady}<small> / {accounts.length}</small></strong></div>
-          <div className="am-hero-tile am-hero-tile-violet"><Layers3 size={15}/>
-            <span>已归档邮件</span><strong>{counts.all}</strong></div>
-          <div className="am-hero-tile am-hero-tile-green"><Sparkles size={15}/>
-            <span>AI 智能分析</span><strong className="am-hero-state">{pref?.ai_enabled?'运行中':'未开启'}</strong></div>
+        <div className="am-command-status" aria-label="邮件服务状态">
+          <span className="am-status-account" title="已连接并启用自动采集的邮箱"><span className="am-status-dot"/>邮箱 {cloudReady}/{accounts.length}</span>
+          <span className={'am-status-ai '+(pref?.ai_enabled?'is-active':'')} title="AI 自动分析状态"><Sparkles size={13}/>AI {pref?.ai_enabled?'运行中':'未开启'}</span>
         </div>
         <button type="button" className="am-icon-button" onClick={()=>void refresh()} title="刷新数据" aria-label="刷新数据"><RefreshCw size={17}/></button>
         <button type="button" className="am-main-button" onClick={()=>compose(false)}><Plus size={15}/> 写邮件</button>
-        <button type="button" className="am-quiet-button" onClick={goToAccounts}><Settings2 size={15}/> 邮箱管理</button>
       </div>
     </header>
 
     <MailToast error={error} notice={notice} warning={warning}
       onDismissError={dismissError} onDismissNotice={dismissNotice} onDismissWarning={dismissWarning}/>
 
-    <nav className="am-tabs" aria-label="邮件中心导航">
-      <button type="button" className={workspace==='inbox'?'active':''} onClick={()=>setWorkspace('inbox')}><Inbox size={16}/> 邮件工作台</button>
-      <button type="button" className={workspace==='accounts'?'active':''} onClick={goToAccounts}><Settings2 size={16}/> 邮箱与同步</button>
-      <button type="button" className={workspace==='personalize'?'active':''} onClick={()=>{setWorkspace('personalize');setNotice('');setError('')}}><Sparkles size={16}/> 自定义与 AI</button>
-    </nav>
-
     {workspace==='inbox'?<>
-      {pref?.workspace?.show_statistics!==false&&<div className="am-stats am-dynamic-views">
+      <div className={"am-filterbar"+(pref?.workspace?.show_statistics===false?" no-views":"")}>
+        {pref?.workspace?.show_statistics!==false&&<div className="am-stats am-dynamic-views">
         {savedViews.map(view=><button type="button" key={view.id} className={scope===view.kind?'active':''} onClick={()=>pickScope(view.kind)}><span>{view.title}</span>
           <strong>{view.kind==='all'?counts.all:view.kind==='important'?counts.important:view.kind==='spam'?counts.spam:view.kind==='pending'?counts.pending:view.kind==='review_invite'?counts.review:view.kind==='submission_update'?counts.submission:0}</strong></button>)}
       </div>}
@@ -536,6 +529,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           <option value="pending">待答复邀请</option><option value="review_invite">全部审稿邀请</option><option value="submission_update">投稿进展</option>
           <option value="important">重点关注</option><option value="spam">垃圾邮件来源</option>
         </select>
+      </div>
       </div>
 
       {accounts.length===0&&<div className="am-onboarding">
