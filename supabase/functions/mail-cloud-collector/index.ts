@@ -171,6 +171,11 @@ async function scanAccount(admin:any,account:any){
 
    await imap.cmd('AUTHENTICATE XOAUTH2 '+btoa('user='+account.address+String.fromCharCode(1)+'auth=Bearer '+secretRes.data+String.fromCharCode(1,1)))
   }else await imap.cmd('LOGIN '+imapString(account.imap_username||account.address)+' '+imapString(secretRes.data))
+  // NetEase 126 requires the RFC 2971 IMAP ID client declaration before
+  // SELECT/EXAMINE; otherwise it can respond NO Unsafe Login after LOGIN.
+  if(account.provider==='126'){
+   await imap.cmd('ID ("name" "Submission Hub" "version" "1.0" "vendor" "Qi-i")')
+  }
   const directory=await folders(imap)
   // The canonical INBOX must always be addressable even when a gateway
   // returns a non-standard LIST suffix that the folder-name parser misses.
