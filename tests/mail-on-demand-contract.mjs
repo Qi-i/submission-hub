@@ -14,6 +14,11 @@ const uiStyles=read('src/components/AcademicMailCenter.css')
 const sql=read('supabase/036_mail_gpt_on_demand.sql')
 const realtime=read('supabase/037_mail_realtime_inserts.sql')
 const tests=[
+ ['Translation opens automatically with Chinese target',ui.includes("else {setTranslationLang('zh');setTranslationVisible(true)}")&&ui.includes('if(translationVisible&&active)void runTranslation()')],
+ ['Switching translation language cancels old result',ui.includes('[selected,translationLang,translationVisible]')],
+ ['MagicZotero preset uses stated model and endpoint only',settings.includes('https://gpt.magiczotero.top/v1/chat/completions')&&settings.includes('magic-translate-gpt')&&settings.includes('setEndpointKey(\'\')')],
+ ['MagicZotero requires test success before selecting route',settings.includes('candidate?.declared_free')&&settings.includes('if(id&&r.ok)')],
+
  ['Mail translation no longer uses arbitrary site daily quota',
   !translator.includes('mail_claim_ai_slot')&&!translator.includes('source.slice(0,8500)')&&!settings.includes('每日 AI 请求上限')],
  ['Full mail translation is chunked and resumable',

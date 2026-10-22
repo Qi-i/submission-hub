@@ -21,3 +21,7 @@ assert.ok(edge.includes('nextMissingChunk(chunks.length'))
 assert.ok(edge.includes('limitMeaning(code,route.url)'))
 assert.ok(edge.includes('translated_text:translated,'))
 console.log('Mail translation source completeness and cache resume passed.')
+
+const gardenUI=read('src/components/MailPersonalization.tsx')
+assert.ok(gardenUI.includes('预填 MagicZotero 翻译 API'))
+assert.ok(gardenUI.includes('onClick={()=>void test(e.id)}'))

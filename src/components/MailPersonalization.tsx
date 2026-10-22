@@ -32,6 +32,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  const [prompt,setPrompt]=useState(DEFAULT_PROMPT)
  const [endpoints,setEndpoints]=useState<Endpoint[]>([])
  const [editId,setEditId]=useState<string|null>(null)
+ const [showApiEditor,setShowApiEditor]=useState(false)
  const [label,setLabel]=useState('')
  const [url,setUrl]=useState('')
  const [model,setModel]=useState('')
@@ -69,7 +70,19 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  const views=(settings?.workspace?.views?.length?settings.workspace.views:DEFAULT_MAIL_VIEWS).filter(v=>v&&MAIL_VIEW_KINDS[v.kind])
  const updateViews=(next:MailView[])=>onUpdate({workspace:{...(settings?.workspace||{}),views:next}})
  const updateWorkspace=(fields:Partial<MailSettings['workspace']>)=>onUpdate({workspace:{...(settings?.workspace||{}),...fields}})
- const resetDraft=()=>{setEditId(null);setLabel('');setUrl('');setModel('');setFree(false);setPaid(false);setEndpointKey('')}
+ const resetDraft=()=>{setEditId(null);setLabel('');setUrl('');setModel('');setFree(false);setPaid(false);setEndpointKey('');setShowApiEditor(false)}
+ const fillGarden=()=>{
+  setEditId(null)
+  setLabel('MagicZotero GPT 翻译')
+  setUrl('https://gpt.magiczotero.top/v1/chat/completions')
+  setModel('magic-translate-gpt')
+  setFree(true)
+  setPaid(false)
+  setEndpointKey('')
+  setShowApiEditor(true)
+  setLocalError('')
+  setTestResult('')
+ }
  const normalizeUrl=(s:string)=>{const candidate=s.trim().replace(/\/+$/,'');return candidate.endsWith('/chat/completions')?candidate:candidate+'/chat/completions'}
  const saveEndpoint=async()=>{
   setLocalError('');setTestResult('')
@@ -92,7 +105,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setSaving(false)}
  }
- const startEdit=(e:Endpoint)=>{setEditId(e.id);setLabel(e.label);setUrl(e.api_url);setModel(e.model);setFree(e.declared_free);setPaid(e.allow_paid);setEndpointKey('');setTestResult('');setLocalError('')}
+ const startEdit=(e:Endpoint)=>{setEditId(e.id);setLabel(e.label);setUrl(e.api_url);setModel(e.model);setFree(e.declared_free);setPaid(e.allow_paid);setEndpointKey('');setTestResult('');setLocalError('');setShowApiEditor(true)}
  const test=async(id:string|null,autoDetect=false,modelOverride?:string)=>{
   setTesting(id||'default');setLocalError('');setTestResult('')
   try{
@@ -101,6 +114,13 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     (r.message||'未知响应')+(r.code?' · 业务码 '+r.code:'')+
     (r.retry_after_seconds?' · 建议 '+r.retry_after_seconds+' 秒后重试':'')+
     (r.latency_ms?' · '+r.latency_ms+'ms':''))
+   if(id&&r.ok){
+    const candidate=endpoints.find(e=>e.id===id)
+    if(candidate?.declared_free&&candidate.api_url==='https://gpt.magiczotero.top/v1/chat/completions'){
+     await onUpdate({ai_endpoint_id:id,ai_enabled:false,ai_allow_paid:false,ai_failover_enabled:false})
+     setTestResult('MagicZotero 接口测试通过，已设为默认翻译模型')
+    }
+   }
    if(id)await reload()
    await onRefresh()
    // Auto-detection already saved its platform on the server; do not write stale preferences.
@@ -173,15 +193,22 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     </div>
    </div>:<div className="am-model-preset"><strong>{chosen.label}</strong><p>模型：{chosen.model} · {chosen.key_ready?'Key 已保存':'Key 未配置'} · {chosen.last_test_status==='ok'?'上次测试成功':chosen.last_test_status||'尚未测试'}</p>
     <button type="button" className="am-quiet-button" disabled={!chosen.key_ready||!!testing||busy} onClick={()=>void test(chosen.id)}>{testing===chosen.id?'测试中…':'测试选中模型'}</button></div>}
-   <div className="am-endpoint-list"><div className="am-section-heading"><strong>自定义 API 列表</strong><span>{endpoints.length} 个</span></div>
+   <div className="am-endpoint-list"><div className="am-section-heading"><strong>自定义 API 列表</strong>
+     <button type="button" className="am-quiet-button" onClick={fillGarden} disabled={busy||saving}>预填 MagicZotero 翻译 API</button>
+     <span>{endpoints.length} 个</span></div>
     {endpoints.map(e=><div key={e.id} className="am-endpoint-row">
      <div><strong>{e.label}</strong><small>{e.model} · {e.declared_free?'自定义标记为免费':'可能收费'} · {e.key_ready?'已授权':'未授权'}</small></div>
      <button type="button" disabled={busy||saving} onClick={()=>startEdit(e)}>编辑</button>
      <button type="button" disabled={!e.key_ready||!!testing||busy} onClick={()=>void test(e.id)}>测试</button>
+     {e.declared_free&&e.key_ready&&e.last_test_status==='ok'&&
+      <button type="button" disabled={busy||saving||settings?.ai_endpoint_id===e.id}
+       onClick={()=>void onUpdate({ai_endpoint_id:e.id,ai_enabled:false,ai_allow_paid:false,ai_failover_enabled:false})}>
+       {settings?.ai_endpoint_id===e.id?'当前翻译线路':'用于翻译'}</button>}
      <button type="button" disabled={busy||saving} onClick={()=>void remove(e.id)} aria-label="删除接口"><Trash2 size={14}/></button>
     </div>)}
    </div>
-   <details className="am-model-editor" open={!!editId||undefined}><summary>{editId?'编辑自定义 API':'新增自定义 API'}</summary>
+   <details className="am-model-editor" open={!!editId||showApiEditor||undefined}
+    onToggle={e=>setShowApiEditor(e.currentTarget.open)}><summary>{editId?'编辑自定义 API':'新增自定义 API'}</summary>
     <div className="am-add-form">
      <label>服务名称<input value={label} onChange={e=>setLabel(e.target.value)} placeholder="例如：OpenRouter"/></label>
      <label>模型 ID<input value={model} onChange={e=>setModel(e.target.value)} placeholder="例如：provider/model-id"/></label>
