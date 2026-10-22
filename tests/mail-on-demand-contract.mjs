@@ -22,8 +22,8 @@ const tests=[
  ['Long translations have dynamic output budget and no 25k result truncation',
   translator.includes('max_tokens:Math.min(6500')&&chunkSchema.includes('drop constraint if exists mail_translations_translated_text_check')],
  ['Provider 429 preserves error code instead of treating it as app daily limit',
-  translator.includes('safeUpstreamCode')&&translator.includes('HTTP 429')&&
-  translator.includes('不等于网站每日次数已用完')],
+  translator.includes('safeUpstreamCode')&&translator.includes('limitMeaning(code,route.url)')&&
+  translator.includes('与网站翻译次数无关')],
 
  ['Background collection excludes failed accounts',collector.includes("query=query.eq('cloud_state','ready')")&&noRetry.includes("cloud_state = 'ready'")],
  ['Failure stops retries and retains last successful timestamp',collector.includes("next_attempt_at:null,last_processed:0")&&!collector.includes("retryAfter")&&noRetry.includes("set next_attempt_at=null")],
