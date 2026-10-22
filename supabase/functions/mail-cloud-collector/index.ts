@@ -6,7 +6,7 @@ const PROJECT=Deno.env.get('SUPABASE_URL')||''
 const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
 const encoder=new TextEncoder()
 const decoder=new TextDecoder()
-const MAX_MESSAGE=8*1024*1024
+const MAX_MESSAGE=40*1024*1024
 const MAX_PER_RUN=25
 const MAX_FOLDER=7
 const TIME_BUDGET_MS=90000
@@ -52,7 +52,7 @@ class Imap {
   }
  }
  async bytes(n:number){
-  if(n>MAX_MESSAGE)throw new Error('Message exceeds 8 MiB safety limit')
+  if(n>MAX_MESSAGE)throw new Error('Message exceeds 40 MiB archive limit')
   const out=new Uint8Array(n)
   let offset=0
   while(offset<n){
@@ -262,6 +262,42 @@ async function scanAccount(admin:any,account:any){
    const processedOld:number[]=[]
    for(const uid of candidates){
     if(Date.now()-now>TIME_BUDGET_MS){completed=false;break}
+    // Ask the server for size first. Large attachments must not fail the
+    // entire mailbox or block all other UID cursors.
+    const meta=await imap.cmd('UID FETCH '+uid+' (RFC822.SIZE)')
+    const bytes=Number(/RFC822\.SIZE\s+(\d+)/i.exec(meta.lines.join(' '))?.[1]||0)
+    if(bytes>MAX_MESSAGE){
+     const peek=await imap.cmd('UID FETCH '+uid+' (BODY.PEEK[HEADER])',true)
+     if(!peek.literal){completed=false;break}
+     const header=await PostalMime.parse(peek.literal)
+     const messageId=String(header.messageId||'').replaceAll(String.fromCharCode(0),'').trim()
+     const remoteKey=await digest(messageId||key+':'+uid)
+     const existing=await admin.from('mail_messages').select('id').eq('account_id',account.id).eq('remote_key',remoteKey).maybeSingle()
+     if(existing.error)throw Error('Large mail index lookup failed')
+     if(!existing.data){
+      const subject=String(header.subject||'（大邮件）').replaceAll(String.fromCharCode(0),'').slice(0,1024)
+      const sender=header.from&&'address' in header.from?header.from:null
+      const inserted=await admin.from('mail_messages').insert({
+       user_id:account.user_id,account_id:account.id,remote_key:remoteKey,
+       internet_message_id:messageId.slice(0,512),
+       first_folder:folder.spam?'Junk':folder.display,last_folder:folder.display,
+       received_at:header.date&&!Number.isNaN(Date.parse(header.date))?new Date(header.date).toISOString():null,
+       sender_name:String(sender?.name||'').replaceAll(String.fromCharCode(0),''),
+       sender_address:String(sender?.address||'').replaceAll(String.fromCharCode(0),''),
+       recipient_address:account.address,subject,
+       snippet:'大邮件（'+Math.ceil(bytes/1048576)+' MiB）：已收录邮件信息；原文和附件仍在原邮箱。',
+       body_text:'',category:'other',importance:0,
+       extraction:{large_message:true,original_size_bytes:bytes,original_pending:true},
+       cloud_archive_path:null,archived_locally:false
+      })
+      if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))
+       throw Error('Large mail header index failed (DB '+String(inserted.error.code||'unknown')+')')
+     }
+     processed++
+     if(uid>recent)processedNew.push(uid)
+     else if(uid<bound)processedOld.push(uid)
+     continue
+    }
     const fetched=await imap.cmd('UID FETCH '+uid+' (BODY.PEEK[])',true)
     if(!fetched.literal){completed=false;break}
     const raw=fetched.literal
