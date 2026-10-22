@@ -322,6 +322,12 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   const active=useMemo(()=>messages.find(m=>m.id===selected)||null,[messages,selected])
   useEffect(()=>{
+    // Switching mail invalidates a previous translation job's UI updates.
+    translationJob.current++
+    setTranslationLoading(false)
+    setTranslationProgress(null)
+  },[selected])
+  useEffect(()=>{
     if(!selected){setActiveBody('');setBodyLoading(false);return}
     let cancelled=false
     setActiveBody('')
