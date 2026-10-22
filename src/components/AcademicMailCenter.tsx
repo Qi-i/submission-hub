@@ -482,7 +482,79 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
-  const downloadOriginal=async()=>{
+  const addFolder=async()=>{
+    const name=folderNew.trim()
+    if(!name||name.length>40)return
+    setBusy('folder')
+    try{
+      const {error:e}=await (supabase.from('mail_folders') as any).insert({
+        user_id:userId,name,color:folderColors[folders.length%folderColors.length],sort_order:folders.length
+      })
+      if(e)throw e
+      setFolderNew('');await loadMetadata();setNotice('跨邮箱文件夹已建立，不会移动原邮箱的邮件')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(null)}
+  }
+  const deleteFolder=async(folder:MailFolder)=>{
+    if(!window.confirm('删除文件夹「'+folder.name+'」？邮件保留，仅取消虚拟归类。'))return
+    const {error:e}=await (supabase.from('mail_folders') as any).delete().eq('id',folder.id).eq('user_id',userId)
+    if(e)setError(e.message)
+    else{if(folderFilter===folder.id)setFolderFilter('all');await loadMetadata();void loadMessages()}
+  }
+  const addLabel=async()=>{
+    const name=labelNew.trim()
+    if(!name||name.length>28)return
+    setBusy('label')
+    try{
+      const {error:e}=await (supabase.from('mail_labels') as any).insert({
+        user_id:userId,name,color:folderColors[(labels.length+1)%folderColors.length]
+      })
+      if(e)throw e
+      setLabelNew('');await loadMetadata();setNotice('跨邮箱标签已创建')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(null)}
+  }
+  const deleteLabel=async(label:MailLabel)=>{
+    if(!window.confirm('删除标签「'+label.name+'」及所有邮件上的这一标签？邮件本身不会删除。'))return
+    const {error:e}=await (supabase as any).rpc('mail_delete_label',{p_label_id:label.id})
+    if(e)setError(e.message)
+    else{if(labelFilter===label.name)setLabelFilter('all');await Promise.all([loadMetadata(),loadMessages()])}
+  }
+  const toggleLabel=async(name:string)=>{
+    if(!active)return
+    const current=active.user_labels||[]
+    const next=current.includes(name)?current.filter(v=>v!==name):[...current,name]
+    await saveMessage({user_labels:next})
+  }
+  const saveBrand=async(account:Account)=>{
+    if(brandShort.trim().length>18||brandSymbol.trim().length>8){
+      setError('来源简称或图标过长');return
+    }
+    const link=brandUrl.trim()
+    if(link&&!/^https:\/\/[a-z0-9.-]+\/[\S]{0,570}$/i.test(link)){
+      setError('Logo 请使用公开的 HTTPS 图片地址');return
+    }
+    setBusy('brand')
+    try{
+      const {error:e}=await (supabase.from('mail_accounts') as any).update({
+        short_label:brandShort.trim(),logo_symbol:brandSymbol.trim(),logo_url:link||null
+      }).eq('user_id',userId).eq('id',account.id)
+      if(e)throw e
+      setBrandEditing(null);await loadMetadata();setNotice('来源简称及图标已更新')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(null)}
+  }
+  const runTranslation=async()=>{
+    if(!active)return
+    setTranslationLoading(true)
+    try{
+      const r=await callFunction('mail-translate',{
+        message_id:active.id,target_language:translationLang
+      })
+      setTranslation({translated_text:r.translation,source_hash:'',model_name:r.model||''})
+      setTranslationVisible(true)
+      setNotice(r.cached?'已读取缓存译文':r.truncated?'已翻译前 8500 字；完整原文仍可对照阅读':'翻译完成，已缓存供下次阅读')
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setTranslationLoading(false)}
+  }
+    const downloadOriginal=async()=>{
     if(!active?.cloud_archive_path)return
     setBusy('download')
     try{
