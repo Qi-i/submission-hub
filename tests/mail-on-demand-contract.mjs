@@ -10,6 +10,9 @@ const cron=read('supabase/038_mail_due_only_cron.sql')
 const sql=read('supabase/036_mail_gpt_on_demand.sql')
 const realtime=read('supabase/037_mail_realtime_inserts.sql')
 const tests=[
+ ['Mailbox settings open in a secondary dialog',ui.includes('detailAccountId')&&ui.includes('am-account-overview')&&ui.includes('am-account-dialog')&&ui.includes('am-account-summary')],
+ ['Mail archive reports missing folders instead of false successful sync',collector.includes('openedFolders===0')&&collector.includes('advertisedMessages>0&&foundUids===0')],
+ ['Mail archive strips null bytes before PostgreSQL index insert',collector.includes('replaceAll(String.fromCharCode(0)')&&collector.includes('Mail index save failed (DB ')],
  ['No repeated focus/60-second polling', !ui.includes('window.setInterval(')&&!ui.includes("addEventListener('focus',onReturn)")&&ui.includes('visibilitychange')],
  ['New mail triggers one debounced UI refresh',ui.includes("event:'INSERT'")&&ui.includes('postgres_changes')&&realtime.includes('alter publication supabase_realtime add table public.mail_messages')],
  ['CUGB official student mailbox can be selected',ui.includes('imap.email.cugb.edu.cn')&&ui.includes('smtp.email.cugb.edu.cn')&&cfg.includes("domain==='email.cugb.edu.cn'")],
