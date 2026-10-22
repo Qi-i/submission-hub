@@ -51,7 +51,7 @@ for(const [name,condition] of [
  ['model errors distinguish business-level rate limit versus credit',modelApi.includes("code==='1113'")&&modelApi.includes("code==='1302'")&&modelApi.includes("code==='1305'")],
  ['free GLM selects domestic and global platforms',glmMigration.includes('ai_glm_platform')&&modelApi.includes('open.bigmodel.cn/api/paas/v4')],
  ['GLM provider can be explicitly auto-discovered',modelApi.includes('body.auto_detect===true')&&personal.includes('自动检测官方平台')],
- ['automatic analysis uses configured verified provider',worker.includes("pref.ai_glm_platform==='bigmodel'")],
+ ['automatic analysis uses configured verified provider',worker.includes("glmUrl(pref.ai_glm_platform)")],
  ['all mail operations have fixed and screen-visible alerts',ui.includes('<MailToast ')&&mailToast.includes('createPortal')&&mailCss.includes('position:fixed !important')],
  ['warning and errors remain distinguishable',mailToast.includes('am-toast-warning')&&mailToast.includes('am-toast-error')],
  ['provider errors retain pending message and cooldown',worker.includes('ai_retry_after:new Date')&&worker.includes("kind:'temporary'")&&worker.includes("ai_state','pending")],
