@@ -3,8 +3,6 @@ const enc=new TextEncoder(),dec=new TextDecoder()
 const heads={'content-type':'application/json','cache-control':'no-store','access-control-allow-origin':'https://qi-i.github.io','access-control-allow-headers':'authorization,apikey,content-type','access-control-allow-methods':'POST,OPTIONS'}
 const answer=(body:unknown,status=200)=>new Response(status===204?null:JSON.stringify(body),{status,headers:heads})
 const validHost=(h:string)=>/^(?=.{4,190}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(h)&&!/(^|\.)(local|localhost|internal|lan|home|onion|arpa|test|invalid)$/.test(h)
-const safe4=(s:string)=>{const p=s.split('.').map(Number);if(p.length!==4||p.some(n=>n<0||n>255||!Number.isInteger(n)))return false;const [a,b]=p;return !(a===0||a===10||a===127||a>=224||a===169&&b===254||a===172&&b>=16&&b<=31||a===192&&b===168||a===100&&b>=64&&b<=127||a===192&&b===0||a===198&&b>=18&&b<=19)}
-const safe6=(s:string)=>!(/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(s)||/::ffff:/i.test(s))
 async function guard(host:string){if(!validHost(host))throw Error('请输入规范的公网邮件服务器域名（不支持内网域名或 IP）');/* Do not block settings saves on runtime DNS availability. Actual TLS login validates reachability and certificate. */}
 const quote=(s:string)=>'"'+s.replace(/[\r\n\0]/g,'').replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'
 const b64=(s:string)=>{const v=enc.encode(s);let x='';for(const b of v)x+=String.fromCharCode(b);return btoa(x)}
