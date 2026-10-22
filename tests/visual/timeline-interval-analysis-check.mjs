@@ -59,12 +59,15 @@ async function inspect(ui) {
     const geometry = await timeline.evaluate(element => {
       const table = element.querySelector('.timeline-table-mode')
       const header = element.querySelector('.timeline-table-head')
-      const resultCell = element.querySelector(".timeline-round-cell[data-kind='result']")
+      const row = element.querySelector('.timeline-content-editable')
+      // The result pill is intentionally content-sized. Inspect its grid track,
+      // not the short badge label, to detect an actually collapsed table column.
+      const tracks = row ? getComputedStyle(row).gridTemplateColumns.split(' ').filter(Boolean) : []
       return {
         scrollWidth: table?.scrollWidth || 0,
         clientWidth: table?.clientWidth || 0,
         headerColumns: header ? getComputedStyle(header).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-        resultCellWidth: resultCell?.getBoundingClientRect().width || 0,
+        resultCellWidth: Number.parseFloat(tracks[4] || '0'),
       }
     })
 
