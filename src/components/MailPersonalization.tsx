@@ -119,15 +119,16 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  }
  const availableRoutes=[
   {id:'glm:glm-4.7-flash',label:'GLM-4.7-Flash · '+(settings?.ai_glm_platform==='bigmodel'?'BigModel':'Z.AI'),
-   keyReady:!!settings?.ai_key_ready,free:true,latency:settings?.ai_glm_probe_times?.['glm-4.7-flash']??null},
+   keyReady:!!settings?.ai_key_ready,free:true,tested:!!settings?.ai_glm_probe_times?.['glm-4.7-flash'],latency:settings?.ai_glm_probe_times?.['glm-4.7-flash']??null},
   {id:'glm:glm-4.5-flash',label:'GLM-4.5-Flash · '+(settings?.ai_glm_platform==='bigmodel'?'BigModel':'Z.AI'),
-   keyReady:!!settings?.ai_key_ready,free:true,latency:settings?.ai_glm_probe_times?.['glm-4.5-flash']??null},
+   keyReady:!!settings?.ai_key_ready,free:true,tested:!!settings?.ai_glm_probe_times?.['glm-4.5-flash'],latency:settings?.ai_glm_probe_times?.['glm-4.5-flash']??null},
   ...endpoints.map(e=>({id:'endpoint:'+e.id,label:e.label+' · '+e.model,
-   keyReady:e.key_ready,free:e.declared_free,latency:e.last_test_latency_ms??null}))
+   keyReady:e.key_ready,free:e.declared_free,tested:e.last_test_status==='ok',latency:e.last_test_latency_ms??null}))
  ]
  const routeOrder=(settings?.ai_route_order??['glm:glm-4.7-flash','glm:glm-4.5-flash'])
   .filter(id=>availableRoutes.some(x=>x.id===id))
  const updateOrder=(ids:string[])=>void onUpdate({ai_route_order:ids.slice(0,6),ai_enabled:false})
+ const eligibleCount=routeOrder.filter(id=>{const r=availableRoutes.find(v=>v.id===id);return !!r?.free&&!!r?.keyReady&&(id.startsWith('glm:')||!!r?.tested)}).length
   const chosen=endpoints.find(e=>e.id===settings?.ai_endpoint_id)
  const ready=chosen?chosen.key_ready:!!settings?.ai_key_ready
  const paidWarning=!!chosen&&!chosen.declared_free
@@ -202,10 +203,10 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     {availableRoutes.map(route=>{
       const index=routeOrder.indexOf(route.id),active=index>=0
       return <div className={'am-route-row '+(active?'selected':'')} key={route.id}>
-       <label className="am-route-checkbox"><input type="checkbox" checked={active} disabled={busy||(!active&&routeOrder.length>=6)}
+       <label className="am-route-checkbox"><input type="checkbox" checked={active} disabled={busy||!route.free||(!active&&routeOrder.length>=6)}
         onChange={e=>updateOrder(e.target.checked?[...routeOrder,route.id]:routeOrder.filter(id=>id!==route.id))}/></label>
        <div className="am-route-detail"><strong>{route.label}</strong>
-        <small>{route.free?'免费标记':'可能收费，不能作为自动备用'} · {route.keyReady?'连接已授权':'未测试或未授权'} · {route.latency!==null?'实测 '+(route.latency/1000).toFixed(1)+' 秒':'尚无速度测量'}</small>
+        <small>{route.free?'免费标记':'可能收费，不能作为自动备用'} · {!route.keyReady?'尚未授权':route.tested?'测试成功':'尚未测速/验证'} · {route.latency!==null?'实测 '+(route.latency/1000).toFixed(1)+' 秒':'尚无速度测量'}</small>
        </div>
        {active&&<div className="am-route-position"><span>第 {index+1} 位</span>
         <button type="button" aria-label={route.label+'上移'} disabled={busy||index===0}
@@ -220,8 +221,8 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
       </div>
     })}
    </div>
-   <label className="am-option"><input type="checkbox" checked={!!settings?.ai_failover_enabled} disabled={busy||routeOrder.length===0}
-     onChange={e=>void onUpdate({ai_failover_enabled:e.target.checked,ai_enabled:false})}/> 当前模型失败后，自动尝试路由列表的下一模型</label>
+   <label className="am-option"><input type="checkbox" checked={!!settings?.ai_failover_enabled} disabled={busy||eligibleCount===0}
+     onChange={e=>void onUpdate({ai_failover_enabled:e.target.checked,ai_enabled:false})}/> 当前模型不可用时按优先级自动接力（仅已授权免费模型；至少需要一项可用）</label>
    <label className="am-option"><input type="checkbox" checked={settings?.ai_slow_mode!==false} disabled={busy}
      onChange={e=>void onUpdate({ai_slow_mode:e.target.checked})}/> 容忍免费接口慢速响应，按最近实测耗时调整等待时间</label>
    <div className="am-add-form"><label>每次模型请求最长等待<select value={settings?.ai_max_wait_seconds??65} disabled={busy}
