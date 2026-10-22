@@ -50,8 +50,11 @@ Deno.serve(async req=>{
    message:'已撤销 Submission Hub 保存的令牌；若需取消微软账户授权，请到 Microsoft 账户管理页面撤销应用权限。'})
  }
  if(action==='start'){
-  const clientId=String(body.client_id||account.oauth_client_id||'').trim()
-  if(!guid.test(clientId))return result({error:'请填写 Microsoft 应用注册的客户端 ID（GUID），不是邮箱密码'},422)
+  // The website owner may register one public app for everyone. Users should
+  // authenticate at Microsoft, not be forced into the Entra developer console.
+  const managedId=String(Deno.env.get('MAIL_MICROSOFT_CLIENT_ID')||'').trim()
+  const clientId=String(body.client_id||account.oauth_client_id||managedId).trim()
+  if(!guid.test(clientId))return result({error:'站点尚未配置 Microsoft 公共客户端。管理员需一次性设置 MAIL_MICROSOFT_CLIENT_ID；普通邮箱用户不需要访问 Azure 控制台。'},422)
   const response=await microsoft('devicecode',{client_id:clientId,scope:SCOPES})
   if(!response.ok)return result({error:'微软拒绝启动授权：'+String(response.data?.error_description||response.data?.error||response.code).slice(0,220)},422)
   const data=response.data

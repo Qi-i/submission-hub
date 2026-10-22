@@ -61,7 +61,7 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journ
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__oa {
-  min-width: 0 !important;
+  min-width: 76px !important;
   max-width: 150px !important;
   gap: 5px !important;
   justify-content: center !important;

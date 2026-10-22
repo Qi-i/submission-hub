@@ -232,16 +232,15 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
    <p className="am-disclaimer">慢速模式不会因短暂无响应直接改用收费模型。每次接力都计入每日调用次数；总运行时间受 Supabase 免费 Edge 环境约束。未启用接力时仍只访问当前选择的模型。</p>
   </div>
    <div className="am-personal-section">
-   <h4>分析指令与自动处理</h4>
-   <p>指令可直接修改，保留固定的邮件安全隔离和 JSON 输出约束。自动分析只会发送邮件正文片段到你选定的模型服务。</p>
+   <h4>分析指令与按需处理</h4>
+   <p>已停用后台定时 AI 轮询。默认由 ChatGPT 在你提出分析请求时，通过已授权的 Supabase 连接读取邮件并将结果写入 AI 字段；ChatGPT 不会由网页或数据库自动唤醒。下面保留原有模型配置供手动翻译等功能使用。</p>
    <label className="am-choice-label">分析系统指令<textarea rows={5} maxLength={6000} value={prompt} onChange={e=>setPrompt(e.target.value)} /></label>
    <div className="am-add-form"><button type="button" className="am-main-button" disabled={!prompt.trim()||busy||prompt===settings?.ai_system_prompt} onClick={()=>void onUpdate({ai_system_prompt:prompt.trim()})}>保存分析指令</button>
     <button type="button" className="am-quiet-button" onClick={()=>setPrompt(DEFAULT_PROMPT)}>恢复默认文本</button></div>
    <div className="am-add-form"><label>每日最多自动分析<select value={settings?.ai_daily_limit??20} disabled={busy} onChange={e=>void onUpdate({ai_daily_limit:Number(e.target.value)})}>{[0,5,10,20,30,50].map(n=><option value={n} key={n}>{n} 封</option>)}</select></label></div>
    {paidWarning&&<label className="am-option"><input type="checkbox" checked={!!settings?.ai_allow_paid} disabled={busy} onChange={e=>void onUpdate({ai_allow_paid:e.target.checked,ai_enabled:false})}/> 我了解该自定义模型可能产生费用，并明确允许自动调用</label>}
-   <label className="am-option"><input type="checkbox" disabled={busy||!ready||settings?.ai_daily_limit===0||(paidWarning&&!chosen?.declared_free&&!(chosen?.allow_paid&&settings?.ai_allow_paid))} checked={!!settings?.ai_enabled}
-     onChange={e=>void onUpdate({ai_enabled:e.target.checked,...e.target.checked?{ai_started_at:new Date().toISOString()}: {}})}/> 开启后台自动摘要、标签、优先级和行动建议（默认关闭）</label>
-   <label className="am-option"><input type="checkbox" disabled={busy} checked={!!settings?.ai_analyze_existing} onChange={e=>void onUpdate({ai_analyze_existing:e.target.checked})}/> 同时分析历史邮件</label>
+   <label className="am-option"><input type="checkbox" disabled checked={false} readOnly/> 后台 AI 定时分析已停用（避免重复调用、额外配额和费用）</label>
+   <p className="am-disclaimer">历史邮件与新邮件均保留原文和待处理标记。可直接在 ChatGPT 中要求批量分析或重分析，不依赖网站定时请求。</p>
    {settings?.last_ai_error&&<p className="am-account-error"><AlertCircle size={14}/>{settings.last_ai_error}</p>}
    <p className="am-disclaimer">测试模型会发送简单探针并使用少量 token，可能产生费用。自定义接口的免费额度由服务商决定；系统不自动切换付费模型。校园邮件外发应符合所在单位的数据管理要求。</p>
   </div>

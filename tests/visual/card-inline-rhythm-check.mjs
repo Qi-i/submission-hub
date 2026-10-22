@@ -36,6 +36,8 @@ async function submissionGeometry(ui) {
           height: rect.height,
           left: rect.left,
           right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
           paddingLeft: parseFloat(style.paddingLeft) || 0,
           paddingRight: parseFloat(style.paddingRight) || 0,
           text: element.textContent?.trim() || '',
@@ -139,7 +141,16 @@ try {
       validateBlock(`${prefix} journal`, card.journal, { height: [29, 31], pad: [8, 11] })
       if (card.primary && card.journal) {
         if (!closeEnough(card.primary.height, card.journal.height, 1)) failures.push(`${prefix}: primary and journal heights diverge`)
-        if (card.journal.left - card.primary.right < 4) failures.push(`${prefix}: primary/journal gutter ${(card.journal.left - card.primary.right).toFixed(1)}px is too small`)
+        // Current Submission Management deliberately places the full journal name on
+        // the next row rather than squeezing it into a tiny right-hand chip.
+        // Validate vertical separation in that layout; retain horizontal checks
+        // for legacy side-by-side layouts.
+        if (card.journal.top >= card.primary.bottom - 1) {
+          const gap = card.journal.top - card.primary.bottom
+          if (gap < 4) failures.push(`${prefix}: status/journal vertical gap ${gap.toFixed(1)}px is too small`)
+        } else if (card.journal.left - card.primary.right < 4) {
+          failures.push(`${prefix}: primary/journal gutter ${(card.journal.left - card.primary.right).toFixed(1)}px is too small`)
+        }
       }
       card.secondary.forEach((item, index) => validateBlock(`${prefix} secondary ${index + 1}`, item, { height: [25, 27], pad: [7, 10] }))
       card.compact.forEach((item, index) => validateBlock(`${prefix} compact ${index + 1}`, item, { height: [23, 25], pad: [7, 10] }))

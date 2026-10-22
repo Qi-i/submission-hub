@@ -257,13 +257,35 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   useEffect(()=>{void loadMetadata()},[loadMetadata])
   useEffect(()=>{void loadMessages()},[loadMessages])
+  // Do not poll the database continuously while the user reads a message.
+  // Refresh on returning to the tab; manual refresh remains available.
   useEffect(()=>{
-    const timer=window.setInterval(()=>{
-      void loadMetadata()
-      void loadMessages()
-    },60000)
-    return ()=>window.clearInterval(timer)
+    const onReturn=()=>{if(document.visibilityState==='visible'){
+      void loadMetadata();void loadMessages()
+    }}
+    document.addEventListener('visibilitychange',onReturn)
+    window.addEventListener('focus',onReturn)
+    return ()=>{
+      document.removeEventListener('visibilitychange',onReturn)
+      window.removeEventListener('focus',onReturn)
+    }
   },[loadMetadata,loadMessages])
+
+  // New archived messages appear without refreshing every minute.
+  // Coalesce a batch of Supabase INSERT events into one metadata/list query.
+  useEffect(()=>{
+    let scheduled:ReturnType<typeof setTimeout>|undefined
+    const channel=supabase.channel('academic-mail-insert-'+userId)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'mail_messages',
+        filter:'user_id=eq.'+userId},()=>{
+        if(scheduled!==undefined)window.clearTimeout(scheduled)
+        scheduled=window.setTimeout(()=>{void loadMetadata();void loadMessages()},800)
+      }).subscribe()
+    return ()=>{
+      if(scheduled!==undefined)window.clearTimeout(scheduled)
+      void supabase.removeChannel(channel)
+    }
+  },[userId,loadMetadata,loadMessages])
 
   const active=useMemo(()=>messages.find(m=>m.id===selected)||null,[messages,selected])
   useEffect(()=>{
@@ -818,7 +840,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
              <div className="am-account-name"><strong>{logoLabel(a)}</strong><small>{a.address} · {providerLabels[a.provider]||a.provider}</small></div>
              <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
           <div className="am-account-data">
-              <div><span>上次成功归档</span><strong>{niceDate(a.last_sync_at)}</strong></div>
+              <div><span>上次成功检查</span><strong>{niceDate(a.last_sync_at)}</strong></div>
               <div><span>最近检查 / 归档</span><strong>{niceDate(a.last_checked_at)} · {a.last_processed||0} 封</strong></div>
               <div><span>{a.provider==='outlook'?'Microsoft Graph / 文件夹':'服务器 / 扫描文件夹'}</span>
                <strong>{a.provider==='outlook'?'Graph OAuth2':a.imap_host||'尚未设置'} · {a.last_scanned_folders||0} 个</strong></div>
@@ -862,15 +884,17 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
              <div><strong>Microsoft 官方账户授权</strong>
                <p>以 Microsoft Graph 读取所有文件夹（包括垃圾邮件），并在明确确认后发送邮件。无需邮箱密码，也不需要始终开着电脑。</p></div></div>
             <div className="am-oauth-form">
-              <label>Microsoft 应用（客户端）ID
-               <input value={oauthClientId} onChange={e=>setOauthClientId(e.target.value)}
-                 placeholder="00000000-0000-0000-0000-000000000000" spellCheck={false}/></label>
-              <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
-               target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 获取客户端 ID</a>
-              <button type="button" className="am-main-button" disabled={busy!==null||!oauthClientId.trim()}
-               onClick={()=>void startOutlook(a)}>{busy==='oauth-'+a.id?'申请中…':'开始 Microsoft 授权'}</button>
+              <button type="button" className="am-main-button" disabled={busy!==null}
+               onClick={()=>void startOutlook(a)}>{busy==='oauth-'+a.id?'申请中…':'使用 Microsoft 账户授权'}</button>
+              <small>授权使用微软登录页，不需要到 Azure 管理后台登录邮箱。</small>
             </div>
-            <p className="am-oauth-help">只需注册一次免费 Microsoft 应用，账户类型选择“任何组织目录及个人 Microsoft 账户”，在“身份验证”中开启公共客户端流程；配置委托权限 User.Read、Mail.Read、Mail.Send、offline_access。学校或企业账户可能需要管理员批准。</p>
+            <details className="am-oauth-help"><summary>高级设置 · Microsoft 公共应用客户端 ID</summary>
+              <label>客户端 ID（站点管理员可统一配置；个人一般不用填写）
+                <input value={oauthClientId} onChange={e=>setOauthClientId(e.target.value)}
+                  placeholder="站点尚未统一配置时，由应用管理员提供" spellCheck={false}/></label>
+              <p>网站运营者需先在 Microsoft Entra 注册公共客户端（设备代码授权），并在服务端配置 MAIL_MICROSOFT_CLIENT_ID；仅此配置步骤需访问 Entra。允许个人账户与工作/学校账户，委托权限 User.Read、Mail.Read、Mail.Send、offline_access。</p>
+              <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer">管理员注册入口</a>
+            </details>
             {oauth?.accountId===a.id&&<div className="am-device-auth" aria-live="polite">
               <span>微软设备登录验证码（临时）</span><strong>{oauth.userCode}</strong>
               <div><button type="button" className="am-quiet-button" onClick={()=>void navigator.clipboard.writeText(oauth.userCode)}>
@@ -884,7 +908,15 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           </div>}
           {setupId===a.id&&<div className="am-form-panel am-config-form">
             <div className="am-section-heading"><strong>收发信配置</strong><button type="button" className="am-quiet-button" disabled={busy!==null} onClick={()=>void discover(a.id)}>自动发现服务器</button></div>
-            <p>可使用官方参数或 DNS SRV 建议。仅允许加密连接：IMAP 993/SSL、143/STARTTLS；SMTP 465/SSL、587/STARTTLS。服务器证书必须有效。</p>
+            <p>可使用官方参数或 DNS SRV 建议。仅允许加密连接：IMAP 993/SSL、143/STARTTLS；SMTP 465/SSL、587/STARTTLS。当前云端运行环境不支持 SMTP 587/25 出站，请选 465/SSL。</p>
+            {a.address.toLowerCase().endsWith('@email.cugb.edu.cn')&&<div className="am-cugb-preset">
+              <button type="button" className="am-quiet-button" onClick={()=>{
+                setImapHost('www.email.cugb.edu.cn');setSmtpHost('www.email.cugb.edu.cn');
+                setImapPort(993);setSmtpPort(465);setImapSecurity('ssl');setSmtpSecurity('ssl')
+              }}>填入 CUGB 学生邮箱官方服务器（993 / 465）</button>
+              <a href="https://www.cugb.edu.cn/yxsy" target="_blank" rel="noopener noreferrer">学校配置指南</a>
+              <small>若原地址显示“DNS 域名解析失败”，无需重复更换密码，优先改用学校指南的服务器域名。</small>
+            </div>}
             {!!suggestions.length&&<div className="am-server-suggestions">{suggestions.map((s,i)=>
               <button type="button" key={s.type+s.host+i} onClick={()=>{
                 if(s.type==='imap'){setImapHost(s.host);setImapPort(s.port);setImapSecurity(s.security)}
@@ -920,7 +952,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           </div>}
         </section>)}
       </div>
-      <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>定时采集不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
+      <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>历史邮件按文件夹断点分批归档，后续只增量同步；普通 IMAP 邮箱无法直接推送到本站，使用低频后台检查，不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
     </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey} onToast={showToast} onRefresh={loadMetadata}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
       <div className="am-compose">

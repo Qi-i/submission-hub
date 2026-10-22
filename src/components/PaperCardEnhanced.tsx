@@ -227,6 +227,8 @@ function JournalQuickView({ paper, profile, badges, pinned, onEnter, onLeave, on
 export default function PaperCardEnhanced({ paper, currentUsername, authorName, allPapers, journalProfile, index = 0, onClick, onOpenStoredFile }: Props) {
   const [journalOpen, setJournalOpen] = useState(false)
   const [journalPinned, setJournalPinned] = useState(false)
+  // A deliberate close must not instantly reopen through pointer/focus events.
+  const journalDismissedRef = useRef(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const journalCloseTimerRef = useRef<number | null>(null)
   const journalPinnedRef = useRef(false)
@@ -253,11 +255,13 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   }
 
   const openJournalPreview = () => {
+    if (journalDismissedRef.current) return
     clearJournalCloseTimer()
     setJournalOpen(true)
   }
 
   const closeJournal = () => {
+    journalDismissedRef.current = true
     clearJournalCloseTimer()
     journalPinnedRef.current = false
     setJournalPinned(false)
@@ -276,6 +280,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
   }
 
   const toggleJournalPinned = () => {
+    journalDismissedRef.current = false
     clearJournalCloseTimer()
     const next = !journalPinnedRef.current
     journalPinnedRef.current = next
@@ -385,7 +390,7 @@ export default function PaperCardEnhanced({ paper, currentUsername, authorName, 
             aria-haspopup="dialog"
             aria-expanded={journalOpen}
             onPointerEnter={event => { event.stopPropagation(); openJournalPreview() }}
-            onPointerLeave={event => { event.stopPropagation(); scheduleJournalClose() }}
+            onPointerLeave={event => { event.stopPropagation(); journalDismissedRef.current = false; scheduleJournalClose() }}
             onFocus={event => { event.stopPropagation(); openJournalPreview() }}
             onBlur={event => { event.stopPropagation(); scheduleJournalClose() }}
             onClick={event => { event.stopPropagation(); activateJournalLabel() }}

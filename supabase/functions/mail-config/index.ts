@@ -11,8 +11,8 @@ class Lines{
  constructor(public conn:Deno.Conn){}
  async line(){while(!this.buf.includes('\n')){const b=new Uint8Array(8192);const n=await this.conn.read(b);if(n===null)throw Error('服务器断开连接');this.buf+=dec.decode(b.subarray(0,n));if(this.buf.length>65536)throw Error('响应太长')}const i=this.buf.indexOf('\n'),v=this.buf.slice(0,i).replace(/\r$/,'');this.buf=this.buf.slice(i+1);return v}
  async write(s:string){await this.conn.write(enc.encode(s+'\r\n'))}
- async smtp(code:number){for(let i=0;i<40;i++){const l=await this.line();if(!/^\d{3}[ -]/.test(l))throw Error('SMTP 响应错误');if(Number(l.slice(0,3))!==code)throw Error('SMTP 返回 '+l.slice(0,3));if(l[3]===' ')return}throw Error('SMTP 多行响应超限')}
- async imap(tag:string){for(let i=0;i<40;i++){const l=await this.line();if(l.startsWith(tag+' ')){if(!new RegExp('^'+tag+' OK\\b','i').test(l))throw Error('IMAP 验证失败');return}}throw Error('IMAP 无最终响应')}
+ async smtp(code:number){for(let i=0;i<40;i++){const l=await this.line();if(!/^\d{3}[ -]/.test(l))throw Error('SMTP 响应错误');if(Number(l.slice(0,3))!==code)throw Error('SMTP 返回 '+l.slice(0,3)+(code===235?'（认证失败，请检查 SMTP 登录账号和独立授权码）':''));if(l[3]===' ')return}throw Error('SMTP 多行响应超限')}
+ async imap(tag:string){for(let i=0;i<40;i++){const l=await this.line();if(l.startsWith(tag+' ')){if(!new RegExp('^'+tag+' OK\\b','i').test(l))throw Error(/\\bNO\\b/i.test(l)?'IMAP 服务器拒绝登录（账号、密码或客户端协议权限）':'IMAP 服务器拒绝命令');return}}throw Error('IMAP 无最终响应')}
 }
 async function open(host:string,port:number,security:string,kind:'imap'|'smtp'){
  await guard(host)
@@ -33,7 +33,11 @@ async function discover(address:string,provider:string){
  const result:any[]=[]
  const put=(type:string,host:string,port:number,security:string,source:string)=>{if(validHost(host)&&!result.some(x=>x.type===type&&x.host===host&&x.port===port))result.push({type,host,port,security,source})}
  if(roots[provider]){const [im,sm,p,sec]=roots[provider];put('imap',im,993,'ssl','服务商预设');put('smtp',sm,p,sec,'服务商预设')}
- else{for(const p of ['mail','imap'])put('imap',p+'.'+domain,993,'ssl','按域名推测，需测试');for(const p of ['mail','smtp'])put('smtp',p+'.'+domain,465,'ssl','按域名推测，需测试')}
+ else{
+  if(domain==='email.cugb.edu.cn'){
+   put('imap','www.email.cugb.edu.cn',993,'ssl','CUGB 学生/校友邮箱官方指南')
+   put('smtp','www.email.cugb.edu.cn',465,'ssl','CUGB 学生/校友邮箱官方指南')
+  }for(const p of ['mail','imap'])put('imap',p+'.'+domain,993,'ssl','按域名推测，需测试');for(const p of ['mail','smtp'])put('smtp',p+'.'+domain,465,'ssl','按域名推测，需测试')}
  for(const [key,type] of [['_imaps._tcp.','imap'],['_submission._tcp.','smtp'],['_submissions._tcp.','smtp']] as const){const records=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(key+domain,'SRV').catch(()=>[]):Promise.resolve([])) as Deno.SrvRecord[];for(const r of records.slice(0,3)){const port=Number(r.port);if(type==='imap'?[993,143].includes(port):[465,587].includes(port))put(type,r.target.replace(/\.$/,''),port,[993,465].includes(port)?'ssl':'starttls','DNS SRV')}}
  return result
 }
@@ -105,7 +109,13 @@ Deno.serve(async req=>{
       kind==='imap'?a.imap_username||a.address:a.smtp_username||a.address,loginSecret)
     results[kind]={ok:true,message:'TLS 连接及身份验证通过'+(kind==='smtp'?'（未实际发送邮件）':'')}
    }
-   catch(e){results[kind]={ok:false,message:e instanceof Error?e.message:'连接失败'}}
+   catch(e){
+     const original=e instanceof Error?e.message:'连接失败'
+     const dns=/failed to lookup|name or service not known|ENOTFOUND|dns|lookup address/i.test(original)
+     results[kind]={ok:false,message:dns?
+      '服务器域名无法解析；CUGB 学生邮箱请使用 www.email.cugb.edu.cn（993/465 SSL），其他邮箱请确认服务商公布的服务器地址':
+      original}
+    }
   }
   const ok=!!(results.imap as any)?.ok
   await db.from('mail_accounts').update({
