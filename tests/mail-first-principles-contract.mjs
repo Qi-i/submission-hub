@@ -19,6 +19,9 @@ const mailToast=read('src/components/MailToast.tsx')
 const mailCss=read('src/components/AcademicMailCenter.css')
 const glmMigration=read('supabase/027_mail_glm_platform.sql')
 const app=read('src/components/Dashboard.tsx')
+const routeMigration=read('supabase/029_mail_ai_model_routing.sql')
+const probeMigration=read('supabase/030_mail_ai_probe_times.sql')
+const routeCron=read('supabase/031_mail_ai_route_cron.sql')
 for(const [name,condition] of [
  ['provider discovery',config.includes("body.action==='discover'")],
  ['auth-only connection test',config.includes("body.action==='test'") && config.includes("await verify(")],
@@ -51,7 +54,7 @@ for(const [name,condition] of [
  ['automatic analysis uses configured verified provider',worker.includes("pref.ai_glm_platform==='bigmodel'")],
  ['all mail operations have fixed and screen-visible alerts',ui.includes('<MailToast ')&&mailToast.includes('createPortal')&&mailCss.includes('position:fixed !important')],
  ['warning and errors remain distinguishable',mailToast.includes('am-toast-warning')&&mailToast.includes('am-toast-error')],
- ['provider 429 leaves mail pending with cooldown',worker.includes('ai_retry_after:retryAt')&&worker.includes('emails')===false&&worker.includes("raw.status===429")],
+ ['provider errors retain pending message and cooldown',worker.includes('ai_retry_after:new Date')&&worker.includes("kind:'temporary'")&&worker.includes("ai_state','pending")],
 
  ['SMTP independent credential isolated in Vault',smtpMigration.includes('mail_private.smtp_credentials')&&smtpMigration.includes('vault.create_secret')],
  ['SMTP sender honors separate key',sender.includes('smtp_has_separate_key')&&sender.includes('mail_read_smtp_secret')],
@@ -63,6 +66,15 @@ for(const [name,condition] of [
  ['account health visible',ui.includes('next_attempt_at')&&ui.includes('last_scanned_folders')],
  ['AI endpoint change disables old authorization',aiReauthMigration.includes('new.key_ready:=false')&&aiReauthMigration.includes('ai_enabled=false')],
  ['old API keys never implicitly follow a new URL',personal.includes('模型配置已保存')&&aiReauthMigration.includes('new.api_url is distinct from old.api_url')],
+ ['automatic fallback is disabled by default',routeMigration.includes('ai_failover_enabled boolean not null default false')],
+ ['ordered per-user model chain in web settings',personal.includes('ai_route_order')&&personal.includes('第 {index+1} 位')],
+ ['failover only to authorized tested free endpoints',worker.includes("cfg.last_test_status!=='ok'")&&worker.includes('fallbackOn&&!cfg.declared_free')],
+ ['each model attempt consumes daily quota',worker.includes("for(const route of routes)")&&worker.includes("mail_claim_ai_slot")],
+ ['slower model uses measured request timeout',worker.includes('route.probeMs*2.5')&&worker.includes('ai_max_wait_seconds')],
+ ['edge worker overall budget is bounded',worker.includes('deadline=Date.now()+115000')],
+ ['built-in models measured independently',probeMigration.includes('ai_glm_probe_times')&&personal.includes("ai_glm_probe_times?.['glm-4.7-flash']")],
+ ['cron follows free route eligibility and retry cooldown',routeCron.includes('ai_failover_enabled')&&routeCron.includes('ai_retry_after')],
+
 
 ])assert.ok(condition,'Mail architecture contract failed: '+name)
-console.log('Extended mail resilience and security contract: 42/42 invariants.')
+console.log('Extended mail resilience and security contract: 50/50 invariants.')
