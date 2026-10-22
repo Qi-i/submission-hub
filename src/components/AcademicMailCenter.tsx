@@ -62,7 +62,7 @@ type Message = {
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
 type Scope = MailViewKind
 type Workspace = 'inbox' | 'accounts' | 'personalize'
-type CountSummary = { all: number; review: number; pending: number; important: number; spam: number }
+type CountSummary = { all: number; review: number; pending: number; important: number; spam: number; submission: number }
 const PAGE_SIZE = 40
 const categories: Record<string, string> = {
   review_invite: '审稿邀请', submission_update: '投稿进展', editorial: '编辑往来',
@@ -91,6 +91,19 @@ const describeStatus = (account: Account) => {
   return '待配置'
 }
 const folderQuery = 'first_folder.ilike.%junk%,first_folder.ilike.%spam%,first_folder.ilike.%垃圾%,last_folder.ilike.%junk%,last_folder.ilike.%spam%,last_folder.ilike.%垃圾%'
+/** Display-time HTML entity repair for imported plaintext email; React still escapes all text. */
+const readableMailText = (input?: string | null) => {
+  if (!input) return ''
+  return input
+    .replace(/&(?:amp;)?nbsp;|&#(?:160|x0*a0);/gi, ' ')
+    .replace(/&(?:amp;)?#(?:160|x0*a0);/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"')
+    .replace(/&apos;|&#39;/gi, "'")
+    .replace(/&hellip;/gi, '…')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]{3,}/g, '  ')
+}
 
 export default function AcademicMailCenter({userId}: {userId: string}) {
   const [workspace, setWorkspace] = useState<Workspace>('inbox')
@@ -102,7 +115,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     expiresAt:number;verificationUri:string;waiting:boolean}|null>(null)
   const [papers, setPapers] = useState<Paper[]>([])
   const [messages, setMessages] = useState<Message[]>([])
-  const [counts, setCounts] = useState<CountSummary>({all:0,review:0,pending:0,important:0,spam:0})
+  const [counts, setCounts] = useState<CountSummary>({all:0,review:0,pending:0,important:0,spam:0,submission:0})
   const [scope, setScope] = useState<Scope>('all')
   const [accountFilter, setAccountFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -158,18 +171,19 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
-    const [a,p,all,review,pending,important,spam,prefResult] = await Promise.all([
+    const [a,p,all,review,pending,important,spam,submission,prefResult] = await Promise.all([
       accountQuery, papersQuery, base(), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
       base().or('category.eq.review_invite,ai_category.eq.review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().or('importance.gte.2,ai_priority.gte.2'), base().or(folderQuery),
+       base().or('category.eq.submission_update,ai_category.eq.submission_update'),
       (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
     ])
-    const failed = [a,p,all,review,pending,important,spam,prefResult].find(x=>x.error)
+    const failed = [a,p,all,review,pending,important,spam,submission,prefResult].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
     setPref(prefResult.data||null)
     setPapers(p.data||[])
-    setCounts({all:all.count||0,review:review.count||0,pending:pending.count||0,important:important.count||0,spam:spam.count||0})
+    setCounts({all:all.count||0,review:review.count||0,pending:pending.count||0,important:important.count||0,spam:spam.count||0,submission:submission.count||0})
   }, [userId])
 
   const loadMessages = useCallback(async () => {
@@ -476,7 +490,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   return <main className="academic-mail-center">
     <header className="am-header">
-      <div>
+      <div className="am-header-copy">
         <div className="am-kicker"><Sparkles size={13}/> SUBMISSION HUB / MAIL INTELLIGENCE</div>
         <h2>学术邮件与审稿</h2>
         <p>跨邮箱聚合 · 原文归档 · 智能处理 · 投稿关联</p>
@@ -508,7 +522,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     {workspace==='inbox'?<>
       {pref?.workspace?.show_statistics!==false&&<div className="am-stats am-dynamic-views">
         {savedViews.map(view=><button type="button" key={view.id} className={scope===view.kind?'active':''} onClick={()=>pickScope(view.kind)}><span>{view.title}</span>
-          <strong>{view.kind==='all'?counts.all:view.kind==='important'?counts.important:view.kind==='spam'?counts.spam:view.kind==='pending'?counts.pending:view.kind==='review_invite'?counts.review:'—'}</strong></button>)}
+          <strong>{view.kind==='all'?counts.all:view.kind==='important'?counts.important:view.kind==='spam'?counts.spam:view.kind==='pending'?counts.pending:view.kind==='review_invite'?counts.review:view.kind==='submission_update'?counts.submission:0}</strong></button>)}
       </div>}
 
       <div className="am-controls">
@@ -539,7 +553,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             {!loading&&messages.map(m=><button type="button" key={m.id} className={'am-message '+(selected===m.id?'selected':'')} onClick={()=>{setSelected(m.id);setMobileDetail(true)}}>
               <div className="am-msg-from"><strong>{m.sender_name||m.sender_address||'未知发件人'}</strong><time>{shortDate(m.received_at)}</time></div>
               <div className="am-msg-subject">{m.subject||'（无主题）'}</div>
-              <p>{m.ai_summary||m.snippet||'无邮件预览'}</p>
+              <p>{readableMailText(m.ai_summary||m.snippet||'无邮件预览')}</p>
               <div className="am-msg-labels"><span className={'am-chip am-cat-'+m.category}>{categories[m.category]||'其他'}</span>{(m.ai_priority??m.importance)>=2&&<span className="am-chip">重要</span>}{isSpam(m)&&<span className="am-chip am-spam">垃圾箱来源</span>}{m.deadline&&<span className="am-chip am-deadline"><Clock3 size={11}/>{m.deadline}</span>}{m.ai_category&&m.ai_category!=='other'&&<span className="am-chip am-ai-label">AI：{categories[m.ai_category]||m.ai_category}</span>}</div>
             </button>)}
           </div>
@@ -567,13 +581,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><Link2 size={16}/><span>根据稿件编号，可能关联：<strong>{suggestedPaper.title}</strong></span></div>
               <button type="button" disabled={busy==='message'} onClick={()=>void saveMessage({paper_id:suggestedPaper.id})}>确认关联</button>
             </div>}
+
+            <div className="am-reader-content"><div className="am-reader-content-head"><span>邮件正文</span>
+              <button type="button" disabled={!active.sender_address} onClick={()=>compose(true)}>回复</button>{active.cloud_archive_path&&<button type="button" disabled={busy==='download'} onClick={()=>void downloadOriginal()}><Download size={14}/> 原始 EML</button>}</div><pre>{bodyLoading?'正在读取邮件正文…':readableMailText(activeBody||active.snippet||'无可读取的正文')}</pre></div>
             <div className="am-review-controls">
               <label>学术邮件类型<select value={active.category} disabled={busy==='message'} onChange={e=>void saveMessage({category:e.target.value})}>{Object.entries(categories).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
               {active.category==='review_invite'&&<label>审稿处理状态<select value={active.review_response||'pending'} disabled={busy==='message'} onChange={e=>void saveMessage({review_response:e.target.value})}>{Object.entries(responseLabels).map(([key,label])=><option value={key} key={key}>{label}</option>)}</select></label>}
               <label><Link2 size={13}/> 关联投稿<select value={active.paper_id||''} disabled={busy==='message'} onChange={e=>void saveMessage({paper_id:e.target.value||null})}><option value="">暂不关联稿件</option>{papers.map(p=><option value={p.id} key={p.id}>{p.title} · {p.journal||p.manuscript_no||'未指定期刊'}</option>)}</select></label>
             </div>
-            <div className="am-reader-content"><div className="am-reader-content-head"><span>邮件正文</span>
-              <button type="button" disabled={!active.sender_address} onClick={()=>compose(true)}>回复</button>{active.cloud_archive_path&&<button type="button" disabled={busy==='download'} onClick={()=>void downloadOriginal()}><Download size={14}/> 原始 EML</button>}</div><pre>{bodyLoading?'正在读取邮件正文…':activeBody||active.snippet||'无可读取的正文'}</pre></div>
           </>}
         </article>
       </section>
