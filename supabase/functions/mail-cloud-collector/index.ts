@@ -180,22 +180,39 @@ async function scanAccount(admin:any,account:any){
    try{
     examined=await imap.cmd('EXAMINE '+imapString(folder.name))
    }catch{continue}
-   const status=await imap.cmd('UID SEARCH ALL')
-   const ids:number[]=[]
-   for(const line of status.lines){
-    if(line.startsWith('* SEARCH'))for(const value of line.slice(8).trim().split(/\s+/)){
-      const id=Number(value);if(Number.isSafeInteger(id)&&id>0)ids.push(id)
-    }
-   }
-   if(!ids.length)continue
-   ids.sort((a,b)=>a-b)
    const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]
    if(!uidv)throw new Error('IMAP server omitted UIDVALIDITY; refusing unsafe incremental cursor')
    const hash=await digest(folder.name)
    const key=hash.slice(0,32)+'-'+uidv
-   // Bootstrap near the newest messages so expiring Spam is captured first.
-   // Then catch up monotonically, without skipping bursts larger than one batch.
    const stored:any=byName.get(key)
+   const savedRecent=Math.max(0,Number(stored?.recent_uid||0))
+   const savedBefore=Number(stored?.backfill_before||0)
+   // A new folder needs one full UID inventory; after that only new UIDs and
+   // unfinished historical backfill are queried. Completed history is not rescanned.
+   const searchIds=async (criteria:string):Promise<number[]>=>{
+    const response=await imap.cmd('UID SEARCH '+criteria)
+    const found:number[]=[]
+    for(const line of response.lines){
+     if(line.startsWith('* SEARCH'))for(const value of line.slice(8).trim().split(/\s+/)){
+      const id=Number(value)
+      if(Number.isSafeInteger(id)&&id>0)found.push(id)
+     }
+    }
+    return found
+   }
+   const searches=stored
+    ?await Promise.all([
+      searchIds('UID '+(savedRecent+1)+':*'),
+      savedBefore>1?searchIds('UID 1:'+(savedBefore-1)):Promise.resolve([] as number[])
+     ])
+    :[await searchIds('ALL')]
+   // IMAP UID n:* can return the last existing UID even when n is higher.
+   // Ignore stale matches so idle mailboxes do not download old messages again.
+   const ids=[...new Set(searches.flat())]
+    .filter(uid=>!stored||uid>savedRecent||(savedBefore>1&&uid<savedBefore))
+    .sort((a,b)=>a-b)
+   if(!ids.length)continue
+   // Bootstrap near the newest messages, then complete the older range.
    const bootstrap=ids[Math.max(0,ids.length-13)]-1
    const cursor:any=stored||{recent_uid:bootstrap,backfill_before:bootstrap+1}
    const recent=Number(cursor.recent_uid||0)
@@ -239,7 +256,7 @@ async function scanAccount(admin:any,account:any){
        deadline:extractDeadline(subject+'\n'+body.slice(0,12000)),
        cloud_archive_path:archivePath,archived_locally:false
      })
-     if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))throw new Error('Mail index save failed')
+     if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))throw new Error('Mail index save failed (DB '+String(inserted.error.code||'unknown').replace(/[^A-Za-z0-9]/g,'').slice(0,12)+')')
     }
     processed++
    }

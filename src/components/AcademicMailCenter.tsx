@@ -264,10 +264,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       void loadMetadata();void loadMessages()
     }}
     document.addEventListener('visibilitychange',onReturn)
-    window.addEventListener('focus',onReturn)
     return ()=>{
       document.removeEventListener('visibilitychange',onReturn)
-      window.removeEventListener('focus',onReturn)
     }
   },[loadMetadata,loadMessages])
 
@@ -653,7 +651,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div className="am-header-actions">
         <div className="am-command-status" aria-label="邮件服务状态">
           <span className="am-status-account" title="已连接并启用自动采集的邮箱"><span className="am-status-dot"/>邮箱 {cloudReady}/{accounts.length}</span>
-          <span className={'am-status-ai '+(pref?.ai_enabled?'is-active':'')} title="AI 自动分析状态"><Sparkles size={13}/>AI {pref?.ai_enabled?'运行中':'未开启'}</span>
+          <span className="am-status-ai" title="GPT 按需分析：网页不自动调用外部 AI"><Sparkles size={13}/>GPT 按需</span>
         </div>
         <button type="button" className="am-icon-button" onClick={()=>void refresh()} title="刷新数据" aria-label="刷新数据"><RefreshCw size={17}/></button>
         <button type="button" className="am-main-button" onClick={()=>compose(false)}><Plus size={15}/> 写邮件</button>
@@ -886,7 +884,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             <div className="am-oauth-form">
               <button type="button" className="am-main-button" disabled={busy!==null}
                onClick={()=>void startOutlook(a)}>{busy==='oauth-'+a.id?'申请中…':'使用 Microsoft 账户授权'}</button>
-              <small>授权使用微软登录页，不需要到 Azure 管理后台登录邮箱。</small>
+              <small>使用微软官方设备登录页完成一次授权；Entra/Azure 仅用于网站管理员首次注册应用，普通用户无需进入。</small>
             </div>
             <details className="am-oauth-help"><summary>高级设置 · Microsoft 公共应用客户端 ID</summary>
               <label>客户端 ID（站点管理员可统一配置；个人一般不用填写）
@@ -911,11 +909,15 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             <p>可使用官方参数或 DNS SRV 建议。仅允许加密连接：IMAP 993/SSL、143/STARTTLS；SMTP 465/SSL、587/STARTTLS。当前云端运行环境不支持 SMTP 587/25 出站，请选 465/SSL。</p>
             {a.address.toLowerCase().endsWith('@email.cugb.edu.cn')&&<div className="am-cugb-preset">
               <button type="button" className="am-quiet-button" onClick={()=>{
+                setImapHost('imap.email.cugb.edu.cn');setSmtpHost('smtp.email.cugb.edu.cn');
+                setImapPort(993);setSmtpPort(465);setImapSecurity('ssl');setSmtpSecurity('ssl')
+              }}>填入 CUGB 官方 IMAP / SMTP（993 / 465）</button>
+              <button type="button" className="am-quiet-button" onClick={()=>{
                 setImapHost('www.email.cugb.edu.cn');setSmtpHost('www.email.cugb.edu.cn');
                 setImapPort(993);setSmtpPort(465);setImapSecurity('ssl');setSmtpSecurity('ssl')
-              }}>填入 CUGB 学生邮箱官方服务器（993 / 465）</button>
+              }}>学校公开指南备选（www.email）</button>
               <a href="https://www.cugb.edu.cn/yxsy" target="_blank" rel="noopener noreferrer">学校配置指南</a>
-              <small>若原地址显示“DNS 域名解析失败”，无需重复更换密码，优先改用学校指南的服务器域名。</small>
+              <small>已按学校公布的独立服务器地址预填；若 TLS 连接成功但认证失败，请检查完整邮箱用户名和客户端协议授权码。</small>
             </div>}
             {!!suggestions.length&&<div className="am-server-suggestions">{suggestions.map((s,i)=>
               <button type="button" key={s.type+s.host+i} onClick={()=>{
