@@ -213,9 +213,11 @@ export async function scanOutlookGraph(admin:any,account:any){
       p_folder_id:folder.id,p_folder_name:folder.name,p_next_link:next})
     if(r.error)throw Error('Graph 历史归档断点保存失败')
    }
-  }else if(continuation===undefined && newest['@odata.nextLink']){
+  }else if(continuation===undefined){
+   // A folder with a single page must still record completion, otherwise
+   // Outlook progress will forever show this folder as not scanned.
    const r=await admin.rpc('mail_save_outlook_cursor',{p_account_id:account.id,
-    p_folder_id:folder.id,p_folder_name:folder.name,p_next_link:newest['@odata.nextLink']})
+    p_folder_id:folder.id,p_folder_name:folder.name,p_next_link:newest['@odata.nextLink']||null})
    if(r.error)throw Error('Graph 初始归档断点保存失败')
   }
  }
