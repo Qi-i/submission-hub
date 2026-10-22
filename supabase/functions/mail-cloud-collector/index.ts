@@ -256,7 +256,7 @@ async function scanAccount(admin:any,account:any){
        deadline:extractDeadline(subject+'\n'+body.slice(0,12000)),
        cloud_archive_path:archivePath,archived_locally:false
      })
-     if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))throw new Error('Mail index save failed')
+     if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))throw new Error('Mail index save failed (DB '+String(inserted.error.code||'unknown').replace(/[^A-Za-z0-9]/g,'').slice(0,12)+')')
     }
     processed++
    }
