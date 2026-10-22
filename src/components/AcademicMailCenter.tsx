@@ -479,12 +479,17 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div>
         <div className="am-kicker"><Sparkles size={13}/> SUBMISSION HUB / MAIL INTELLIGENCE</div>
         <h2>学术邮件与审稿</h2>
-        <p>跨邮箱归档、编辑往来识别和稿件进展关联</p>
+        <p>跨邮箱聚合 · 原文归档 · 智能处理 · 投稿关联</p>
       </div>
       <div className="am-header-actions">
-        <span className={'am-sync-state '+(cloudReady?'is-ready':'')}>
-          <span className="am-state-dot"/>{cloudReady?cloudReady+' 个邮箱采集中':'等待邮箱授权'}
-        </span>
+        <div className="am-hero-tiles" aria-label="邮件中心状态">
+          <div className="am-hero-tile am-hero-tile-blue"><Server size={15}/>
+            <span>已连接邮箱</span><strong>{cloudReady}<small> / {accounts.length}</small></strong></div>
+          <div className="am-hero-tile am-hero-tile-violet"><Layers3 size={15}/>
+            <span>已归档邮件</span><strong>{counts.all}</strong></div>
+          <div className="am-hero-tile am-hero-tile-green"><Sparkles size={15}/>
+            <span>AI 智能分析</span><strong className="am-hero-state">{pref?.ai_enabled?'运行中':'未开启'}</strong></div>
+        </div>
         <button type="button" className="am-icon-button" onClick={()=>void refresh()} title="刷新数据" aria-label="刷新数据"><RefreshCw size={17}/></button>
         <button type="button" className="am-main-button" onClick={()=>compose(false)}><Plus size={15}/> 写邮件</button>
         <button type="button" className="am-quiet-button" onClick={goToAccounts}><Settings2 size={15}/> 邮箱管理</button>
@@ -581,7 +586,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       </div></div>}
       <div className="am-account-list">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
-        {accounts.map(a=><section key={a.id} className="am-account-card">
+        {accounts.map(a=><section key={a.id} className="am-account-card" data-provider={a.provider}>
           <div className="am-account-heading"><div className="am-account-mark"><Mail size={19}/></div><div className="am-account-name"><strong>{a.display_name||a.address}</strong><small>{providerLabels[a.provider]||a.provider}</small></div><span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
           <div className="am-account-data">
               <div><span>上次成功归档</span><strong>{niceDate(a.last_sync_at)}</strong></div>
