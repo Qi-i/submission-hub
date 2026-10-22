@@ -88,7 +88,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
    if(editId && settings?.ai_endpoint_id===editId)await onUpdate({ai_enabled:false,ai_allow_paid:false})
    if(endpointKey.trim())await call('save_endpoint_key',{endpoint_id:id,api_key:endpointKey.trim()})
    await reload();resetDraft()
-   setTestResult('模型配置已保存。如修改了接口地址、模型或费用属性，必须重新保存对应 Key，然后点击测试；自动分析需重新主动启用。')
+   setTestResult('模型接口已更新')
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setSaving(false)}
  }
@@ -108,7 +108,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   finally{setTesting(null)}
  }
  const remove=async(id:string)=>{
-  if(!confirm('删除这个模型接口？删除后该接口不再参与自动分析。'))return
+  if(!confirm('删除这个模型接口？'))return
   setSaving(true)
   try{if(settings?.ai_endpoint_id===id)await onUpdate({ai_endpoint_id:null,ai_enabled:false})
    await call('delete_endpoint',{endpoint_id:id})
@@ -133,11 +133,10 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  const ready=chosen?chosen.key_ready:!!settings?.ai_key_ready
  const paidWarning=!!chosen&&!chosen.declared_free
  return <section className="am-personalization">
-  <header><h3>邮件工作台设置</h3><p>分类、AI 模型与指令保存在 Supabase，修改后无需重新发布。</p></header>
+  <header><h3>邮件工作台设置</h3></header>
 
   <div className="am-personal-section">
    <h4><Settings2 size={16}/> 快捷分类</h4>
-   <p>不固定审稿邀请栏目。可按使用频率自行增加、调整顺序与名称。</p>
    <div className="am-view-editor">{views.map((v,i)=><div className="am-view-row" key={v.id}>
     <input key={v.id+v.title} aria-label={v.title+'名称'} defaultValue={v.title} onBlur={e=>{const name=e.target.value.trim().slice(0,16);if(name&&name!==v.title)void updateViews(views.map(x=>x.id===v.id?{...x,title:name}:x))}}/>
     <span>{MAIL_VIEW_KINDS[v.kind]}</span>
@@ -154,7 +153,6 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   </div>
   <div className="am-personal-section">
    <h4><Sparkles size={16}/> AI 服务与模型</h4>
-   <p>内置 GLM 免费 Flash 模型，并可添加多个符合 OpenAI Chat Completions 协议的 HTTPS 接口。密钥保存在服务端 Vault，不会保存到浏览器或 GitHub。</p>
    <label className="am-choice-label">当前分析服务
     <select value={settings?.ai_endpoint_id||''} onChange={e=>void onUpdate({ai_endpoint_id:e.target.value||null,ai_enabled:false,ai_allow_paid:false})}>
      <option value="">Z.AI · GLM 免费 Flash</option>
@@ -172,7 +170,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
      <button type="button" className="am-quiet-button" disabled={!settings?.ai_key_ready||!!testing||busy} onClick={()=>void test(null)}>{testing==='default'?'测试中…':'测试当前平台'}</button>
      <button type="button" className="am-quiet-button" disabled={!settings?.ai_key_ready||!!testing||busy}
       onClick={()=>void test(null,true)}>自动检测官方平台</button>
-    </div><small>{settings?.ai_key_ready?'GLM API Key 已加密保存。测试调用少量免费 Flash token；自动检测会向国内及国际官方平台分别发送最短探针，成功后自动选择对应平台。':'请先添加 API Key 后测试。'}</small>
+    </div>
    </div>:<div className="am-model-preset"><strong>{chosen.label}</strong><p>模型：{chosen.model} · {chosen.key_ready?'Key 已保存':'Key 未配置'} · {chosen.last_test_status==='ok'?'上次测试成功':chosen.last_test_status||'尚未测试'}</p>
     <button type="button" className="am-quiet-button" disabled={!chosen.key_ready||!!testing||busy} onClick={()=>void test(chosen.id)}>{testing===chosen.id?'测试中…':'测试选中模型'}</button></div>}
    <div className="am-endpoint-list"><div className="am-section-heading"><strong>自定义 API 列表</strong><span>{endpoints.length} 个</span></div>
@@ -183,22 +181,21 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
      <button type="button" disabled={busy||saving} onClick={()=>void remove(e.id)} aria-label="删除接口"><Trash2 size={14}/></button>
     </div>)}
    </div>
-   <div className="am-model-editor"><strong>{editId?'编辑自定义 API':'新增自定义 API'}</strong>
+   <details className="am-model-editor" open={!!editId||undefined}><summary>{editId?'编辑自定义 API':'新增自定义 API'}</summary>
     <div className="am-add-form">
      <label>服务名称<input value={label} onChange={e=>setLabel(e.target.value)} placeholder="例如：OpenRouter"/></label>
      <label>模型 ID<input value={model} onChange={e=>setModel(e.target.value)} placeholder="例如：provider/model-id"/></label>
      <label className="am-full-field">API Base URL 或 Chat Completions 完整地址<input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://api.example.com/v1/chat/completions"/></label>
      <label>API Key<input type="password" autoComplete="new-password" value={endpointKey} onChange={e=>setEndpointKey(e.target.value)} placeholder={editId?'留空保持原 Key':'填写接口授权 Key'}/></label>
     </div>
-    <label className="am-option"><input type="checkbox" checked={free} onChange={e=>setFree(e.target.checked)}/> 该模型由我确认属于免费调用（需要实际测试，平台可能调整政策）</label>
-    <label className="am-option"><input type="checkbox" checked={paid} onChange={e=>setPaid(e.target.checked)}/> 允许此接口参与可能收费的自动调用（还需二次全局授权）</label>
+    <label className="am-option"><input type="checkbox" checked={free} onChange={e=>setFree(e.target.checked)}/> 免费接口</label>
+    <label className="am-option"><input type="checkbox" checked={paid} onChange={e=>setPaid(e.target.checked)}/> 允许付费调用</label>
     <div className="am-add-form"><button type="button" className="am-main-button" disabled={saving||busy||!url||!model||!label} onClick={()=>void saveEndpoint()}>{saving?'保存中…':'保存接口'}</button>
      {editId&&<button type="button" className="am-quiet-button" onClick={resetDraft}>取消编辑</button>}</div>
-   </div>
+   </details>
   </div>
-  <div className="am-personal-section">
-   <h4><Sparkles size={16}/> 多模型优先级与自动接力</h4>
-   <p>默认不自动切换。可勾选需要的模型并调整顺序；启用接力后按此顺序尝试，只向已授权的免费备用模型发送邮件正文。不同服务商都可能接收同一封待分析邮件。</p>
+  <details className="am-personal-section am-advanced-models">
+   <summary>模型优先级与备用线路</summary>
    <div className="am-route-list">
     {availableRoutes.map(route=>{
       const index=routeOrder.indexOf(route.id),active=index>=0
@@ -222,27 +219,22 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     })}
    </div>
    <label className="am-option"><input type="checkbox" checked={!!settings?.ai_failover_enabled} disabled={busy||eligibleCount===0}
-     onChange={e=>void onUpdate({ai_failover_enabled:e.target.checked,ai_enabled:false})}/> 当前模型不可用时按优先级自动接力（仅已授权免费模型；至少需要一项可用）</label>
+     onChange={e=>void onUpdate({ai_failover_enabled:e.target.checked,ai_enabled:false})}/> 模型失败时切换到已授权的免费备用模型</label>
    <label className="am-option"><input type="checkbox" checked={settings?.ai_slow_mode!==false} disabled={busy}
      onChange={e=>void onUpdate({ai_slow_mode:e.target.checked})}/> 容忍免费接口慢速响应，按最近实测耗时调整等待时间</label>
    <div className="am-add-form"><label>每次模型请求最长等待<select value={settings?.ai_max_wait_seconds??65} disabled={busy}
      onChange={e=>void onUpdate({ai_max_wait_seconds:Number(e.target.value)})}>
     {[30,45,65,90].map(x=><option key={x} value={x}>{x} 秒</option>)}
    </select></label></div>
-   <p className="am-disclaimer">慢速模式不会因短暂无响应直接改用收费模型。每次接力都计入每日调用次数；总运行时间受 Supabase 免费 Edge 环境约束。未启用接力时仍只访问当前选择的模型。</p>
-  </div>
-   <div className="am-personal-section">
-   <h4>分析指令与按需处理</h4>
-   <p>已停用后台定时 AI 轮询。默认由 ChatGPT 在你提出分析请求时，通过已授权的 Supabase 连接读取邮件并将结果写入 AI 字段；ChatGPT 不会由网页或数据库自动唤醒。下面保留原有模型配置供手动翻译等功能使用。</p>
+  </details>
+  <details className="am-personal-section am-analysis-settings">
+   <summary>分析指令与调用额度</summary>
    <label className="am-choice-label">分析系统指令<textarea rows={5} maxLength={6000} value={prompt} onChange={e=>setPrompt(e.target.value)} /></label>
    <div className="am-add-form"><button type="button" className="am-main-button" disabled={!prompt.trim()||busy||prompt===settings?.ai_system_prompt} onClick={()=>void onUpdate({ai_system_prompt:prompt.trim()})}>保存分析指令</button>
     <button type="button" className="am-quiet-button" onClick={()=>setPrompt(DEFAULT_PROMPT)}>恢复默认文本</button></div>
-   <div className="am-add-form"><label>每日最多自动分析<select value={settings?.ai_daily_limit??20} disabled={busy} onChange={e=>void onUpdate({ai_daily_limit:Number(e.target.value)})}>{[0,5,10,20,30,50].map(n=><option value={n} key={n}>{n} 封</option>)}</select></label></div>
+   <div className="am-add-form"><label>每日 AI 请求上限<select value={settings?.ai_daily_limit??20} disabled={busy} onChange={e=>void onUpdate({ai_daily_limit:Number(e.target.value)})}>{[0,5,10,20,30,50].map(n=><option value={n} key={n}>{n} 封</option>)}</select></label></div>
    {paidWarning&&<label className="am-option"><input type="checkbox" checked={!!settings?.ai_allow_paid} disabled={busy} onChange={e=>void onUpdate({ai_allow_paid:e.target.checked,ai_enabled:false})}/> 我了解该自定义模型可能产生费用，并明确允许自动调用</label>}
-   <label className="am-option"><input type="checkbox" disabled checked={false} readOnly/> 后台 AI 定时分析已停用（避免重复调用、额外配额和费用）</label>
-   <p className="am-disclaimer">历史邮件与新邮件均保留原文和待处理标记。可直接在 ChatGPT 中要求批量分析或重分析，不依赖网站定时请求。</p>
    {settings?.last_ai_error&&<p className="am-account-error"><AlertCircle size={14}/>{settings.last_ai_error}</p>}
-   <p className="am-disclaimer">测试模型会发送简单探针并使用少量 token，可能产生费用。自定义接口的免费额度由服务商决定；系统不自动切换付费模型。校园邮件外发应符合所在单位的数据管理要求。</p>
-  </div>
+  </details>
  </section>
 }
