@@ -182,7 +182,7 @@ async function scanAccount(admin:any,account:any){
     examined=await imap.cmd('EXAMINE '+imapString(folder.name))
    }catch{folderOpenErrors++;continue}
    openedFolders++
-   advertisedMessages+=Number(/\\* (\\d+) EXISTS/i.exec(examined.lines.join(' '))?.[1]||0)
+   advertisedMessages+=Number(/\* (\d+) EXISTS/i.exec(examined.lines.join(' '))?.[1]||0)
    const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]
    if(!uidv)throw new Error('IMAP server omitted UIDVALIDITY; refusing unsafe incremental cursor')
    const hash=await digest(folder.name)
