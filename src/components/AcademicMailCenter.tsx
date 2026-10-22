@@ -812,7 +812,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div className="am-account-list">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
         {accounts.map(a=><section key={a.id} className="am-account-card" data-provider={a.provider}>
-          <div className="am-account-heading"><div className="am-account-mark"><Mail size={19}/></div><div className="am-account-name"><strong>{a.display_name||a.address}</strong><small>{providerLabels[a.provider]||a.provider}</small></div><span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
+          <div className="am-account-heading"><div className="am-account-mark am-brand-mark">{a.logo_url
+             ?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>
+             :a.logo_symbol||providerSymbols[a.provider]||<Mail size={19}/>}</div>
+             <div className="am-account-name"><strong>{logoLabel(a)}</strong><small>{a.address} · {providerLabels[a.provider]||a.provider}</small></div>
+             <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
           <div className="am-account-data">
               <div><span>上次成功归档</span><strong>{niceDate(a.last_sync_at)}</strong></div>
               <div><span>最近检查 / 归档</span><strong>{niceDate(a.last_checked_at)} · {a.last_processed||0} 封</strong></div>
@@ -822,6 +826,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             {a.cloud_state==='error'&&a.next_attempt_at&&<p className="am-account-retry"><AlertCircle size={14}/> 连续失败 {a.consecutive_failures||1} 次 · 下次自动重试不早于 {niceDate(a.next_attempt_at)}</p>}
           {a.last_error&&<p className="am-account-error"><AlertCircle size={14}/>{a.last_error}</p>}
           <div className="am-account-actions">
+            <button type="button" onClick={()=>{
+              setBrandEditing(v=>v===a.id?null:a.id);
+              setBrandShort(a.short_label||'');setBrandSymbol(a.logo_symbol||'');setBrandUrl(a.logo_url||'')
+            }}><Tag size={14}/>自定义简称 / Logo</button>
             {isSupported(a)?<>
               <button type="button" onClick={()=>setupAccount(a)}><Settings2 size={14}/>{a.cloud_state==='ready'?'编辑连接':'配置收发信'}</button>
               {a.imap_host&&<button type="button" disabled={busy!==null} onClick={()=>void testAccount(a.id)}>测试连接</button>}
@@ -837,7 +845,19 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                onClick={()=>void disconnectOutlook(a)}>断开授权</button>}
             </>:<span>该服务商需要 OAuth2 授权，尚未连接。</span>}
           </div>
-          {a.provider==='outlook'&&oauthPanelId===a.id&&<div className="am-oauth-panel">
+          {brandEditing===a.id&&<div className="am-brand-editor">
+            <label>来源简称<input maxLength={18} value={brandShort} onChange={e=>setBrandShort(e.target.value)}
+              placeholder="例如：新大研究生、CUGB、QQ"/></label>
+            <label>简易图标（文字 / Emoji）<input maxLength={8} value={brandSymbol}
+              onChange={e=>setBrandSymbol(e.target.value)} placeholder="例如：XU、✉"/></label>
+            <label>自定义 Logo 图片 URL（可选）<input value={brandUrl} onChange={e=>setBrandUrl(e.target.value)}
+              placeholder="https://example.com/icon.png"/></label>
+            <div><button type="button" className="am-main-button" disabled={busy!==null}
+              onClick={()=>void saveBrand(a)}>保存来源标识</button>
+              <button type="button" className="am-quiet-button" onClick={()=>setBrandEditing(null)}>取消</button></div>
+            <small>头像优先显示 Logo；无 Logo 时显示自定义文字。每封邮件均保留原邮箱地址以便溯源。</small>
+          </div>
+                    {a.provider==='outlook'&&oauthPanelId===a.id&&<div className="am-oauth-panel">
             <div className="am-oauth-panel-head"><div className="am-oauth-icon"><KeyRound size={18}/></div>
              <div><strong>Microsoft 官方账户授权</strong>
                <p>以 Microsoft Graph 读取所有文件夹（包括垃圾邮件），并在明确确认后发送邮件。无需邮箱密码，也不需要始终开着电脑。</p></div></div>
