@@ -242,8 +242,9 @@ async function scanAccount(admin:any,account:any){
     .filter(uid=>!stored||uid>savedRecent||(savedBefore>1&&uid<savedBefore))
     .sort((a,b)=>a-b)
    if(!ids.length){
-    // An emptied historical range is complete, even if the server deleted old mail.
-    if(stored && savedBefore>0){
+    // Empty folders still need a completed checkpoint. Without it the progress
+    // summary would treat them as unvisited and never show history complete.
+    if(!stored||savedBefore>0){
      const finished=await admin.rpc('mail_save_scan_state',{p_account_id:account.id,
       p_folder_key:key,p_recent:savedRecent,p_before:0})
      if(finished.error)throw new Error('Unable to finish empty historical cursor')
