@@ -922,7 +922,7 @@ html[data-ui] body .academic-mail-center .am-command-header .am-tabs{
   align-items:stretch;gap:7px;margin:0 0 8px;
 }
 html[data-ui] body .academic-mail-center .am-filterbar .am-stats{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
   gap:5px;align-items:stretch;margin:0;
 }
 html[data-ui] body .academic-mail-center .am-filterbar .am-stats button{
@@ -1124,3 +1124,6 @@ html[data-ui] body .academic-mail-center .am-reader{
     transition:none!important;
   }
 }
+
+/* User-created views may change count; hidden summaries should never reserve blank columns. */
+html[data-ui] body .academic-mail-center .am-filterbar.no-views{grid-template-columns:minmax(0,1fr)}
