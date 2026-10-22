@@ -71,3 +71,23 @@ GLM-4.7-Flash 免费模型可选择 `https://open.bigmodel.cn/api/paas/v4/chat/c
 - **慢速容忍**：可点击各模型「测速度」并保存实际响应耗时，非瞬时 429 才算测速成功；网页显示速度。允许 30、45、65 或 90 秒单请求上限。慢速模式默认开启，工作线程按测试时间（约 3×历史响应时间再增加裕量）、最高 60 秒的基础容忍窗口和用户上限自适应；关闭后采用偏快的 25 秒上限。测试本身使用完整的用户等待上限，而不是原来固定的 16 秒。
 - **有限云端任务预算**：Supabase 免费计划的单次 Edge Function 墙钟限制约 150 秒；后台任务内部设约 115 秒预算，另留网络、数据库开销。一次模型尝试即消耗一次 `mail_claim_ai_slot` 日额度；有待处理的慢速邮件可以交由下次 10 分钟任务处理，不能承诺单轮处理全部。临时失败 / 限流 / 超时保持消息的 `pending` 状态并设置冷却窗口；全部授权或余额错误时自动停止 AI 并提示需要人工处理。
 - **数据保密**：自动接力可能将同一封邮件的内容片段交给两家不同第三方模型商，必须主动选择；未添加并测试的接口不会自动发出请求。没有付费回退，不以关闭 TLS 安全校验作为提高兼容性的手段。
+
+## Outlook OAuth2 与玻璃工作台（2026-10-22）
+
+### Outlook / Hotmail 已增加 Microsoft Graph OAuth2 接入
+
+邮件聚合 → 邮箱与同步 → Outlook 账号卡片 → 「连接 Microsoft 账户」。网页填写微软 Entra 应用注册的 **Application (client) ID**（公开标识，不是密码），点击「开始 Microsoft 授权」。页面显示设备授权码，点击「打开微软授权页」登录对应邮箱、输入验证码并同意权限；网页按 Microsoft 返回的轮询间隔自动检测，授权成功后自动进行一次 Graph 邮件归档。
+
+**需要一次性的微软应用注册**：在 [Microsoft Entra 应用注册](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade) 创建应用，支持「任何组织目录中的账户和个人 Microsoft 账户」；在「身份验证」→ 高级设置打开 **Allow public client flows**。配置 Microsoft Graph 委托权限 `User.Read`、`Mail.Read`、`Mail.Send`，授予 `offline_access`。设备代码流无需 Web 重定向地址、客户端密钥或个人邮箱密码。部分公司/学校租户禁止公共客户端应用或要求管理员同意，届时必须按微软租户政策办理，不能通过改 SMTP 服务器绕开。
+
+OAuth2 设备授权码放在私有数据库并由 Vault 加密，15 分钟左右过期；Access Token 不存浏览器。Refresh Token 通过 Vault 加密，云端定时刷新；断开连接会清除本系统保存的令牌，已有邮件归档保留。如需取消 Microsoft 授权，须到微软账户的应用访问权限管理页面撤销。
+
+授权后使用 Microsoft Graph `/me/mailFolders?includeHiddenFolders=true` 递归枚举子文件夹、垃圾箱及隐藏文件夹；使用 `/me/messages/{id}/$value` 保存原始 MIME / EML 到私有 Storage。增量获取最近邮件，并通过每文件夹 Graph continuation URL 持续历史回填（单次服务有时间、大小和条数限制）。无需常开电脑。Outlook 发信使用用户授权的 `Mail.Send` 访问 `/me/sendMail`，不要求 SMTP 主机或应用密码，只有用户确认「发送」后才提交。
+
+**限制**：未填入有效 Microsoft 应用客户端 ID 或尚未在微软网页登录授权前，Outlook 仍显示未连接；不能宣称账户已同步。Microsoft Graph 可能限制速率，单封超过 8 MiB 的 EML 无法归档，刷新令牌被撤销后需重新授权。设备授权中不收集微软账户密码；如邮件地址与所登录账户的主地址不一致，会主动拒绝绑定，避免错误归档他人邮箱。特殊 Outlook 别名账户可能需要以实际邮箱地址重新添加。
+
+### UI 全站一致性审查与落地
+
+邮件中心全面改为与 Submission Hub 的现有 Luminous token 兼容的多彩玻璃系统：页面顶部渐变 Hero，分离邮箱接入、归档数量、AI 运行状态；三个工作区使用同一分段导航；不同邮箱服务商有对应的彩色边缘提示。邮箱摘要默认为双列卡片，展开连接或 OAuth2 授权后自动占满整个内容宽度；邮件列表与阅读区维持双栏。模型设置按功能模块双列布局，蓝青（快捷视图）、紫色（服务商）、绿色（路由）、橙色（自动分析）区分，不再排列为漫长的单列表单。悬浮通知采用统一玻璃语义颜色，支持暗色主题和低动态效果。移动端自适应堆叠，输入框与主控按钮沿用站点字体和交互间距。
+
+**部署约定**：只更新 Web 和 Supabase Edge Functions；保持原有 `v2.1.0`，不触发 GitHub Release 或上传新版本资源。
