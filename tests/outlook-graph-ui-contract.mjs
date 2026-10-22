@@ -20,6 +20,8 @@ const checks=[
  ['Graph fetches real original MIME',graph.includes("'/$value'")&&graph.includes("storage.from('mail-originals')")],
  ['Outlook Graph history uses per-folder cursors',cursor.includes('mail_private.outlook_folder_cursors')&&graph.includes('mail_save_outlook_cursor')],
  ['Graph continuation disallows foreign hosts',graph.includes("u.hostname==='graph.microsoft.com'")],
+ ['Immutable IDs survive mailbox folder moves',graph.includes('IdType="ImmutableId"')&&graph.includes('graph_message_id:item.id')],
+ ['True Graph threaded reply validates recipient',send.includes("'/reply'")&&send.includes('actual!==to.toLowerCase()')],
  ['Archive preserves original manual metadata on duplicates',graph.includes("select('id,last_folder')")&&!graph.includes("upsert(row)")],
  ['Graph support is wired to scheduled cloud collection',cloud.includes('scanOutlookGraph(admin,account)')],
  ['Graph send requires confirmed user and delegated Mail.Send',send.includes("account.provider")===false?send.includes("a.provider==='outlook'")&&send.includes('/me/sendMail'):false],
