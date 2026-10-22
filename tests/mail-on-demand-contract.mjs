@@ -13,7 +13,20 @@ const noRetry=read('supabase/039_mail_manual_error_recovery.sql')
 const uiStyles=read('src/components/AcademicMailCenter.css')
 const sql=read('supabase/036_mail_gpt_on_demand.sql')
 const realtime=read('supabase/037_mail_realtime_inserts.sql')
+const providerProbe=read('supabase/functions/mail-model-probe/index.ts')
 const tests=[
+ ['MagicZotero tests require secret cron token and an existing free account',
+  providerProbe.includes("mail_check_cron_token")&&providerProbe.includes(".eq('declared_free',true)")&&
+  providerProbe.includes(".eq('allow_paid',false)")&&providerProbe.includes("mail_read_endpoint_key")],
+ ['MagicZotero diagnostics do not expose the API key or email contents',
+  !providerProbe.includes('json?.choices?.[0]?.message?.content}')&&
+  providerProbe.includes('synthetic=medium')&&providerProbe.includes("network_error:true")],
+ ['Transient model network errors retry once without repeating HTTP 429',
+  translator.includes('fetchWithConnectionRetry')&&translator.includes('await new Promise(resolve=>setTimeout(resolve,900))')&&
+  !translator.includes('retry(429)')],
+ ['Outlook manual connector imports are distinguished from Graph OAuth',
+  ui.includes('ChatGPT 手动归档')&&ui.includes('网站自动同步尚未授权')],
+
  ['Translation opens automatically with Chinese target',ui.includes("else {setTranslationLang('zh');setTranslationVisible(true)}")&&ui.includes('if(translationVisible&&active)void runTranslation()')],
  ['Switching translation language cancels old result',ui.includes('[selected,translationLang,translationVisible]')],
  ['MagicZotero preset uses stated model and endpoint only',settings.includes('https://gpt.magiczotero.top/v1/chat/completions')&&settings.includes('magic-translate-gpt')&&settings.includes('setEndpointKey(\'\')')],
