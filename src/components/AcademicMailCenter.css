@@ -255,3 +255,11 @@
 @media(max-width:700px){.am-endpoint-row{flex-wrap:wrap}.am-endpoint-row>div{flex-basis:100%}}
 
 .am-ai-category-suggestion{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--am-blue);padding:8px 0;line-height:1.55}
+
+/* Mailbox health and separate SMTP credentials reuse the same settings design tokens. */
+.am-credential-editor{display:grid;grid-template-columns:minmax(240px,1fr) minmax(200px,.9fr);align-items:end;gap:11px;padding:12px 0 2px}
+.am-credential-editor>label:not(.am-option){display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--am-muted);min-width:0}
+.am-credential-editor input[type=password]{min-width:0;width:100%;border:1px solid var(--am-line);border-radius:8px;padding:10px;background:var(--am-surface);color:var(--am-ink);font-size:12px}
+.am-credential-editor .am-option{justify-self:start;align-self:center;cursor:pointer}
+.am-account-retry{display:flex;align-items:center;gap:7px;color:#af7045;background:rgba(188,114,58,.09);border:1px solid rgba(188,114,58,.18);padding:9px 11px;border-radius:8px;font-size:11px;margin:12px 0 2px}
+@media(max-width:750px){.am-credential-editor{grid-template-columns:1fr;gap:5px}}
