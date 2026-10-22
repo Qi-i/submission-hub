@@ -59,7 +59,7 @@ for(const [name,condition] of [
  ['SMTP independent credential isolated in Vault',smtpMigration.includes('mail_private.smtp_credentials')&&smtpMigration.includes('vault.create_secret')],
  ['SMTP sender honors separate key',sender.includes('smtp_has_separate_key')&&sender.includes('mail_read_smtp_secret')],
  ['separate SMTP tested, not falsely marked verified',config.includes("mail_read_smtp_secret")&&config.includes("action==='test'")],
- ['automatic failures back off',collector.includes('next_attempt_at.lte.')&&collector.includes('consecutive_failures:failures')],
+ ['automatic errors are paused until manual check',collector.includes("query=query.eq('cloud_state','ready')")&&collector.includes('consecutive_failures:failures')&&collector.includes('next_attempt_at:null,last_processed:0')],
  ['manual sync errors surfaced to UI',ui.includes("if(result.error)throw Error(result.detail||result.error)")],
  ['save-and-verify uses real IMAP login',ui.includes("action:'test',account_id:setupId")],
  ['mailbox pause and safe resume',ui.includes('toggleCollection')&&config.includes("body.action==='enable'")],
