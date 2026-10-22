@@ -77,9 +77,10 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
    let id=editId
    if(id){const r=await (supabase.from('mail_ai_endpoints') as any).update({label:label.trim().slice(0,80),api_url:candidate,model:model.trim().slice(0,128),declared_free:free,allow_paid:paid,updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',userId);if(r.error)throw r.error}
    else{const r=await (supabase.from('mail_ai_endpoints') as any).insert({user_id:userId,label:label.trim().slice(0,80),api_url:candidate,model:model.trim().slice(0,128),declared_free:free,allow_paid:paid}).select('id').single();if(r.error)throw r.error;id=r.data.id}
+   if(editId && settings?.ai_endpoint_id===editId)await onUpdate({ai_enabled:false,ai_allow_paid:false})
    if(endpointKey.trim())await call('save_endpoint_key',{endpoint_id:id,api_key:endpointKey.trim()})
    await reload();resetDraft()
-   setTestResult('模型接口已保存。点击「测试模型」进行少量 token 的真实连接检测。')
+   setTestResult('模型配置已保存。如修改了接口地址、模型或费用属性，必须重新保存对应 Key，然后点击测试；自动分析需重新主动启用。')
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setSaving(false)}
  }

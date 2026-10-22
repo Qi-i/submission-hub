@@ -280,6 +280,9 @@ Deno.serve(async req=>{
  if(!isCron){
   if(!preferred)return apiResponse({error:'account_id required'},400)
   query=query.eq('user_id',userId).eq('id',preferred)
+ }else{
+  // Automatic retries back off instead of hammering bad credentials every 10 minutes.
+  query=query.or('next_attempt_at.is.null,next_attempt_at.lte.'+new Date().toISOString())
  }
  const rows=await query.order('last_checked_at',{ascending:true,nullsFirst:true}).limit(10)
  if(rows.error)return apiResponse({error:'Account scan lookup failed'},500)
@@ -289,12 +292,20 @@ Deno.serve(async req=>{
  try{
   const result=await scanAccount(admin,account)
   await admin.from('mail_accounts').update({
-   last_sync_at:new Date().toISOString(),last_error:null,cloud_state:'ready'
+   last_sync_at:new Date().toISOString(),last_error:null,cloud_state:'ready',
+   consecutive_failures:0,next_attempt_at:null,
+   last_processed:result.processed,last_scanned_folders:result.checkedFolders
   }).eq('id',account.id)
   return apiResponse({checked:1,processed:result.processed,folders:result.checkedFolders})
  }catch(e){
   const err=cleanError(e)
-  await admin.from('mail_accounts').update({last_error:err,cloud_state:'error'}).eq('id',account.id)
-  return apiResponse({checked:1,error:'Mailbox scan failed',detail:err},200)
+  const failures=Math.min(8,Number(account.consecutive_failures||0)+1)
+  const minutes=[30,120,360,720,1440][Math.min(failures-1,4)]
+  const retryAfter=new Date(Date.now()+minutes*60_000).toISOString()
+  await admin.from('mail_accounts').update({
+    last_error:err,cloud_state:'error',consecutive_failures:failures,
+    next_attempt_at:retryAfter,last_processed:0
+  }).eq('id',account.id)
+  return apiResponse({checked:1,error:'Mailbox scan failed',detail:err,retry_after:retryAfter},200)
  }
 })

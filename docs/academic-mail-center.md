@@ -41,3 +41,14 @@ Supabase Cron 每 10 分钟依次检查已验证的邮箱。采集使用只读 I
 数据库迁移 `012` 至 `024`；云端 Edge Functions 包括 `mail-config`、`mail-cloud-collector`、`mail-send`、`mail-ai-settings`、`mail-ai-analyze`；React 页面 `AcademicMailCenter` 和 `MailPersonalization`。检查命令 `npm run verify`，新增架构审查已并入现有 `npm run check:mail-center`（独立运行：`node tests/mail-first-principles-contract.mjs`）。
 
 当前在线版保持 `v2.1.0`，此后对邮件模块的修复不会自动创建 GitHub Release 或额外安装包。
+
+
+## 同步稳定性与独立 SMTP 授权（增量维护）
+
+- 添加或修改邮箱后，网页自动先保存配置，再进行 IMAP/SMTP TLS 登录测试。只有通过 IMAP 验证，才标记可自动收信；单独的 SMTP 登录失败不影响收信，但界面会明确显示失败原因。
+- SMTP 可选择与 IMAP 共用授权码，或填写自己的独立 SMTP 客户端密码；两者加密隔离保存在 Supabase Vault，输入框不会显示原始值。重新使用共用授权码时，独立 SMTP 密钥将从 Vault 删除。
+- 邮箱卡片提供「暂停采集 / 恢复采集」。恢复操作必须重新验证 IMAP 登录。每次自动扫描记录上次成功时间、处理封数和扫描文件夹数，异常显示具体原因及下次自动重试时间。
+- 自动采集故障采取指数退避（30 分钟、2 小时、6 小时、12 小时、24 小时），防止失效授权码每十分钟反复撞库。手动检查允许提前诊断，成功后清零失败计数。
+- 修复了手动采集时后端返回 HTTP 200 携带错误，前端却误提示成功的问题。当前界面会直接呈现采集失败详情。
+- 自定义 AI API 地址、模型 ID 或费用属性发生变化时，数据库触发器会撤销旧接口授权标记并关闭自动分析，必须保存对应 Key 并再次主动启用，以防旧 Key 意外发送到新目的地。
+- 保持 v2.1.0 不变；仅更新 GitHub Pages 在线版本，不创建新 Release 或离线资源。

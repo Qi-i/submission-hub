@@ -69,8 +69,25 @@ Deno.serve(async req=>{
   if(pwd&& (pwd.length<4||pwd.length>4096))return answer({error:'客户端授权码长度不正确'},422)
   const old=await db.rpc('mail_read_cloud_secret',{p_account_id:id})
   if(!pwd&&!old.data)return answer({error:'请填写客户端授权码'},422)
-  if(pwd){const stored=await db.rpc('mail_save_cloud_secret',{p_account_id:id,p_secret:pwd});if(stored.error)return answer({error:'加密保存授权失败'},500)}
-  const update=await db.from('mail_accounts').update({imap_host:host,imap_port:imapPort,imap_security:imapSecurity,imap_username:String(body.imap_username||a.address).trim().slice(0,320),smtp_host:smtp||null,smtp_port:smtpPort,smtp_security:smtpSecurity,smtp_username:String(body.smtp_username||a.address).trim().slice(0,320),cloud_state:'not_configured',enabled:true,last_error:null}).eq('id',id).eq('user_id',auth.data.user.id)
+  if(pwd){const stored=await db.rpc('mail_save_cloud_secret',{p_account_id:id,p_secret:pwd});if(stored.error)return answer({error:'加密保存 IMAP 授权失败'},500)}
+  const smtpPassword=String(body.smtp_password||'')
+  if(smtpPassword && (smtpPassword.length<4||smtpPassword.length>4096))return answer({error:'SMTP 专用授权码长度不正确'},422)
+  if(smtpPassword){
+    const stored=await db.rpc('mail_save_smtp_secret',{p_account_id:id,p_secret:smtpPassword})
+    if(stored.error)return answer({error:'SMTP 授权码加密保存失败'},500)
+  }else if(body.smtp_use_imap_credential===true && a.smtp_has_separate_key){
+    const removed=await db.rpc('mail_remove_smtp_secret',{p_account_id:id})
+    if(removed.error)return answer({error:'无法切换回共用授权码'},500)
+  }
+  const separate=!!smtpPassword || (a.smtp_has_separate_key && body.smtp_use_imap_credential!==true)
+  const update=await db.from('mail_accounts').update({
+   imap_host:host,imap_port:imapPort,imap_security:imapSecurity,
+   imap_username:String(body.imap_username||a.address).trim().slice(0,320),
+   smtp_host:smtp||null,smtp_port:smtpPort,smtp_security:smtpSecurity,
+   smtp_username:String(body.smtp_username||a.address).trim().slice(0,320),
+   smtp_has_separate_key:separate,cloud_state:'not_configured',enabled:true,
+   last_error:null,consecutive_failures:0,next_attempt_at:null
+  }).eq('id',id).eq('user_id',auth.data.user.id)
   return update.error?answer({error:'保存失败'},500):answer({ok:true,message:'配置已保存，请运行登录测试'})
  }
  if(body.action==='test'){
@@ -78,17 +95,45 @@ Deno.serve(async req=>{
   if(!secret.data)return answer({error:'请先保存客户端授权码'},422)
   const results:Record<string,unknown>={}
   for(const kind of ['imap','smtp'] as const){const host=kind==='imap'?a.imap_host:a.smtp_host;if(!host)continue
-   try{await verify(host,Number(kind==='imap'?a.imap_port:a.smtp_port),kind==='imap'?a.imap_security||'ssl':a.smtp_security||'ssl',kind,kind==='imap'?a.imap_username||a.address:a.smtp_username||a.address,secret.data);results[kind]={ok:true,message:'TLS 连接及身份验证通过'+(kind==='smtp'?'（未实际发送邮件）':'')}}
+   try{
+    let loginSecret=secret.data
+    if(kind==='smtp' && a.smtp_has_separate_key){
+      const independent=await db.rpc('mail_read_smtp_secret',{p_account_id:id})
+      if(independent.error||!independent.data)throw Error('SMTP 独立授权码尚未配置')
+      loginSecret=independent.data
+    }
+    await verify(host,Number(kind==='imap'?a.imap_port:a.smtp_port),
+      kind==='imap'?a.imap_security||'ssl':a.smtp_security||'ssl',kind,
+      kind==='imap'?a.imap_username||a.address:a.smtp_username||a.address,loginSecret)
+    results[kind]={ok:true,message:'TLS 连接及身份验证通过'+(kind==='smtp'?'（未实际发送邮件）':'')}
+   }
    catch(e){results[kind]={ok:false,message:e instanceof Error?e.message:'连接失败'}}
   }
   const ok=!!(results.imap as any)?.ok
   await db.from('mail_accounts').update({
    cloud_state:ok?'ready':'not_configured',
    last_error:ok?null:String((results.imap as any)?.message||'IMAP 尚未通过安全登录测试').slice(0,160),
-   last_checked_at:new Date().toISOString()
+   last_checked_at:new Date().toISOString(),consecutive_failures:0,next_attempt_at:null
   }).eq('id',id).eq('user_id',auth.data.user.id)
   return answer({ok,results})
  }
- if(body.action==='disable'){const r=await db.from('mail_accounts').update({enabled:false}).eq('id',id).eq('user_id',auth.data.user.id);return r.error?answer({error:'暂停失败'},500):answer({ok:true})}
+ if(body.action==='disable'){
+   const r=await db.from('mail_accounts').update({enabled:false}).eq('id',id).eq('user_id',auth.data.user.id)
+   return r.error?answer({error:'暂停失败'},500):answer({ok:true,enabled:false})
+ }
+ if(body.action==='enable'){
+   if(!a.imap_host)return answer({error:'请先配置 IMAP 收信服务器'},422)
+   const secret=await db.rpc('mail_read_cloud_secret',{p_account_id:id})
+   if(!secret.data)return answer({error:'缺少 IMAP 授权码'},422)
+   try{
+     await verify(a.imap_host,Number(a.imap_port||993),a.imap_security||'ssl','imap',
+       a.imap_username||a.address,secret.data)
+   }catch(e){return answer({error:'恢复采集前 IMAP 验证失败：'+String(e instanceof Error?e.message:e).slice(0,150)},422)}
+   const updated=await db.from('mail_accounts').update({
+     enabled:true,cloud_state:'ready',last_error:null,
+     consecutive_failures:0,next_attempt_at:null,last_checked_at:new Date().toISOString()
+   }).eq('id',id).eq('user_id',auth.data.user.id)
+   return updated.error?answer({error:'恢复失败'},500):answer({ok:true,enabled:true})
+ }
  return answer({error:'不支持的操作'},400)
 })
