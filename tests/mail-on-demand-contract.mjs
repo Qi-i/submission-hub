@@ -20,7 +20,7 @@ const tests=[
  ['Historical cursor uses only successfully archived UIDs',collector.includes('const processedOld:number[]=[]')&&collector.includes('const processedNew:number[]=[]')&&collector.includes('Math.min(...processedOld)')&&collector.includes('Math.max(recent,...processedNew,0)')],
  ['Interrupted batches persist progress without skipping pending mail',collector.includes("if(!completed)break")&&collector.indexOf('if(!completed)break')>collector.indexOf("if(save.error)throw new Error('Scan cursor update failed')")],
  ['Empty historical UID ranges are marked complete',collector.includes("p_folder_key:key,p_recent:savedRecent,p_before:0")],
- ['IMAP incremental check avoids repeated SEARCH ALL',collector.includes("searchIds('UID '+(savedRecent+1)+':*')")&&collector.includes('savedBefore>1?searchIds')&&collector.includes("[await searchIds('ALL')]" )],
+ ['IMAP incremental check avoids repeated SEARCH ALL',collector.includes("searches.push(await searchIds('UID '+(savedRecent+1)+':*'))")&&collector.includes('if(savedBefore>1)searches.push(await searchIds')&&collector.includes("else searches.push(await searchIds('ALL'))")],
  ['Scheduled collector skips mailboxes in backoff',cron.includes('next_attempt_at <= now()')],
  ['Shared Microsoft application takes precedence',oauth.includes('managedId||body.client_id||account.oauth_client_id')],
  ['AI worker cron is removed without affecting collection cron',sql.includes("cron.unschedule('submission_hub_mail_free_ai_10min')")&&!sql.includes("cron.unschedule('submission_hub_cloud_mail_10min')")]
