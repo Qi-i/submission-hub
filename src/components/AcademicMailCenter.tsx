@@ -98,7 +98,7 @@ const describeStatus = (account: Account) => {
   if (!account.enabled) return '已暂停'
   if (account.provider==='outlook')return account.cloud_state==='ready'?'Graph 已连接':account.cloud_state==='error'?'Graph 连接异常':'等待 Microsoft 授权'
   if (!isSupported(account)) return '需要 OAuth2 授权'
-  if (account.cloud_state === 'error') return '采集异常'
+  if (account.cloud_state === 'error') return account.last_sync_at?'同步中断':'连接待排查'
   if (account.cloud_state === 'ready') return '自动采集中'
   return '待配置'
 }
@@ -838,7 +838,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         {accounts.map(a=><article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
           <div className="am-account-mark am-brand-mark">{a.logo_url?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>:a.logo_symbol||providerSymbols[a.provider]||<Mail size={18}/>}</div>
           <div className="am-account-summary-main"><strong>{logoLabel(a)}</strong><small title={a.address}>{a.address}</small>
-            <span title={a.last_error||undefined}>{a.last_error?(a.last_error.length>75?a.last_error.slice(0,75)+'…':a.last_error):'最近同步 '+niceDate(a.last_sync_at)}</span></div>
+            <span title={a.last_error||undefined}>{a.last_error?'最近采集异常 · 历史邮件仍保留':'最近成功同步 '+niceDate(a.last_sync_at)}</span></div>
           <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span>
           <button type="button" className="am-account-open" onClick={()=>{setDetailAccountId(a.id);setSetupId(null);setOauthPanelId(null);setBrandEditing(null);setConnectionResults({})}}><Settings2 size={14}/> 详情与设置</button>
         </article>)}
@@ -856,11 +856,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
              <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
           <div className="am-account-data">
               <div><span>上次成功检查</span><strong>{niceDate(a.last_sync_at)}</strong></div>
-              <div><span>最近检查 / 归档</span><strong>{niceDate(a.last_checked_at)} · {a.last_processed||0} 封</strong></div>
+              <div><span>最近检查 / 本次新增</span><strong>{niceDate(a.last_checked_at)} · 新增 {a.last_processed||0} 封</strong></div>
               <div><span>{a.provider==='outlook'?'Microsoft Graph / 文件夹':'服务器 / 扫描文件夹'}</span>
                <strong>{a.provider==='outlook'?'Graph OAuth2':a.imap_host||'尚未设置'} · {a.last_scanned_folders||0} 个</strong></div>
             </div>
-            {a.cloud_state==='error'&&a.next_attempt_at&&<p className="am-account-retry"><AlertCircle size={14}/> 连续失败 {a.consecutive_failures||1} 次 · 下次自动重试不早于 {niceDate(a.next_attempt_at)}</p>}
+            {a.cloud_state==='error'&&<p className="am-account-retry"><AlertCircle size={14}/> 最近采集中断，自动重试已停止；此前归档保留。可点击“立即检查”重新验证，不必重新输入凭据。</p>}
           {a.last_error&&<p className="am-account-error"><AlertCircle size={14}/>{a.last_error}</p>}
           <div className="am-account-actions">
             <button type="button" onClick={()=>{
