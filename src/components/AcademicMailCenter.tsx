@@ -511,7 +511,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>最近检查 / 归档</span><strong>{niceDate(a.last_checked_at)} · {a.last_processed||0} 封</strong></div>
               <div><span>服务器 / 扫描文件夹</span><strong>{a.imap_host||'尚未设置'} · {a.last_scanned_folders||0} 个</strong></div>
             </div>
-            {a.cloud_state==='error'&&a.next_attempt_at&&<p className="am-account-retry"><AlertCircle size={14}/> 连续失败 {a.consecutive_failures||1} 次 · 下次自动重试不早于 {niceDate(a.next_attempt_at)}</p>
+            {a.cloud_state==='error'&&a.next_attempt_at&&<p className="am-account-retry"><AlertCircle size={14}/> 连续失败 {a.consecutive_failures||1} 次 · 下次自动重试不早于 {niceDate(a.next_attempt_at)}</p>}
           {a.last_error&&<p className="am-account-error"><AlertCircle size={14}/>{a.last_error}</p>}
           <div className="am-account-actions">
             {isSupported(a)?<>
@@ -520,7 +520,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               {a.enabled&&['ready','error'].includes(a.cloud_state)&&<button type="button" disabled={busy!==null} onClick={()=>void manualSync(a.id)}><RefreshCw size={14}/>{busy==='sync-'+a.id?'检查中…':'立即检查'}</button>}
               {(a.cloud_state==='ready'||a.cloud_state==='error'||!a.enabled)&&<button type="button" disabled={busy!==null} onClick={()=>void toggleCollection(a)}>
                 {a.enabled?<PauseCircle size={14}/>:<PlayCircle size={14}/>} {a.enabled?'暂停采集':'恢复采集'}
-              </button>
+              </button>}
             </>:<span>该服务商需要独立的 OAuth2 授权，当前版本尚未实现自动采集。</span>}
           </div>
           {setupId===a.id&&<div className="am-form-panel am-config-form">
@@ -554,7 +554,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                 placeholder={a.smtp_has_separate_key?'已加密保存，留空保持':'请输入独立 SMTP 密码或授权码'}/></label>}
             </div>
             <div className="am-add-form">
-              <button type="button" className="am-main-button" disabled={busy!==null||!imapHost||(!a.imap_host&&!appPassword)} onClick={()=>void saveConfiguration()}>{busy==='configure'?'连接验证中…':'保存并测试连接'</button>
+              <button type="button" className="am-main-button" disabled={busy!==null||!imapHost||(!a.imap_host&&!appPassword)} onClick={()=>void saveConfiguration()}>{busy==='configure'?'连接验证中…':'保存并测试连接'}</button>
               <button type="button" className="am-quiet-button" disabled={busy!==null||!a.imap_host} onClick={()=>void testAccount(a.id)}>测试连接</button>
               <button type="button" className="am-quiet-button" onClick={()=>{setSetupId(null);setAppPassword('');setSuggestions([])}}>关闭</button></div>
             {!!Object.keys(connectionResults).length&&<div className="am-test-results">{Object.entries(connectionResults).map(([key,result])=><div key={key} className={result.ok?'ok':'error'}><strong>{key.toUpperCase()} {result.ok?'连接成功':'连接失败'}</strong><span>{result.message}</span></div>)}</div>}
