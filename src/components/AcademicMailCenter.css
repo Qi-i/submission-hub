@@ -1660,3 +1660,26 @@ html[data-ui][data-theme="dark"] body .academic-mail-center :is(.am-organizer-ba
 html[data-ui][data-theme="dark"] body .academic-mail-center :is(.am-annotation-title,.am-annotation-grid>label,.am-label-chooser>span,.am-note-editor,.am-organizer-manager section>strong){
  color:#b0e3d2;
 }
+
+/* Account management overview: statuses stay scannable; settings live in a dialog. */
+.academic-mail-center .am-account-overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,345px),1fr));gap:10px;align-content:start}
+.academic-mail-center .am-account-summary{display:flex;align-items:center;gap:12px;min-width:0;min-height:84px;padding:13px 15px;border:1px solid var(--am-line);background:var(--am-surface);border-radius:12px}
+.academic-mail-center .am-account-summary[data-state="ready"]{border-left:3px solid #66ad94}
+.academic-mail-center .am-account-summary[data-state="error"]{border-left:3px solid #d59378}
+.academic-mail-center .am-account-summary-main{display:flex;flex:1;flex-direction:column;gap:3px;min-width:0}
+.academic-mail-center .am-account-summary-main strong{font-size:13px;color:var(--am-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.academic-mail-center .am-account-summary-main small{font-size:11px;color:var(--am-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.academic-mail-center .am-account-summary-main>span{font-size:10px;color:var(--am-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.academic-mail-center .am-account-summary .am-account-state{padding:5px 8px;font-size:10px}
+.academic-mail-center .am-account-open{display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;padding:8px 9px;border-radius:8px;border:1px solid var(--am-line);background:var(--am-soft);font-size:11px;color:var(--am-ink);cursor:pointer}
+.academic-mail-center .am-account-open:hover{border-color:var(--am-blue);color:var(--am-blue)}
+.academic-mail-center .am-account-overlay{position:fixed;inset:0;z-index:2100;background:rgba(18,30,50,.52);display:flex;align-items:center;justify-content:center;padding:18px}
+.academic-mail-center .am-account-dialog{display:flex;flex-direction:column;gap:0;max-width:920px;width:100%;max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;padding:0 18px 18px;background:var(--am-surface);border:1px solid var(--am-line);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.2)}
+.academic-mail-center .am-dialog-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 0 13px;margin-bottom:12px;border-bottom:1px solid var(--am-line);background:var(--am-surface)}
+.academic-mail-center .am-dialog-header strong{font-size:15px;color:var(--am-ink)}
+.academic-mail-center .am-dialog-header button{border:0;background:transparent;color:var(--am-muted);cursor:pointer;display:flex;padding:6px}
+.academic-mail-center .am-account-dialog .am-account-card{border:0;padding:4px 0;background:transparent}
+.academic-mail-center .am-account-add-dialog{max-width:650px}
+.academic-mail-center .am-account-add-dialog .am-form-panel{border:0;padding:0;margin:0}
+@media(max-width:800px){.academic-mail-center .am-account-overview{grid-template-columns:1fr}}
+@media(max-width:560px){.academic-mail-center .am-account-summary{gap:8px;padding:11px 9px;flex-wrap:wrap}.academic-mail-center .am-account-summary-main{flex-basis:calc(100% - 55px)}.academic-mail-center .am-account-summary .am-account-state{margin-left:45px}.academic-mail-center .am-account-open{margin-left:auto}.academic-mail-center .am-account-overlay{padding:8px}.academic-mail-center .am-account-dialog{max-height:calc(100dvh - 16px);padding:0 12px 12px}}
