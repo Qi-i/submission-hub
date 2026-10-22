@@ -607,3 +607,251 @@ html[data-ui] body .academic-mail-center .am-server-fieldset{
  .academic-mail-center .am-stats button,
  .academic-mail-center .am-main-button{transition:none!important;transform:none!important}
 }
+
+/* 2026-10-22 · Density correction: maximize meaningful information above the fold.
+ * Keep Luminous glass and accents; remove stacked whitespace, not readability.
+ * Applied after the original theme to avoid affecting other Submission Hub modules.
+ */
+html[data-ui] body .academic-mail-center{padding:12px 18px 22px}
+html[data-ui] body .academic-mail-center .am-header{
+ grid-template-columns:minmax(240px,.8fr) minmax(0,2fr);
+ min-height:96px;padding:12px 18px;gap:16px;margin:0 0 9px;
+ border-radius:16px;box-shadow:0 7px 21px rgba(38,68,124,.075);
+}
+.academic-mail-center .am-header-copy{min-width:0}
+.academic-mail-center .am-header h2{
+ font-size:20px;line-height:1.28;margin:5px 0 3px;letter-spacing:-.025em;
+}
+.academic-mail-center .am-header p{font-size:11px;line-height:1.5;white-space:nowrap}
+.academic-mail-center .am-kicker{
+ font-size:9px;line-height:1.25;padding:4px 8px;letter-spacing:.04em;
+}
+.academic-mail-center .am-header-actions{
+ display:flex;align-items:center;justify-content:flex-end;
+ flex-wrap:nowrap;gap:7px;min-width:0;
+}
+.academic-mail-center .am-hero-tiles{
+ display:flex;align-items:stretch;gap:7px;min-width:0;
+ flex:1 1 auto;width:auto;
+}
+.academic-mail-center .am-hero-tile{
+ display:flex;flex:1 1 0;align-items:center;gap:7px;
+ min-width:0;min-height:46px;padding:7px 10px;border-radius:11px;
+ box-shadow:none;
+}
+.academic-mail-center .am-hero-tile>svg{
+ flex:0 0 auto;width:15px;height:15px;
+}
+.academic-mail-center .am-hero-tile>span{
+ flex:1 1 auto;min-width:0;font-size:10px;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.academic-mail-center .am-hero-tile>strong{
+ flex:0 0 auto;font-size:16px;white-space:nowrap;
+}
+.academic-mail-center .am-hero-tile>strong small{font-size:10px}
+.academic-mail-center .am-hero-tile>strong.am-hero-state{font-size:11px}
+.academic-mail-center .am-header-actions>.am-main-button,
+.academic-mail-center .am-header-actions>.am-quiet-button{
+ padding:7px 10px;min-height:35px;font-size:11px;flex:0 0 auto;
+}
+.academic-mail-center .am-header-actions>.am-icon-button{
+ min-height:35px;width:35px;flex:0 0 auto;
+}
+html[data-ui] body .academic-mail-center .am-tabs{
+ min-height:41px;margin:0 0 10px;padding:4px;gap:4px;border-radius:12px;
+}
+.academic-mail-center .am-tabs button{
+ min-height:33px;padding:7px 12px;font-size:11px;border-radius:9px;
+}
+html[data-ui] body .academic-mail-center .am-stats{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+ gap:8px;margin:0 0 10px;
+}
+html[data-ui] body .academic-mail-center .am-stats button{
+ display:flex;flex-direction:row;justify-content:space-between;
+ align-items:center;gap:14px;min-height:55px;padding:9px 15px;
+ border-radius:12px;box-shadow:0 4px 13px rgba(35,74,130,.045);
+}
+.academic-mail-center .am-stats span{
+ font-size:11px;line-height:1.4;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.academic-mail-center .am-stats button strong{
+ font-size:21px;line-height:1.1;font-weight:760;flex:0 0 auto;
+}
+html[data-ui] body .academic-mail-center .am-controls{
+ gap:8px;margin:0 0 10px;
+}
+html[data-ui] body .academic-mail-center .am-search,
+html[data-ui] body .academic-mail-center .am-controls select{
+ min-height:38px;border-radius:10px;
+}
+.academic-mail-center .am-controls select{padding:7px 10px}
+.academic-mail-center .am-search input{padding:8px 0}
+html[data-ui] body .academic-mail-center .am-workspace{
+ grid-template-columns:minmax(300px, .82fr) minmax(0,1.28fr);
+ align-items:stretch;gap:10px;
+}
+html[data-ui] body .academic-mail-center .am-list-pane,
+html[data-ui] body .academic-mail-center .am-reader{
+ border-radius:13px;box-shadow:0 6px 20px rgba(38,68,118,.065);
+}
+.academic-mail-center .am-list-heading{
+ min-height:43px;padding:10px 13px;
+}
+.academic-mail-center .am-message-list{
+ height:clamp(450px,calc(100dvh - 389px),770px);
+}
+.academic-mail-center .am-message{
+ padding:10px 13px;gap:4px;
+}
+.academic-mail-center .am-msg-from strong{font-size:11px}
+.academic-mail-center .am-msg-from time{font-size:10px}
+.academic-mail-center .am-msg-subject{
+ font-size:12px;line-height:1.4;
+ white-space:normal;display:-webkit-box;-webkit-line-clamp:2;
+ -webkit-box-orient:vertical;overflow:hidden;
+}
+.academic-mail-center .am-message p{
+ font-size:10.5px;line-height:1.4;-webkit-line-clamp:1;
+}
+.academic-mail-center .am-msg-labels{gap:4px}
+.academic-mail-center .am-chip{
+ font-size:9.5px;padding:3px 6px;min-height:18px;border-radius:6px;
+}
+.academic-mail-center .am-pager{
+ min-height:37px;padding:6px 12px;
+}
+html[data-ui] body .academic-mail-center .am-reader{
+ height:calc(clamp(450px,calc(100dvh - 389px),770px) + 80px);
+ padding:14px 17px;overflow-y:auto;min-height:0;
+ scrollbar-gutter:stable;
+}
+.academic-mail-center .am-reader-top{
+ display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+ padding-bottom:10px;
+}
+.academic-mail-center .am-reader-subtype{
+ display:flex;align-items:center;gap:5px;flex:0 0 auto;
+ margin:0;
+}
+.academic-mail-center .am-reader-top h3{
+ min-width:180px;flex:1;font-size:17px;line-height:1.4;
+ margin:0;overflow-wrap:anywhere;
+}
+.academic-mail-center .am-meta{
+ display:grid;
+ grid-template-columns:minmax(155px,1.25fr) minmax(130px,.85fr) minmax(180px,1.15fr) minmax(140px,.9fr);
+ gap:8px;
+ padding:9px 0;border-bottom:1px solid var(--am-line);
+}
+.academic-mail-center .am-meta>div{
+ display:flex;flex-direction:column;gap:4px;min-width:0;
+ padding:0 8px 0 0;
+}
+.academic-mail-center .am-meta span{font-size:9px}
+.academic-mail-center .am-meta strong{
+ font-size:10.5px;line-height:1.5;
+ max-height:3em;overflow:hidden;
+}
+.academic-mail-center .am-meta small{font-size:10px}
+.academic-mail-center .am-reader-content{
+ border-top:0;padding:10px 0 0;
+}
+.academic-mail-center .am-reader-content-head{
+ min-height:29px;gap:10px;padding:0 0 6px;
+ border-bottom:1px solid var(--am-line);
+}
+.academic-mail-center .am-reader-content pre{
+ margin:8px 0 11px;padding:11px 13px;min-height:140px;
+ font-size:11.5px;line-height:1.75;
+ border-radius:10px;
+ background:color-mix(in srgb,var(--bg-elevated,#fff) 72%,var(--am-soft));
+ overflow-wrap:anywhere;
+}
+.academic-mail-center .am-review-controls{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:9px;margin:7px 0 4px;padding:10px 0 0;
+ border-top:1px solid var(--am-line);
+}
+.academic-mail-center .am-review-controls label{
+ gap:5px;font-size:10px;
+}
+.academic-mail-center .am-review-controls select{padding:8px;min-height:34px;border-radius:9px}
+.academic-mail-center .am-ai-result{
+ margin:9px 0;padding:11px 13px;
+}
+.academic-mail-center .am-link-suggestion{margin-top:8px;padding:8px 10px}
+.academic-mail-center .am-deadline-note{margin-top:8px;padding:7px 10px}
+@media(max-width:1450px){
+ html[data-ui] body .academic-mail-center .am-header{
+   grid-template-columns:minmax(230px,.7fr) minmax(0,2fr);
+   min-height:90px;gap:12px;
+ }
+ .academic-mail-center .am-header-actions{flex-wrap:wrap}
+ .academic-mail-center .am-hero-tiles{min-width:100%;flex-basis:100%}
+ .academic-mail-center .am-hero-tile{min-height:34px;padding:6px 10px}
+ .academic-mail-center .am-hero-tiles+button{margin-left:auto}
+}
+@media(max-width:1190px){
+ html[data-ui] body .academic-mail-center .am-meta{
+   grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ html[data-ui] body .academic-mail-center .am-header{
+   grid-template-columns:1fr;
+ }
+ .academic-mail-center .am-header-actions{display:flex;flex-wrap:wrap}
+ .academic-mail-center .am-hero-tiles{flex-basis:auto;min-width:0}
+}
+@media(max-width:980px){
+ html[data-ui] body .academic-mail-center{padding:10px 12px 18px}
+ html[data-ui] body .academic-mail-center .am-workspace{
+   grid-template-columns:minmax(260px,.85fr) minmax(0,1.15fr);
+ }
+ .academic-mail-center .am-reader-top{align-items:flex-start}
+ .academic-mail-center .am-reader-subtype{width:100%}
+}
+@media(max-width:700px){
+ html[data-ui] body .academic-mail-center .am-header{
+   padding:13px 14px;gap:9px;
+ }
+ .academic-mail-center .am-header h2{font-size:19px}
+ .academic-mail-center .am-header p{white-space:normal}
+ .academic-mail-center .am-header-actions{
+   display:flex;flex-wrap:wrap;gap:6px;
+ }
+ .academic-mail-center .am-hero-tiles{width:100%;flex:1 0 100%;gap:5px}
+ .academic-mail-center .am-hero-tile{
+   flex-direction:column;align-items:flex-start;justify-content:center;
+   gap:2px;min-height:51px;padding:7px;
+ }
+ .academic-mail-center .am-hero-tile>svg{display:none}
+ .academic-mail-center .am-hero-tile>span{font-size:9px}
+ .academic-mail-center .am-hero-tile>strong{font-size:15px}
+ .academic-mail-center .am-header-actions>.am-icon-button{margin-left:auto}
+ html[data-ui] body .academic-mail-center .am-tabs{width:100%;max-width:100%}
+ .academic-mail-center .am-tabs button{font-size:10.5px;padding:8px 7px}
+ html[data-ui] body .academic-mail-center .am-stats{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;margin:0 0 9px;
+ }
+ html[data-ui] body .academic-mail-center .am-stats button{
+  min-height:48px;padding:8px 11px;
+ }
+ .academic-mail-center .am-stats button strong{font-size:19px}
+ html[data-ui] body .academic-mail-center .am-workspace{display:block}
+ .academic-mail-center .am-message-list{height:clamp(430px,60dvh,720px)}
+ html[data-ui] body .academic-mail-center .am-reader{
+   height:auto;max-height:76dvh;padding:13px;
+ }
+ html[data-ui] body .academic-mail-center .am-meta{
+   grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+ }
+ .academic-mail-center .am-reader-top h3{min-width:0;font-size:16px}
+ .academic-mail-center .am-review-controls{grid-template-columns:minmax(0,1fr)}
+}
+@media(prefers-reduced-motion:reduce){
+ .academic-mail-center .am-stats button{transform:none!important}
+}
