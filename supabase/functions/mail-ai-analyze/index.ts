@@ -24,7 +24,7 @@ Deno.serve(async req=>{
   owner=auth.data.user.id
  }
  let q=admin.from('mail_preferences')
-   .select('user_id,ai_enabled,ai_key_ready,ai_model,ai_daily_limit,ai_analyze_existing,ai_started_at,ai_endpoint_id,ai_system_prompt,ai_allow_paid')
+   .select('user_id,ai_enabled,ai_key_ready,ai_model,ai_daily_limit,ai_analyze_existing,ai_started_at,ai_endpoint_id,ai_system_prompt,ai_allow_paid,ai_glm_platform')
    .eq('ai_enabled',true).gt('ai_daily_limit',0)
  if(owner)q=q.eq('user_id',owner)
  const settings=await q.limit(20)
@@ -32,7 +32,7 @@ Deno.serve(async req=>{
  let analyzed=0,errors=0
  for(const pref of settings.data||[]){
   if(analyzed+errors>=4)break
-  let endpoint='https://api.z.ai/api/paas/v4/chat/completions'
+  let endpoint=pref.ai_glm_platform==='bigmodel'?'https://open.bigmodel.cn/api/paas/v4/chat/completions':'https://api.z.ai/api/paas/v4/chat/completions'
   let selectedModel=String(pref.ai_model||'glm-4.7-flash')
   let secretText=''
   if(pref.ai_endpoint_id){
