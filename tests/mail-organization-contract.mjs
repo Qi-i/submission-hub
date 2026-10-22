@@ -6,6 +6,7 @@ const css=read('src/components/AcademicMailCenter.css')
 const migration=read('supabase/034_mail_personal_organization.sql')
 const cleanup=read('supabase/035_mail_label_removal.sql')
 const translate=read('supabase/functions/mail-translate/index.ts')
+const ingest=read('supabase/functions/mail-ingest/index.ts')
 const checks=[
  ['notes are owner scoped and preserved',migration.includes('user_note text not null')&&ui.includes('user_note:noteDraft')],
  ['labels have owner RLS',migration.includes('mail_labels_owner')&&migration.includes('auth.uid())=user_id')],
@@ -25,6 +26,7 @@ const checks=[
  ['manual translation does not run on message selection',ui.includes('onClick={()=>void runTranslation()}')],
  ['note, folder, labels visually distinct',css.includes('.am-annotation-panel')&&css.includes('.am-user-tag')&&css.includes('.am-folder-chip')],
  ['mobile remains usable',css.includes('@media(max-width:700px)')&&css.includes('.am-brand-editor{grid-template-columns:1fr}')],
+ ['collector resync never overwrites manual organization',!ingest.includes(".upsert(entries")&&ingest.includes('Only update remote folder/last-seen provenance')&&ingest.includes('last_seen_at:m.last_seen_at')],
 ]
 for(const [name,valid] of checks)assert.ok(valid,'Mail organization contract: '+name)
 console.log('Mail annotations, folders, tags, translation: '+checks.length+' checks passed')
