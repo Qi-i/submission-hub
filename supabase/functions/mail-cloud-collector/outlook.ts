@@ -88,6 +88,21 @@ async function listFolders(token:string){
 }
 async function archive(admin:any,account:any,token:string,folder:{id:string;name:string;spam:boolean},item:any){
  if(typeof item.id!=='string')return false
+ // Graph returns internetMessageId in the lightweight folder listing. Skip the
+ // expensive MIME download when this immutable message is already archived.
+ const knownMessageId=String(item.internetMessageId||'').trim()
+ if(knownMessageId){
+  const knownKey=await digest(knownMessageId)
+  const known=await admin.from('mail_messages').select('id,last_folder')
+   .eq('account_id',account.id).eq('remote_key',knownKey).maybeSingle()
+  if(known.error)throw Error('Outlook 邮件索引查询失败')
+  if(known.data){
+   if(known.data.last_folder!==folder.name)await admin.from('mail_messages')
+    .update({last_folder:folder.name,last_seen_at:new Date().toISOString()})
+    .eq('id',known.data.id).eq('user_id',account.user_id)
+   return false
+  }
+ }
  const raw=await graph(token,GRAPH+'/me/messages/'+encodeURIComponent(item.id)+'/$value')
  const len=Number(raw.headers.get('content-length')||0)
  if(len>MAX_RAW)throw Error('Outlook 邮件大于 8 MiB，无法完整归档')
