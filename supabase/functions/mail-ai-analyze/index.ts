@@ -142,7 +142,7 @@ Deno.serve(async req=>{
     attempts++
     const maxMs=clamp(Number(pref.ai_max_wait_seconds||65)*1000,20000,90000)
     const desired=pref.ai_slow_mode===false?Math.min(25000,maxMs):
-      clamp(route.probeMs?Math.ceil(route.probeMs*2.5+18000):maxMs,45000,maxMs)
+      clamp(route.probeMs?Math.ceil(route.probeMs*3+20000):maxMs,Math.min(60000,maxMs),maxMs)
     const timeoutMs=Math.min(desired,Math.max(1000,deadline-Date.now()-10000))
     const response=await invoke(route,body,timeoutMs)
     if(response.result){
