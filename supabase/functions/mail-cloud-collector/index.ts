@@ -165,6 +165,7 @@ async function scanAccount(admin:any,account:any){
  }
  const now=Date.now()
  let processed=0
+ let openedFolders=0, advertisedMessages=0, foundUids=0, folderOpenErrors=0
  try{
   if(account.auth_kind==='xoauth2'){
 
@@ -179,7 +180,9 @@ async function scanAccount(admin:any,account:any){
    let examined: {lines:string[];literal:Uint8Array|null}
    try{
     examined=await imap.cmd('EXAMINE '+imapString(folder.name))
-   }catch{continue}
+   }catch{folderOpenErrors++;continue}
+   openedFolders++
+   advertisedMessages+=Number(/\\* (\\d+) EXISTS/i.exec(examined.lines.join(' '))?.[1]||0)
    const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]
    if(!uidv)throw new Error('IMAP server omitted UIDVALIDITY; refusing unsafe incremental cursor')
    const hash=await digest(folder.name)
@@ -209,6 +212,7 @@ async function scanAccount(admin:any,account:any){
    }else searches.push(await searchIds('ALL'))
    // IMAP UID n:* can return the last existing UID even when n is higher.
    // Ignore stale matches so idle mailboxes do not download old messages again.
+   foundUids+=new Set(searches.flat()).size
    const ids=[...new Set(searches.flat())]
     .filter(uid=>!stored||uid>savedRecent||(savedBefore>1&&uid<savedBefore))
     .sort((a,b)=>a-b)
@@ -250,8 +254,8 @@ async function scanAccount(admin:any,account:any){
       contentType:'application/octet-stream',upsert:false
      })
      if(saved.error&&!/already exists|duplicate|409/i.test(saved.error.message||''))throw new Error('Private archive upload failed')
-     const body=String(parsed.text||parsed.html||'').replace(/<[^>]*>/g,' ').slice(0,60000)
-     const subject=String(parsed.subject||'').slice(0,1024)
+     const body=String(parsed.text||parsed.html||'').replaceAll(String.fromCharCode(0),'').replace(/<[^>]*>/g,' ').slice(0,60000)
+     const subject=String(parsed.subject||'').replaceAll(String.fromCharCode(0),'').slice(0,1024)
      const [category,importance]=classify(subject,body)
      const sender=parsed.from && 'address' in parsed.from ? parsed.from : null
      const inserted=await admin.from('mail_messages').insert({
@@ -260,7 +264,7 @@ async function scanAccount(admin:any,account:any){
        first_folder:folder.spam?'Junk':folder.display,
        last_folder:folder.display,
        received_at:parsed.date && !Number.isNaN(Date.parse(parsed.date)) ? new Date(parsed.date).toISOString():null,
-       sender_name:sender?.name||'',sender_address:sender?.address||'',
+       sender_name:String(sender?.name||'').replaceAll(String.fromCharCode(0),''),sender_address:String(sender?.address||'').replaceAll(String.fromCharCode(0),'') ,
        recipient_address:account.address,subject,
        snippet:body.replace(/\s+/g,' ').slice(0,800),body_text:body,
        category,importance,extraction:extract(subject+' '+body.slice(0,2500)),
@@ -283,7 +287,9 @@ async function scanAccount(admin:any,account:any){
    if(save.error)throw new Error('Scan cursor update failed')
    if(!completed)break
   }
-  return {processed,checkedFolders:directory.length}
+  if(directory.length>0&&openedFolders===0)throw new Error('IMAP discovered folders but none could be opened; check mailbox permissions')
+  if(advertisedMessages>0&&foundUids===0)throw new Error('IMAP reports '+advertisedMessages+' messages, but UID SEARCH returned zero; refusing false successful sync')
+  return {processed,checkedFolders:directory.length,openedFolders,folderOpenErrors,advertisedMessages,foundUids}
  }finally{try{conn.close()}catch{}}
 }
 const apiResponse=(data:unknown,status=200)=>new Response(status===204?null:JSON.stringify(data),{
@@ -332,7 +338,9 @@ Deno.serve(async req=>{
    consecutive_failures:0,next_attempt_at:null,
    last_processed:result.processed,last_scanned_folders:result.checkedFolders
   }).eq('id',account.id)
-  return apiResponse({checked:1,processed:result.processed,folders:result.checkedFolders})
+  return apiResponse({checked:1,processed:result.processed,folders:result.checkedFolders,
+   opened_folders:result.openedFolders??null,folder_open_errors:result.folderOpenErrors??null,
+   advertised_messages:result.advertisedMessages??null,discovered_uids:result.foundUids??null})
  }catch(e){
   const err=cleanError(e)
   const failures=Math.min(8,Number(account.consecutive_failures||0)+1)
