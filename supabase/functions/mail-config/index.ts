@@ -35,8 +35,8 @@ async function discover(address:string,provider:string){
  if(roots[provider]){const [im,sm,p,sec]=roots[provider];put('imap',im,993,'ssl','服务商预设');put('smtp',sm,p,sec,'服务商预设')}
  else{
   if(domain==='email.cugb.edu.cn'){
-   put('imap','www.email.cugb.edu.cn',993,'ssl','CUGB 学生/校友邮箱官方指南')
-   put('smtp','www.email.cugb.edu.cn',465,'ssl','CUGB 学生/校友邮箱官方指南')
+   put('imap','imap.email.cugb.edu.cn',993,'ssl','CUGB 用户提供的官方 IMAP 设置')
+   put('smtp','smtp.email.cugb.edu.cn',465,'ssl','CUGB 用户提供的官方 SMTP 设置')
   }for(const p of ['mail','imap'])put('imap',p+'.'+domain,993,'ssl','按域名推测，需测试');for(const p of ['mail','smtp'])put('smtp',p+'.'+domain,465,'ssl','按域名推测，需测试')}
  for(const [key,type] of [['_imaps._tcp.','imap'],['_submission._tcp.','smtp'],['_submissions._tcp.','smtp']] as const){const records=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(key+domain,'SRV').catch(()=>[]):Promise.resolve([])) as Deno.SrvRecord[];for(const r of records.slice(0,3)){const port=Number(r.port);if(type==='imap'?[993,143].includes(port):[465,587].includes(port))put(type,r.target.replace(/\.$/,''),port,[993,465].includes(port)?'ssl':'starttls','DNS SRV')}}
  return result
@@ -112,9 +112,16 @@ Deno.serve(async req=>{
    catch(e){
      const original=e instanceof Error?e.message:'连接失败'
      const dns=/failed to lookup|name or service not known|ENOTFOUND|dns|lookup address/i.test(original)
-     results[kind]={ok:false,message:dns?
-      '服务器域名无法解析；CUGB 学生邮箱请使用 www.email.cugb.edu.cn（993/465 SSL），其他邮箱请确认服务商公布的服务器地址':
-      original}
+     const tls=/certificate|tls|ssl|handshake|unknown ca|hostname mismatch/i.test(original)
+     const rejected=/\b(?:535|534|530)\b|认证失败|拒绝登录|authentication failed|invalid credentials|login failed/i.test(original)
+     const timeout=/timed?\s*out|ETIMEDOUT|connection refused|ECONNREFUSED/i.test(original)
+     const endpoint=host+':'+String(kind==='imap'?a.imap_port:a.smtp_port)
+     const hint=dns?'域名解析失败，请核对官方主机名':
+      tls?'TLS 握手或证书校验失败，请核对主机名、加密方式及端口':
+      rejected?'服务器拒绝账号认证，请确认完整邮箱地址、客户端专用授权码及该协议是否已启用':
+      timeout?'连接超时或端口不可达，可能是服务器或云端出站网络限制':
+      '连接失败：'+original.replace(/[\r\n]/g,' ').slice(0,120)
+     results[kind]={ok:false,message:kind.toUpperCase()+' '+endpoint+' · '+hint}
     }
   }
   const ok=!!(results.imap as any)?.ok
