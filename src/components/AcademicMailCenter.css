@@ -1482,3 +1482,181 @@ html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-
 html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message[data-spam="true"]:not(.selected){
   background:#473b2f;box-shadow:inset 3px 0 0 #d2a16b;
 }
+
+/* Academic mail organization: colorful but quiet, white-centered workbench.
+   Virtual folders/tags are UI metadata; neither writes to IMAP nor changes EML. */
+html[data-ui] body .academic-mail-center .am-organizer-bar{
+ display:flex;align-items:center;gap:8px;min-height:36px;flex:0 0 auto;
+ margin:0 0 7px;padding:4px 9px;border:1px solid #dbe6f7;border-radius:10px;
+ background:linear-gradient(105deg,#ffffff,#f6f8ff);
+}
+.academic-mail-center .am-organizer-folders{
+ display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow-x:auto;
+ scrollbar-width:thin;
+}
+.academic-mail-center .am-organizer-folders>svg{flex:0 0 auto;color:#6486ce;margin-right:4px}
+.academic-mail-center .am-organizer-bar button,
+.academic-mail-center .am-organizer-bar select{
+ flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+ border:1px solid transparent;border-radius:8px;
+ background:transparent;color:#50637e;
+ padding:6px 9px;font-size:11.5px;cursor:pointer;white-space:nowrap;
+}
+.academic-mail-center .am-organizer-bar button:hover,
+.academic-mail-center .am-organizer-bar button.active{
+ color:#365cbb;border-color:#cad9f8;background:#eaf1ff;
+}
+.academic-mail-center .am-organizer-bar select{
+ max-width:160px;min-width:100px;border-color:#d9e3f2;background:#fff;color:#405778;
+}
+.academic-mail-center .am-organizer-bar .am-organizer-manage{border-color:#d7dff2}
+.academic-mail-center .am-color-point{
+ display:inline-block;width:8px;height:8px;flex:0 0 auto;border-radius:50%;
+}
+html[data-ui] body .academic-mail-center.am-mode-inbox .am-organizer-manager{
+ flex:0 0 auto;
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+ padding:10px;margin:0 0 8px;max-height:190px;overflow:auto;
+ border:1px solid #dbe5f5;border-radius:11px;
+ background:#f7f9ff;
+}
+.academic-mail-center .am-organizer-manager section{
+ min-width:0;padding:9px 11px;border:1px solid #e3e9f5;
+ border-radius:10px;background:#fff;
+}
+.academic-mail-center .am-organizer-manager section>strong{
+ display:flex;align-items:center;gap:6px;color:#294b78;font-size:12px;
+}
+.academic-mail-center .am-organizer-manager section>p{
+ color:#72829a;font-size:10px;margin:5px 0 8px;
+}
+.academic-mail-center .am-inline-create{display:flex;align-items:stretch;gap:6px}
+.academic-mail-center .am-inline-create input{
+ min-width:0;flex:1;background:#fff;border:1px solid #d6e1f2;
+ border-radius:7px;padding:7px 8px;font-size:12px;color:#243a59;
+}
+.academic-mail-center .am-inline-create button,.academic-mail-center .am-managed-items button{
+ display:inline-flex;align-items:center;gap:5px;justify-content:center;
+ border:1px solid #d4e1f2;background:#eef5ff;color:#416baf;
+ border-radius:7px;padding:6px 9px;cursor:pointer;font-size:11px;
+}
+.academic-mail-center .am-managed-items{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.academic-mail-center .am-managed-items>span{
+ display:inline-flex;align-items:center;gap:5px;border-radius:7px;
+ padding:3px 4px 3px 7px;background:#f4f6fd;color:#455c7d;font-size:11px;
+}
+.academic-mail-center .am-managed-items>span i{display:inline-block;width:7px;height:7px;border-radius:50%}
+.academic-mail-center .am-managed-items button{border:0;background:transparent;padding:3px;color:#9b6c73}
+.academic-mail-center .am-from-group{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.academic-mail-center .am-from-group strong{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.academic-mail-center .am-source-badge{
+ display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+ min-width:23px;width:23px;height:23px;overflow:hidden;border-radius:7px;
+ background:linear-gradient(135deg,#e1eaff,#f3eaff);
+ border:1px solid #cbdaf9;color:#4266ae;font-size:10px;font-weight:800;
+ letter-spacing:-.5px;
+}
+.academic-mail-center .am-source-badge img{
+ width:100%;height:100%;object-fit:contain;border-radius:5px;
+}
+.academic-mail-center .am-source-name{background:#e9f2ff;color:#4672b0}
+.academic-mail-center .am-folder-chip{background:#eaf8f2;color:#3c8d77}
+.academic-mail-center .am-user-tag{background:#f1eaff;color:#8055ac}
+.academic-mail-center .am-note-icon{color:#ad7a45;background:#fff4e4}
+.academic-mail-center .am-reader-source{
+ display:flex;align-items:center;gap:6px;
+}
+.academic-mail-center .am-reader-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+html[data-ui] body .academic-mail-center .am-reader-actions button{
+ padding:5px 7px;border:1px solid #e1e8f6;border-radius:7px;background:#fff;
+ color:#426cbb;font-size:11.5px;
+}
+html[data-ui] body .academic-mail-center .am-reader-actions button.active{
+ background:#e9efff;border-color:#bed0f7;color:#385eb5;
+}
+.academic-mail-center .am-translate-bar{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:9px 0 8px;
+ border:1px solid #cde3f7;background:#f0f8ff;border-radius:8px;padding:8px 10px;
+}
+.academic-mail-center .am-translate-bar label{display:flex;align-items:center;gap:6px;color:#37658a;font-size:11px}
+.academic-mail-center .am-translate-bar select{padding:5px 7px;border:1px solid #bfd7ed;border-radius:7px;background:#fff;font-size:11px}
+.academic-mail-center .am-translate-bar button{
+ display:flex;align-items:center;gap:5px;border:1px solid #a5c8ef;border-radius:7px;
+ background:#fff;color:#2d69aa;padding:6px 10px;cursor:pointer;font-size:11px;
+}
+.academic-mail-center .am-translate-bar>span{flex:1;min-width:160px;color:#607e96;font-size:10px}
+.academic-mail-center .am-parallel-text{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;
+}
+.academic-mail-center .am-parallel-text>div,
+.academic-mail-center .am-single-text>div{min-width:0}
+.academic-mail-center .am-parallel-text>div>strong{display:block;padding:6px 9px;background:#eaf1ff;border-radius:7px;color:#35649b;font-size:11px}
+.academic-mail-center .am-parallel-text .am-translation-col>strong{background:#eafaf7;color:#308a7f}
+html[data-ui] body .academic-mail-center .am-parallel-text pre,
+html[data-ui] body .academic-mail-center .am-single-text pre{font-size:13.5px;line-height:1.76}
+.academic-mail-center .am-annotation-panel{
+ padding:11px 12px;margin:12px 0;
+ border:1px solid #d5e9dd;border-radius:10px;background:#f5fbf7;
+}
+.academic-mail-center .am-annotation-title{
+ display:flex;align-items:center;gap:7px;color:#367c69;font-size:12px;font-weight:700;margin-bottom:10px;
+}
+.academic-mail-center .am-annotation-title small{color:#6f9186;font-size:10px;font-weight:400}
+.academic-mail-center .am-annotation-grid{display:grid;grid-template-columns:minmax(170px,.55fr) minmax(0,1fr);gap:10px}
+.academic-mail-center .am-annotation-grid>label{display:flex;flex-direction:column;gap:5px;color:#478071;font-size:11px}
+.academic-mail-center .am-annotation-grid>label svg{display:inline}
+.academic-mail-center .am-annotation-grid>label select{
+ width:100%;padding:7px 9px;background:#fff;border:1px solid #c6dfd3;border-radius:7px;color:#2e5548;font-size:12px;
+}
+.academic-mail-center .am-label-chooser{min-width:0}
+.academic-mail-center .am-label-chooser>span{display:flex;align-items:center;gap:6px;color:#478071;font-size:11px;margin-bottom:5px}
+.academic-mail-center .am-label-chooser>div{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.academic-mail-center .am-label-chooser button{
+ display:inline-flex;align-items:center;gap:5px;padding:5px 8px;
+ border:1px solid #d5e4da;background:#fff;border-radius:7px;color:#517363;font-size:10.5px;cursor:pointer;
+}
+.academic-mail-center .am-label-chooser button.selected{
+ border-color:var(--tag-color,#69a78b);background:#eff8f4;
+}
+.academic-mail-center .am-note-editor{display:flex;flex-direction:column;gap:5px;color:#3b796a;font-size:11px;margin-top:9px}
+.academic-mail-center .am-note-editor textarea{
+ display:block;width:100%;resize:vertical;min-height:56px;max-height:240px;
+ padding:8px 10px;border:1px solid #c7dfd3;border-radius:8px;background:#fff;color:#253f38;
+ line-height:1.55;font-size:12px;
+}
+.academic-mail-center .am-annotation-save{display:flex;justify-content:flex-end;margin-top:6px}
+.academic-mail-center .am-annotation-save button{
+ display:flex;align-items:center;gap:5px;border:1px solid #a8d2bc;
+ background:#e8f6ed;color:#337c60;border-radius:8px;padding:6px 11px;font-size:11px;cursor:pointer;
+}
+.academic-mail-center .am-brand-mark img{width:100%;height:100%;object-fit:contain;border-radius:10px}
+.academic-mail-center .am-brand-mark{font-size:14px;font-weight:800}
+.academic-mail-center .am-brand-editor{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;
+ background:#f3f8ff;border:1px solid #d5e5f8;border-radius:10px;padding:12px;margin:12px 0;
+}
+.academic-mail-center .am-brand-editor label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:11px;color:#42648e}
+.academic-mail-center .am-brand-editor input{min-width:0;width:100%;background:#fff;border:1px solid #cad9eb;border-radius:7px;padding:8px;color:#293f59}
+.academic-mail-center .am-brand-editor>div{display:flex;align-items:center;gap:8px;grid-column:1/-1}
+.academic-mail-center .am-brand-editor small{grid-column:1/-1;font-size:10px;color:#6b7f9a}
+@media(max-width:1100px){
+ .academic-mail-center .am-parallel-text{grid-template-columns:1fr}
+ .academic-mail-center .am-brand-editor{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ .academic-mail-center .am-organizer-bar{gap:4px}
+ .academic-mail-center .am-organizer-bar .am-organizer-folders button{padding:5px 7px;font-size:10px}
+ .academic-mail-center .am-organizer-manager{grid-template-columns:1fr;max-height:230px}
+ .academic-mail-center .am-organizer-bar select{max-width:105px;min-width:90px}
+ .academic-mail-center .am-annotation-grid{grid-template-columns:1fr}
+ .academic-mail-center .am-brand-editor{grid-template-columns:1fr}
+}
+html[data-ui][data-theme="dark"] body .academic-mail-center :is(.am-organizer-bar,.am-organizer-manager,.am-organizer-manager section,.am-translate-bar,.am-annotation-panel,.am-brand-editor){
+ background:#2b3d4d;border-color:#4c6279;color:#dbe9f6;
+}
+html[data-ui][data-theme="dark"] body .academic-mail-center :is(.am-organizer-bar button,.am-organizer-bar select,.am-organizer-manager input,.am-organizer-manager button,.am-annotation-panel textarea,.am-annotation-panel select,.am-annotation-panel button,.am-brand-editor input,.am-translate-bar select){
+ background:#334b60;border-color:#536e88;color:#e7f1fb;
+}
+html[data-ui][data-theme="dark"] body .academic-mail-center :is(.am-annotation-title,.am-annotation-grid>label,.am-label-chooser>span,.am-note-editor,.am-organizer-manager section>strong){
+ color:#b0e3d2;
+}
