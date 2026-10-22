@@ -56,6 +56,53 @@ class SMTP{
    await this.expect(code)
   }
 }
+async function sendOutlook(admin:any,account:any,to:string,subject:string,content:string,replyTo:string){
+ const token=await admin.rpc('mail_read_cloud_secret',{p_account_id:account.id})
+ if(token.error||!token.data||!account.oauth_client_id||account.auth_kind!=='oauth2')
+  throw Error('Outlook OAuth2 授权已失效，请重新连接')
+ const auth=await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{
+  method:'POST',redirect:'error',headers:{'content-type':'application/x-www-form-urlencoded'},
+  body:new URLSearchParams({client_id:account.oauth_client_id,grant_type:'refresh_token',
+   refresh_token:token.data,scope:'offline_access User.Read Mail.Read Mail.Send'})
+ })
+ const data=await auth.json()
+ if(!auth.ok||!data.access_token)throw Error('无法更新 Microsoft 邮箱令牌：'+String(data.error||auth.status).slice(0,65))
+ if(data.refresh_token&&data.refresh_token!==token.data){
+  const update=await admin.rpc('mail_save_cloud_secret',{p_account_id:account.id,p_secret:data.refresh_token})
+  if(update.error)throw Error('刷新令牌保存失败')
+ }
+ if(replyTo){
+  const prior=await admin.from('mail_messages')
+   .select('id,sender_address,extraction').eq('account_id',account.id)
+   .eq('user_id',account.user_id).eq('internet_message_id',replyTo).maybeSingle()
+  const originalId=prior.data?.extraction?.graph_message_id
+  if(typeof originalId==='string'&&originalId.length<800){
+   const source=await fetch('https://graph.microsoft.com/v1.0/me/messages/'+encodeURIComponent(originalId)+
+    '?$select=replyTo,from',{headers:{Authorization:'Bearer '+data.access_token,
+      Prefer:'IdType="ImmutableId"'},redirect:'error'})
+   if(!source.ok)throw Error('无法读取原邮件的 Graph 对话引用（HTTP '+source.status+'），为避免错发已取消回复')
+   const m=await source.json()
+   const actual=String(m.replyTo?.[0]?.emailAddress?.address||m.from?.emailAddress?.address||'').toLowerCase()
+   if(!actual||actual!==to.toLowerCase())
+    throw Error('原邮件指定的实际回复收件人为 '+(actual||'未知')+'，与当前收件人不一致；请核对后再发送')
+   const reply=await fetch('https://graph.microsoft.com/v1.0/me/messages/'+encodeURIComponent(originalId)+'/reply',{
+    method:'POST',redirect:'error',headers:{Authorization:'Bearer '+data.access_token,
+     'Content-Type':'application/json',Prefer:'IdType="ImmutableId"'},
+    body:JSON.stringify({comment:content})
+   })
+   if(reply.status!==202)throw Error('Microsoft Graph 回复未被接受（HTTP '+reply.status+'）')
+   return 'reply'
+  }
+ }
+  const sending=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{
+  method:'POST',redirect:'error',headers:{Authorization:'Bearer '+data.access_token,
+   'Content-Type':'application/json'},
+  body:JSON.stringify({message:{subject,body:{contentType:'Text',content},
+   toRecipients:[{emailAddress:{address:to}}]},saveToSentItems:true})
+ })
+ if(sending.status!==202)throw Error('Microsoft Graph 发信未被接受（HTTP '+sending.status+'）')
+ return 'new'
+}
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return json(null,204)
  if(req.method!=='POST')return json({error:'POST required'},405)
@@ -72,10 +119,6 @@ Deno.serve(async req=>{
  const account=await admin.from('mail_accounts').select('*').eq('id',id).eq('user_id',auth.data.user.id).eq('enabled',true).maybeSingle()
  if(account.error||!account.data)return json({error:'Account unavailable'},404)
  const a=account.data
- if(!a.smtp_host)return json({error:'请先配置 SMTP 服务器'},422)
- const port=Number(a.smtp_port||465),security=a.smtp_security||'ssl'
- if(!(port===465&&security==='ssl'||port===587&&security==='starttls'))return json({error:'安全端口必须为 SMTP 465/SSL 或587/STARTTLS'},422)
- try{await ensurePublic(a.smtp_host)}catch(e){return json({error:e instanceof Error?e.message:'SMTP 地址不安全'},422)}
  let to='',subject='',content='',replyTo=''
  try{
   to=safeAddress(body.to)
@@ -85,7 +128,21 @@ Deno.serve(async req=>{
   if(!subject||subject.length>500||!content.trim()||content.length>100000)throw Error('Invalid subject or text')
   if(replyTo && !/^<[^\r\n<>]{3,300}>$/.test(replyTo))throw Error('Invalid In-Reply-To header')
  }catch{return json({error:'收件人、主题或正文无效'},422)}
- const secret=await admin.rpc(a.smtp_has_separate_key?'mail_read_smtp_secret':'mail_read_cloud_secret',{p_account_id:id})
+ if(a.provider==='outlook'){
+  try{
+   const mode=await sendOutlook(admin,a,to,subject,content,replyTo)
+   return json({sent:true,provider:'outlook',mode,
+    message:mode==='reply'?'Microsoft Graph 已接受同一会话中的回复':'Microsoft Graph 已接受新邮件，存入已发送邮件'})
+  }catch(e){
+   return json({error:'Outlook OAuth2 发信失败：'+String(e instanceof Error?e.message:e).slice(0,150)},502)
+  }
+ }
+ if(!a.smtp_host)return json({error:'请先配置 SMTP 服务器'},422)
+ const port=Number(a.smtp_port||465),security=a.smtp_security||'ssl'
+ if(!(port===465&&security==='ssl'||port===587&&security==='starttls'))
+  return json({error:'安全端口必须为 SMTP 465/SSL 或587/STARTTLS'},422)
+ try{await ensurePublic(a.smtp_host)}catch(e){return json({error:e instanceof Error?e.message:'SMTP 地址不安全'},422)}
+  const secret=await admin.rpc(a.smtp_has_separate_key?'mail_read_smtp_secret':'mail_read_cloud_secret',{p_account_id:id})
  if(secret.error||!secret.data)return json({error:a.smtp_has_separate_key?'SMTP 独立授权码不可用':'请先配置邮箱授权码'},422)
  let client:SMTP|null=null
  try{

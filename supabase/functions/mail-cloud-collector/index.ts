@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import PostalMime from 'npm:postal-mime@4.0.7'
+import {scanOutlookGraph} from './outlook.ts'
 
 const PROJECT=Deno.env.get('SUPABASE_URL')||''
 const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
@@ -290,7 +291,8 @@ Deno.serve(async req=>{
  if(!account)return apiResponse({checked:0,processed:0})
  await admin.from('mail_accounts').update({last_checked_at:new Date().toISOString()}).eq('id',account.id)
  try{
-  const result=await scanAccount(admin,account)
+  const result=account.provider==='outlook'&&account.auth_kind==='oauth2'
+     ?await scanOutlookGraph(admin,account):await scanAccount(admin,account)
   await admin.from('mail_accounts').update({
    last_sync_at:new Date().toISOString(),last_error:null,cloud_state:'ready',
    consecutive_failures:0,next_attempt_at:null,
