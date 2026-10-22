@@ -6,25 +6,59 @@ async function verifyUrl(raw:string){
  const u=new URL(raw)
  if(u.protocol!=='https:'||u.port||u.username||u.password||u.search||u.hash||!validHost(u.hostname))
   throw Error('API 地址必须是无附加凭据的公网 HTTPS URL（443 端口）')
- const a=await Deno.resolveDns(u.hostname,'A').catch(()=>[] as string[]) as string[]
- const b=await Deno.resolveDns(u.hostname,'AAAA').catch(()=>[] as string[]) as string[]
- if(!a.length&&!b.length)throw Error('API 域名解析失败')
+ const a=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(u.hostname,'A').catch(()=>[] as string[]):Promise.resolve([] as string[])) as string[]
+ const b=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(u.hostname,'AAAA').catch(()=>[] as string[]):Promise.resolve([] as string[])) as string[]
+ // Advisory DNS data may be unavailable at Edge; HTTPS + cert verifies the API endpoint.
  if(a.some(ip=>{const p=ip.split('.').map(Number),[x,y]=p;return p.length!==4||p.some(n=>n<0||n>255)||x===0||x===10||x===127||x>=224||x===169&&y===254||x===172&&y>=16&&y<=31||x===192&&y===168||x===100&&y>=64&&y<=127||x===192&&y===0||x===198&&y>=18&&y<=19})||b.some(ip=>/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(ip)||/::ffff:/i.test(ip)))throw Error('API 地址解析到内网或保留地址')
  if(!u.pathname.endsWith('/chat/completions'))throw Error('请输入完整的 OpenAI 兼容 /chat/completions 地址')
  return u.href
 }
-const preset='https://api.z.ai/api/paas/v4/chat/completions'
+const glmEndpoints={
+ zai:'https://api.z.ai/api/paas/v4/chat/completions',
+ bigmodel:'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+} as const
+type GlmPlatform=keyof typeof glmEndpoints
+function codeInfo(status:number,code:string,reason:string){
+ if(status===429){
+  if(code==='1113')return {category:'billing',message:'已连通服务商，但账户额度不足或 API Key 所属平台不匹配；这是额度/平台错误，不是请求限流。'}
+  if(code==='1305')return {category:'busy',message:'服务端负载过高（1305），稍后重试；不需要重新填写 API Key。'}
+  if(code==='1302')return {category:'rate_limited',message:'服务商限制了当前请求频率（1302），请稍后重试；不代表接口配置错误。'}
+  return {category:'rate_limited',message:'接口返回 HTTP 429；需要查看业务错误码以区分额度、限流或服务繁忙。'+(reason?' '+reason:'')}
+ }
+ if(status===401)return {category:'auth',message:'API Key 被此平台拒绝（401）；请检查是国内 BigModel 还是国际 Z.AI 的 Key。'}
+ if(status===403)return {category:'permission',message:'接口已访问，但当前 Key 无模型权限（403）。'}
+ if(status===402)return {category:'billing',message:'服务商要求付费（402），未执行付费回退。'}
+ if(status===400||status===404)return {category:'config',message:'模型或请求参数被服务商拒绝（HTTP '+status+'）。'+(reason?' '+reason:'')}
+ return {category:'server',message:'服务商返回 HTTP '+status+(reason?'：'+reason:'')}
+}
 async function modelTest(url:string,model:string,key:string){
  await verifyUrl(url)
  const t0=Date.now(),controller=new AbortController()
- const timer=setTimeout(()=>controller.abort(),19000)
+ const timer=setTimeout(()=>controller.abort(),16000)
  try{
-  const result=await fetch(url,{method:'POST',redirect:'error',signal:controller.signal,headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:'连接测试。请回复 OK'}],max_tokens:12,temperature:0})})
-  if(!result.ok)return {ok:false,http_status:result.status,message:result.status===401?'API Key 无效或服务商拒绝授权':result.status===402?'服务商要求付费，已停止':result.status===403?'当前 Key 未获模型权限':result.status===429?'服务商限流':'模型服务返回 HTTP '+result.status,latency_ms:Date.now()-t0}
-  const body=await result.json()
-  const ok=Array.isArray(body?.choices)&&body.choices.length>0
-  return {ok,message:ok?'模型 API 已返回有效响应':'接口返回成功，但响应结构与 OpenAI 格式不一致',latency_ms:Date.now()-t0}
- }catch(e){return {ok:false,message:e instanceof Error?e.message.slice(0,160):'连接失败',latency_ms:Date.now()-t0}}
+  const result=await fetch(url,{method:'POST',redirect:'error',signal:controller.signal,headers:{
+   Authorization:'Bearer '+key,'Content-Type':'application/json'
+  },body:JSON.stringify({model,messages:[{role:'user',content:'连接测试。请回复 OK'}],max_tokens:16})})
+  const raw=await result.text()
+  let data:Record<string,any>={}
+  try{data=JSON.parse(raw.slice(0,6000))}catch{}
+  if(!result.ok){
+   const biz=String(data?.error?.code??data?.code??'').slice(0,20)
+   const hint=String(data?.error?.message??data?.message??'').replace(/https?:\/\/\S+/g,'[url]').slice(0,120)
+   const info=codeInfo(result.status,biz,hint)
+   const retryRaw=result.headers.get('retry-after')
+   const retryNum=retryRaw?Number(retryRaw):NaN
+   return {ok:false,reachable:true,http_status:result.status,code:biz||null,
+    category:info.category,message:info.message,
+    retry_after_seconds:Number.isFinite(retryNum)?Math.min(3600,Math.max(0,retryNum)):null,
+    latency_ms:Date.now()-t0}
+  }
+  const ok=Array.isArray(data?.choices)&&data.choices.length>0
+  return {ok,reachable:true,category:ok?'ok':'format',
+   message:ok?'模型接口正常，已返回有效响应':'HTTP 200，但服务商响应结构与 Chat Completions 不一致',
+   latency_ms:Date.now()-t0}
+ }catch(e){return {ok:false,reachable:false,category:'network',
+   message:'连接测试请求失败：'+(e instanceof Error?e.message.slice(0,110):'网络异常'),latency_ms:Date.now()-t0}}
  finally{clearTimeout(timer)}
 }
 Deno.serve(async req=>{
@@ -53,12 +87,28 @@ Deno.serve(async req=>{
   return reply({configured:!!r.data})
  }
  if(action==='test'){
-  const prefs=await db.from('mail_preferences').select('ai_model').eq('user_id',userId).maybeSingle()
+  const prefs=await db.from('mail_preferences').select('ai_model,ai_glm_platform').eq('user_id',userId).maybeSingle()
   const model=prefs.data?.ai_model||'glm-4.7-flash'
   if(!['glm-4.7-flash','glm-4.5-flash'].includes(model))return reply({error:'此测试仅支持 GLM 免费 Flash 模型'},422)
   const secret=await db.rpc('mail_read_ai_key',{p_user_id:userId})
   if(!secret.data)return reply({error:'请先保存 GLM API Key'},422)
-  return reply(await modelTest(preset,model,secret.data))
+  const preferred:GlmPlatform=prefs.data?.ai_glm_platform==='bigmodel'?'bigmodel':'zai'
+  const first=await modelTest(glmEndpoints[preferred],model,secret.data)
+  if(first.ok)return reply({...first,platform:preferred})
+  if(body.auto_detect===true){
+   const alternative:GlmPlatform=preferred==='zai'?'bigmodel':'zai'
+   const second=await modelTest(glmEndpoints[alternative],model,secret.data)
+   if(second.ok){
+    await db.from('mail_preferences').update({ai_glm_platform:alternative,ai_enabled:false})
+     .eq('user_id',userId)
+    return reply({...second,platform:alternative,switched:true,
+      message:'自动检测成功：此 Key 可在'+(alternative==='bigmodel'?'国内 BigModel':'国际 Z.AI')+'使用。平台已切换，后台自动分析保持关闭。'})
+   }
+   return reply({...first,platform:preferred,
+    alternate:{platform:alternative,category:second.category,http_status:second.http_status,code:second.code},
+    message:first.message+' 另一官方平台同样未通过测试（'+second.category+'）。可手动选择平台后重试。'})
+  }
+  return reply({...first,platform:preferred})
  }
  if(action==='save_endpoint_key'||action==='test_endpoint'||action==='delete_endpoint'){
   const id=String(body.endpoint_id||'')

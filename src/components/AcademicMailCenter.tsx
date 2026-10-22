@@ -6,6 +6,7 @@ import {
   ShieldCheck, Sparkles, PauseCircle, PlayCircle, X
 } from 'lucide-react'
 import MailPersonalization, {DEFAULT_MAIL_VIEWS,MAIL_VIEW_KINDS,type MailViewKind,type MailSettings} from './MailPersonalization'
+import MailToast, {type MailToastKind} from './MailToast'
 import './AcademicMailCenter.css'
 
 type Account = {
@@ -108,6 +109,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [warning, setWarning] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [newAddress, setNewAddress] = useState('')
   const [newProvider, setNewProvider] = useState('coremail')
@@ -394,7 +396,15 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     finally{setBusy(null)}
   }
     const pickScope=(next:Scope)=>{setScope(next);setPage(0)}
-  const goToAccounts=()=>{setWorkspace('accounts');setNotice('');setError('')}
+  const showToast=useCallback((kind:MailToastKind,message:string)=>{
+    if(kind==='error')setError(message)
+    else if(kind==='warning')setWarning(message)
+    else setNotice(message)
+  },[])
+  const dismissError=useCallback(()=>setError(''),[])
+  const dismissNotice=useCallback(()=>setNotice(''),[])
+  const dismissWarning=useCallback(()=>setWarning(''),[])
+    const goToAccounts=()=>{setWorkspace('accounts');setNotice('');setError('')}
   const refresh=async()=>{setNotice('');await Promise.all([loadMessages(),loadMetadata()])}
 
   return <main className="academic-mail-center">
@@ -414,8 +424,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       </div>
     </header>
 
-    {error&&<div className="am-alert" role="alert"><AlertCircle size={16}/><span>{error}</span><button type="button" onClick={()=>setError('')} aria-label="关闭错误"><X size={15}/></button></div>}
-    {notice&&<div className="am-notice" role="status"><Check size={16}/><span>{notice}</span><button type="button" onClick={()=>setNotice('')} aria-label="关闭提示"><X size={15}/></button></div>}
+    <MailToast error={error} notice={notice} warning={warning}
+      onDismissError={dismissError} onDismissNotice={dismissNotice} onDismissWarning={dismissWarning}/>
 
     <nav className="am-tabs" aria-label="邮件中心导航">
       <button type="button" className={workspace==='inbox'?'active':''} onClick={()=>setWorkspace('inbox')}><Inbox size={16}/> 邮件工作台</button>
@@ -562,7 +572,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </section>)}
       </div>
       <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>定时采集不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
-    </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey}/>}
+    </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey} onToast={showToast}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
       <div className="am-compose">
         <header><strong>撰写邮件</strong><button type="button" onClick={()=>setShowCompose(false)} aria-label="关闭"><X size={17}/></button></header>

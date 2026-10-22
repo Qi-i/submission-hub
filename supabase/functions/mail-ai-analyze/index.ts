@@ -24,7 +24,7 @@ Deno.serve(async req=>{
   owner=auth.data.user.id
  }
  let q=admin.from('mail_preferences')
-   .select('user_id,ai_enabled,ai_key_ready,ai_model,ai_daily_limit,ai_analyze_existing,ai_started_at,ai_endpoint_id,ai_system_prompt,ai_allow_paid')
+   .select('user_id,ai_enabled,ai_key_ready,ai_model,ai_daily_limit,ai_analyze_existing,ai_started_at,ai_endpoint_id,ai_system_prompt,ai_allow_paid,ai_glm_platform,ai_retry_after,last_ai_error')
    .eq('ai_enabled',true).gt('ai_daily_limit',0)
  if(owner)q=q.eq('user_id',owner)
  const settings=await q.limit(20)
@@ -32,7 +32,8 @@ Deno.serve(async req=>{
  let analyzed=0,errors=0
  for(const pref of settings.data||[]){
   if(analyzed+errors>=4)break
-  let endpoint='https://api.z.ai/api/paas/v4/chat/completions'
+  if(pref.ai_retry_after&&new Date(pref.ai_retry_after).getTime()>Date.now())continue
+  let endpoint=pref.ai_glm_platform==='bigmodel'?'https://open.bigmodel.cn/api/paas/v4/chat/completions':'https://api.z.ai/api/paas/v4/chat/completions'
   let selectedModel=String(pref.ai_model||'glm-4.7-flash')
   let secretText=''
   if(pref.ai_endpoint_id){
@@ -45,9 +46,9 @@ Deno.serve(async req=>{
     if(u.protocol!=='https:'||u.port||u.username||u.password||u.search||u.hash||
       !/^(?=.{4,190}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(u.hostname)||
       !u.pathname.endsWith('/chat/completions'))continue
-    const ipv4=await Deno.resolveDns(u.hostname,'A').catch(()=>[] as string[]) as string[]
-    const ipv6=await Deno.resolveDns(u.hostname,'AAAA').catch(()=>[] as string[]) as string[]
-    if(!ipv4.length&&!ipv6.length)continue
+    const ipv4=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(u.hostname,'A').catch(()=>[] as string[]):Promise.resolve([] as string[])) as string[]
+    const ipv6=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(u.hostname,'AAAA').catch(()=>[] as string[]):Promise.resolve([] as string[])) as string[]
+    // DNS lookup at Edge is advisory; validated HTTPS TLS is the connection check.
     if(ipv4.some(ip=>{const p=ip.split('.').map(Number),[x,y]=p;return p.length!==4||x===0||x===10||x===127||x>=224||x===169&&y===254||x===172&&y>=16&&y<=31||x===192&&y===168||x===100&&y>=64&&y<=127||x===192&&y===0||x===198&&y>=18&&y<=19})||ipv6.some(ip=>/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(ip)||/::ffff:/i.test(ip)))continue
     endpoint=u.href
    }catch{continue}
@@ -90,6 +91,28 @@ Deno.serve(async req=>{
       ]
      })
     })
+    if(raw.status===429){
+     let serviceCode=''
+     try{
+      const failure=await raw.json()
+      serviceCode=String(failure?.error?.code??failure?.code??'').slice(0,20)
+     }catch{}
+     if(serviceCode==='1113'){
+      await admin.from('mail_preferences').update({
+       ai_enabled:false,ai_retry_after:null,
+       last_ai_error:'当前 API 平台反馈余额不足（1113）；已暂停自动分析，请核对国内/国际接口'
+      }).eq('user_id',pref.user_id)
+     }else{
+      const wait=serviceCode==='1305'?45:20
+      const retryAt=new Date(Date.now()+wait*60_000).toISOString()
+      await admin.from('mail_preferences').update({
+       ai_retry_after:retryAt,last_ai_error:
+        '服务商暂时未受理请求（'+(serviceCode||'429')+'），'+wait+' 分钟后自动重试；邮件保持待分析'
+      }).eq('user_id',pref.user_id)
+     }
+     // A temporary provider rejection must never consume and permanently fail a message.
+     errors++;break
+    }
     if(raw.status===402||raw.status===403){
      await admin.from('mail_preferences').update({
       ai_enabled:false,last_ai_error:'服务商不允许免费调用，已自动停止（无付费模型回退）'
@@ -114,6 +137,10 @@ Deno.serve(async req=>{
     }).eq('id',m.id).eq('user_id',pref.user_id).eq('ai_state','pending')
     if(update.error)throw new Error('Unable to save summary')
     analyzed++
+    if(pref.ai_retry_after||pref.last_ai_error){
+     await admin.from('mail_preferences').update({ai_retry_after:null,last_ai_error:null})
+       .eq('user_id',pref.user_id)
+    }
    }catch(e){
     const err=e instanceof Error?e.message:String(e)
     await admin.from('mail_messages').update({ai_state:'error',ai_error:err.slice(0,120)})

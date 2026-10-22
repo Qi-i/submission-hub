@@ -1,12 +1,13 @@
 import {useCallback,useEffect,useState} from 'react'
-import {AlertCircle,ArrowDown,ArrowUp,CheckCircle2,Plus,Settings2,Sparkles,Trash2,X} from 'lucide-react'
+import {AlertCircle,ArrowDown,ArrowUp,Plus,Settings2,Sparkles,Trash2,X} from 'lucide-react'
 import {supabase} from '../lib/supabase'
+import type {MailToastKind} from './MailToast'
 export type MailViewKind='all'|'important'|'review_invite'|'pending'|'submission_update'|'spam'
 export type MailView={id:string;title:string;kind:MailViewKind}
 export type MailSettings={
  user_id:string;workspace:{compact?:boolean;show_statistics?:boolean;views?:MailView[]};
  ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;ai_started_at?:string|null;
- ai_key_ready:boolean;last_ai_error:string|null;ai_endpoint_id?:string|null;ai_system_prompt?:string;ai_allow_paid?:boolean
+ ai_key_ready:boolean;last_ai_error:string|null;ai_endpoint_id?:string|null;ai_system_prompt?:string;ai_allow_paid?:boolean;ai_glm_platform?:'zai'|'bigmodel'
 }
 type Endpoint={id:string;label:string;api_url:string;model:string;declared_free:boolean;allow_paid:boolean;key_ready:boolean;last_test_at:string|null;last_test_status:string|null}
 export const DEFAULT_MAIL_VIEWS:MailView[]=[
@@ -22,8 +23,8 @@ export const MAIL_VIEW_KINDS:Record<MailViewKind,string>={
 const DEFAULT_PROMPT='请概述邮件主题、关键事实与待处理事项，并判断重要性、可能的处理期限及与投稿论文的关联。没有依据的信息不要推测。'
 type Props={userId:string;settings:MailSettings|null;busy:boolean;
  onUpdate:(changes:Partial<MailSettings>)=>Promise<void>;
- onSaveKey:(key:string)=>Promise<void>}
-export default function MailPersonalization({userId,settings,busy,onUpdate,onSaveKey}:Props){
+ onSaveKey:(key:string)=>Promise<void>;onToast:(kind:MailToastKind,message:string)=>void}
+export default function MailPersonalization({userId,settings,busy,onUpdate,onSaveKey,onToast}:Props){
  const [newTitle,setNewTitle]=useState('')
  const [newKind,setNewKind]=useState<MailViewKind>('review_invite')
  const [apiKey,setApiKey]=useState('')
@@ -41,6 +42,12 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  const [localError,setLocalError]=useState('')
  const [saving,setSaving]=useState(false)
  useEffect(()=>setPrompt(settings?.ai_system_prompt||DEFAULT_PROMPT),[settings?.ai_system_prompt])
+ useEffect(()=>{if(localError)onToast('error',localError)},[localError,onToast])
+ useEffect(()=>{if(testResult){
+   const kind:MailToastKind=testResult.startsWith('连接失败')?'error':
+     testResult.startsWith('连接已响应')?'warning':'success'
+   onToast(kind,testResult)
+ }},[testResult,onToast])
  const reload=useCallback(async()=>{
   const r=await (supabase.from('mail_ai_endpoints') as any).select('id,label,api_url,model,declared_free,allow_paid,key_ready,last_test_at,last_test_status').eq('user_id',userId).order('created_at',{ascending:true})
   if(r.error)setLocalError(r.error.message)
@@ -85,12 +92,16 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   finally{setSaving(false)}
  }
  const startEdit=(e:Endpoint)=>{setEditId(e.id);setLabel(e.label);setUrl(e.api_url);setModel(e.model);setFree(e.declared_free);setPaid(e.allow_paid);setEndpointKey('');setTestResult('');setLocalError('')}
- const test=async(id:string|null)=>{
+ const test=async(id:string|null,autoDetect=false)=>{
   setTesting(id||'default');setLocalError('');setTestResult('')
   try{
-   const r=await call(id?'test_endpoint':'test',id?{endpoint_id:id}:{})
-   setTestResult((r.ok?'连接成功：':'连接失败：')+(r.message||'未知响应')+(r.latency_ms?' · '+r.latency_ms+'ms':''))
+   const r=await call(id?'test_endpoint':'test',id?{endpoint_id:id}:{auto_detect:autoDetect})
+   setTestResult((r.ok?'连接成功：':r.reachable?'连接已响应但模型未就绪：':'连接失败：')+
+    (r.message||'未知响应')+(r.code?' · 业务码 '+r.code:'')+
+    (r.retry_after_seconds?' · 建议 '+r.retry_after_seconds+' 秒后重试':'')+
+    (r.latency_ms?' · '+r.latency_ms+'ms':''))
    if(id)await reload()
+   else if(r.switched)await onUpdate({ai_glm_platform:r.platform,ai_enabled:false})
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setTesting(null)}
  }
@@ -109,8 +120,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  const paidWarning=!!chosen&&!chosen.declared_free
  return <section className="am-personalization">
   <header><h3>邮件工作台设置</h3><p>分类、AI 模型与指令保存在 Supabase，修改后无需重新发布。</p></header>
-  {localError&&<div className="am-alert" role="alert"><AlertCircle size={16}/><span>{localError}</span><button type="button" onClick={()=>setLocalError('')} aria-label="关闭"><X size={14}/></button></div>}
-  {testResult&&<div className={testResult.startsWith('连接失败')?'am-alert':'am-notice'} role="status">{testResult.startsWith('连接失败')?<AlertCircle size={16}/>:<CheckCircle2 size={16}/>}<span>{testResult}</span></div>}
+
   <div className="am-personal-section">
    <h4><Settings2 size={16}/> 快捷分类</h4>
    <p>不固定审稿邀请栏目。可按使用频率自行增加、调整顺序与名称。</p>
@@ -137,12 +147,18 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
      {endpoints.map(e=><option key={e.id} value={e.id}>{e.label} · {e.model}</option>)}
     </select></label>
    {!chosen?<div className="am-model-preset">
-    <div className="am-add-form"><label>默认 GLM 模型<select value={settings?.ai_model||'glm-4.7-flash'} onChange={e=>void onUpdate({ai_model:e.target.value})} disabled={busy}>
+    <div className="am-add-form"><label>GLM 平台<select value={settings?.ai_glm_platform||'zai'} disabled={busy||!!testing}
+      onChange={e=>void onUpdate({ai_glm_platform:e.target.value as 'zai'|'bigmodel',ai_enabled:false})}>
+      <option value="bigmodel">智谱 BigModel（中国）</option>
+      <option value="zai">Z.AI（国际）</option>
+    </select></label><label>默认 GLM 模型<select value={settings?.ai_model||'glm-4.7-flash'} onChange={e=>void onUpdate({ai_model:e.target.value})} disabled={busy}>
      <option value="glm-4.7-flash">GLM-4.7-Flash</option><option value="glm-4.5-flash">GLM-4.5-Flash</option></select></label>
      <label>GLM API Key<input type="password" autoComplete="new-password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder={settings?.ai_key_ready?'Key 已保存，留空不修改':'填写 API Key'}/></label>
      <button type="button" className="am-main-button" disabled={!apiKey.trim()||busy} onClick={()=>void onSaveKey(apiKey.trim()).then(()=>setApiKey('')).catch(()=>{})}>保存 Key</button>
-     <button type="button" className="am-quiet-button" disabled={!settings?.ai_key_ready||!!testing||busy} onClick={()=>void test(null)}>{testing==='default'?'测试中…':'测试 GLM 连接'}</button>
-    </div><small>{settings?.ai_key_ready?'GLM API Key 已加密保存。测试将实际调用少量 token。':'请先添加 API Key 后测试。'}</small>
+     <button type="button" className="am-quiet-button" disabled={!settings?.ai_key_ready||!!testing||busy} onClick={()=>void test(null)}>{testing==='default'?'测试中…':'测试当前平台'}</button>
+     <button type="button" className="am-quiet-button" disabled={!settings?.ai_key_ready||!!testing||busy}
+      onClick={()=>void test(null,true)}>自动检测官方平台</button>
+    </div><small>{settings?.ai_key_ready?'GLM API Key 已加密保存。测试调用少量免费 Flash token；自动检测会向国内及国际官方平台分别发送最短探针，成功后自动选择对应平台。':'请先添加 API Key 后测试。'}</small>
    </div>:<div className="am-model-preset"><strong>{chosen.label}</strong><p>模型：{chosen.model} · {chosen.key_ready?'Key 已保存':'Key 未配置'} · {chosen.last_test_status==='ok'?'上次测试成功':chosen.last_test_status||'尚未测试'}</p>
     <button type="button" className="am-quiet-button" disabled={!chosen.key_ready||!!testing||busy} onClick={()=>void test(chosen.id)}>{testing===chosen.id?'测试中…':'测试选中模型'}</button></div>}
    <div className="am-endpoint-list"><div className="am-section-heading"><strong>自定义 API 列表</strong><span>{endpoints.length} 个</span></div>

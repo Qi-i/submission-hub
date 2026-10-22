@@ -15,6 +15,9 @@ const category=read('supabase/024_mail_ai_category.sql')
 const smtpMigration=read('supabase/025_mail_health_smtp_secret.sql')
 const aiReauthMigration=read('supabase/026_mail_ai_endpoint_reauthorization.sql')
 const theme=read('src/mail-navigation-card-layout.css')
+const mailToast=read('src/components/MailToast.tsx')
+const mailCss=read('src/components/AcademicMailCenter.css')
+const glmMigration=read('supabase/027_mail_glm_platform.sql')
 const app=read('src/components/Dashboard.tsx')
 for(const [name,condition] of [
  ['provider discovery',config.includes("body.action==='discover'")],
@@ -41,6 +44,15 @@ for(const [name,condition] of [
  ['responsive mail full width',theme.includes('.app-layout > .academic-mail-center')],
  ['journal display wraps',theme.includes('-webkit-line-clamp: 2')&&theme.includes('.journal-pill-text')],
  ['settings and feedback in avatar',app.includes('header-account-dropdown')&&app.includes('问题反馈')],
+ ['SMTP and IMAP public hosts can be saved without edge DNS',config.includes('Do not block settings saves on runtime DNS')&&!config.includes('域名无法解析，请检查服务器地址')],
+ ['model errors distinguish business-level rate limit versus credit',modelApi.includes("code==='1113'")&&modelApi.includes("code==='1302'")&&modelApi.includes("code==='1305'")],
+ ['free GLM selects domestic and global platforms',glmMigration.includes('ai_glm_platform')&&modelApi.includes('open.bigmodel.cn/api/paas/v4')],
+ ['GLM provider can be explicitly auto-discovered',modelApi.includes('body.auto_detect===true')&&personal.includes('自动检测官方平台')],
+ ['automatic analysis uses configured verified provider',worker.includes("pref.ai_glm_platform==='bigmodel'")],
+ ['all mail operations have fixed and screen-visible alerts',ui.includes('<MailToast ')&&mailToast.includes('createPortal')&&mailCss.includes('position:fixed !important')],
+ ['warning and errors remain distinguishable',mailToast.includes('am-toast-warning')&&mailToast.includes('am-toast-error')],
+ ['provider 429 leaves mail pending with cooldown',worker.includes('ai_retry_after:retryAt')&&worker.includes('emails')===false&&worker.includes("raw.status===429")],
+
  ['SMTP independent credential isolated in Vault',smtpMigration.includes('mail_private.smtp_credentials')&&smtpMigration.includes('vault.create_secret')],
  ['SMTP sender honors separate key',sender.includes('smtp_has_separate_key')&&sender.includes('mail_read_smtp_secret')],
  ['separate SMTP tested, not falsely marked verified',config.includes("mail_read_smtp_secret")&&config.includes("action==='test'")],
@@ -53,4 +65,4 @@ for(const [name,condition] of [
  ['old API keys never implicitly follow a new URL',personal.includes('模型配置已保存')&&aiReauthMigration.includes('new.api_url is distinct from old.api_url')],
 
 ])assert.ok(condition,'Mail architecture contract failed: '+name)
-console.log('Extended mail resilience and security contract: 34/34 invariants.')
+console.log('Extended mail resilience and security contract: 42/42 invariants.')
