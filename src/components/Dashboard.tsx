@@ -330,7 +330,7 @@ export default function Dashboard() {
   if (loading) return <div className="loading-screen"><div className="spinner" /><span style={{ fontSize: 13 }}>加载数据中...</span></div>
 
   return (
-    <div className="app-layout">
+    <div className={tab === 'mail' ? 'app-layout app-layout-mail' : 'app-layout'}>
       {isDemo && <div className="demo-banner"><span>🎭 演示模式 — 数据为示例，不会保存更改</span><button className="btn btn-sm btn-ghost" onClick={exitDemo}><X size={14} /> 退出演示</button></div>}
 
       <header className="app-header app-header-refined">
