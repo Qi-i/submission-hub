@@ -1,4 +1,5 @@
 import PostalMime from 'npm:postal-mime@4.0.7'
+import {mailStoragePolicy,safeGraphWebLink,textPreview} from './storage-policy.ts'
 const GRAPH='https://graph.microsoft.com/v1.0'
 const MAX_RAW=8*1024*1024,MAX_SCAN=24,MAX_FOLDERS=55
 const digest=async (input:Uint8Array|string)=>{
@@ -103,11 +104,39 @@ async function archive(admin:any,account:any,token:string,folder:{id:string;name
    return false
   }
  }
+ const subjectHint=String(item.subject||'').replaceAll(String.fromCharCode(0),'').slice(0,1024)
+ const senderHint=String(item.from?.emailAddress?.address||'').replaceAll(String.fromCharCode(0),'')
+ const senderName=String(item.from?.emailAddress?.name||'').replaceAll(String.fromCharCode(0),'')
+ const policy=mailStoragePolicy('outlook',folder.name,subjectHint,senderHint)
+ const bytesHint=Number(item.size||0)
+ const link=safeGraphWebLink(item.webLink)
+ const lightweight=policy.tier==='index'||bytesHint>MAX_RAW||
+   (policy.tier==='text'&&bytesHint>256*1024)
+ if(lightweight){
+  const remoteKey=await digest(knownMessageId||folder.id+':'+item.id)
+  const existing=await admin.from('mail_messages').select('id').eq('account_id',account.id)
+   .eq('remote_key',remoteKey).maybeSingle()
+  if(existing.error)throw Error('Graph header index lookup failed')
+  if(existing.data)return false
+  const added=await admin.from('mail_messages').insert({
+   user_id:account.user_id,account_id:account.id,remote_key:remoteKey,
+   internet_message_id:knownMessageId.slice(0,512),first_folder:folder.spam?'Junk':folder.name,
+   last_folder:folder.name,received_at:item.receivedDateTime||null,
+   sender_name:senderName,sender_address:senderHint,recipient_address:account.address,
+   subject:subjectHint,snippet:bytesHint>MAX_RAW?'大邮件 · 源邮箱查看原文':policy.label+' · 源邮箱查看原文',
+   body_text:'',category:'other',importance:0,storage_tier:'index',ai_state:'skipped',
+   extraction:{storage_tier:'index',storage_reason:policy.label,original_size_bytes:bytesHint,
+    attachments_not_copied:true,graph_message_id:item.id,...(link?{webmail_url:link}:{})},
+   cloud_archive_path:null,archived_locally:false
+  })
+  if(added.error&&!/duplicate key/i.test(added.error.message||''))throw Error('Graph header index save failed')
+  return !added.error
+ }
  const raw=await graph(token,GRAPH+'/me/messages/'+encodeURIComponent(item.id)+'/$value')
  const len=Number(raw.headers.get('content-length')||0)
- if(len>MAX_RAW)throw Error('Outlook 邮件大于 8 MiB，无法完整归档')
+ if(len>MAX_RAW)throw Error('Outlook 附件超过当前扫描上限；返回后使用轻量索引')
  const bytes=new Uint8Array(await raw.arrayBuffer())
- if(bytes.length>MAX_RAW)throw Error('Outlook 邮件大于 8 MiB，无法完整归档')
+ if(bytes.length>MAX_RAW)throw Error('Outlook 邮件大小超过标称值，请在原邮箱查看')
  const parsed=await PostalMime.parse(bytes)
  const sha=await digest(bytes)
  const messageId=String(parsed.messageId||item.internetMessageId||'').trim()
@@ -121,10 +150,12 @@ async function archive(admin:any,account:any,token:string,folder:{id:string;name
     .eq('id',prev.data.id).eq('user_id',account.user_id)
   return false
  }
- const archivePath=account.user_id+'/'+account.id+'/'+sha+'.eml'
- const saved=await admin.storage.from('mail-originals').upload(archivePath,bytes,
-  {contentType:'application/octet-stream',upsert:false})
- if(saved.error&&!/already exists|duplicate|409/i.test(saved.error.message||''))throw Error('Outlook MIME 存储失败')
+ const archivePath=policy.tier==='full'?account.user_id+'/'+account.id+'/'+sha+'.eml':null
+ if(archivePath){
+  const saved=await admin.storage.from('mail-originals').upload(archivePath,bytes,
+   {contentType:'application/octet-stream',upsert:false})
+  if(saved.error&&!/already exists|duplicate|409/i.test(saved.error.message||''))throw Error('Outlook MIME 存储失败')
+ }
  const body=String(parsed.text||parsed.html||'').replace(/<[^>]*>/g,' ').slice(0,60000)
  const subject=String(parsed.subject||item.subject||'').slice(0,1024)
  const [category,importance]=classify(subject,body)
@@ -138,9 +169,11 @@ async function archive(admin:any,account:any,token:string,folder:{id:string;name
   received_at:date&&!Number.isNaN(Date.parse(date))?new Date(date).toISOString():null,
   sender_name:sender?.name||'',sender_address:sender?.address||'',
   recipient_address:account.address,subject,
-  snippet:excerpt(body,800),body_text:body,category,importance,
+  snippet:excerpt(body,800),body_text:policy.tier==='text'?body.slice(0,12000):body,category,importance,
+  storage_tier:policy.tier,
   extraction:{...(matched?{manuscript_no:matched[1]}:{}),
-   graph_message_id:item.id},
+   graph_message_id:item.id,storage_tier:policy.tier,storage_reason:policy.label,
+   attachments_not_copied:policy.tier!=='full',...(link?{webmail_url:link}:{})},
   deadline:deadline(subject+'\n'+body),
   cloud_archive_path:archivePath,archived_locally:false
  }
@@ -159,7 +192,7 @@ export async function scanOutlookGraph(admin:any,account:any){
  for(const folder of folders){
   if(processed>=MAX_SCAN||Date.now()-started>85000)break
   const prefix=GRAPH+'/me/mailFolders/'+encodeURIComponent(folder.id)+'/messages'
-  const newestUrl=prefix+'?$top=6&$select=id,subject,internetMessageId,receivedDateTime&$orderby=receivedDateTime%20desc'
+  const newestUrl=prefix+'?$top=6&$select=id,subject,internetMessageId,receivedDateTime,from,webLink,bodyPreview,hasAttachments,size&$orderby=receivedDateTime%20desc'
   const newest=await (await graph(token,newestUrl)).json()
   for(const item of newest.value||[]){
    if(processed>=MAX_SCAN||Date.now()-started>85000)break
