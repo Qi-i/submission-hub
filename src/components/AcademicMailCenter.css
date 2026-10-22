@@ -1400,10 +1400,10 @@ html[data-ui] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-read
 }
 .academic-mail-center.am-mode-inbox .am-footer{display:none}
 /* Dark mode keeps the semantic separation without forcing bright light surfaces. */
-[data-theme="dark"] body .app-layout.app-layout-mail{
+html[data-ui][data-theme="dark"] body .app-layout.app-layout-mail{
   background:#1a2431;
 }
-[data-theme="dark"] body .app-layout.app-layout-mail > .academic-mail-center{
+html[data-ui][data-theme="dark"] body .app-layout.app-layout-mail > .academic-mail-center{
   --am-ink:#eaf1f9;
   --am-muted:#b7c5d6;
   --am-blue:#83b1ff;
@@ -1413,27 +1413,27 @@ html[data-ui] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-read
   --am-selected:#334f78;
   background:#1b2836;
 }
-[data-theme="dark"] body .app-layout-mail .academic-mail-center .am-command-header,
-[data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox :is(.am-list-pane,.am-reader){
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center .am-command-header,
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox :is(.am-list-pane,.am-reader){
   background:#283746;
   border-color:#43556d;
 }
-[data-theme="dark"] body .app-layout-mail .academic-mail-center .am-command-header .am-tabs,
-[data-theme="dark"] body .app-layout-mail .academic-mail-center .am-filterbar :is(.am-stats button,.am-search,.am-controls select),
-[data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox :is(.am-list-heading,.am-pager,.am-reader-top,.am-meta>div,.am-reader-content,.am-reader-content-head,.am-reader-content pre,.am-review-controls,.am-review-controls select,.am-message,.am-message:nth-child(even):not(.selected)){
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center .am-command-header .am-tabs,
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center .am-filterbar :is(.am-stats button,.am-search,.am-controls select),
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox :is(.am-list-heading,.am-pager,.am-reader-top,.am-meta>div,.am-reader-content,.am-reader-content-head,.am-reader-content pre,.am-review-controls,.am-review-controls select,.am-message,.am-message:nth-child(even):not(.selected)){
   background:#2c3d4f;
   border-color:#495f78;
   color:#e6effb;
 }
-[data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message.selected{
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message.selected{
   background:#354d6c;
 }
-[data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-reader-content pre,
-[data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox :is(.am-meta strong,.am-reader-top h3,.am-msg-subject,.am-msg-from strong){
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-reader-content pre,
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox :is(.am-meta strong,.am-reader-top h3,.am-msg-subject,.am-msg-from strong){
   color:#eaf1fc;
 }
-[data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message p,
-[data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-meta span{color:#adbed3}
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message p,
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-meta span{color:#adbed3}
 /* Mobile: still a single in-viewport list or reader with its own scroll. */
 @media(max-width:700px){
   html[data-ui] body .app-layout.app-layout-mail > .academic-mail-center{
@@ -1468,4 +1468,17 @@ html[data-ui] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-read
   html[data-ui] body .app-layout-mail .academic-mail-center .am-command-header{min-height:43px;padding:5px 9px}
   html[data-ui] body .app-layout-mail .academic-mail-center .am-filterbar{margin-bottom:5px}
   html[data-ui] body .app-layout-mail .academic-mail-center .am-filterbar .am-stats button{min-height:35px;padding:5px 8px}
+}
+
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message[data-category="editorial"]:not(.selected){
+  background:#24453f;box-shadow:inset 3px 0 0 #59ab97;
+}
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message[data-category="review_invite"]:not(.selected){
+  background:#2c3d62;box-shadow:inset 3px 0 0 #7996e4;
+}
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message[data-category="submission_update"]:not(.selected){
+  background:#393052;box-shadow:inset 3px 0 0 #ab8ddc;
+}
+html[data-ui][data-theme="dark"] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-message[data-spam="true"]:not(.selected){
+  background:#473b2f;box-shadow:inset 3px 0 0 #d2a16b;
 }
