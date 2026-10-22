@@ -232,7 +232,6 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
    <label className="am-choice-label">分析系统指令<textarea rows={5} maxLength={6000} value={prompt} onChange={e=>setPrompt(e.target.value)} /></label>
    <div className="am-add-form"><button type="button" className="am-main-button" disabled={!prompt.trim()||busy||prompt===settings?.ai_system_prompt} onClick={()=>void onUpdate({ai_system_prompt:prompt.trim()})}>保存分析指令</button>
     <button type="button" className="am-quiet-button" onClick={()=>setPrompt(DEFAULT_PROMPT)}>恢复默认文本</button></div>
-   <div className="am-add-form"><label>每日 AI 请求上限<select value={settings?.ai_daily_limit??20} disabled={busy} onChange={e=>void onUpdate({ai_daily_limit:Number(e.target.value)})}>{[0,5,10,20,30,50].map(n=><option value={n} key={n}>{n} 封</option>)}</select></label></div>
    {paidWarning&&<label className="am-option"><input type="checkbox" checked={!!settings?.ai_allow_paid} disabled={busy} onChange={e=>void onUpdate({ai_allow_paid:e.target.checked,ai_enabled:false})}/> 我了解该自定义模型可能产生费用，并明确允许自动调用</label>}
    {settings?.last_ai_error&&<p className="am-account-error"><AlertCircle size={14}/>{settings.last_ai_error}</p>}
   </details>

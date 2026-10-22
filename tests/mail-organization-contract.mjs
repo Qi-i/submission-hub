@@ -20,7 +20,7 @@ const checks=[
  ['translations are user-only via RLS and stored separately',migration.includes('mail_translations_owner')&&migration.includes('source_hash')],
  ['translation requires authenticated user and owned mail',translate.includes('db.auth.getUser(token)')&&translate.includes(".eq('user_id',uid).eq('id',id)")],
  ['translation never selects paid custom endpoints',translate.includes('!ep.declared_free')&&translate.includes('last_test_status')],
- ['translation consumes daily AI quota',translate.includes('mail_claim_ai_slot')],
+ ['on-demand translation has no artificial site quota',!translate.includes('mail_claim_ai_slot')&&translate.includes('mail_translation_chunks')],
  ['translation caches translated text',translate.includes("from('mail_translations').upsert")&&translate.includes('sourceHash')],
  ['original is preserved in translation columns',ui.includes('am-parallel-text')&&ui.includes('am-original-col')],
  ['manual translation does not run on message selection',ui.includes('onClick={()=>void runTranslation()}')],

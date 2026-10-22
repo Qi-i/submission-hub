@@ -168,6 +168,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [translationLang,setTranslationLang] = useState<'zh'|'en'>('zh')
   const [translationVisible,setTranslationVisible] = useState(false)
   const [translationLoading,setTranslationLoading] = useState(false)
+  const [translationProgress,setTranslationProgress] = useState<{done:number;total:number}|null>(null)
+  const translationJob=useRef(0)
   const [brandEditing,setBrandEditing] = useState<string|null>(null)
   const [brandShort,setBrandShort] = useState('')
   const [brandSymbol,setBrandSymbol] = useState('')
@@ -319,6 +321,12 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   },[userId,loadMetadata,loadMessages])
 
   const active=useMemo(()=>messages.find(m=>m.id===selected)||null,[messages,selected])
+  useEffect(()=>{
+    // Switching mail invalidates a previous translation job's UI updates.
+    translationJob.current++
+    setTranslationLoading(false)
+    setTranslationProgress(null)
+  },[selected])
   useEffect(()=>{
     if(!selected){setActiveBody('');setBodyLoading(false);return}
     let cancelled=false
@@ -595,17 +603,38 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(null)}
   }
   const runTranslation=async()=>{
-    if(!active)return
+    if(!active||translationLoading)return
+    const job=++translationJob.current
+    const id=active.id,lang=translationLang
     setTranslationLoading(true)
+    setTranslationProgress(null)
     try{
-      const r=await callFunction('mail-translate',{
-        message_id:active.id,target_language:translationLang
-      })
-      setTranslation({translated_text:r.translation,source_hash:'',model_name:r.model||''})
-      setTranslationVisible(true)
-      setNotice(r.cached?'已加载译文':r.truncated?'已翻译部分正文':'翻译完成')
-    }catch(e){setError(e instanceof Error?e.message:String(e))}
-    finally{setTranslationLoading(false)}
+      let index=0
+      for(let attempts=0;attempts<100;attempts++){
+        const r=await callFunction('mail-translate',{
+          message_id:id,target_language:lang,chunk_index:index
+        })
+        if(job!==translationJob.current)return
+        setTranslationProgress({done:r.completed??index+1,total:r.chunk_total??1})
+        if(r.complete){
+          setTranslation({translated_text:r.translation,source_hash:'',model_name:r.model||''})
+          setTranslationVisible(true)
+          setNotice(r.cached?'已加载完整译文':'整封邮件翻译完成')
+          return
+        }
+        if(!Number.isSafeInteger(r.next_index)||r.next_index<=index)
+          throw Error('分段翻译进度无效')
+        index=r.next_index
+        // One in-flight request at a time; don't flood free-model concurrency.
+        if(!r.cached)await new Promise<void>(done=>window.setTimeout(done,1500))
+      }
+      throw Error('段落过多，请再次点击以续传')
+    }catch(e){
+      if(job===translationJob.current)
+        setError((e instanceof Error?e.message:String(e))+'；已完成段落会保留，再次点击可继续')
+    }finally{
+      if(job===translationJob.current)setTranslationLoading(false)
+    }
   }
     const downloadOriginal=async()=>{
     if(!active?.cloud_archive_path)return
@@ -811,7 +840,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                   <option value="zh">简体中文</option><option value="en">English</option></select></label>
                 <button type="button" disabled={translationLoading||bodyLoading} onClick={()=>void runTranslation()}>
                  <Languages size={14}/>{translationLoading?'翻译中…':translation?'重新查询 / 生成':'生成译文'}</button>
-                <span>仅手动触发，免费 API，计入每日 AI 额度；译文缓存可重复查看。</span>
+                {translationProgress&&<span>已完成 {translationProgress.done}/{translationProgress.total} 段</span>}
               </div>}
               <div className={translationVisible?'am-parallel-text':'am-single-text'}>
                 <div className="am-original-col"><strong>原文</strong><pre>{bodyLoading?'正在读取邮件正文…':readableMailText(activeBody||active.snippet||'无可读取的正文')}</pre></div>
