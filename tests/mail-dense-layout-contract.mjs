@@ -9,6 +9,7 @@ const tests=[
  ['archive/AI status are small badges, not duplicate hero cards',ui.includes('am-command-status')&&!ui.includes('am-hero-tiles')],
  ['filters and search compose a single responsive row',css.includes('grid-template-columns:minmax(390px,.78fr) minmax(0,1.22fr)')&&ui.includes('className="am-filterbar"')],
  ['stat chips remain interactive and dynamic',ui.includes('savedViews.map(view=>')&&ui.includes('onClick={()=>pickScope(view.kind)}')],
+ ['filters adapt to hidden or newly added views',css.includes('.am-filterbar.no-views')&&css.includes('repeat(auto-fit,minmax(96px,1fr))')],
  ['desktop command height is content-first',css.includes('min-height:54px')&&css.includes('min-height:40px')],
  ['desktop reader consumes freed height',css.includes('calc(100dvh - 170px)')&&css.includes('calc(100dvh - 247px)')],
  ['list titles are readable at 14px',css.includes('font-size:14px;line-height:1.43')],
