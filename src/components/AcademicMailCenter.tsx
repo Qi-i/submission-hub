@@ -824,7 +824,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </article>
       </section>
     </>:workspace==='accounts'?<>
-      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>独立管理七个邮箱的连接状态和云端归档，不在网页或 GitHub 中保留明文凭据。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(x=>!x)}><Plus size={15}/> 添加邮箱</button></div>
+      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>集中查看所有邮箱的连接状态、异常与最近同步；点击卡片进入收发信、同步和来源标识设置。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(true)}><Plus size={15}/> 添加邮箱</button></div>
       {showAdd&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setShowAdd(false)}}>
         <div className="am-account-dialog am-account-add-dialog" role="dialog" aria-modal="true" aria-label="添加邮箱">
          <header className="am-dialog-header"><strong>添加邮箱</strong><button type="button" aria-label="关闭添加邮箱" onClick={()=>setShowAdd(false)}><X size={18}/></button></header>
