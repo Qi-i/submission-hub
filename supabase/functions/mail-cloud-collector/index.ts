@@ -206,7 +206,11 @@ async function scanAccount(admin:any,account:any){
       savedBefore>1?searchIds('UID 1:'+(savedBefore-1)):Promise.resolve([] as number[])
      ])
     :[await searchIds('ALL')]
-   const ids=[...new Set(searches.flat())].sort((a,b)=>a-b)
+   // IMAP UID n:* can return the last existing UID even when n is higher.
+   // Ignore stale matches so idle mailboxes do not download old messages again.
+   const ids=[...new Set(searches.flat())]
+    .filter(uid=>!stored||uid>savedRecent||(savedBefore>1&&uid<savedBefore))
+    .sort((a,b)=>a-b)
    if(!ids.length)continue
    // Bootstrap near the newest messages, then complete the older range.
    const bootstrap=ids[Math.max(0,ids.length-13)]-1
