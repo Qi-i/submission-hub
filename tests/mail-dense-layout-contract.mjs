@@ -3,9 +3,12 @@ import fs from 'node:fs'
 const read = name=>fs.readFileSync(new URL('../'+name,import.meta.url),'utf8')
 const ui=read('src/components/AcademicMailCenter.tsx')
 const css=read('src/components/AcademicMailCenter.css')
+const commandStart=ui.indexOf('<header className="am-header am-command-header">')
+const commandEnd=ui.indexOf('</header>',commandStart)
+const tabsInsideCommand=ui.indexOf('<nav className="am-tabs"',commandStart)>commandStart&&ui.indexOf('<nav className="am-tabs"',commandStart)<commandEnd
 const tests=[
- ['single shared title, navigation and actions row',ui.includes('am-header am-command-header')&&ui.indexOf('<nav className="am-tabs"')<ui.indexOf('</header>')],
- ['navigation no longer stacks above filters',ui.indexOf('<nav className="am-tabs"')<ui.indexOf('</header>')&&ui.includes('className="am-filterbar"')],
+ ['single shared title, navigation and actions row',ui.includes('am-header am-command-header')&&tabsInsideCommand],
+ ['navigation no longer stacks above filters',ui.indexOf('<nav className="am-tabs"')<ui.indexOf('</header>')&&ui.includes('className={"am-filterbar"')],
  ['archive/AI status are small badges, not duplicate hero cards',ui.includes('am-command-status')&&!ui.includes('am-hero-tiles')],
  ['filters and search compose a single responsive row',css.includes('grid-template-columns:minmax(390px,.78fr) minmax(0,1.22fr)')&&ui.includes('className="am-filterbar"')],
  ['stat chips remain interactive and dynamic',ui.includes('savedViews.map(view=>')&&ui.includes('onClick={()=>pickScope(view.kind)}')],
