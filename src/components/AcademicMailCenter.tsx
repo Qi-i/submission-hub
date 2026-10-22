@@ -912,6 +912,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                 setImapHost('imap.email.cugb.edu.cn');setSmtpHost('smtp.email.cugb.edu.cn');
                 setImapPort(993);setSmtpPort(465);setImapSecurity('ssl');setSmtpSecurity('ssl')
               }}>填入 CUGB 官方 IMAP / SMTP（993 / 465）</button>
+              <button type="button" className="am-quiet-button" onClick={()=>{
+                setImapHost('www.email.cugb.edu.cn');setSmtpHost('www.email.cugb.edu.cn');
+                setImapPort(993);setSmtpPort(465);setImapSecurity('ssl');setSmtpSecurity('ssl')
+              }}>学校公开指南备选（www.email）</button>
               <a href="https://www.cugb.edu.cn/yxsy" target="_blank" rel="noopener noreferrer">学校配置指南</a>
               <small>已按学校公布的独立服务器地址预填；若 TLS 连接成功但认证失败，请检查完整邮箱用户名和客户端协议授权码。</small>
             </div>}
