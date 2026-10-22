@@ -1721,3 +1721,50 @@ html[data-ui] body .academic-mail-center .am-account-dialog .am-account-card:hov
  .academic-mail-center .am-account-dialog .am-account-data{grid-template-columns:1fr 1fr}
  .academic-mail-center .am-account-dialog .am-account-data>div:last-child{grid-column:1/-1}
 }
+
+/* Mail configuration: one continuous reading flow, no equal-height empty grid columns. */
+html[data-ui] body .academic-mail-center .am-personalization{
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ grid-template-columns:none;
+ max-width:1280px;
+ margin-inline:auto;
+ gap:12px;
+}
+html[data-ui] body .academic-mail-center .am-personalization>header{
+ width:100%;padding:0;margin:1px 0 0;
+}
+html[data-ui] body .academic-mail-center .am-personal-section{
+ width:100%;padding:15px 18px;
+}
+html[data-ui] body .academic-mail-center .am-personalization .am-view-editor{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px 16px;
+}
+.academic-mail-center .am-personalization .am-view-row{min-width:0}
+.academic-mail-center .am-personalization .am-view-row input{width:auto;flex:1}
+.academic-mail-center .am-model-editor>summary,
+.academic-mail-center .am-advanced-models>summary,
+.academic-mail-center .am-analysis-settings>summary{
+ display:flex;align-items:center;justify-content:space-between;
+ font-size:14px;font-weight:700;color:var(--am-ink);
+ cursor:pointer;list-style:none;padding:4px 0;
+}
+.academic-mail-center .am-model-editor>summary::-webkit-details-marker,
+.academic-mail-center .am-advanced-models>summary::-webkit-details-marker,
+.academic-mail-center .am-analysis-settings>summary::-webkit-details-marker{display:none}
+.academic-mail-center .am-model-editor>summary::after,
+.academic-mail-center .am-advanced-models>summary::after,
+.academic-mail-center .am-analysis-settings>summary::after{
+ content:'+';font-size:21px;line-height:1;font-weight:500;color:var(--am-muted);
+}
+.academic-mail-center :is(.am-model-editor,.am-advanced-models,.am-analysis-settings)[open]>summary::after{content:'−'}
+html[data-ui] body .academic-mail-center .am-model-editor:not([open]){padding:11px 14px;margin-bottom:0}
+html[data-ui] body .academic-mail-center .am-advanced-models:not([open]),
+html[data-ui] body .academic-mail-center .am-analysis-settings:not([open]){padding-block:12px}
+html[data-ui] body .academic-mail-center .am-personal-section p.am-disclaimer{display:none}
+@media(max-width:850px){
+ html[data-ui] body .academic-mail-center .am-personalization .am-view-editor{grid-template-columns:1fr}
+}
