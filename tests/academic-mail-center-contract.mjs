@@ -51,3 +51,5 @@ console.log('Academic mail UI and collection contract checks passed.')
 
 // Reuse the existing verify step; keep package.json unchanged to avoid automated Release.
 import './mail-first-principles-contract.mjs'
+
+import './outlook-graph-ui-contract.mjs'
