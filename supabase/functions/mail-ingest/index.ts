@@ -59,13 +59,27 @@ Deno.serve(async (req: Request) => {
   if (entries.length) {
     // Keep the first observed folder even after a message moves out of Spam/Junk.
     const {data:existing,error:readError}=await admin.from('mail_messages')
-      .select('remote_key,first_folder').eq('account_id',account.id)
+      .select('id,remote_key').eq('account_id',account.id).eq('user_id',key.user_id)
       .in('remote_key',entries.map(m=>m.remote_key))
     if(readError) return json({error:'Archive lookup failed'},500)
-    const firstFolders=new Map((existing||[]).map(m=>[m.remote_key,m.first_folder]))
-    for(const m of entries) m.first_folder=firstFolders.get(m.remote_key)||m.first_folder
-    const {error}=await admin.from('mail_messages').upsert(entries,{onConflict:'account_id,remote_key'})
-    if (error) return json({error:'Write failed',detail:error.message},500)
+    const prior=new Map((existing||[]).map(m=>[m.remote_key,m.id]))
+    const deduplicated=[...new Map(entries.map(m=>[m.remote_key,m])).values()]
+    // Never upsert already-archived messages. A stale background collector can
+    // otherwise reset user_notes, virtual folders, user labels, manual category
+    // and paper linkage. Only update remote folder/last-seen provenance.
+    const fresh=deduplicated.filter(m=>!prior.has(m.remote_key))
+    if(fresh.length){
+      const inserted=await admin.from('mail_messages').insert(fresh)
+      if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))
+        return json({error:'Write failed',detail:inserted.error.message},500)
+    }
+    const existingRows=deduplicated.filter(m=>prior.has(m.remote_key))
+    for(const m of existingRows){
+      const updated=await admin.from('mail_messages')
+       .update({last_seen_at:m.last_seen_at,last_folder:m.last_folder})
+       .eq('id',prior.get(m.remote_key)).eq('user_id',key.user_id)
+      if(updated.error)return json({error:'Folder sync update failed'},500)
+    }
   }
   await admin.from('mail_accounts').update({last_sync_at:new Date().toISOString(),last_error:null})
     .eq('id',account.id).eq('user_id',key.user_id)
