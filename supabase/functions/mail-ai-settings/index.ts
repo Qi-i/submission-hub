@@ -38,7 +38,7 @@ async function modelTest(url:string,model:string,key:string){
  try{
   const result=await fetch(url,{method:'POST',redirect:'error',signal:controller.signal,headers:{
    Authorization:'Bearer '+key,'Content-Type':'application/json'
-  },body:JSON.stringify({model,messages:[{role:'user',content:'回复 OK'}],max_tokens:16})})
+  },body:JSON.stringify({model,messages:[{role:'user',content:'连接测试。请回复 OK'}],max_tokens:16})})
   const raw=await result.text()
   let data:Record<string,any>={}
   try{data=JSON.parse(raw.slice(0,6000))}catch{}
