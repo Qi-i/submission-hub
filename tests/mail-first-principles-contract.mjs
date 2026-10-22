@@ -70,7 +70,7 @@ for(const [name,condition] of [
  ['ordered per-user model chain in web settings',personal.includes('ai_route_order')&&personal.includes('第 {index+1} 位')],
  ['failover only to authorized tested free endpoints',worker.includes("cfg.last_test_status!=='ok'")&&worker.includes('fallbackOn&&!cfg.declared_free')],
  ['each model attempt consumes daily quota',worker.includes("for(const route of routes)")&&worker.includes("mail_claim_ai_slot")],
- ['slower model uses measured request timeout',worker.includes('route.probeMs*2.5')&&worker.includes('ai_max_wait_seconds')],
+ ['slower model uses measured request timeout',worker.includes('route.probeMs*3')&&worker.includes('ai_max_wait_seconds')],
  ['edge worker overall budget is bounded',worker.includes('deadline=Date.now()+115000')],
  ['built-in models measured independently',probeMigration.includes('ai_glm_probe_times')&&personal.includes("ai_glm_probe_times?.['glm-4.7-flash']")],
  ['cron follows free route eligibility and retry cooldown',routeCron.includes('ai_failover_enabled')&&routeCron.includes('ai_retry_after')],
