@@ -6,8 +6,10 @@ const settings=read('src/components/MailPersonalization.tsx')
 const cfg=read('supabase/functions/mail-config/index.ts')
 const oauth=read('supabase/functions/mail-outlook-oauth/index.ts')
 const sql=read('supabase/036_mail_gpt_on_demand.sql')
+const realtime=read('supabase/037_mail_realtime_inserts.sql')
 const tests=[
  ['No 60-second mail UI polling', !ui.includes('window.setInterval(')&&ui.includes('visibilitychange')],
+ ['New mail triggers one debounced UI refresh',ui.includes("event:'INSERT'")&&ui.includes('postgres_changes')&&realtime.includes('alter publication supabase_realtime add table public.mail_messages')],
  ['CUGB official student mailbox can be selected',ui.includes('www.email.cugb.edu.cn')&&cfg.includes("domain==='email.cugb.edu.cn'")],
  ['CUGB connection error distinguishes DNS failure',cfg.includes('服务器域名无法解析')],
  ['Microsoft login no longer foregrounds Azure developer portal',ui.includes('<details className="am-oauth-help">')&&oauth.includes('MAIL_MICROSOFT_CLIENT_ID')],
