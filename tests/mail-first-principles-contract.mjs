@@ -65,7 +65,7 @@ for(const [name,condition] of [
  ['mailbox pause and safe resume',ui.includes('toggleCollection')&&config.includes("body.action==='enable'")],
  ['account health visible',ui.includes('next_attempt_at')&&ui.includes('last_scanned_folders')],
  ['AI endpoint change disables old authorization',aiReauthMigration.includes('new.key_ready:=false')&&aiReauthMigration.includes('ai_enabled=false')],
- ['old API keys never implicitly follow a new URL',personal.includes('模型配置已保存')&&aiReauthMigration.includes('new.api_url is distinct from old.api_url')],
+ ['old API keys never implicitly follow a new URL',personal.includes('if(endpointKey.trim())await call')&&aiReauthMigration.includes('new.api_url is distinct from old.api_url')],
  ['automatic fallback is disabled by default',routeMigration.includes('ai_failover_enabled boolean not null default false')],
  ['ordered per-user model chain in web settings',personal.includes('ai_route_order')&&personal.includes('第 {index+1} 位')],
  ['failover only to authorized tested free endpoints',worker.includes("cfg.last_test_status!=='ok'")&&worker.includes('fallbackOn&&!cfg.declared_free')],
