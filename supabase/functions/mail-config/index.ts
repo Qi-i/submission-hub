@@ -37,6 +37,10 @@ async function discover(address:string,provider:string){
   if(domain==='email.cugb.edu.cn'){
    put('imap','imap.email.cugb.edu.cn',993,'ssl','CUGB 用户提供的官方 IMAP 设置')
    put('smtp','smtp.email.cugb.edu.cn',465,'ssl','CUGB 用户提供的官方 SMTP 设置')
+   put('imap','www.email.cugb.edu.cn',993,'ssl','CUGB 校方公开客户端指南备选')
+   put('smtp','www.email.cugb.edu.cn',465,'ssl','CUGB 校方公开客户端指南备选')
+   put('imap','edu.icoremail.net',993,'ssl','CUGB 校方公开指南中 SSL 异常时的通用备选')
+   put('smtp','edu.icoremail.net',465,'ssl','CUGB 校方公开指南中 SSL 异常时的通用备选')
   }for(const p of ['mail','imap'])put('imap',p+'.'+domain,993,'ssl','按域名推测，需测试');for(const p of ['mail','smtp'])put('smtp',p+'.'+domain,465,'ssl','按域名推测，需测试')}
  for(const [key,type] of [['_imaps._tcp.','imap'],['_submission._tcp.','smtp'],['_submissions._tcp.','smtp']] as const){const records=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(key+domain,'SRV').catch(()=>[]):Promise.resolve([])) as Deno.SrvRecord[];for(const r of records.slice(0,3)){const port=Number(r.port);if(type==='imap'?[993,143].includes(port):[465,587].includes(port))put(type,r.target.replace(/\.$/,''),port,[993,465].includes(port)?'ssl':'starttls','DNS SRV')}}
  return result
