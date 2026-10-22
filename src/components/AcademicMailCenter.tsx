@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import {
   AlertCircle, Archive, ArrowLeft, Check, ChevronRight, Clock3, Download,
   FileText, Inbox, Link2, Mail, MailCheck, Plus, RefreshCw, Search, Settings2,
-  ShieldCheck, Sparkles, X
+  ShieldCheck, Sparkles, PauseCircle, PlayCircle, X
 } from 'lucide-react'
 import MailPersonalization, {DEFAULT_MAIL_VIEWS,MAIL_VIEW_KINDS,type MailViewKind,type MailSettings} from './MailPersonalization'
 import './AcademicMailCenter.css'
@@ -22,6 +22,11 @@ type Account = {
   imap_port: number; smtp_port: number; imap_security: string; smtp_security: string
   imap_username: string | null; smtp_username: string | null
   last_checked_at: string | null
+  consecutive_failures: number
+  next_attempt_at: string | null
+  last_processed: number
+  last_scanned_folders: number
+  smtp_has_separate_key: boolean
 }
 type Message = {
   id: string
@@ -110,6 +115,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [imapHost, setImapHost] = useState('')
   const [appPassword, setAppPassword] = useState('')
   const [smtpHost,setSmtpHost] = useState('')
+  const [smtpPassword,setSmtpPassword] = useState('')
+  const [smtpUseImapCredential,setSmtpUseImapCredential] = useState(true)
   const [imapPort,setImapPort] = useState(993)
   const [smtpPort,setSmtpPort] = useState(465)
   const [imapSecurity,setImapSecurity] = useState('ssl')
@@ -135,7 +142,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   const loadMetadata = useCallback(async () => {
     const accountQuery = (supabase.from('mail_accounts') as any)
-      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at')
+      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at,consecutive_failures,next_attempt_at,last_processed,last_scanned_folders,smtp_has_separate_key')
       .eq('user_id', userId).order('created_at', {ascending: true})
     const papersQuery = (supabase.from('papers') as any)
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
@@ -251,7 +258,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     setImapPort(a.imap_port||993);setSmtpPort(a.smtp_port||465)
     setImapSecurity(a.imap_security||'ssl');setSmtpSecurity(a.smtp_security||'ssl')
     setImapUsername(a.imap_username||a.address);setSmtpUsername(a.smtp_username||a.address)
-    setAppPassword('');setSuggestions([]);setConnectionResults({})
+    setAppPassword('');setSmtpPassword('');setSmtpUseImapCredential(!a.smtp_has_separate_key)
+    setSuggestions([]);setConnectionResults({})
   }
   const discover=async(id:string)=>{
     setBusy('discover')
@@ -268,6 +276,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       const data=await callFunction('mail-config',{action:'test',account_id:id})
       setConnectionResults(data.results||{})
       await loadMetadata()
+      if(!data.ok)setError('IMAP 登录验证未通过，查看下方具体错误')
       const entries=Object.entries(data.results||{}) as [string,{ok:boolean;message:string}][]
       setNotice(entries.length?entries.map(([kind,result])=>kind.toUpperCase()+': '+(result.ok?'验证成功':'验证失败')).join('，'):'尚未保存服务器配置')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
@@ -277,13 +286,24 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     if(!setupId||!imapHost)return
     setBusy('configure')
     try{
+      const existing=accounts.find(a=>a.id===setupId)
+      if(!smtpUseImapCredential&&!smtpPassword&&!existing?.smtp_has_separate_key)
+        throw Error('已选用独立 SMTP 授权码，请填写对应的授权码')
       await callFunction('mail-config',{action:'configure',account_id:setupId,
         host:imapHost.trim(),imap_port:imapPort,imap_security:imapSecurity,imap_username:imapUsername.trim(),
         smtp_host:smtpHost.trim(),smtp_port:smtpPort,smtp_security:smtpSecurity,smtp_username:smtpUsername.trim(),
-        password:appPassword})
-      setAppPassword('')
-      setNotice('配置已加密保存。请点击「测试连接」验证 IMAP 和 SMTP 登录。')
+        password:appPassword,smtp_password:smtpUseImapCredential?'':smtpPassword,
+        smtp_use_imap_credential:smtpUseImapCredential})
+      setAppPassword('');setSmtpPassword('')
+      const tested=await callFunction('mail-config',{action:'test',account_id:setupId})
+      setConnectionResults(tested.results||{})
       await loadMetadata()
+      if(tested.ok){
+        const smtpResult=tested.results?.smtp
+        setNotice(smtpResult&&!smtpResult.ok?'IMAP 登录成功，已启动收信；SMTP 验证失败，请检查独立发信授权':'IMAP/SMTP 已完成验证，自动收信已启用')
+      }else{
+        setError('设置已保存，但 IMAP 登录测试未通过；后台不会使用此配置自动重试，请检查下方连接结果')
+      }
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
@@ -291,8 +311,19 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     setBusy('sync-'+accountId)
     try{
       const result=await callFunction('mail-cloud-collector',{account_id:accountId})
-      setNotice('扫描完成：本次处理 '+(result.processed||0)+' 封邮件')
+      if(result.error)throw Error(result.detail||result.error)
+      if(!result.checked)throw Error('未找到可同步的已授权邮箱；请先验证 IMAP 或恢复采集')
+      setNotice('扫描完成：本次处理 '+(result.processed||0)+' 封邮件，检查 '+(result.folders||0)+' 个文件夹')
       await Promise.all([loadMetadata(),loadMessages()])
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
+  }
+  const toggleCollection=async(a:Account)=>{
+    setBusy('toggle-'+a.id)
+    try{
+      await callFunction('mail-config',{action:a.enabled?'disable':'enable',account_id:a.id})
+      setNotice(a.enabled?'已暂停此邮箱的自动收取；已有归档保留':'IMAP 已重新验证，自动收取已恢复')
+      await loadMetadata()
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
@@ -475,13 +506,21 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
         {accounts.map(a=><section key={a.id} className="am-account-card">
           <div className="am-account-heading"><div className="am-account-mark"><Mail size={19}/></div><div className="am-account-name"><strong>{a.display_name||a.address}</strong><small>{providerLabels[a.provider]||a.provider}</small></div><span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
-          <div className="am-account-data"><div><span>上次成功归档</span><strong>{niceDate(a.last_sync_at)}</strong></div><div><span>上次检查</span><strong>{niceDate(a.last_checked_at)}</strong></div><div><span>IMAP 主机</span><strong>{a.imap_host||'尚未设置'}</strong></div></div>
+          <div className="am-account-data">
+              <div><span>上次成功归档</span><strong>{niceDate(a.last_sync_at)}</strong></div>
+              <div><span>最近检查 / 归档</span><strong>{niceDate(a.last_checked_at)} · {a.last_processed||0} 封</strong></div>
+              <div><span>服务器 / 扫描文件夹</span><strong>{a.imap_host||'尚未设置'} · {a.last_scanned_folders||0} 个</strong></div>
+            </div>
+            {a.cloud_state==='error'&&a.next_attempt_at&&<p className="am-account-retry"><AlertCircle size={14}/> 连续失败 {a.consecutive_failures||1} 次 · 下次自动重试不早于 {niceDate(a.next_attempt_at)}</p>
           {a.last_error&&<p className="am-account-error"><AlertCircle size={14}/>{a.last_error}</p>}
           <div className="am-account-actions">
             {isSupported(a)?<>
               <button type="button" onClick={()=>setupAccount(a)}><Settings2 size={14}/>{a.cloud_state==='ready'?'编辑连接':'配置收发信'}</button>
               {a.imap_host&&<button type="button" disabled={busy!==null} onClick={()=>void testAccount(a.id)}>测试连接</button>}
-              {['ready','error'].includes(a.cloud_state)&&<button type="button" disabled={busy!==null} onClick={()=>void manualSync(a.id)}><RefreshCw size={14}/>{busy==='sync-'+a.id?'检查中…':'立即检查'}</button>}
+              {a.enabled&&['ready','error'].includes(a.cloud_state)&&<button type="button" disabled={busy!==null} onClick={()=>void manualSync(a.id)}><RefreshCw size={14}/>{busy==='sync-'+a.id?'检查中…':'立即检查'}</button>}
+              {(a.cloud_state==='ready'||a.cloud_state==='error'||!a.enabled)&&<button type="button" disabled={busy!==null} onClick={()=>void toggleCollection(a)}>
+                {a.enabled?<PauseCircle size={14}/>:<PlayCircle size={14}/>} {a.enabled?'暂停采集':'恢复采集'}
+              </button>
             </>:<span>该服务商需要独立的 OAuth2 授权，当前版本尚未实现自动采集。</span>}
           </div>
           {setupId===a.id&&<div className="am-form-panel am-config-form">
@@ -508,8 +547,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                 <label>登录用户名<input value={smtpUsername} onChange={e=>setSmtpUsername(e.target.value)} placeholder={a.address}/></label>
               </fieldset>
             </div>
-            <div className="am-add-form"><label>客户端授权码 / 专用密码<input type="password" value={appPassword} onChange={e=>setAppPassword(e.target.value)} autoComplete="new-password" placeholder={a.imap_host?'已保存；不修改可留空':'输入邮箱客户端授权码'}/></label>
-              <button type="button" className="am-main-button" disabled={busy!==null||!imapHost||(!a.imap_host&&!appPassword)} onClick={()=>void saveConfiguration()}>加密保存配置</button>
+            <div className="am-credential-editor">
+              <label>IMAP 授权码 / 客户端密码<input type="password" value={appPassword} onChange={e=>setAppPassword(e.target.value)} autoComplete="new-password" placeholder={a.imap_host?'已加密保存，留空保持':'请填写 IMAP 授权码'}/></label>
+              <label className="am-option"><input type="checkbox" checked={smtpUseImapCredential} onChange={e=>setSmtpUseImapCredential(e.target.checked)}/> SMTP 与 IMAP 共用授权码</label>
+              {!smtpUseImapCredential&&<label>独立 SMTP 授权码<input type="password" value={smtpPassword} onChange={e=>setSmtpPassword(e.target.value)} autoComplete="new-password"
+                placeholder={a.smtp_has_separate_key?'已加密保存，留空保持':'请输入独立 SMTP 密码或授权码'}/></label>}
+            </div>
+            <div className="am-add-form">
+              <button type="button" className="am-main-button" disabled={busy!==null||!imapHost||(!a.imap_host&&!appPassword)} onClick={()=>void saveConfiguration()}>{busy==='configure'?'连接验证中…':'保存并测试连接'</button>
               <button type="button" className="am-quiet-button" disabled={busy!==null||!a.imap_host} onClick={()=>void testAccount(a.id)}>测试连接</button>
               <button type="button" className="am-quiet-button" onClick={()=>{setSetupId(null);setAppPassword('');setSuggestions([])}}>关闭</button></div>
             {!!Object.keys(connectionResults).length&&<div className="am-test-results">{Object.entries(connectionResults).map(([key,result])=><div key={key} className={result.ok?'ok':'error'}><strong>{key.toUpperCase()} {result.ok?'连接成功':'连接失败'}</strong><span>{result.message}</span></div>)}</div>}
