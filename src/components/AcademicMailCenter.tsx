@@ -46,6 +46,7 @@ type Message = {
   last_folder: string
   body_text?: string
   snippet: string
+  storage_tier: 'full'|'text'|'index'
   category: string
   importance: number
   deadline: string | null
@@ -68,6 +69,7 @@ type Message = {
 type MailFolder = {id:string; name:string; color:string; sort_order:number}
 type MailLabel = {id:string; name:string; color:string}
 type MailTranslation = {translated_text:string; source_hash:string; model_name:string}
+type AccountProgress = {account_id:string;archived_count:number;full_count:number;text_count:number;index_count:number;scanned_folders:number;backfill_pending:number;history_complete:boolean;last_added_at:string|null;last_added_count:number}
 type Paper = { id: string; title: string; journal: string | null; manuscript_no: string | null }
 type Scope = MailViewKind
 type Workspace = 'inbox' | 'accounts' | 'personalize'
@@ -88,12 +90,24 @@ const providerLabels: Record<string,string> = {
   coremail: 'Coremail', qq: 'QQ 邮箱', '126': '126 邮箱',
   gmail: 'Gmail', outlook: 'Outlook',
 }
+const webmailHome=(account:Account):string|null=>{
+ const address=account.address.toLowerCase()
+ if(account.provider==='qq')return 'https://mail.qq.com/'
+ if(account.provider==='126')return 'https://mail.126.com/'
+ if(account.provider==='gmail')return 'https://mail.google.com/mail/?authuser='+encodeURIComponent(account.address)
+ if(account.provider==='outlook')return /@(?:[a-z0-9.-]*onmicrosoft\.com|[a-z0-9.-]*edu\.[a-z]+)$/i.test(address)
+   ?'https://outlook.office.com/mail/':'https://outlook.live.com/mail/'
+ if(address.endsWith('@email.cugb.edu.cn'))return 'https://www.email.cugb.edu.cn/coremail/index.jsp?nodetect=true'
+ if(address.endsWith('@xju.edu.cn'))return 'https://mail.xju.edu.cn/coremail/index.jsp'
+ if(address.endsWith('@mail.cugb.edu.cn'))return 'https://mail.cugb.edu.cn/'
+ return null
+}
 const niceDate = (date?: string | null) => date
   ? new Date(date).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   : '尚无记录'
 const shortDate = (date?: string | null) => date ? new Date(date).toLocaleDateString('zh-CN') : '未知日期'
 const isSpam = (message: Message) => /spam|junk|垃圾/i.test(message.first_folder + ' ' + message.last_folder)
-const isSupported = (account: Account) => ['coremail','qq','126','other'].includes(account.provider)
+const isSupported = (account: Account) => ['coremail','qq','126','gmail','other'].includes(account.provider)
 const describeStatus = (account: Account) => {
   if (!account.enabled) return '已暂停'
   if (account.provider==='outlook')return account.cloud_state==='ready'?'Graph 已连接':account.cloud_state==='error'?'Graph 连接异常':'等待 Microsoft 授权'
@@ -127,6 +141,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [workspace, setWorkspace] = useState<Workspace>('inbox')
   const [pref,setPref] = useState<MailSettings|null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [accountProgress,setAccountProgress]=useState<Record<string,AccountProgress>>({})
   const [folders,setFolders] = useState<MailFolder[]>([])
   const [labels,setLabels] = useState<MailLabel[]>([])
   const [folderFilter,setFolderFilter] = useState('all')
@@ -207,18 +222,20 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
       .order('updated_at',{ascending:false}).limit(300)
     const base = () => (supabase.from('mail_messages') as any).select('id',{count:'exact',head:true}).eq('user_id',userId)
-    const [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult] = await Promise.all([
-      accountQuery, papersQuery, base(), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
+    const [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult,progressResult] = await Promise.all([
+      accountQuery, papersQuery, base().neq('storage_tier','index'), base().or('category.eq.review_invite,ai_category.eq.review_invite'),
       base().or('category.eq.review_invite,ai_category.eq.review_invite').or('review_response.is.null,review_response.eq.pending'),
       base().or('importance.gte.2,ai_priority.gte.2'), base().or(folderQuery),
        base().or('category.eq.submission_update,ai_category.eq.submission_update'),
       (supabase.from('mail_preferences') as any).select('*').eq('user_id',userId).maybeSingle(),
        (supabase.from('mail_folders') as any).select('id,name,color,sort_order').eq('user_id',userId).order('sort_order').order('name'),
        (supabase.from('mail_labels') as any).select('id,name,color').eq('user_id',userId).order('name'),
+       (supabase as any).rpc('mail_account_progress'),
     ])
-    const failed = [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult].find(x=>x.error)
+    const failed = [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult,progressResult].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
+    setAccountProgress(Object.fromEntries(((progressResult.data||[]) as AccountProgress[]).map(v=>[v.account_id,v])))
     setFolders(folderResult.data||[])
     setLabels(labelResult.data||[])
     setPref(prefResult.data||null)
@@ -230,13 +247,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const sequence = ++listSequence.current
     setLoading(true)
     let q=(supabase.from('mail_messages') as any)
-      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state,user_note,user_labels,virtual_folder_id',
+      .select('id,account_id,subject,sender_name,sender_address,received_at,first_folder,last_folder,snippet,storage_tier,category,importance,deadline,paper_id,review_response,archived_locally,cloud_archive_path,internet_message_id,extraction,ai_category,ai_summary,ai_tags,ai_action,ai_priority,ai_state,user_note,user_labels,virtual_folder_id',
         {count:'exact'})
       .eq('user_id',userId).order('received_at',{ascending:false,nullsFirst:false})
       .range(page*PAGE_SIZE,(page+1)*PAGE_SIZE-1)
     if(scope==='review_invite'||scope==='pending'||scope==='submission_update'){const target=scope==='pending'?'review_invite':scope;q=q.or('category.eq.'+target+',ai_category.eq.'+target)}
     if(scope==='pending') q=q.or('review_response.is.null,review_response.eq.pending')
     if(scope==='important') q=q.or('importance.gte.2,ai_priority.gte.2')
+    if(scope==='all'&&accountFilter==='all'&&!debouncedSearch)q=q.neq('storage_tier','index')
     if(accountFilter!=='all') q=q.eq('account_id',accountFilter)
     if(folderFilter==='unfiled')q=q.is('virtual_folder_id',null)
     else if(folderFilter!=='all')q=q.eq('virtual_folder_id',folderFilter)
@@ -415,8 +433,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   },[oauth?.accountId,oauth?.expiresAt,oauth?.interval,oauth?.waiting])
     const setupAccount=(a:Account)=>{
     setSetupId(a.id)
-    setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':''))
-    setSmtpHost(a.smtp_host||(a.provider==='qq'?'smtp.qq.com':a.provider==='126'?'smtp.126.com':''))
+    setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':a.provider==='gmail'?'imap.gmail.com':''))
+    setSmtpHost(a.smtp_host||(a.provider==='qq'?'smtp.qq.com':a.provider==='126'?'smtp.126.com':a.provider==='gmail'?'smtp.gmail.com':''))
     setImapPort(a.imap_port||993);setSmtpPort(a.smtp_port||465)
     setImapSecurity(a.imap_security||'ssl');setSmtpSecurity(a.smtp_security||'ssl')
     setImapUsername(a.imap_username||a.address);setSmtpUsername(a.smtp_username||a.address)
@@ -828,7 +846,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
          <header className="am-dialog-header"><strong>添加邮箱</strong><button type="button" aria-label="关闭添加邮箱" onClick={()=>setShowAdd(false)}><X size={18}/></button></header>
          <div className="am-form-panel"><strong>邮箱账户信息</strong><div className="am-add-form">
         <label>邮箱地址<input type="email" placeholder="name@stu.xju.edu.cn" value={newAddress} onChange={e=>setNewAddress(e.target.value)} autoComplete="email"/></label>
-        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook / Hotmail（Microsoft OAuth2）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
+        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（应用专用密码）</option><option value="outlook">Outlook / Hotmail（Microsoft OAuth2）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
         <button type="button" className="am-main-button" disabled={busy!==null} onClick={()=>void addAccount()}>保存账户</button><button type="button" className="am-quiet-button" onClick={()=>setShowAdd(false)}>取消</button>
       </div></div></div></div>}
       <div className="am-account-overview" aria-label="多邮箱连接概览">
