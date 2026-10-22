@@ -53,3 +53,5 @@ console.log('Academic mail UI and collection contract checks passed.')
 import './mail-first-principles-contract.mjs'
 
 import './outlook-graph-ui-contract.mjs'
+
+import './mail-dense-layout-contract.mjs'
