@@ -271,6 +271,22 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }
   },[loadMetadata,loadMessages])
 
+  // New archived messages appear without refreshing every minute.
+  // Coalesce a batch of Supabase INSERT events into one metadata/list query.
+  useEffect(()=>{
+    let scheduled:ReturnType<typeof setTimeout>|undefined
+    const channel=supabase.channel('academic-mail-insert-'+userId)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'mail_messages',
+        filter:'user_id=eq.'+userId},()=>{
+        if(scheduled!==undefined)window.clearTimeout(scheduled)
+        scheduled=window.setTimeout(()=>{void loadMetadata();void loadMessages()},800)
+      }).subscribe()
+    return ()=>{
+      if(scheduled!==undefined)window.clearTimeout(scheduled)
+      void supabase.removeChannel(channel)
+    }
+  },[userId,loadMetadata,loadMessages])
+
   const active=useMemo(()=>messages.find(m=>m.id===selected)||null,[messages,selected])
   useEffect(()=>{
     if(!selected){setActiveBody('');setBodyLoading(false);return}
