@@ -200,18 +200,27 @@ async function scanAccount(admin:any,account:any){
     }
     return found
    }
-   const searches=stored
-    ?await Promise.all([
-      searchIds('UID '+(savedRecent+1)+':*'),
-      savedBefore>1?searchIds('UID 1:'+(savedBefore-1)):Promise.resolve([] as number[])
-     ])
-    :[await searchIds('ALL')]
+   // IMAP commands share one socket and read buffer. Never run them concurrently:
+   // a parallel search could consume the other command's tagged response.
+   const searches: number[][]=[]
+   if(stored){
+    searches.push(await searchIds('UID '+(savedRecent+1)+':*'))
+    if(savedBefore>1)searches.push(await searchIds('UID 1:'+(savedBefore-1)))
+   }else searches.push(await searchIds('ALL'))
    // IMAP UID n:* can return the last existing UID even when n is higher.
    // Ignore stale matches so idle mailboxes do not download old messages again.
    const ids=[...new Set(searches.flat())]
     .filter(uid=>!stored||uid>savedRecent||(savedBefore>1&&uid<savedBefore))
     .sort((a,b)=>a-b)
-   if(!ids.length)continue
+   if(!ids.length){
+    // An emptied historical range is complete, even if the server deleted old mail.
+    if(stored && savedBefore>0){
+     const finished=await admin.rpc('mail_save_scan_state',{p_account_id:account.id,
+      p_folder_key:key,p_recent:savedRecent,p_before:0})
+     if(finished.error)throw new Error('Unable to finish empty historical cursor')
+    }
+    continue
+   }
    // Bootstrap near the newest messages, then complete the older range.
    const bootstrap=ids[Math.max(0,ids.length-13)]-1
    const cursor:any=stored||{recent_uid:bootstrap,backfill_before:bootstrap+1}
@@ -222,6 +231,8 @@ async function scanAccount(admin:any,account:any){
    const oldUids=ids.filter(v=>v<bound&&!selected.has(v)).reverse().slice(0,MAX_FOLDER-newUids.length)
    const candidates=[...newUids,...oldUids].slice(0,Math.min(MAX_FOLDER,MAX_PER_RUN-processed))
    let completed=true
+   const processedNew:number[]=[]
+   const processedOld:number[]=[]
    for(const uid of candidates){
     if(Date.now()-now>TIME_BUDGET_MS){completed=false;break}
     const fetched=await imap.cmd('UID FETCH '+uid+' (BODY.PEEK[])',true)
@@ -259,12 +270,18 @@ async function scanAccount(admin:any,account:any){
      if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))throw new Error('Mail index save failed (DB '+String(inserted.error.code||'unknown').replace(/[^A-Za-z0-9]/g,'').slice(0,12)+')')
     }
     processed++
+    // Move cursors only after the archive and message index are both durable.
+    if(uid>recent)processedNew.push(uid)
+    else if(uid<bound)processedOld.push(uid)
    }
-   if(!completed)break
-   const nextBefore=oldUids.length?Math.min(...oldUids): (cursor.backfill_before===0?0:ids.some(v=>v<bound&&!selected.has(v))?bound:0)
+   // A shortened batch must not skip UIDs selected but not actually saved.
+   const nextBefore=processedOld.length?Math.min(...processedOld):
+     (oldUids.length?Number(cursor.backfill_before):
+      cursor.backfill_before===0?0:ids.some(v=>v<bound&&!selected.has(v))?bound:0)
    const save=await admin.rpc('mail_save_scan_state',{p_account_id:account.id,p_folder_key:key,
-     p_recent:Math.max(recent,...newUids,0),p_before:Number.isFinite(nextBefore)?nextBefore:0})
+     p_recent:Math.max(recent,...processedNew,0),p_before:Number.isFinite(nextBefore)?nextBefore:0})
    if(save.error)throw new Error('Scan cursor update failed')
+   if(!completed)break
   }
   return {processed,checkedFolders:directory.length}
  }finally{try{conn.close()}catch{}}
