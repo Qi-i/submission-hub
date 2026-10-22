@@ -192,7 +192,7 @@ async function scanAccount(admin:any,account:any){
     examined=await imap.cmd('EXAMINE '+imapString(folder.name))
    }catch{
     // Some 126 IMAP gateways reject EXAMINE but allow SELECT. The collector
-    // never uses STORE/EXPUNGE and retrieves mail via BODY.PEEK[] only.
+    // All fetched messages use BODY.PEEK[]; the scanner never changes remote mail flags.
     if(account.provider!=='126'){folderOpenErrors++;continue}
     try{examined=await imap.cmd('SELECT '+imapString(folder.name))}
     catch(e){
