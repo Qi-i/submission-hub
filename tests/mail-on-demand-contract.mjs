@@ -15,7 +15,7 @@ const tests=[
  ['Background collection excludes failed accounts',collector.includes("query=query.eq('cloud_state','ready')")&&noRetry.includes("cloud_state = 'ready'")],
  ['Failure stops retries and retains last successful timestamp',collector.includes("next_attempt_at:null,last_processed:0")&&!collector.includes("retryAfter")&&noRetry.includes("set next_attempt_at=null")],
  ['Failed mailboxes may be checked manually without renewed password',collector.includes("query=query.eq('user_id',userId).eq('id',preferred).in('cloud_state',['ready','error'])")],
- ['UI distinguishes last success from newly imported count',ui.includes('最近检查 / 本次新增')&&ui.includes('历史邮件仍保留')&&ui.includes('自动重试已停止')],
+ ['UI distinguishes last success from newly imported count',ui.includes('最近检查 / 本次新增')&&ui.includes('上次新增 ')&&ui.includes('成功同步 ')&&ui.includes('自动重试已停止')],
  ['Per-account dialog does not inherit two-column grid',uiStyles.includes('.am-account-dialog .am-account-list')&&uiStyles.includes('grid-template-columns:minmax(0,1fr)')],
  ['Mail progress shows archive totals, last additions and historical backfill',ui.includes("mail_account_progress")&&ui.includes("archived_count")&&ui.includes("last_added_at")&&ui.includes("history_complete")],
  ['No automatic external images in mail overview',!ui.includes('<img ')&&ui.includes('am-account-metrics')],
