@@ -24,8 +24,8 @@ export const MAIL_VIEW_KINDS:Record<MailViewKind,string>={
 const DEFAULT_PROMPT='请概述邮件主题、关键事实与待处理事项，并判断重要性、可能的处理期限及与投稿论文的关联。没有依据的信息不要推测。'
 type Props={userId:string;settings:MailSettings|null;busy:boolean;
  onUpdate:(changes:Partial<MailSettings>)=>Promise<void>;
- onSaveKey:(key:string)=>Promise<void>;onToast:(kind:MailToastKind,message:string)=>void}
-export default function MailPersonalization({userId,settings,busy,onUpdate,onSaveKey,onToast}:Props){
+ onSaveKey:(key:string)=>Promise<void>;onToast:(kind:MailToastKind,message:string)=>void;onRefresh:()=>Promise<void>}
+export default function MailPersonalization({userId,settings,busy,onUpdate,onSaveKey,onToast,onRefresh}:Props){
  const [newTitle,setNewTitle]=useState('')
  const [newKind,setNewKind]=useState<MailViewKind>('review_invite')
  const [apiKey,setApiKey]=useState('')
@@ -102,7 +102,8 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     (r.retry_after_seconds?' · 建议 '+r.retry_after_seconds+' 秒后重试':'')+
     (r.latency_ms?' · '+r.latency_ms+'ms':''))
    if(id)await reload()
-   else if(r.switched)await onUpdate({ai_glm_platform:r.platform,ai_enabled:false})
+   await onRefresh()
+   if(!id&&r.switched)await onUpdate({ai_glm_platform:r.platform,ai_enabled:false})
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setTesting(null)}
  }
@@ -122,7 +123,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   {id:'glm:glm-4.5-flash',label:'GLM-4.5-Flash · '+(settings?.ai_glm_platform==='bigmodel'?'BigModel':'Z.AI'),
    keyReady:!!settings?.ai_key_ready,free:true,latency:settings?.ai_glm_probe_times?.['glm-4.5-flash']??null},
   ...endpoints.map(e=>({id:'endpoint:'+e.id,label:e.label+' · '+e.model,
-   keyReady:e.key_ready&&e.last_test_status==='ok',free:e.declared_free,latency:e.last_test_latency_ms??null}))
+   keyReady:e.key_ready,free:e.declared_free,latency:e.last_test_latency_ms??null}))
  ]
  const routeOrder=(settings?.ai_route_order??['glm:glm-4.7-flash','glm:glm-4.5-flash'])
   .filter(id=>availableRoutes.some(x=>x.id===id))
@@ -201,7 +202,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     {availableRoutes.map(route=>{
       const index=routeOrder.indexOf(route.id),active=index>=0
       return <div className={'am-route-row '+(active?'selected':'')} key={route.id}>
-       <label className="am-route-checkbox"><input type="checkbox" checked={active} disabled={busy}
+       <label className="am-route-checkbox"><input type="checkbox" checked={active} disabled={busy||(!active&&routeOrder.length>=6)}
         onChange={e=>updateOrder(e.target.checked?[...routeOrder,route.id]:routeOrder.filter(id=>id!==route.id))}/></label>
        <div className="am-route-detail"><strong>{route.label}</strong>
         <small>{route.free?'免费标记':'可能收费，不能作为自动备用'} · {route.keyReady?'连接已授权':'未测试或未授权'} · {route.latency!==null?'实测 '+(route.latency/1000).toFixed(1)+' 秒':'尚无速度测量'}</small>
