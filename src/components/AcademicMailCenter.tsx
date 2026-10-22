@@ -102,6 +102,20 @@ const webmailHome=(account:Account):string|null=>{
  if(address.endsWith('@mail.cugb.edu.cn'))return 'https://mail.cugb.edu.cn/'
  return null
 }
+const messageSourceUrl=(account:Account,message:Message):string|null=>{
+ if(account.provider==='outlook'){
+  const raw=message.extraction?.webmail_url
+  if(typeof raw==='string'){
+   try{
+    const u=new URL(raw)
+    if(u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&
+       ['outlook.office.com','outlook.live.com','outlook.office365.com'].includes(u.hostname.toLowerCase()))
+     return u.href
+   }catch{}
+  }
+ }
+ return webmailHome(account)
+}
 const niceDate = (date?: string | null) => date
   ? new Date(date).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   : '尚无记录'
@@ -771,7 +785,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                   {selectedAccount?logoLabel(selectedAccount):'未知邮箱'} · {active.first_folder}</strong>
                   <small title={selectedAccount?.address}>{selectedAccount?.address}</small></div>
               <div><span>保存方式</span><strong>{active.storage_tier==='index'?'仅索引 · 原邮箱查看':active.storage_tier==='text'?'正文 · 不存附件':active.cloud_archive_path?'完整原文归档':'正文记录'}</strong>
-               {selectedAccount&&webmailHome(selectedAccount)&&<a className="am-source-webmail" href={webmailHome(selectedAccount)||undefined} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 打开原邮箱</a>}</div>
+               {selectedAccount&&messageSourceUrl(selectedAccount,active)&&<a className="am-source-webmail" href={messageSourceUrl(selectedAccount,active)||undefined} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> {active.extraction?.webmail_url?'在原邮箱查看此邮件':'打开原邮箱'}</a>}</div>
             </div>
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
             {active.ai_category&&<div className="am-ai-category-suggestion"><Sparkles size={14}/> AI 识别：{categories[active.ai_category]||active.ai_category} · 分类建议独立保存，不会覆盖手动分类</div>}
