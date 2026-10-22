@@ -7,9 +7,16 @@ const cfg=read('supabase/functions/mail-config/index.ts')
 const oauth=read('supabase/functions/mail-outlook-oauth/index.ts')
 const collector=read('supabase/functions/mail-cloud-collector/index.ts')
 const cron=read('supabase/038_mail_due_only_cron.sql')
+const noRetry=read('supabase/039_mail_manual_error_recovery.sql')
+const uiStyles=read('src/components/AcademicMailCenter.css')
 const sql=read('supabase/036_mail_gpt_on_demand.sql')
 const realtime=read('supabase/037_mail_realtime_inserts.sql')
 const tests=[
+ ['Background collection excludes failed accounts',collector.includes("query=query.eq('cloud_state','ready')")&&noRetry.includes("cloud_state = 'ready'")],
+ ['Failure stops retries and retains last successful timestamp',collector.includes("next_attempt_at:null,last_processed:0")&&!collector.includes("retryAfter")&&noRetry.includes("set next_attempt_at=null")],
+ ['Failed mailboxes may be checked manually without renewed password',collector.includes("query=query.eq('user_id',userId).eq('id',preferred).in('cloud_state',['ready','error'])")],
+ ['UI distinguishes last success from newly imported count',ui.includes('最近检查 / 本次新增')&&ui.includes('历史邮件仍保留')&&ui.includes('自动重试已停止')],
+ ['Per-account dialog does not inherit two-column grid',uiStyles.includes('.am-account-dialog .am-account-list')&&uiStyles.includes('grid-template-columns:minmax(0,1fr)')],
  ['NetEase 126 IMAP declares client identity before mailbox access',collector.includes("imap.cmd('ID (\"name\" \"Submission Hub\"")&&cfg.includes('A003 ID (')&&cfg.includes('A004 EXAMINE "INBOX"')],
  ['Mailbox settings open in a secondary dialog',ui.includes('detailAccountId')&&ui.includes('am-account-overview')&&ui.includes('am-account-dialog')&&ui.includes('am-account-summary')],
  ['Mail archive reports missing folders instead of false successful sync',collector.includes('openedFolders===0')&&collector.includes('advertisedMessages>0&&foundUids===0')],
