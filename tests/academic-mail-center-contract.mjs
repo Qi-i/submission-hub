@@ -39,10 +39,11 @@ assert.ok(!main.includes('<ProjectFeedback />'),'feedback must not appear in hea
 assert.ok(paperCard.includes('${linkedPaper.journal} · 悬停预览期刊信息'),'journal title tooltip must contain full name')
 
 for(const required of [
-  "Deno.connectTls", "EXAMINE ", "BODY.PEEK[]", "UIDVALIDITY", "UID SEARCH ALL",
+  "Deno.connectTls", "EXAMINE ", "BODY.PEEK[]", "UIDVALIDITY", "searchIds('ALL')",
   "mail-originals", "cloud_archive_path", "decodeModifiedUtf7", "extractDeadline",
   "mail_check_cron_token", "mail_read_cloud_secret"
 ])assert.ok(scanner.includes(required),'missing cloud archiver contract: '+required)
+assert.ok(scanner.includes("searchIds('UID '+(savedRecent+1)+':*')"),'incremental scan should query only new UIDs')
 assert.ok(!scanner.includes("imap.cmd('STORE"),'mail collector cannot mutate server mail flags')
 assert.ok(!scanner.includes("imap.cmd('EXPUNGE"),'mail collector cannot purge mail')
 assert.ok(settings.includes("mail_save_cloud_secret"),'credentials must go through Vault')
