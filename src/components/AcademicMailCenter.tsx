@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import {
   AlertCircle, Archive, ArrowLeft, Check, ChevronRight, Clock3, Download,
   FileText, Inbox, Link2, Mail, MailCheck, Plus, RefreshCw, Search, Settings2,
-  ShieldCheck, Sparkles, PauseCircle, PlayCircle, X
+  ShieldCheck, Sparkles, PauseCircle, PlayCircle, KeyRound, Copy, ExternalLink, CheckCircle2, Server, Layers3, X
 } from 'lucide-react'
 import MailPersonalization, {DEFAULT_MAIL_VIEWS,MAIL_VIEW_KINDS,type MailViewKind,type MailSettings} from './MailPersonalization'
 import MailToast, {type MailToastKind} from './MailToast'
@@ -28,6 +28,9 @@ type Account = {
   last_processed: number
   last_scanned_folders: number
   smtp_has_separate_key: boolean
+  oauth_client_id: string | null
+  oauth_identity: string | null
+  auth_kind: string
 }
 type Message = {
   id: string
@@ -80,8 +83,9 @@ const shortDate = (date?: string | null) => date ? new Date(date).toLocaleDateSt
 const isSpam = (message: Message) => /spam|junk|垃圾/i.test(message.first_folder + ' ' + message.last_folder)
 const isSupported = (account: Account) => ['coremail','qq','126','other'].includes(account.provider)
 const describeStatus = (account: Account) => {
-  if (!isSupported(account)) return '需要 OAuth2 授权'
   if (!account.enabled) return '已暂停'
+  if (account.provider==='outlook')return account.cloud_state==='ready'?'Graph 已连接':account.cloud_state==='error'?'Graph 连接异常':'等待 Microsoft 授权'
+  if (!isSupported(account)) return '需要 OAuth2 授权'
   if (account.cloud_state === 'error') return '采集异常'
   if (account.cloud_state === 'ready') return '自动采集中'
   return '待配置'
@@ -92,6 +96,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [workspace, setWorkspace] = useState<Workspace>('inbox')
   const [pref,setPref] = useState<MailSettings|null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [oauthClientId,setOauthClientId] = useState('')
+  const [oauthPanelId,setOauthPanelId] = useState<string|null>(null)
+  const [oauth,setOauth] = useState<{accountId:string;userCode:string;interval:number;
+    expiresAt:number;verificationUri:string;waiting:boolean}|null>(null)
   const [papers, setPapers] = useState<Paper[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [counts, setCounts] = useState<CountSummary>({all:0,review:0,pending:0,important:0,spam:0})
@@ -144,7 +152,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   const loadMetadata = useCallback(async () => {
     const accountQuery = (supabase.from('mail_accounts') as any)
-      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at,consecutive_failures,next_attempt_at,last_processed,last_scanned_folders,smtp_has_separate_key')
+      .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at,consecutive_failures,next_attempt_at,last_processed,last_scanned_folders,smtp_has_separate_key,oauth_client_id,oauth_identity,auth_kind')
       .eq('user_id', userId).order('created_at', {ascending: true})
     const papersQuery = (supabase.from('papers') as any)
       .select('id,title,journal,manuscript_no').eq('user_id', userId)
@@ -253,7 +261,66 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
-  const setupAccount=(a:Account)=>{
+  const showOutlook=(a:Account)=>{
+    setOauthPanelId(a.id);setOauthClientId(a.oauth_client_id||'')
+  }
+  const startOutlook=async(a:Account)=>{
+    setBusy('oauth-'+a.id)
+    try{
+      const data=await callFunction('mail-outlook-oauth',{
+       action:'start',account_id:a.id,client_id:oauthClientId.trim()
+      })
+      setOauth({accountId:a.id,userCode:data.user_code,interval:Math.max(5,Number(data.interval||7)),
+       expiresAt:Date.now()+Number(data.expires_in||900)*1000,
+       verificationUri:data.verification_uri,waiting:true})
+      setNotice('微软授权码已生成。点击「打开微软授权」并输入验证码，同意权限后会自动检测。')
+      await loadMetadata()
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
+  }
+  const disconnectOutlook=async(a:Account)=>{
+    if(!window.confirm('断开 Microsoft OAuth2 授权？本系统保存的令牌将被撤销，既有邮件归档保留。'))return
+    setBusy('disconnect-'+a.id)
+    try{
+     const data=await callFunction('mail-outlook-oauth',{action:'disconnect',account_id:a.id})
+     setOauth(null);setOauthPanelId(null)
+     setNotice(data.message||'已断开 Outlook')
+     await loadMetadata()
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(null)}
+  }
+  useEffect(()=>{
+    if(!oauth?.waiting)return
+    let cancelled=false,timeout:ReturnType<typeof setTimeout>|undefined
+    const poll=async()=>{
+      if(cancelled)return
+      if(Date.now()>oauth.expiresAt){
+        setOauth(null);setError('Microsoft 授权码已过期，重新点击「开始授权」即可。');return
+      }
+      try{
+        const data=await callFunction('mail-outlook-oauth',{action:'poll',account_id:oauth.accountId})
+        if(cancelled)return
+        if(data.connected){
+          const id=oauth.accountId
+          setOauth(null)
+          setNotice('Outlook 已完成 OAuth2 授权；开始首次归档邮件。')
+          await loadMetadata()
+          await manualSync(id)
+          return
+        }
+        const next=Math.max(oauth.interval,Number(data.interval||oauth.interval))
+        timeout=setTimeout(poll,next*1000)
+      }catch(e){
+        if(cancelled)return
+        setOauth(null)
+        setError(e instanceof Error?e.message:String(e))
+      }
+    }
+    timeout=setTimeout(poll,Math.max(5,oauth.interval)*1000)
+    return()=>{cancelled=true;if(timeout)clearTimeout(timeout)}
+  // Bind only to the current authorization session; avoid resetting timers on every rerender.
+  },[oauth?.accountId,oauth?.expiresAt,oauth?.interval,oauth?.waiting])
+    const setupAccount=(a:Account)=>{
     setSetupId(a.id)
     setImapHost(a.imap_host||(a.provider==='qq'?'imap.qq.com':a.provider==='126'?'imap.126.com':''))
     setSmtpHost(a.smtp_host||(a.provider==='qq'?'smtp.qq.com':a.provider==='126'?'smtp.126.com':''))
@@ -509,7 +576,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>独立管理七个邮箱的连接状态和云端归档，不在网页或 GitHub 中保留明文凭据。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(x=>!x)}><Plus size={15}/> 添加邮箱</button></div>
       {showAdd&&<div className="am-form-panel"><strong>添加邮箱账户</strong><div className="am-add-form">
         <label>邮箱地址<input type="email" placeholder="name@stu.xju.edu.cn" value={newAddress} onChange={e=>setNewAddress(e.target.value)} autoComplete="email"/></label>
-        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook（OAuth2 待接入）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
+        <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook / Hotmail（Microsoft OAuth2）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
         <button type="button" className="am-main-button" disabled={busy!==null} onClick={()=>void addAccount()}>保存账户</button><button type="button" className="am-quiet-button" onClick={()=>setShowAdd(false)}>取消</button>
       </div></div>}
       <div className="am-account-list">
@@ -519,7 +586,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           <div className="am-account-data">
               <div><span>上次成功归档</span><strong>{niceDate(a.last_sync_at)}</strong></div>
               <div><span>最近检查 / 归档</span><strong>{niceDate(a.last_checked_at)} · {a.last_processed||0} 封</strong></div>
-              <div><span>服务器 / 扫描文件夹</span><strong>{a.imap_host||'尚未设置'} · {a.last_scanned_folders||0} 个</strong></div>
+              <div><span>{a.provider==='outlook'?'Microsoft Graph / 文件夹':'服务器 / 扫描文件夹'}</span>
+               <strong>{a.provider==='outlook'?'Graph OAuth2':a.imap_host||'尚未设置'} · {a.last_scanned_folders||0} 个</strong></div>
             </div>
             {a.cloud_state==='error'&&a.next_attempt_at&&<p className="am-account-retry"><AlertCircle size={14}/> 连续失败 {a.consecutive_failures||1} 次 · 下次自动重试不早于 {niceDate(a.next_attempt_at)}</p>}
           {a.last_error&&<p className="am-account-error"><AlertCircle size={14}/>{a.last_error}</p>}
@@ -531,8 +599,39 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               {(a.cloud_state==='ready'||a.cloud_state==='error'||!a.enabled)&&<button type="button" disabled={busy!==null} onClick={()=>void toggleCollection(a)}>
                 {a.enabled?<PauseCircle size={14}/>:<PlayCircle size={14}/>} {a.enabled?'暂停采集':'恢复采集'}
               </button>}
-            </>:<span>该服务商需要独立的 OAuth2 授权，当前版本尚未实现自动采集。</span>}
+            </>:a.provider==='outlook'?<>
+              <button type="button" onClick={()=>showOutlook(a)}><KeyRound size={14}/>{a.cloud_state==='ready'?'管理 Microsoft 授权':'连接 Microsoft 账户'}</button>
+              {a.enabled&&a.cloud_state==='ready'&&<button type="button" disabled={busy!==null}
+               onClick={()=>void manualSync(a.id)}><RefreshCw size={14}/> 立即同步 Graph</button>}
+              {a.cloud_state==='ready'&&<button type="button" disabled={busy!==null}
+               onClick={()=>void disconnectOutlook(a)}>断开授权</button>}
+            </>:<span>该服务商需要 OAuth2 授权，尚未连接。</span>}
           </div>
+          {a.provider==='outlook'&&oauthPanelId===a.id&&<div className="am-oauth-panel">
+            <div className="am-oauth-panel-head"><div className="am-oauth-icon"><KeyRound size={18}/></div>
+             <div><strong>Microsoft 官方账户授权</strong>
+               <p>以 Microsoft Graph 读取所有文件夹（包括垃圾邮件），并在明确确认后发送邮件。无需邮箱密码，也不需要始终开着电脑。</p></div></div>
+            <div className="am-oauth-form">
+              <label>Microsoft 应用（客户端）ID
+               <input value={oauthClientId} onChange={e=>setOauthClientId(e.target.value)}
+                 placeholder="00000000-0000-0000-0000-000000000000" spellCheck={false}/></label>
+              <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+               target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 获取客户端 ID</a>
+              <button type="button" className="am-main-button" disabled={busy!==null||!oauthClientId.trim()}
+               onClick={()=>void startOutlook(a)}>{busy==='oauth-'+a.id?'申请中…':'开始 Microsoft 授权'}</button>
+            </div>
+            <p className="am-oauth-help">只需注册一次免费 Microsoft 应用，账户类型选择“任何组织目录及个人 Microsoft 账户”，在“身份验证”中开启公共客户端流程；配置委托权限 User.Read、Mail.Read、Mail.Send、offline_access。学校或企业账户可能需要管理员批准。</p>
+            {oauth?.accountId===a.id&&<div className="am-device-auth" aria-live="polite">
+              <span>微软设备登录验证码（临时）</span><strong>{oauth.userCode}</strong>
+              <div><button type="button" className="am-quiet-button" onClick={()=>void navigator.clipboard.writeText(oauth.userCode)}>
+                <Copy size={14}/> 复制验证码</button>
+                <a className="am-main-button" href={oauth.verificationUri} target="_blank" rel="noopener noreferrer">
+                 <ExternalLink size={14}/> 打开微软授权页</a></div>
+              <small>在 Microsoft 网页输入验证码后，系统按官方间隔自动检查结果。有效期剩余约 {Math.max(0,Math.ceil((oauth.expiresAt-Date.now())/60000))} 分钟。</small>
+            </div>}
+            {a.cloud_state==='ready'&&<p className="am-oauth-connected"><CheckCircle2 size={15}/>
+              已授权：{a.oauth_identity||a.address} · Microsoft Graph 读取及发送邮件</p>}
+          </div>}
           {setupId===a.id&&<div className="am-form-panel am-config-form">
             <div className="am-section-heading"><strong>收发信配置</strong><button type="button" className="am-quiet-button" disabled={busy!==null} onClick={()=>void discover(a.id)}>自动发现服务器</button></div>
             <p>可使用官方参数或 DNS SRV 建议。仅允许加密连接：IMAP 993/SSL、143/STARTTLS；SMTP 465/SSL、587/STARTTLS。服务器证书必须有效。</p>
@@ -577,8 +676,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div className="am-compose">
         <header><strong>撰写邮件</strong><button type="button" onClick={()=>setShowCompose(false)} aria-label="关闭"><X size={17}/></button></header>
         <label>发件邮箱<select value={composeAccount} onChange={e=>setComposeAccount(e.target.value)}>
-          <option value="">请选择已配置 SMTP 的邮箱</option>
-          {accounts.filter(a=>a.smtp_host&&a.enabled).map(a=><option value={a.id} key={a.id}>{a.address}</option>)}
+          <option value="">请选择已授权发信的邮箱</option>
+          {accounts.filter(a=>a.enabled&&(!!a.smtp_host||(a.provider==='outlook'&&a.cloud_state==='ready'))).map(a=><option value={a.id} key={a.id}>{a.address}</option>)}
         </select></label>
         <label>收件人<input type="email" value={composeTo} onChange={e=>setComposeTo(e.target.value)} placeholder="person@example.com"/></label>
         <label>主题<input value={composeSubject} onChange={e=>setComposeSubject(e.target.value)} placeholder="邮件主题"/></label>
