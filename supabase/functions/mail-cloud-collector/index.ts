@@ -1,12 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import PostalMime from 'npm:postal-mime@4.0.7'
 import {scanOutlookGraph} from './outlook.ts'
+import {mailStoragePolicy,textPreview} from './storage-policy.ts'
 
 const PROJECT=Deno.env.get('SUPABASE_URL')||''
 const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
 const encoder=new TextEncoder()
 const decoder=new TextDecoder()
-const MAX_MESSAGE=40*1024*1024
+const MAX_MESSAGE=8*1024*1024
 const MAX_PER_RUN=25
 const MAX_FOLDER=7
 const TIME_BUDGET_MS=90000
@@ -52,7 +53,7 @@ class Imap {
   }
  }
  async bytes(n:number){
-  if(n>MAX_MESSAGE)throw new Error('Message exceeds 40 MiB archive limit')
+  if(n>MAX_MESSAGE)throw new Error('Message exceeds 8 MiB archive limit')
   const out=new Uint8Array(n)
   let offset=0
   while(offset<n){
@@ -166,6 +167,7 @@ async function scanAccount(admin:any,account:any){
  const now=Date.now()
  let processed=0
  let openedFolders=0, advertisedMessages=0, foundUids=0, folderOpenErrors=0, firstOpenStatus='unknown'
+ let newMessages=0
  try{
   if(account.auth_kind==='xoauth2'){
 
@@ -262,75 +264,90 @@ async function scanAccount(admin:any,account:any){
    const processedOld:number[]=[]
    for(const uid of candidates){
     if(Date.now()-now>TIME_BUDGET_MS){completed=false;break}
-    // Ask the server for size first. Large attachments must not fail the
-    // entire mailbox or block all other UID cursors.
-    const meta=await imap.cmd('UID FETCH '+uid+' (RFC822.SIZE)')
+    // Fetch only RFC822 metadata first. Bulk mail, receipts and messages
+    // carrying large attachments do not require downloading the MIME body.
+    const meta=await imap.cmd('UID FETCH '+uid+' (RFC822.SIZE BODY.PEEK[HEADER])',true)
     const bytes=Number(/RFC822\.SIZE\s+(\d+)/i.exec(meta.lines.join(' '))?.[1]||0)
-    if(bytes>MAX_MESSAGE){
-     const peek=await imap.cmd('UID FETCH '+uid+' (BODY.PEEK[HEADER])',true)
-     if(!peek.literal){completed=false;break}
-     const header=await PostalMime.parse(peek.literal)
-     const messageId=String(header.messageId||'').replaceAll(String.fromCharCode(0),'').trim()
-     const remoteKey=await digest(messageId||key+':'+uid)
-     const existing=await admin.from('mail_messages').select('id').eq('account_id',account.id).eq('remote_key',remoteKey).maybeSingle()
-     if(existing.error)throw Error('Large mail index lookup failed')
-     if(!existing.data){
-      const subject=String(header.subject||'（大邮件）').replaceAll(String.fromCharCode(0),'').slice(0,1024)
-      const sender=header.from&&'address' in header.from?header.from:null
+    if(!meta.literal){completed=false;break}
+    const header=await PostalMime.parse(meta.literal)
+    const headerId=String(header.messageId||'').replaceAll(String.fromCharCode(0),'').trim()
+    const headerSubject=String(header.subject||'').replaceAll(String.fromCharCode(0),'').slice(0,1024)
+    const sender=header.from&&'address' in header.from?header.from:null
+    const senderName=String(sender?.name||'').replaceAll(String.fromCharCode(0),'')
+    const senderAddress=String(sender?.address||'').replaceAll(String.fromCharCode(0),'')
+    const policy=mailStoragePolicy(String(account.provider||''),folder.display,headerSubject,senderAddress)
+    const sizeBound=bytes>MAX_MESSAGE || (policy.tier==='text'&&bytes>256*1024)
+    const lightweight=policy.tier==='index'||sizeBound
+    if(lightweight){
+     const keyId=await digest(headerId||key+':'+uid)
+     const exists=await admin.from('mail_messages').select('id')
+       .eq('account_id',account.id).eq('remote_key',keyId).maybeSingle()
+     if(exists.error)throw Error('Mail metadata lookup failed')
+     if(!exists.data){
+      const mode: 'index'='index'
+      const preview=bytes>MAX_MESSAGE?'大邮件 '+Math.ceil(bytes/1048576)+' MiB · 源邮箱保留原文':
+        policy.label+' · 源邮箱查看原文'
       const inserted=await admin.from('mail_messages').insert({
-       user_id:account.user_id,account_id:account.id,remote_key:remoteKey,
-       internet_message_id:messageId.slice(0,512),
-       first_folder:folder.spam?'Junk':folder.display,last_folder:folder.display,
+       user_id:account.user_id,account_id:account.id,remote_key:keyId,
+       internet_message_id:headerId.slice(0,512),
+       first_folder:folder.spam?'Junk':folder.display.replaceAll(String.fromCharCode(0),''),
+       last_folder:folder.display.replaceAll(String.fromCharCode(0),''),
        received_at:header.date&&!Number.isNaN(Date.parse(header.date))?new Date(header.date).toISOString():null,
-       sender_name:String(sender?.name||'').replaceAll(String.fromCharCode(0),''),
-       sender_address:String(sender?.address||'').replaceAll(String.fromCharCode(0),''),
-       recipient_address:account.address,subject,
-       snippet:'大邮件（'+Math.ceil(bytes/1048576)+' MiB）：已收录邮件信息；原文和附件仍在原邮箱。',
-       body_text:'',category:'other',importance:0,
-       extraction:{large_message:true,original_size_bytes:bytes,original_pending:true},
-       cloud_archive_path:null,archived_locally:false
+       sender_name:senderName,sender_address:senderAddress,recipient_address:account.address,
+       subject:headerSubject,snippet:preview,body_text:'',category:'other',importance:0,
+       extraction:{storage_tier:mode,storage_reason:policy.label,original_size_bytes:bytes,
+        attachments_not_copied:true},
+       cloud_archive_path:null,archived_locally:false,storage_tier:mode,
+       ai_state:'skipped'
       })
       if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))
-       throw Error('Large mail header index failed (DB '+String(inserted.error.code||'unknown')+')')
+       throw Error('Light mail index save failed (DB '+String(inserted.error.code||'unknown')+')')
+      if(!inserted.error)newMessages++
      }
-     processed++
-     if(uid>recent)processedNew.push(uid)
-     else if(uid<bound)processedOld.push(uid)
-     continue
-    }
-    const fetched=await imap.cmd('UID FETCH '+uid+' (BODY.PEEK[])',true)
-    if(!fetched.literal){completed=false;break}
-    const raw=fetched.literal
-    const md=await digest(raw)
-    const parsed=await PostalMime.parse(raw)
-    const messageId=String(parsed.messageId||'').replaceAll(String.fromCharCode(0),'').trim()
-    const remoteKey=await digest(messageId||md)
-    const exists=await admin.from('mail_messages').select('id').eq('account_id',account.id).eq('remote_key',remoteKey).maybeSingle()
-    if(exists.error)throw new Error('Duplicate check failed')
-    if(!exists.data){
-     const archivePath=account.user_id+'/'+account.id+'/'+md+'.eml'
-     const saved=await admin.storage.from('mail-originals').upload(archivePath,raw,{
-      contentType:'application/octet-stream',upsert:false
-     })
-     if(saved.error&&!/already exists|duplicate|409/i.test(saved.error.message||''))throw new Error('Private archive upload failed')
-     const body=String(parsed.text||parsed.html||'').replaceAll(String.fromCharCode(0),'').replace(/<[^>]*>/g,' ').slice(0,60000)
-     const subject=String(parsed.subject||'').replaceAll(String.fromCharCode(0),'').slice(0,1024)
-     const [category,importance]=classify(subject,body)
-     const sender=parsed.from && 'address' in parsed.from ? parsed.from : null
-     const inserted=await admin.from('mail_messages').insert({
+    }else{
+     const fetched=await imap.cmd('UID FETCH '+uid+' (BODY.PEEK[])',true)
+     if(!fetched.literal){completed=false;break}
+     const raw=fetched.literal
+     const md=await digest(raw)
+     const parsed=await PostalMime.parse(raw)
+     const messageId=String(parsed.messageId||headerId).replaceAll(String.fromCharCode(0),'').trim()
+     const remoteKey=await digest(messageId||md)
+     const exists=await admin.from('mail_messages').select('id')
+       .eq('account_id',account.id).eq('remote_key',remoteKey).maybeSingle()
+     if(exists.error)throw Error('Mail duplicate lookup failed')
+     if(!exists.data){
+      const full=policy.tier==='full'
+      const archivePath=full?account.user_id+'/'+account.id+'/'+md+'.eml':null
+      if(archivePath){
+       const storedMail=await admin.storage.from('mail-originals').upload(archivePath,raw,{
+        contentType:'application/octet-stream',upsert:false
+       })
+       if(storedMail.error&&!/already exists|duplicate|409/i.test(storedMail.error.message||''))
+        throw Error('Private archive upload failed')
+      }
+      const body=String(parsed.text||parsed.html||'').replaceAll(String.fromCharCode(0),'')
+       .replace(/<[^>]*>/g,' ').slice(0,full?60000:12000)
+      const subject=String(parsed.subject||headerSubject).replaceAll(String.fromCharCode(0),'').slice(0,1024)
+      const [category,importance]=classify(subject,body)
+      const inserted=await admin.from('mail_messages').insert({
        user_id:account.user_id,account_id:account.id,remote_key:remoteKey,
        internet_message_id:messageId.slice(0,512),
        first_folder:folder.spam?'Junk':folder.display.replaceAll(String.fromCharCode(0),''),
        last_folder:folder.display.replaceAll(String.fromCharCode(0),''),
-       received_at:parsed.date && !Number.isNaN(Date.parse(parsed.date)) ? new Date(parsed.date).toISOString():null,
-       sender_name:String(sender?.name||'').replaceAll(String.fromCharCode(0),''),sender_address:String(sender?.address||'').replaceAll(String.fromCharCode(0),'') ,
-       recipient_address:account.address,subject,
-       snippet:body.replace(/\s+/g,' ').slice(0,800),body_text:body,
-       category,importance,extraction:extract(subject+' '+body.slice(0,2500)),
+       received_at:parsed.date&&!Number.isNaN(Date.parse(parsed.date))?new Date(parsed.date).toISOString():null,
+       sender_name:senderName,sender_address:senderAddress,recipient_address:account.address,
+       subject,snippet:textPreview(body,800),body_text:body,category,importance,
+       extraction:{...extract(subject+' '+body.slice(0,2500)),
+         storage_tier:full?'full':'text',storage_reason:policy.label,original_size_bytes:bytes,
+         attachments_not_copied:!full},
        deadline:extractDeadline(subject+'\n'+body.slice(0,12000)),
-       cloud_archive_path:archivePath,archived_locally:false
-     })
-     if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))throw new Error('Mail index save failed (DB '+String(inserted.error.code||'unknown').replace(/[^A-Za-z0-9]/g,'').slice(0,12)+')')
+       cloud_archive_path:archivePath,archived_locally:false,
+       storage_tier:full?'full':'text'
+      })
+      if(inserted.error&&!/duplicate key/i.test(inserted.error.message||''))
+       throw Error('Mail index save failed (DB '+String(inserted.error.code||'unknown').replace(/[^A-Za-z0-9]/g,'').slice(0,12)+')')
+      if(!inserted.error)newMessages++
+     }
     }
     processed++
     // Move cursors only after the archive and message index are both durable.
@@ -348,7 +365,7 @@ async function scanAccount(admin:any,account:any){
   }
   if(directory.length>0&&openedFolders===0)throw new Error('IMAP found folders but EXAMINE/SELECT failed (response '+firstOpenStatus+'); check folder names and mailbox permissions')
   if(advertisedMessages>0&&foundUids===0)throw new Error('IMAP reports '+advertisedMessages+' messages, but UID SEARCH returned zero; refusing false successful sync')
-  return {processed,checkedFolders:directory.length,openedFolders,folderOpenErrors,advertisedMessages,foundUids}
+  return {processed:newMessages,checkedFolders:directory.length,openedFolders,folderOpenErrors,advertisedMessages,foundUids}
  }finally{try{conn.close()}catch{}}
 }
 const apiResponse=(data:unknown,status=200)=>new Response(status===204?null:JSON.stringify(data),{
@@ -394,11 +411,16 @@ Deno.serve(async req=>{
  try{
   const result=account.provider==='outlook'&&account.auth_kind==='oauth2'
      ?await scanOutlookGraph(admin,account):await scanAccount(admin,account)
-  await admin.from('mail_accounts').update({
+  const update:Record<string,unknown>={
    last_sync_at:new Date().toISOString(),last_error:null,cloud_state:'ready',
    consecutive_failures:0,next_attempt_at:null,
    last_processed:result.processed,last_scanned_folders:result.checkedFolders
-  }).eq('id',account.id)
+  }
+  if(result.processed>0){
+   update.last_added_at=new Date().toISOString()
+   update.last_added_count=result.processed
+  }
+  await admin.from('mail_accounts').update(update).eq('id',account.id)
   return apiResponse({checked:1,processed:result.processed,folders:result.checkedFolders,
    opened_folders:result.openedFolders??null,folder_open_errors:result.folderOpenErrors??null,
    advertised_messages:result.advertisedMessages??null,discovered_uids:result.foundUids??null})
