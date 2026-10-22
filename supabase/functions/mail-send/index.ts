@@ -85,8 +85,8 @@ Deno.serve(async req=>{
   if(!subject||subject.length>500||!content.trim()||content.length>100000)throw Error('Invalid subject or text')
   if(replyTo && !/^<[^\r\n<>]{3,300}>$/.test(replyTo))throw Error('Invalid In-Reply-To header')
  }catch{return json({error:'收件人、主题或正文无效'},422)}
- const secret=await admin.rpc('mail_read_cloud_secret',{p_account_id:id})
- if(secret.error||!secret.data)return json({error:'请先配置邮箱授权码'},422)
+ const secret=await admin.rpc(a.smtp_has_separate_key?'mail_read_smtp_secret':'mail_read_cloud_secret',{p_account_id:id})
+ if(secret.error||!secret.data)return json({error:a.smtp_has_separate_key?'SMTP 独立授权码不可用':'请先配置邮箱授权码'},422)
  let client:SMTP|null=null
  try{
   let conn:Deno.Conn
