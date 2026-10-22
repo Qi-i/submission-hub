@@ -1683,3 +1683,41 @@ html[data-ui][data-theme="dark"] body .academic-mail-center :is(.am-annotation-t
 .academic-mail-center .am-account-add-dialog .am-form-panel{border:0;padding:0;margin:0}
 @media(max-width:800px){.academic-mail-center .am-account-overview{grid-template-columns:1fr}}
 @media(max-width:560px){.academic-mail-center .am-account-summary{gap:6px 9px;padding:11px 9px;grid-template-columns:35px minmax(0,1fr) auto}.academic-mail-center .am-account-overlay{padding:8px}.academic-mail-center .am-account-dialog{max-height:calc(100dvh - 16px);padding:0 12px 12px}}
+
+/* One mailbox occupies the entire secondary dialog, not half a legacy 2-column grid. */
+html[data-ui] body .academic-mail-center .am-account-dialog{
+ max-width:720px;
+}
+html[data-ui] body .academic-mail-center .am-account-dialog .am-account-list{
+ display:block;
+ width:100%;
+ max-width:none;
+ min-width:0;
+ grid-template-columns:minmax(0,1fr);
+}
+html[data-ui] body .academic-mail-center .am-account-dialog .am-account-card{
+ display:block;
+ width:100%;
+ max-width:none;
+ min-width:0;
+ box-sizing:border-box;
+ padding:0;
+ border:0;
+ box-shadow:none;
+ transform:none;
+ background:transparent;
+}
+html[data-ui] body .academic-mail-center .am-account-dialog .am-account-card::before{
+ display:none;
+}
+html[data-ui] body .academic-mail-center .am-account-dialog .am-account-card:hover{
+ box-shadow:none;
+ transform:none;
+}
+.academic-mail-center .am-account-dialog .am-account-data{
+ grid-template-columns:repeat(3,minmax(0,1fr));
+}
+@media(max-width:650px){
+ .academic-mail-center .am-account-dialog .am-account-data{grid-template-columns:1fr 1fr}
+ .academic-mail-center .am-account-dialog .am-account-data>div:last-child{grid-column:1/-1}
+}
