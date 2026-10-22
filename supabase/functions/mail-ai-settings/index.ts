@@ -87,7 +87,7 @@ Deno.serve(async req=>{
   return reply({configured:!!r.data})
  }
  if(action==='test'){
-  const prefs=await db.from('mail_preferences').select('ai_model,ai_glm_platform,ai_max_wait_seconds,ai_slow_mode').eq('user_id',userId).maybeSingle()
+  const prefs=await db.from('mail_preferences').select('ai_model,ai_glm_platform,ai_max_wait_seconds,ai_slow_mode,ai_glm_probe_times').eq('user_id',userId).maybeSingle()
   const model=String(body.model||prefs.data?.ai_model||'glm-4.7-flash')
   if(!['glm-4.7-flash','glm-4.5-flash'].includes(model))return reply({error:'此测试仅支持 GLM 免费 Flash 模型'},422)
   const secret=await db.rpc('mail_read_ai_key',{p_user_id:userId})
@@ -96,14 +96,14 @@ Deno.serve(async req=>{
   const timeoutMs=Math.min(80000,Math.max(20000,Number(prefs.data?.ai_max_wait_seconds||65)*1000))
   const first=await modelTest(glmEndpoints[preferred],model,secret.data,timeoutMs)
   if(first.ok){
-   await db.from('mail_preferences').update({ai_glm_probe_ms:Math.round(first.latency_ms)}).eq('user_id',userId)
+   await db.from('mail_preferences').update({ai_glm_probe_ms:Math.round(first.latency_ms),ai_glm_probe_times:{...(prefs.data?.ai_glm_probe_times||{}),[model]:Math.round(first.latency_ms)}}).eq('user_id',userId)
    return reply({...first,platform:preferred})
   }
   if(body.auto_detect===true){
    const alternative:GlmPlatform=preferred==='zai'?'bigmodel':'zai'
    const second=await modelTest(glmEndpoints[alternative],model,secret.data,timeoutMs)
    if(second.ok){
-    await db.from('mail_preferences').update({ai_glm_platform:alternative,ai_glm_probe_ms:Math.round(second.latency_ms),ai_enabled:false})
+    await db.from('mail_preferences').update({ai_glm_platform:alternative,ai_glm_probe_ms:Math.round(second.latency_ms),ai_glm_probe_times:{...(prefs.data?.ai_glm_probe_times||{}),[model]:Math.round(second.latency_ms)},ai_enabled:false})
      .eq('user_id',userId)
     return reply({...second,platform:alternative,switched:true,
       message:'自动检测成功：此 Key 可在'+(alternative==='bigmodel'?'国内 BigModel':'国际 Z.AI')+'使用。平台已切换，后台自动分析保持关闭。'})
