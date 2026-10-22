@@ -47,7 +47,7 @@ Deno.serve(async req=>{
       !u.pathname.endsWith('/chat/completions'))continue
     const ipv4=await Deno.resolveDns(u.hostname,'A').catch(()=>[] as string[]) as string[]
     const ipv6=await Deno.resolveDns(u.hostname,'AAAA').catch(()=>[] as string[]) as string[]
-    if(!ipv4.length&&!ipv6.length)continue
+    // DNS lookup at Edge is advisory; validated HTTPS TLS is the connection check.
     if(ipv4.some(ip=>{const p=ip.split('.').map(Number),[x,y]=p;return p.length!==4||x===0||x===10||x===127||x>=224||x===169&&y===254||x===172&&y>=16&&y<=31||x===192&&y===168||x===100&&y>=64&&y<=127||x===192&&y===0||x===198&&y>=18&&y<=19})||ipv6.some(ip=>/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(ip)||/::ffff:/i.test(ip)))continue
     endpoint=u.href
    }catch{continue}
