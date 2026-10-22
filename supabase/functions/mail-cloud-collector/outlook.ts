@@ -54,7 +54,9 @@ const allowedUrl=(url:string)=>{
 }
 async function graph(token:string,url:string){
  if(!allowedUrl(url))throw Error('Invalid Graph paging URL')
- const res=await fetch(url,{redirect:'error',headers:{Authorization:'Bearer '+token}})
+ const res=await fetch(url,{redirect:'error',headers:{
+  Authorization:'Bearer '+token,Prefer:'IdType="ImmutableId"'
+ }})
  if(!res.ok){
   if(res.status===429)throw Error('Microsoft Graph 限流，请稍后重试')
   if(res.status===401||res.status===403)throw Error('Microsoft Graph 邮件权限不足或授权已失效')
@@ -122,7 +124,8 @@ async function archive(admin:any,account:any,token:string,folder:{id:string;name
   sender_name:sender?.name||'',sender_address:sender?.address||'',
   recipient_address:account.address,subject,
   snippet:excerpt(body,800),body_text:body,category,importance,
-  extraction:matched?{manuscript_no:matched[1]}:{},
+  extraction:{...(matched?{manuscript_no:matched[1]}:{}),
+   graph_message_id:item.id},
   deadline:deadline(subject+'\n'+body),
   cloud_archive_path:archivePath,archived_locally:false
  }
