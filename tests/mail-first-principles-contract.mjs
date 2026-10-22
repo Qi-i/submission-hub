@@ -51,6 +51,7 @@ for(const [name,condition] of [
  ['automatic analysis uses configured verified provider',worker.includes("pref.ai_glm_platform==='bigmodel'")],
  ['all mail operations have fixed and screen-visible alerts',ui.includes('<MailToast ')&&mailToast.includes('createPortal')&&mailCss.includes('position:fixed !important')],
  ['warning and errors remain distinguishable',mailToast.includes('am-toast-warning')&&mailToast.includes('am-toast-error')],
+ ['provider 429 leaves mail pending with cooldown',worker.includes('ai_retry_after:retryAt')&&worker.includes('emails')===false&&worker.includes("raw.status===429")],
 
  ['SMTP independent credential isolated in Vault',smtpMigration.includes('mail_private.smtp_credentials')&&smtpMigration.includes('vault.create_secret')],
  ['SMTP sender honors separate key',sender.includes('smtp_has_separate_key')&&sender.includes('mail_read_smtp_secret')],
@@ -64,4 +65,4 @@ for(const [name,condition] of [
  ['old API keys never implicitly follow a new URL',personal.includes('模型配置已保存')&&aiReauthMigration.includes('new.api_url is distinct from old.api_url')],
 
 ])assert.ok(condition,'Mail architecture contract failed: '+name)
-console.log('Extended mail resilience and security contract: 41/41 invariants.')
+console.log('Extended mail resilience and security contract: 42/42 invariants.')
