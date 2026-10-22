@@ -85,7 +85,14 @@ Deno.serve(async req=>{
    const parsed=await PostalMime.parse(bytes)
    const whole=String(parsed.text||parsed.html||'').replaceAll(String.fromCharCode(0),'')
     .replace(/<[^>]*>/g,' ').trim()
-   if(whole.length>source.length)source=whole
+   if(whole.length>source.length){
+    // Materialize the decoded academic body once to avoid re-downloading a
+    // multi-megabyte private EML file for each translation segment.
+    const memo=await db.from('mail_messages').update({body_text:whole})
+     .eq('user_id',uid).eq('id',id)
+    if(memo.error)return response({error:'完整邮件正文缓存失败'},503)
+    source=whole
+   }
   }catch{return response({error:'原始邮件解析失败'},422)}
  }
  const chunks=chunksOf(source)
