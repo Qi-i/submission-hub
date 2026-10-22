@@ -744,9 +744,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div className="am-msg-from"><div className="am-from-group">
                 {accounts.find(a=>a.id===m.account_id)&&<span className="am-source-badge"
                   title={accounts.find(a=>a.id===m.account_id)?.address}>
-                  {accounts.find(a=>a.id===m.account_id)?.logo_url
-                  ?<img referrerPolicy="no-referrer" alt="" src={accounts.find(a=>a.id===m.account_id)?.logo_url||''}/>
-                  :accounts.find(a=>a.id===m.account_id)?.logo_symbol||providerSymbols[accounts.find(a=>a.id===m.account_id)?.provider||'other']}
+                  {accounts.find(a=>a.id===m.account_id)?.logo_symbol||providerSymbols[accounts.find(a=>a.id===m.account_id)?.provider||'other']}
                   </span>}
                 <strong>{m.sender_name||m.sender_address||'未知发件人'}</strong>
                 </div><time>{shortDate(m.received_at)}</time></div>
@@ -769,12 +767,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>发件人</span><strong>{active.sender_name||'未填写'} <small>{active.sender_address||''}</small></strong></div>
               <div><span>收件时间</span><strong>{niceDate(active.received_at)}</strong></div>
               <div><span>来源邮箱 / 服务器文件夹</span><strong className="am-reader-source">
-                  <span className="am-source-badge">{selectedAccount?.logo_url
-                    ?<img referrerPolicy="no-referrer" alt="" src={selectedAccount.logo_url}/>
-                    :selectedAccount?.logo_symbol||providerSymbols[selectedAccount?.provider||'other']}</span>
+                  <span className="am-source-badge">{selectedAccount?.logo_symbol||providerSymbols[selectedAccount?.provider||'other']}</span>
                   {selectedAccount?logoLabel(selectedAccount):'未知邮箱'} · {active.first_folder}</strong>
                   <small title={selectedAccount?.address}>{selectedAccount?.address}</small></div>
-              <div><span>原文归档</span><strong>{active.cloud_archive_path?'私有云原文已归档':active.archived_locally?'本地原文已归档':'尚无原文备份'}</strong></div>
+              <div><span>保存方式</span><strong>{active.storage_tier==='index'?'仅索引 · 原邮箱查看':active.storage_tier==='text'?'正文 · 不存附件':active.cloud_archive_path?'完整原文归档':'正文记录'}</strong>
+               {selectedAccount&&webmailHome(selectedAccount)&&<a className="am-source-webmail" href={webmailHome(selectedAccount)||undefined} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 打开原邮箱</a>}</div>
             </div>
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
             {active.ai_category&&<div className="am-ai-category-suggestion"><Sparkles size={14}/> AI 识别：{categories[active.ai_category]||active.ai_category} · 分类建议独立保存，不会覆盖手动分类</div>}
@@ -851,13 +848,30 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       </div></div></div></div>}
       <div className="am-account-overview" aria-label="多邮箱连接概览">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
-        {accounts.map(a=><article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
-          <div className="am-account-mark am-brand-mark">{a.logo_url?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>:a.logo_symbol||providerSymbols[a.provider]||<Mail size={18}/>}</div>
-          <div className="am-account-summary-main"><strong>{logoLabel(a)}</strong><small title={a.address}>{a.address}</small>
-            <span title={a.last_error||undefined}>{a.last_error?'最近采集异常 · 历史邮件仍保留':'最近成功同步 '+niceDate(a.last_sync_at)}</span></div>
-          <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span>
-          <button type="button" className="am-account-open" onClick={()=>{setDetailAccountId(a.id);setSetupId(null);setOauthPanelId(null);setBrandEditing(null);setConnectionResults({})}}><Settings2 size={14}/> 详情与设置</button>
-        </article>)}
+        {accounts.map(a=>{
+          const stats=accountProgress[a.id]
+          const home=webmailHome(a)
+          return <article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
+           <div className="am-account-mark am-brand-mark">{a.logo_symbol||providerSymbols[a.provider]||<Mail size={18}/>}</div>
+           <div className="am-account-summary-main">
+            <strong>{logoLabel(a)}</strong><small title={a.address}>{a.address}</small>
+            <div className="am-account-metrics">
+             <span>归档 <b>{stats?.archived_count??0}</b> 封</span>
+             <span>完整 {stats?.full_count??0}</span>
+             <span>轻量 {(stats?.text_count??0)+(stats?.index_count??0)}</span>
+            </div>
+            <span>上次新增 {stats?.last_added_at?niceDate(stats.last_added_at)+' · '+stats.last_added_count+' 封':'暂无记录'}</span>
+            <span>成功同步 {niceDate(a.last_sync_at)}{a.cloud_state==='error'?' · 最近检查失败':''}</span>
+            <span>{stats?.history_complete?'历史归档已完成':
+             '历史归档进行中 · 已记录 '+(stats?.scanned_folders??0)+'/'+(a.last_scanned_folders||0)+' 个文件夹'}</span>
+           </div>
+           <div className="am-account-summary-actions">
+            <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span>
+            {home&&<a href={home} target="_blank" rel="noopener noreferrer" title="在邮箱服务商官方网站查看原始邮件">原邮箱 <ExternalLink size={13}/></a>}
+            <button type="button" className="am-account-open" onClick={()=>{setDetailAccountId(a.id);setSetupId(null);setOauthPanelId(null);setBrandEditing(null);setConnectionResults({})}}><Settings2 size={14}/> 设置</button>
+           </div>
+          </article>
+        })}
       </div>
       {detailAccountId&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setDetailAccountId(null)}}>
        <div className="am-account-dialog" role="dialog" aria-modal="true" aria-label="邮箱详情与设置">
@@ -865,9 +879,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <div className="am-account-list">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
         {accounts.filter(a=>a.id===detailAccountId).map(a=><section key={a.id} className="am-account-card" data-provider={a.provider}>
-          <div className="am-account-heading"><div className="am-account-mark am-brand-mark">{a.logo_url
-             ?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>
-             :a.logo_symbol||providerSymbols[a.provider]||<Mail size={19}/>}</div>
+          <div className="am-account-heading"><div className="am-account-mark am-brand-mark">{a.logo_symbol||providerSymbols[a.provider]||<Mail size={19}/>}</div>
              <div className="am-account-name"><strong>{logoLabel(a)}</strong><small>{a.address} · {providerLabels[a.provider]||a.provider}</small></div>
              <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
           <div className="am-account-data">
