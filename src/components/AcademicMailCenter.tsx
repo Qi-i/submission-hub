@@ -512,7 +512,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       onDismissError={dismissError} onDismissNotice={dismissNotice} onDismissWarning={dismissWarning}/>
 
     {workspace==='inbox'?<>
-      <div className="am-filterbar">
+      <div className={"am-filterbar"+(pref?.workspace?.show_statistics===false?" no-views":"")}>
         {pref?.workspace?.show_statistics!==false&&<div className="am-stats am-dynamic-views">
         {savedViews.map(view=><button type="button" key={view.id} className={scope===view.kind?'active':''} onClick={()=>pickScope(view.kind)}><span>{view.title}</span>
           <strong>{view.kind==='all'?counts.all:view.kind==='important'?counts.important:view.kind==='spam'?counts.spam:view.kind==='pending'?counts.pending:view.kind==='review_invite'?counts.review:view.kind==='submission_update'?counts.submission:0}</strong></button>)}
