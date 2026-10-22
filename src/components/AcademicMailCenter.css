@@ -297,3 +297,19 @@
  .am-floating-feedback{top:68px;right:12px;left:12px;width:auto}
  .am-toast-item{padding:11px 12px;font-size:11px;box-shadow:0 8px 28px rgba(20,37,60,.19)}
 }
+
+/* Multi-model priority editor: same typography, borders, and density as Mail settings. */
+.am-route-list{display:flex;flex-direction:column;gap:7px;margin:12px 0}
+.am-route-row{display:flex;gap:9px;align-items:center;padding:10px 11px;border:1px solid var(--am-line);border-radius:9px;background:var(--am-surface);min-width:0}
+.am-route-row.selected{border-color:var(--am-blue);background:var(--am-soft)}
+.am-route-checkbox{display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.am-route-checkbox input{accent-color:var(--am-blue);width:15px;height:15px}
+.am-route-detail{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.am-route-detail strong{font-size:12px;line-height:1.4;color:var(--am-ink);overflow-wrap:anywhere}
+.am-route-detail small{font-size:10px;line-height:1.5;color:var(--am-muted);overflow-wrap:anywhere}
+.am-route-position{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.am-route-position>span{font-size:10px;color:var(--am-muted);white-space:nowrap}
+.am-route-position button{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--am-line);background:var(--am-surface);border-radius:7px;color:var(--am-ink);cursor:pointer}
+.am-route-position button:disabled{opacity:.4;cursor:not-allowed}
+.am-route-test{flex:0 0 auto;white-space:nowrap}
+@media(max-width:800px){.am-route-row{flex-wrap:wrap}.am-route-detail{flex-basis:calc(100% - 30px)}.am-route-position{margin-left:24px}}
