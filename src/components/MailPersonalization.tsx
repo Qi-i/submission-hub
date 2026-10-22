@@ -7,9 +7,10 @@ export type MailView={id:string;title:string;kind:MailViewKind}
 export type MailSettings={
  user_id:string;workspace:{compact?:boolean;show_statistics?:boolean;views?:MailView[]};
  ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;ai_started_at?:string|null;
- ai_key_ready:boolean;last_ai_error:string|null;ai_endpoint_id?:string|null;ai_system_prompt?:string;ai_allow_paid?:boolean;ai_glm_platform?:'zai'|'bigmodel'
+ ai_key_ready:boolean;last_ai_error:string|null;ai_endpoint_id?:string|null;ai_system_prompt?:string;ai_allow_paid?:boolean;ai_glm_platform?:'zai'|'bigmodel';
+ ai_failover_enabled?:boolean;ai_route_order?:string[];ai_slow_mode?:boolean;ai_max_wait_seconds?:number;ai_glm_probe_ms?:number|null;ai_glm_probe_times?:Record<string,number>
 }
-type Endpoint={id:string;label:string;api_url:string;model:string;declared_free:boolean;allow_paid:boolean;key_ready:boolean;last_test_at:string|null;last_test_status:string|null}
+type Endpoint={id:string;label:string;api_url:string;model:string;declared_free:boolean;allow_paid:boolean;key_ready:boolean;last_test_at:string|null;last_test_status:string|null;last_test_latency_ms?:number|null}
 export const DEFAULT_MAIL_VIEWS:MailView[]=[
  {id:'all',title:'全部邮件',kind:'all'},
  {id:'important',title:'重要邮件',kind:'important'},
@@ -23,8 +24,8 @@ export const MAIL_VIEW_KINDS:Record<MailViewKind,string>={
 const DEFAULT_PROMPT='请概述邮件主题、关键事实与待处理事项，并判断重要性、可能的处理期限及与投稿论文的关联。没有依据的信息不要推测。'
 type Props={userId:string;settings:MailSettings|null;busy:boolean;
  onUpdate:(changes:Partial<MailSettings>)=>Promise<void>;
- onSaveKey:(key:string)=>Promise<void>;onToast:(kind:MailToastKind,message:string)=>void}
-export default function MailPersonalization({userId,settings,busy,onUpdate,onSaveKey,onToast}:Props){
+ onSaveKey:(key:string)=>Promise<void>;onToast:(kind:MailToastKind,message:string)=>void;onRefresh:()=>Promise<void>}
+export default function MailPersonalization({userId,settings,busy,onUpdate,onSaveKey,onToast,onRefresh}:Props){
  const [newTitle,setNewTitle]=useState('')
  const [newKind,setNewKind]=useState<MailViewKind>('review_invite')
  const [apiKey,setApiKey]=useState('')
@@ -92,16 +93,17 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   finally{setSaving(false)}
  }
  const startEdit=(e:Endpoint)=>{setEditId(e.id);setLabel(e.label);setUrl(e.api_url);setModel(e.model);setFree(e.declared_free);setPaid(e.allow_paid);setEndpointKey('');setTestResult('');setLocalError('')}
- const test=async(id:string|null,autoDetect=false)=>{
+ const test=async(id:string|null,autoDetect=false,modelOverride?:string)=>{
   setTesting(id||'default');setLocalError('');setTestResult('')
   try{
-   const r=await call(id?'test_endpoint':'test',id?{endpoint_id:id}:{auto_detect:autoDetect})
+   const r=await call(id?'test_endpoint':'test',id?{endpoint_id:id}:{auto_detect:autoDetect,model:modelOverride||settings?.ai_model})
    setTestResult((r.ok?'连接成功：':r.reachable?'连接已响应但模型未就绪：':'连接失败：')+
     (r.message||'未知响应')+(r.code?' · 业务码 '+r.code:'')+
     (r.retry_after_seconds?' · 建议 '+r.retry_after_seconds+' 秒后重试':'')+
     (r.latency_ms?' · '+r.latency_ms+'ms':''))
    if(id)await reload()
-   else if(r.switched)await onUpdate({ai_glm_platform:r.platform,ai_enabled:false})
+   await onRefresh()
+   // Auto-detection already saved its platform on the server; do not write stale preferences.
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setTesting(null)}
  }
@@ -115,7 +117,19 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setSaving(false)}
  }
- const chosen=endpoints.find(e=>e.id===settings?.ai_endpoint_id)
+ const availableRoutes=[
+  {id:'glm:glm-4.7-flash',label:'GLM-4.7-Flash · '+(settings?.ai_glm_platform==='bigmodel'?'BigModel':'Z.AI'),
+   keyReady:!!settings?.ai_key_ready,free:true,tested:!!settings?.ai_glm_probe_times?.['glm-4.7-flash'],latency:settings?.ai_glm_probe_times?.['glm-4.7-flash']??null},
+  {id:'glm:glm-4.5-flash',label:'GLM-4.5-Flash · '+(settings?.ai_glm_platform==='bigmodel'?'BigModel':'Z.AI'),
+   keyReady:!!settings?.ai_key_ready,free:true,tested:!!settings?.ai_glm_probe_times?.['glm-4.5-flash'],latency:settings?.ai_glm_probe_times?.['glm-4.5-flash']??null},
+  ...endpoints.map(e=>({id:'endpoint:'+e.id,label:e.label+' · '+e.model,
+   keyReady:e.key_ready,free:e.declared_free,tested:e.last_test_status==='ok',latency:e.last_test_latency_ms??null}))
+ ]
+ const routeOrder=(settings?.ai_route_order??['glm:glm-4.7-flash','glm:glm-4.5-flash'])
+  .filter(id=>availableRoutes.some(x=>x.id===id))
+ const updateOrder=(ids:string[])=>void onUpdate({ai_route_order:ids.slice(0,6),ai_enabled:false})
+ const eligibleCount=routeOrder.filter(id=>{const r=availableRoutes.find(v=>v.id===id);return !!r?.free&&!!r?.keyReady&&(id.startsWith('glm:')||!!r?.tested)}).length
+  const chosen=endpoints.find(e=>e.id===settings?.ai_endpoint_id)
  const ready=chosen?chosen.key_ready:!!settings?.ai_key_ready
  const paidWarning=!!chosen&&!chosen.declared_free
  return <section className="am-personalization">
@@ -176,13 +190,48 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
      <label className="am-full-field">API Base URL 或 Chat Completions 完整地址<input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://api.example.com/v1/chat/completions"/></label>
      <label>API Key<input type="password" autoComplete="new-password" value={endpointKey} onChange={e=>setEndpointKey(e.target.value)} placeholder={editId?'留空保持原 Key':'填写接口授权 Key'}/></label>
     </div>
-    <label className="am-option"><input type="checkbox" checked={free} onChange={e=>setFree(e.target.checked)}/> 该模型由我确认属于免费调用</label>
+    <label className="am-option"><input type="checkbox" checked={free} onChange={e=>setFree(e.target.checked)}/> 该模型由我确认属于免费调用（需要实际测试，平台可能调整政策）</label>
     <label className="am-option"><input type="checkbox" checked={paid} onChange={e=>setPaid(e.target.checked)}/> 允许此接口参与可能收费的自动调用（还需二次全局授权）</label>
     <div className="am-add-form"><button type="button" className="am-main-button" disabled={saving||busy||!url||!model||!label} onClick={()=>void saveEndpoint()}>{saving?'保存中…':'保存接口'}</button>
      {editId&&<button type="button" className="am-quiet-button" onClick={resetDraft}>取消编辑</button>}</div>
    </div>
   </div>
   <div className="am-personal-section">
+   <h4><Sparkles size={16}/> 多模型优先级与自动接力</h4>
+   <p>默认不自动切换。可勾选需要的模型并调整顺序；启用接力后按此顺序尝试，只向已授权的免费备用模型发送邮件正文。不同服务商都可能接收同一封待分析邮件。</p>
+   <div className="am-route-list">
+    {availableRoutes.map(route=>{
+      const index=routeOrder.indexOf(route.id),active=index>=0
+      return <div className={'am-route-row '+(active?'selected':'')} key={route.id}>
+       <label className="am-route-checkbox"><input type="checkbox" checked={active} disabled={busy||!route.free||(!active&&routeOrder.length>=6)}
+        onChange={e=>updateOrder(e.target.checked?[...routeOrder,route.id]:routeOrder.filter(id=>id!==route.id))}/></label>
+       <div className="am-route-detail"><strong>{route.label}</strong>
+        <small>{route.free?'免费标记':'可能收费，不能作为自动备用'} · {!route.keyReady?'尚未授权':route.tested?'测试成功':'尚未测速/验证'} · {route.latency!==null?'实测 '+(route.latency/1000).toFixed(1)+' 秒':'尚无速度测量'}</small>
+       </div>
+       {active&&<div className="am-route-position"><span>第 {index+1} 位</span>
+        <button type="button" aria-label={route.label+'上移'} disabled={busy||index===0}
+         onClick={()=>{const x=[...routeOrder];[x[index-1],x[index]]=[x[index],x[index-1]];updateOrder(x)}}><ArrowUp size={14}/></button>
+        <button type="button" aria-label={route.label+'下移'} disabled={busy||index===routeOrder.length-1}
+         onClick={()=>{const x=[...routeOrder];[x[index+1],x[index]]=[x[index],x[index+1]];updateOrder(x)}}><ArrowDown size={14}/></button>
+       </div>}
+       {route.id.startsWith('glm:')&&<button type="button" className="am-quiet-button am-route-test"
+        disabled={busy||!!testing||!route.keyReady} onClick={()=>void test(null,false,route.id.slice(4))}>测速度</button>}
+       {route.id.startsWith('endpoint:')&&<button type="button" className="am-quiet-button am-route-test"
+        disabled={busy||!!testing||!route.keyReady} onClick={()=>void test(route.id.slice(9))}>测速度</button>}
+      </div>
+    })}
+   </div>
+   <label className="am-option"><input type="checkbox" checked={!!settings?.ai_failover_enabled} disabled={busy||eligibleCount===0}
+     onChange={e=>void onUpdate({ai_failover_enabled:e.target.checked,ai_enabled:false})}/> 当前模型不可用时按优先级自动接力（仅已授权免费模型；至少需要一项可用）</label>
+   <label className="am-option"><input type="checkbox" checked={settings?.ai_slow_mode!==false} disabled={busy}
+     onChange={e=>void onUpdate({ai_slow_mode:e.target.checked})}/> 容忍免费接口慢速响应，按最近实测耗时调整等待时间</label>
+   <div className="am-add-form"><label>每次模型请求最长等待<select value={settings?.ai_max_wait_seconds??65} disabled={busy}
+     onChange={e=>void onUpdate({ai_max_wait_seconds:Number(e.target.value)})}>
+    {[30,45,65,90].map(x=><option key={x} value={x}>{x} 秒</option>)}
+   </select></label></div>
+   <p className="am-disclaimer">慢速模式不会因短暂无响应直接改用收费模型。每次接力都计入每日调用次数；总运行时间受 Supabase 免费 Edge 环境约束。未启用接力时仍只访问当前选择的模型。</p>
+  </div>
+   <div className="am-personal-section">
    <h4>分析指令与自动处理</h4>
    <p>指令可直接修改，保留固定的邮件安全隔离和 JSON 输出约束。自动分析只会发送邮件正文片段到你选定的模型服务。</p>
    <label className="am-choice-label">分析系统指令<textarea rows={5} maxLength={6000} value={prompt} onChange={e=>setPrompt(e.target.value)} /></label>
