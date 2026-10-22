@@ -180,7 +180,13 @@ async function scanAccount(admin:any,account:any){
    let examined: {lines:string[];literal:Uint8Array|null}
    try{
     examined=await imap.cmd('EXAMINE '+imapString(folder.name))
-   }catch{folderOpenErrors++;continue}
+   }catch{
+    // Some 126 IMAP gateways reject EXAMINE but allow SELECT. The collector
+    // never uses STORE/EXPUNGE and retrieves mail via BODY.PEEK[] only.
+    if(account.provider!=='126'){folderOpenErrors++;continue}
+    try{examined=await imap.cmd('SELECT '+imapString(folder.name))}
+    catch{folderOpenErrors++;continue}
+   }
    openedFolders++
    advertisedMessages+=Number(/\* (\d+) EXISTS/i.exec(examined.lines.join(' '))?.[1]||0)
    const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]
