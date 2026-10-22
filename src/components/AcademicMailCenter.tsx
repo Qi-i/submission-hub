@@ -443,7 +443,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     finally{setBusy(null)}
   }
     const compose=(reply=false)=>{
-    setComposeAccount(active?.account_id||accounts.find(a=>a.smtp_host)?.id||'')
+    setComposeAccount(active?.account_id||accounts.find(a=>a.enabled&&(a.smtp_host||(a.provider==='outlook'&&a.cloud_state==='ready')))?.id||'')
     setComposeTo(reply?(active?.sender_address||''):'')
     setComposeSubject(reply?(active?.subject?.startsWith('Re:')?active.subject:'Re: '+(active?.subject||'')):'')
     setComposeBody('')
@@ -455,10 +455,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     if(!confirm('确认使用选定邮箱发送邮件？发送后无法撤回。'))return
     setBusy('send')
     try{
-      await callFunction('mail-send',{account_id:composeAccount,to:composeTo.trim(),
+      const response=await callFunction('mail-send',{account_id:composeAccount,to:composeTo.trim(),
         subject:composeSubject.trim(),content:composeBody,reply_to:replyId})
       setShowCompose(false);setComposeBody('')
-      setNotice('邮件已交给 SMTP 服务器；稍后可在发件箱同步检查')
+      setNotice(response.message||'邮件已被服务器接受，稍后可在已发送文件夹核对')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
