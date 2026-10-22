@@ -194,7 +194,7 @@ async function scanAccount(admin:any,account:any){
      folderOpenErrors++
      if(firstOpenStatus==='unknown'){
       const response=String(e instanceof Error?e.message:e)
-      firstOpenStatus=/\\bBAD\\b/i.test(response)?'BAD':/\\bNO\\b/i.test(response)?'NO':'transport'
+      firstOpenStatus=response.includes(' BAD ')?'BAD':response.includes(' NO ')?'NO':'transport'
      }
      continue
     }
