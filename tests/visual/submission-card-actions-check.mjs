@@ -120,6 +120,10 @@ for (const ui of ['luminous', 'luminous-x']) {
     if (!(await journalPopover.evaluate(element => element.classList.contains('is-pinned')))) fail(`${label}: pinned journal popover has no pinned state`)
     await journalPopover.locator('.journal-quick-close').click({ force: true })
     await journalPopover.waitFor({ state: 'hidden', timeout: 2000 })
+    // Explicit close suppresses immediate hover-driven reopening. A new hover
+    // gesture must leave the card first, as a real pointer interaction does.
+    await page.mouse.move(2, 2)
+    await page.waitForTimeout(80)
 
     await hoverJournalButton(page, card, journalButton)
     await journalPopover.waitFor({ state: 'visible', timeout: 3000 })
