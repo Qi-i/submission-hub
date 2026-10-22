@@ -689,7 +689,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             <button type="button" disabled={!!busy||!labelNew.trim()} onClick={()=>void addLabel()}><Plus size={13}/>新建</button></div>
           <div className="am-managed-items">{labels.map(t=><span key={t.id}><i style={{background:t.color}}/>{t.name}<button type="button" title={'删除 '+t.name} onClick={()=>void deleteLabel(t)}><Trash2 size={13}/></button></span>)}</div>
         </section>
-      </div>
+      </div>}
 
       {accounts.length===0&&<div className="am-onboarding">
         <div className="am-onboarding-icon"><MailCheck size={25}/></div>
@@ -856,8 +856,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               onClick={()=>void saveBrand(a)}>保存来源标识</button>
               <button type="button" className="am-quiet-button" onClick={()=>setBrandEditing(null)}>取消</button></div>
             <small>头像优先显示 Logo；无 Logo 时显示自定义文字。每封邮件均保留原邮箱地址以便溯源。</small>
-          </div>
-                    {a.provider==='outlook'&&oauthPanelId===a.id&&<div className="am-oauth-panel">
+          </div>}
+          {a.provider==='outlook'&&oauthPanelId===a.id&&<div className="am-oauth-panel">
             <div className="am-oauth-panel-head"><div className="am-oauth-icon"><KeyRound size={18}/></div>
              <div><strong>Microsoft 官方账户授权</strong>
                <p>以 Microsoft Graph 读取所有文件夹（包括垃圾邮件），并在明确确认后发送邮件。无需邮箱密码，也不需要始终开着电脑。</p></div></div>
