@@ -103,6 +103,12 @@ const readableMailText = (input?: string | null) => {
     .replace(/&hellip;/gi, '…')
     .replace(/\u00a0/g, ' ')
     .replace(/[ \t]{3,}/g, '  ')
+    // Imported MIME often starts with dozens of blank lines, which became a
+    // large empty block above the message in the scrollable reader.
+    .replace(/\r\n?/g, '\n')
+    .replace(/^[ \t]+|[ \t]+$/gm, '')
+    .replace(/\n[ \t]*\n(?:[ \t]*\n)+/g, '\n\n')
+    .trim()
 }
 
 export default function AcademicMailCenter({userId}: {userId: string}) {
@@ -126,6 +132,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [activeBody, setActiveBody] = useState('')
   const [bodyLoading, setBodyLoading] = useState(false)
   const [mobileDetail, setMobileDetail] = useState(false)
+  const readerRef = useRef<HTMLElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -239,6 +246,9 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     })()
     return ()=>{cancelled=true}
   },[selected,userId])
+  // Each selected message starts at its title; do not carry over the scroll
+  // offset from a previously viewed long newsletter or review correspondence.
+  useEffect(()=>{if(readerRef.current)readerRef.current.scrollTop=0},[selected])
   const selectedAccount=useMemo(()=>accounts.find(a=>a.id===active?.account_id),[accounts,active])
   const suggestedPaper = useMemo(()=>{
     if(!active?.extraction?.manuscript_no||active.paper_id)return null
@@ -488,7 +498,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const goToAccounts=()=>{setWorkspace('accounts');setNotice('');setError('')}
   const refresh=async()=>{setNotice('');await Promise.all([loadMessages(),loadMetadata()])}
 
-  return <main className="academic-mail-center">
+  return <main className={'academic-mail-center am-mode-'+workspace}>
     <header className="am-header am-command-header">
       <div className="am-header-copy">
         <h2>学术邮件与审稿</h2>
@@ -544,7 +554,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           <div className="am-message-list" aria-busy={loading}>
             {loading&&<div className="am-empty"><RefreshCw size={20}/>正在读取邮件索引…</div>}
             {!loading&&!messages.length&&<div className="am-empty"><Inbox size={27}/><strong>没有匹配的邮件</strong><span>可以更换筛选条件或先同步邮箱</span></div>}
-            {!loading&&messages.map(m=><button type="button" key={m.id} className={'am-message '+(selected===m.id?'selected':'')} onClick={()=>{setSelected(m.id);setMobileDetail(true)}}>
+            {!loading&&messages.map(m=><button type="button" key={m.id} className={'am-message '+(selected===m.id?'selected':'')} data-category={m.category} data-spam={isSpam(m)?'true':'false'} onClick={()=>{setSelected(m.id);setMobileDetail(true)}}>
               <div className="am-msg-from"><strong>{m.sender_name||m.sender_address||'未知发件人'}</strong><time>{shortDate(m.received_at)}</time></div>
               <div className="am-msg-subject">{m.subject||'（无主题）'}</div>
               <p>{readableMailText(m.ai_summary||m.snippet||'无邮件预览')}</p>
@@ -553,7 +563,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           </div>
           <div className="am-pager"><button type="button" disabled={page===0} onClick={()=>setPage(n=>Math.max(0,n-1))}>上一页</button><span>{total?Math.min(page*PAGE_SIZE+1,total)+'–'+Math.min((page+1)*PAGE_SIZE,total):'0'} / {total}</span><button type="button" disabled={!canGoNext} onClick={()=>setPage(n=>n+1)}>下一页</button></div>
         </aside>
-        <article className="am-reader">
+        <article className="am-reader" ref={readerRef}>
           {!active?<div className="am-reader-empty"><FileText size={28}/><strong>选择一封邮件</strong><span>查看正文、来源邮箱、审稿状态及投稿关联</span></div>:<>
             <button type="button" className="am-back" onClick={()=>setMobileDetail(false)}><ArrowLeft size={15}/> 返回列表</button>
             <div className="am-reader-top"><div className="am-reader-subtype"><span className={'am-chip am-cat-'+active.category}>{categories[active.category]||'其他'}</span>{isSpam(active)&&<span className="am-chip am-spam">原垃圾箱邮件</span>}</div><h3>{active.subject||'（无主题）'}</h3></div>
@@ -702,6 +712,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </footer>
       </div>
     </div>}
-    <footer className="am-footer"><Archive size={13}/> 邮件正文只作为不可信资料处理，不执行其中的操作指令；识别结果不会自动改写投稿状态。</footer>
+    {workspace!=='inbox'&&<footer className="am-footer"><Archive size={13}/> 邮件正文只作为不可信资料处理，不执行其中的操作指令；识别结果不会自动改写投稿状态。</footer>}
   </main>
 }
