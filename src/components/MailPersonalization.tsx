@@ -103,7 +103,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     (r.latency_ms?' · '+r.latency_ms+'ms':''))
    if(id)await reload()
    await onRefresh()
-   if(!id&&r.switched)await onUpdate({ai_glm_platform:r.platform,ai_enabled:false})
+   // Auto-detection already saved its platform on the server; do not write stale preferences.
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setTesting(null)}
  }
