@@ -109,7 +109,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  return <section className="am-personalization">
   <header><h3>邮件工作台设置</h3><p>分类、AI 模型与指令保存在 Supabase，修改后无需重新发布。</p></header>
   {localError&&<div className="am-alert" role="alert"><AlertCircle size={16}/><span>{localError}</span><button type="button" onClick={()=>setLocalError('')} aria-label="关闭"><X size={14}/></button></div>}
-  {testResult&&<div className="am-notice" role="status"><CheckCircle2 size={16}/>{testResult}</div>}
+  {testResult&&<div className={testResult.startsWith('连接失败')?'am-alert':'am-notice'} role="status">{testResult.startsWith('连接失败')?<AlertCircle size={16}/>:<CheckCircle2 size={16}/>}<span>{testResult}</span></div>}
   <div className="am-personal-section">
    <h4><Settings2 size={16}/> 快捷分类</h4>
    <p>不固定审稿邀请栏目。可按使用频率自行增加、调整顺序与名称。</p>
