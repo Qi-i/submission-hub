@@ -87,10 +87,12 @@ Deno.serve(async req=>{
  }
  if(!possible.length)return response({error:'请先配置有效的 GLM Flash 或已测试的免费自定义模型（翻译不会调用收费模型）'},422)
  let failure=''
+ const deadline=Date.now()+107000 // leave room for DB writes under free Edge wall-clock limits
  for(const route of possible){
+  if(Date.now()>deadline-12000){failure='本轮免费模型等待预算已结束，请再次尝试';break}
   const slot=await db.rpc('mail_claim_ai_slot',{p_user_id:uid,p_max:Math.min(50,Number(pref.ai_daily_limit||20))})
   if(slot.error||slot.data!==true)return response({error:'今日 AI 调用限额已用完，请明天再试'},429)
-  const aborter=new AbortController(),timer=setTimeout(()=>aborter.abort(),Math.min(90000,Math.max(20000,Number(pref.ai_max_wait_seconds||65)*1000)))
+  const aborter=new AbortController(),timer=setTimeout(()=>aborter.abort(),Math.min(90000,Math.max(1500,deadline-Date.now()-8000),Math.max(20000,Number(pref.ai_max_wait_seconds||65)*1000)))
   try{
    const r=await fetch(route.url,{method:'POST',redirect:'error',signal:aborter.signal,
     headers:{Authorization:'Bearer '+route.key,'Content-Type':'application/json'},
