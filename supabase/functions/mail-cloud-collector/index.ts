@@ -244,7 +244,7 @@ async function scanAccount(admin:any,account:any){
     const raw=fetched.literal
     const md=await digest(raw)
     const parsed=await PostalMime.parse(raw)
-    const messageId=String(parsed.messageId||'').trim()
+    const messageId=String(parsed.messageId||'').replaceAll(String.fromCharCode(0),'').trim()
     const remoteKey=await digest(messageId||md)
     const exists=await admin.from('mail_messages').select('id').eq('account_id',account.id).eq('remote_key',remoteKey).maybeSingle()
     if(exists.error)throw new Error('Duplicate check failed')
@@ -261,8 +261,8 @@ async function scanAccount(admin:any,account:any){
      const inserted=await admin.from('mail_messages').insert({
        user_id:account.user_id,account_id:account.id,remote_key:remoteKey,
        internet_message_id:messageId.slice(0,512),
-       first_folder:folder.spam?'Junk':folder.display,
-       last_folder:folder.display,
+       first_folder:folder.spam?'Junk':folder.display.replaceAll(String.fromCharCode(0),''),
+       last_folder:folder.display.replaceAll(String.fromCharCode(0),''),
        received_at:parsed.date && !Number.isNaN(Date.parse(parsed.date)) ? new Date(parsed.date).toISOString():null,
        sender_name:String(sender?.name||'').replaceAll(String.fromCharCode(0),''),sender_address:String(sender?.address||'').replaceAll(String.fromCharCode(0),'') ,
        recipient_address:account.address,subject,
