@@ -28,6 +28,21 @@ async function checkedUrl(raw:string){
   return u.href
  }catch{return null}
 }
+// A transient TLS/connection reset can happen before an HTTP response.
+// Retry a single time on network failure only, never on 429 or authorization
+// errors. The caller supplies the same overall AbortSignal/deadline.
+async function fetchWithConnectionRetry(url:string,init:RequestInit){
+ try{return await fetch(url,init)}
+ catch(e){
+  const signal=init.signal as AbortSignal|null
+  const msg=String(e instanceof Error?e.message:e)
+  const transient=/110|ETIMEDOUT|connection timed out|connection reset|ECONNRESET|network error|error sending request/i.test(msg)
+  if(signal?.aborted||!transient)throw e
+  await new Promise(resolve=>setTimeout(resolve,900))
+  if(signal?.aborted)throw e
+  return await fetch(url,init)
+ }
+}
 const hash=async(s:string)=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(x=>x.toString(16).padStart(2,'0')).join('')
 type Route={model:string;url:string;key:string;name:string}
 // Keep all content in order. Break long mail by paragraphs when possible,
@@ -170,7 +185,7 @@ Deno.serve(async req=>{
   if(Date.now()>deadline-12000){failure='本轮免费模型等待预算已结束，请再次尝试';break}
   const aborter=new AbortController(),timer=setTimeout(()=>aborter.abort(),Math.min(90000,Math.max(1500,deadline-Date.now()-8000),Math.max(20000,Number(pref.ai_max_wait_seconds||65)*1000)))
   try{
-   const r=await fetch(route.url,{method:'POST',redirect:'error',signal:aborter.signal,
+   const r=await fetchWithConnectionRetry(route.url,{method:'POST',redirect:'error',signal:aborter.signal,
     headers:{Authorization:'Bearer '+route.key,'Content-Type':'application/json'},
     body:JSON.stringify({model:route.model,stream:false,temperature:0,
      max_tokens:Math.min(6500,Math.max(1800,
@@ -211,7 +226,13 @@ Deno.serve(async req=>{
     return response({ok:true,cached:false,...done,chunk_index:chunkIndex,
      chunk_total:chunks.length,next_index:done.next_index??chunkIndex+1})
    }catch{return response({error:'本段已保存，但完整译文合并失败'},500)}
-  }catch(e){failure=e instanceof Error&&e.name==='AbortError'?'免费模型响应超时':'免费模型暂时无法访问'}
+  }catch(e){
+   const message=String(e instanceof Error?e.message:e)
+   failure=e instanceof Error&&e.name==='AbortError'?'模型响应超时，已保存此前完成的段落':
+    /110|timed?\\s*out|ECONNRESET|connection reset/i.test(message)?
+      '模型线路连接超时（os error 110），已尝试自动重连一次；此前译文可继续使用':
+      '模型线路连接失败；可稍后继续翻译'
+  }
   finally{clearTimeout(timer)}
   if(!pref.ai_failover_enabled)break
  }
