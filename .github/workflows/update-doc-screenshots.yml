@@ -51,7 +51,7 @@ jobs:
       - name: Install Playwright and Chromium
         run: |
           npm install --no-save --no-package-lock playwright@1.52.0
-          npx playwright install --with-deps chromium > /tmp/playwright-install.log 2>&1
+          npx playwright install chromium
       - name: Start preview server
         run: |
           npx vite preview --config vite.config.visual.ts --host 127.0.0.1 --port 4174 > /tmp/submission-hub-docs.log 2>&1 &
