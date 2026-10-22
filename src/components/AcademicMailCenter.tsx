@@ -825,11 +825,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       </section>
     </>:workspace==='accounts'?<>
       <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>独立管理七个邮箱的连接状态和云端归档，不在网页或 GitHub 中保留明文凭据。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(x=>!x)}><Plus size={15}/> 添加邮箱</button></div>
-      {showAdd&&<div className="am-form-panel"><strong>添加邮箱账户</strong><div className="am-add-form">
+      {showAdd&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setShowAdd(false)}}>
+        <div className="am-account-dialog am-account-add-dialog" role="dialog" aria-modal="true" aria-label="添加邮箱">
+         <header className="am-dialog-header"><strong>添加邮箱</strong><button type="button" aria-label="关闭添加邮箱" onClick={()=>setShowAdd(false)}><X size={18}/></button></header>
+         <div className="am-form-panel"><strong>邮箱账户信息</strong><div className="am-add-form">
         <label>邮箱地址<input type="email" placeholder="name@stu.xju.edu.cn" value={newAddress} onChange={e=>setNewAddress(e.target.value)} autoComplete="email"/></label>
         <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook / Hotmail（Microsoft OAuth2）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
         <button type="button" className="am-main-button" disabled={busy!==null} onClick={()=>void addAccount()}>保存账户</button><button type="button" className="am-quiet-button" onClick={()=>setShowAdd(false)}>取消</button>
-      </div></div>}
+      </div></div></div></div>}
       <div className="am-account-overview" aria-label="多邮箱连接概览">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
         {accounts.map(a=><article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
