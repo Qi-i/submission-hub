@@ -571,7 +571,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       })
       setTranslation({translated_text:r.translation,source_hash:'',model_name:r.model||''})
       setTranslationVisible(true)
-      setNotice(r.cached?'已读取缓存译文':r.truncated?'已翻译前 8500 字；完整原文仍可对照阅读':'翻译完成，已缓存供下次阅读')
+      setNotice(r.cached?'已加载译文':r.truncated?'已翻译部分正文':'翻译完成')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setTranslationLoading(false)}
   }
@@ -594,7 +594,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         .upsert(next,{onConflict:'user_id'})
       if(err)throw err
       setPref(next as MailSettings)
-      setNotice('已保存，页面配置立即生效，无需重新发布')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
@@ -652,7 +651,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       <div className="am-header-actions">
         <div className="am-command-status" aria-label="邮件服务状态">
           <span className="am-status-account" title="已连接并启用自动采集的邮箱"><span className="am-status-dot"/>邮箱 {cloudReady}/{accounts.length}</span>
-          <span className="am-status-ai" title="GPT 按需分析：网页不自动调用外部 AI"><Sparkles size={13}/>GPT 按需</span>
         </div>
         <button type="button" className="am-icon-button" onClick={()=>void refresh()} title="刷新数据" aria-label="刷新数据"><RefreshCw size={17}/></button>
         <button type="button" className="am-main-button" onClick={()=>compose(false)}><Plus size={15}/> 写邮件</button>
@@ -763,7 +761,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             {active.deadline&&<div className="am-deadline-note"><Clock3 size={17}/> 相关截止日期：<strong>{active.deadline}</strong></div>}
             {active.ai_category&&<div className="am-ai-category-suggestion"><Sparkles size={14}/> AI 识别：{categories[active.ai_category]||active.ai_category} · 分类建议独立保存，不会覆盖手动分类</div>}
             {active.ai_summary&&<div className="am-ai-result">
-              <div className="am-ai-result-title"><Sparkles size={15}/> AI 初步分析 <small>仅供参考</small></div>
+              <div className="am-ai-result-title"><Sparkles size={15}/> AI 分析</div>
               <p>{active.ai_summary}</p>
               {!!active.ai_tags?.length&&<div className="am-ai-tags">{active.ai_tags.map(tag=><span key={tag}>{tag}</span>)}</div>}
               {active.ai_action&&<div className="am-ai-action"><strong>建议：</strong>{active.ai_action}</div>}
@@ -793,7 +791,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               </div>
             </div>
             <div className="am-annotation-panel">
-              <div className="am-annotation-title"><StickyNote size={15}/>备注与跨邮箱整理 <small>仅保存到 Submission Hub，不修改原邮件</small></div>
+              <div className="am-annotation-title"><StickyNote size={15}/>备注与跨邮箱整理</div>
               <div className="am-annotation-grid">
                 <label><Folder size={13}/> 虚拟文件夹
                   <select value={active.virtual_folder_id||''} disabled={busy==='message'} onChange={e=>void saveMessage({virtual_folder_id:e.target.value||null})}>
@@ -824,7 +822,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </article>
       </section>
     </>:workspace==='accounts'?<>
-      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>集中查看所有邮箱的连接状态、异常与最近同步；点击卡片进入收发信、同步和来源标识设置。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(true)}><Plus size={15}/> 添加邮箱</button></div>
+      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(true)}><Plus size={15}/> 添加邮箱</button></div>
       {showAdd&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setShowAdd(false)}}>
         <div className="am-account-dialog am-account-add-dialog" role="dialog" aria-modal="true" aria-label="添加邮箱">
          <header className="am-dialog-header"><strong>添加邮箱</strong><button type="button" aria-label="关闭添加邮箱" onClick={()=>setShowAdd(false)}><X size={18}/></button></header>
@@ -892,7 +890,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             <div><button type="button" className="am-main-button" disabled={busy!==null}
               onClick={()=>void saveBrand(a)}>保存来源标识</button>
               <button type="button" className="am-quiet-button" onClick={()=>setBrandEditing(null)}>取消</button></div>
-            <small>头像优先显示 Logo；无 Logo 时显示自定义文字。每封邮件均保留原邮箱地址以便溯源。</small>
+        
           </div>}
           {a.provider==='outlook'&&oauthPanelId===a.id&&<div className="am-oauth-panel">
             <div className="am-oauth-panel-head"><div className="am-oauth-icon"><KeyRound size={18}/></div>
@@ -916,7 +914,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                 <Copy size={14}/> 复制验证码</button>
                 <a className="am-main-button" href={oauth.verificationUri} target="_blank" rel="noopener noreferrer">
                  <ExternalLink size={14}/> 打开微软授权页</a></div>
-              <small>在 Microsoft 网页输入验证码后，系统按官方间隔自动检查结果。有效期剩余约 {Math.max(0,Math.ceil((oauth.expiresAt-Date.now())/60000))} 分钟。</small>
+              <small>有效期剩余 {Math.max(0,Math.ceil((oauth.expiresAt-Date.now())/60000))} 分钟</small>
             </div>}
             {a.cloud_state==='ready'&&<p className="am-oauth-connected"><CheckCircle2 size={15}/>
               已授权：{a.oauth_identity||a.address} · Microsoft Graph 读取及发送邮件</p>}
@@ -971,7 +969,6 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           </div>}
         </section>)}
         </div></div></div>}
-      <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>历史邮件按文件夹断点分批归档，后续只增量同步；普通 IMAP 邮箱无法直接推送到本站，使用低频后台检查，不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
     </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey} onToast={showToast} onRefresh={loadMetadata}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
       <div className="am-compose">
