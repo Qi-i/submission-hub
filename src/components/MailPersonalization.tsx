@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react'
-import {AlertCircle,ArrowDown,ArrowUp,CheckCircle2,Plus,Settings2,Sparkles,Trash2,X} from 'lucide-react'
+import {AlertCircle,ArrowDown,ArrowUp,Plus,Settings2,Sparkles,Trash2,X} from 'lucide-react'
 import {supabase} from '../lib/supabase'
 import type {MailToastKind} from './MailToast'
 export type MailViewKind='all'|'important'|'review_invite'|'pending'|'submission_update'|'spam'
@@ -101,7 +101,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
     (r.retry_after_seconds?' · 建议 '+r.retry_after_seconds+' 秒后重试':'')+
     (r.latency_ms?' · '+r.latency_ms+'ms':''))
    if(id)await reload()
-   else if(r.switched)window.setTimeout(()=>{void onUpdate({ai_glm_platform:r.platform,ai_enabled:false})},0)
+   else if(r.switched)await onUpdate({ai_glm_platform:r.platform,ai_enabled:false})
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setTesting(null)}
  }
