@@ -170,6 +170,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [newAddress, setNewAddress] = useState('')
   const [newProvider, setNewProvider] = useState('coremail')
   const [setupId, setSetupId] = useState<string | null>(null)
+  const [detailAccountId,setDetailAccountId] = useState<string|null>(null)
   const [imapHost, setImapHost] = useState('')
   const [appPassword, setAppPassword] = useState('')
   const [smtpHost,setSmtpHost] = useState('')
@@ -823,15 +824,31 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         </article>
       </section>
     </>:workspace==='accounts'?<>
-      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>独立管理七个邮箱的连接状态和云端归档，不在网页或 GitHub 中保留明文凭据。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(x=>!x)}><Plus size={15}/> 添加邮箱</button></div>
-      {showAdd&&<div className="am-form-panel"><strong>添加邮箱账户</strong><div className="am-add-form">
+      <div className="am-settings-heading"><div><h3>邮箱连接与同步</h3><p>集中查看所有邮箱的连接状态、异常与最近同步；点击卡片进入收发信、同步和来源标识设置。</p></div><button type="button" className="am-main-button" onClick={()=>setShowAdd(true)}><Plus size={15}/> 添加邮箱</button></div>
+      {showAdd&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setShowAdd(false)}}>
+        <div className="am-account-dialog am-account-add-dialog" role="dialog" aria-modal="true" aria-label="添加邮箱">
+         <header className="am-dialog-header"><strong>添加邮箱</strong><button type="button" aria-label="关闭添加邮箱" onClick={()=>setShowAdd(false)}><X size={18}/></button></header>
+         <div className="am-form-panel"><strong>邮箱账户信息</strong><div className="am-add-form">
         <label>邮箱地址<input type="email" placeholder="name@stu.xju.edu.cn" value={newAddress} onChange={e=>setNewAddress(e.target.value)} autoComplete="email"/></label>
         <label>服务商<select value={newProvider} onChange={e=>setNewProvider(e.target.value)}><option value="coremail">Coremail（新疆大学 / CUGB）</option><option value="qq">QQ 邮箱</option><option value="126">126 邮箱</option><option value="gmail">Gmail（OAuth2 待接入）</option><option value="outlook">Outlook / Hotmail（Microsoft OAuth2）</option><option value="other">其他邮箱（自定义 IMAP/SMTP）</option></select></label>
         <button type="button" className="am-main-button" disabled={busy!==null} onClick={()=>void addAccount()}>保存账户</button><button type="button" className="am-quiet-button" onClick={()=>setShowAdd(false)}>取消</button>
-      </div></div>}
-      <div className="am-account-list">
+      </div></div></div></div>}
+      <div className="am-account-overview" aria-label="多邮箱连接概览">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
-        {accounts.map(a=><section key={a.id} className="am-account-card" data-provider={a.provider}>
+        {accounts.map(a=><article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
+          <div className="am-account-mark am-brand-mark">{a.logo_url?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>:a.logo_symbol||providerSymbols[a.provider]||<Mail size={18}/>}</div>
+          <div className="am-account-summary-main"><strong>{logoLabel(a)}</strong><small title={a.address}>{a.address}</small>
+            <span title={a.last_error||undefined}>{a.last_error?(a.last_error.length>75?a.last_error.slice(0,75)+'…':a.last_error):'最近同步 '+niceDate(a.last_sync_at)}</span></div>
+          <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span>
+          <button type="button" className="am-account-open" onClick={()=>{setDetailAccountId(a.id);setSetupId(null);setOauthPanelId(null);setBrandEditing(null);setConnectionResults({})}}><Settings2 size={14}/> 详情与设置</button>
+        </article>)}
+      </div>
+      {detailAccountId&&<div className="am-account-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&busy===null)setDetailAccountId(null)}}>
+       <div className="am-account-dialog" role="dialog" aria-modal="true" aria-label="邮箱详情与设置">
+        <header className="am-dialog-header"><strong>邮箱详情与设置</strong><button type="button" aria-label="关闭邮箱设置" onClick={()=>{setDetailAccountId(null);setSetupId(null);setOauthPanelId(null);setBrandEditing(null)}}><X size={18}/></button></header>
+        <div className="am-account-list">
+        {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
+        {accounts.filter(a=>a.id===detailAccountId).map(a=><section key={a.id} className="am-account-card" data-provider={a.provider}>
           <div className="am-account-heading"><div className="am-account-mark am-brand-mark">{a.logo_url
              ?<img src={a.logo_url} referrerPolicy="no-referrer" alt=""/>
              :a.logo_symbol||providerSymbols[a.provider]||<Mail size={19}/>}</div>
@@ -953,7 +970,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             {!!Object.keys(connectionResults).length&&<div className="am-test-results">{Object.entries(connectionResults).map(([key,result])=><div key={key} className={result.ok?'ok':'error'}><strong>{key.toUpperCase()} {result.ok?'连接成功':'连接失败'}</strong><span>{result.message}</span></div>)}</div>}
           </div>}
         </section>)}
-      </div>
+        </div></div></div>}
       <div className="am-storage-note"><ShieldCheck size={20}/><div><strong>原文保全与访问边界</strong><p>历史邮件按文件夹断点分批归档，后续只增量同步；普通 IMAP 邮箱无法直接推送到本站，使用低频后台检查，不受电脑开关机影响；邮件原文存于私有 Supabase Storage，只有当前登录账户可以访问。Gmail/Outlook 的 ChatGPT 连接不等于 Submission Hub 自动同步。邮件总量可能影响免费存储额度。</p></div></div>
     </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey} onToast={showToast} onRefresh={loadMetadata}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
