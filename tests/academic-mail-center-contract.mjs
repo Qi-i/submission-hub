@@ -55,3 +55,5 @@ import './mail-first-principles-contract.mjs'
 import './outlook-graph-ui-contract.mjs'
 
 import './mail-dense-layout-contract.mjs'
+
+import './mail-viewport-design-contract.mjs'
