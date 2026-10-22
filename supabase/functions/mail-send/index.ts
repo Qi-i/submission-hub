@@ -56,7 +56,7 @@ class SMTP{
    await this.expect(code)
   }
 }
-async function sendOutlook(admin:any,account:any,to:string,subject:string,content:string){
+async function sendOutlook(admin:any,account:any,to:string,subject:string,content:string,replyTo:string){
  const token=await admin.rpc('mail_read_cloud_secret',{p_account_id:account.id})
  if(token.error||!token.data||!account.oauth_client_id||account.auth_kind!=='oauth2')
   throw Error('Outlook OAuth2 授权已失效，请重新连接')
@@ -71,13 +71,37 @@ async function sendOutlook(admin:any,account:any,to:string,subject:string,conten
   const update=await admin.rpc('mail_save_cloud_secret',{p_account_id:account.id,p_secret:data.refresh_token})
   if(update.error)throw Error('刷新令牌保存失败')
  }
- const sending=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{
+ if(replyTo){
+  const prior=await admin.from('mail_messages')
+   .select('id,sender_address,extraction').eq('account_id',account.id)
+   .eq('user_id',account.user_id).eq('internet_message_id',replyTo).maybeSingle()
+  const originalId=prior.data?.extraction?.graph_message_id
+  if(typeof originalId==='string'&&originalId.length<800){
+   const source=await fetch('https://graph.microsoft.com/v1.0/me/messages/'+encodeURIComponent(originalId)+
+    '?$select=replyTo,from',{headers:{Authorization:'Bearer '+data.access_token,
+      Prefer:'IdType="ImmutableId"'},redirect:'error'})
+   if(!source.ok)throw Error('无法读取原邮件的 Graph 对话引用（HTTP '+source.status+'），为避免错发已取消回复')
+   const m=await source.json()
+   const actual=String(m.replyTo?.[0]?.emailAddress?.address||m.from?.emailAddress?.address||'').toLowerCase()
+   if(!actual||actual!==to.toLowerCase())
+    throw Error('原邮件指定的实际回复收件人为 '+(actual||'未知')+'，与当前收件人不一致；请核对后再发送')
+   const reply=await fetch('https://graph.microsoft.com/v1.0/me/messages/'+encodeURIComponent(originalId)+'/reply',{
+    method:'POST',redirect:'error',headers:{Authorization:'Bearer '+data.access_token,
+     'Content-Type':'application/json',Prefer:'IdType="ImmutableId"'},
+    body:JSON.stringify({comment:content})
+   })
+   if(reply.status!==202)throw Error('Microsoft Graph 回复未被接受（HTTP '+reply.status+'）')
+   return 'reply'
+  }
+ }
+  const sending=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{
   method:'POST',redirect:'error',headers:{Authorization:'Bearer '+data.access_token,
    'Content-Type':'application/json'},
   body:JSON.stringify({message:{subject,body:{contentType:'Text',content},
    toRecipients:[{emailAddress:{address:to}}]},saveToSentItems:true})
  })
  if(sending.status!==202)throw Error('Microsoft Graph 发信未被接受（HTTP '+sending.status+'）')
+ return 'new'
 }
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return json(null,204)
@@ -106,8 +130,9 @@ Deno.serve(async req=>{
  }catch{return json({error:'收件人、主题或正文无效'},422)}
  if(a.provider==='outlook'){
   try{
-   await sendOutlook(admin,a,to,subject,content)
-   return json({sent:true,provider:'outlook',message:'Microsoft Graph 已接受发信，存入已发送邮件'})
+   const mode=await sendOutlook(admin,a,to,subject,content,replyTo)
+   return json({sent:true,provider:'outlook',mode,
+    message:mode==='reply'?'Microsoft Graph 已接受同一会话中的回复':'Microsoft Graph 已接受新邮件，存入已发送邮件'})
   }catch(e){
    return json({error:'Outlook OAuth2 发信失败：'+String(e instanceof Error?e.message:e).slice(0,150)},502)
   }
