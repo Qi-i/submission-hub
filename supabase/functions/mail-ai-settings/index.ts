@@ -34,7 +34,7 @@ function codeInfo(status:number,code:string,reason:string){
 async function modelTest(url:string,model:string,key:string,timeoutMs=60000){
  await verifyUrl(url)
  const t0=Date.now(),controller=new AbortController()
- const timer=setTimeout(()=>controller.abort(),Math.min(80000,Math.max(15000,timeoutMs)))
+ const timer=setTimeout(()=>controller.abort(),Math.min(90000,Math.max(15000,timeoutMs)))
  try{
   const result=await fetch(url,{method:'POST',redirect:'error',signal:controller.signal,headers:{
    Authorization:'Bearer '+key,'Content-Type':'application/json'
@@ -93,7 +93,7 @@ Deno.serve(async req=>{
   const secret=await db.rpc('mail_read_ai_key',{p_user_id:userId})
   if(!secret.data)return reply({error:'请先保存 GLM API Key'},422)
   const preferred:GlmPlatform=prefs.data?.ai_glm_platform==='bigmodel'?'bigmodel':'zai'
-  const timeoutMs=Math.min(80000,Math.max(20000,Number(prefs.data?.ai_max_wait_seconds||65)*1000))
+  const timeoutMs=Math.min(90000,Math.max(20000,Number(prefs.data?.ai_max_wait_seconds||65)*1000))
   const first=await modelTest(glmEndpoints[preferred],model,secret.data,timeoutMs)
   if(first.ok){
    await db.from('mail_preferences').update({ai_glm_probe_ms:Math.round(first.latency_ms),ai_glm_probe_times:{...(prefs.data?.ai_glm_probe_times||{}),[model]:Math.round(first.latency_ms)}}).eq('user_id',userId)
@@ -101,7 +101,7 @@ Deno.serve(async req=>{
   }
   if(body.auto_detect===true){
    const alternative:GlmPlatform=preferred==='zai'?'bigmodel':'zai'
-   const second=await modelTest(glmEndpoints[alternative],model,secret.data,timeoutMs)
+   const second=await modelTest(glmEndpoints[alternative],model,secret.data,Math.min(45000,timeoutMs))
    if(second.ok){
     await db.from('mail_preferences').update({ai_glm_platform:alternative,ai_glm_probe_ms:Math.round(second.latency_ms),ai_glm_probe_times:{...(prefs.data?.ai_glm_probe_times||{}),[model]:Math.round(second.latency_ms)},ai_enabled:false})
      .eq('user_id',userId)
@@ -140,7 +140,7 @@ Deno.serve(async req=>{
   const keyInfo=await db.rpc('mail_read_endpoint_key',{p_endpoint_id:id})
   if(!keyInfo.data)return reply({error:'请先保存该模型的 Key'},422)
   const pref=await db.from('mail_preferences').select('ai_max_wait_seconds').eq('user_id',userId).maybeSingle()
-  const timeoutMs=Math.min(80000,Math.max(20000,Number(pref.data?.ai_max_wait_seconds||65)*1000))
+  const timeoutMs=Math.min(90000,Math.max(20000,Number(pref.data?.ai_max_wait_seconds||65)*1000))
   const result=await modelTest(endpoint.api_url,endpoint.model,keyInfo.data,timeoutMs)
   await db.from('mail_ai_endpoints').update({last_test_at:new Date().toISOString(),last_test_status:result.ok?'ok':'error: '+result.message,last_test_latency_ms:result.ok?Math.round(result.latency_ms):endpoint.last_test_latency_ms}).eq('id',id).eq('user_id',userId)
   return reply(result)
