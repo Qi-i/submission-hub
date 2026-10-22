@@ -20,7 +20,7 @@ const tests=[
  ['Mail progress shows archive totals, last additions and historical backfill',ui.includes("mail_account_progress")&&ui.includes("archived_count")&&ui.includes("last_added_at")&&ui.includes("history_complete")],
  ['No automatic external images in mail overview',!ui.includes('<img ')&&ui.includes('am-account-metrics')],
  ['Source mailbox opens trusted webmail',ui.includes('webmailHome')&&ui.includes('https://mail.google.com/mail/')&&ui.includes('https://outlook.live.com/mail/')&&ui.includes('https://mail.qq.com/')],
- ['Storage policy archives only academic priority and minimizes bulk mail',collector.includes('mailStoragePolicy')&&collector.includes('BODY.PEEK[HEADER]')&&collector.includes("storage_tier:'index'")],
+ ['Storage policy archives only academic priority and minimizes bulk mail',collector.includes('mailStoragePolicy')&&collector.includes('BODY.PEEK[HEADER]')&&collector.includes('storage_tier:mode')&&read('supabase/functions/mail-cloud-collector/storage-policy.ts').includes("tier:'index'")],
  ['Outlook Graph classifies before full MIME download',read('supabase/functions/mail-cloud-collector/outlook.ts').includes("mailStoragePolicy('outlook'")],
  ['NetEase 126 IMAP declares client identity before mailbox access',collector.includes("imap.cmd('ID (\"name\" \"Submission Hub\"")&&cfg.includes('A003 ID (')&&cfg.includes('A004 EXAMINE "INBOX"')],
  ['Mailbox settings open in a secondary dialog',ui.includes('detailAccountId')&&ui.includes('am-account-overview')&&ui.includes('am-account-dialog')&&ui.includes('am-account-summary')],
