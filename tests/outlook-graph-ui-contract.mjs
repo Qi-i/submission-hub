@@ -17,6 +17,7 @@ const checks=[
  ['Pending device codes expire and polling is throttled',auth.includes('session.expires_at')&&auth.includes('session.last_polled_at')],
  ['Graph identity must match requested account',auth.includes('graphEmail!==expected')],
  ['Graph reads Junk and hidden folders',graph.includes('includeHiddenFolders=true')&&graph.includes('childFolders')],
+ ['Graph skips original MIME downloads for indexed message IDs',graph.includes('knownMessageId')&&graph.includes('knownKey')&&graph.indexOf('knownMessageId')<graph.indexOf("const raw=await graph(token,GRAPH+'/me/messages/")],
  ['Graph fetches real original MIME',graph.includes("'/$value'")&&graph.includes("storage.from('mail-originals')")],
  ['Outlook Graph history uses per-folder cursors',cursor.includes('mail_private.outlook_folder_cursors')&&graph.includes('mail_save_outlook_cursor')],
  ['Graph continuation disallows foreign hosts',graph.includes("u.hostname==='graph.microsoft.com'")],
