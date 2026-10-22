@@ -102,7 +102,7 @@ Deno.serve(async req=>{
     if(!pref.ai_key_ready||!FREE_MODELS.has(selectedModel))continue
     let key=keyCache.get('glm')
     if(!key){const k=await admin.rpc('mail_read_ai_key',{p_user_id:pref.user_id});key=k.data||'';if(!key)continue;keyCache.set('glm',key)}
-    routes.push({id,name:'GLM '+selectedModel,model:selectedModel,url:glmUrl(pref.ai_glm_platform),secret:key,probeMs:pref.ai_glm_probe_ms})
+    routes.push({id,name:'GLM '+selectedModel,model:selectedModel,url:glmUrl(pref.ai_glm_platform),secret:key,probeMs:Number(pref.ai_glm_probe_times?.[selectedModel]||pref.ai_glm_probe_ms||0)})
    }else if(id.startsWith('endpoint:')){
     const customId=id.slice(9),cfg=byId.get(customId)
     if(!cfg||!cfg.key_ready)continue
