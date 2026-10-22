@@ -124,7 +124,7 @@ const isSpam = (message: Message) => /spam|junk|垃圾/i.test(message.first_fold
 const isSupported = (account: Account) => ['coremail','qq','126','gmail','other'].includes(account.provider)
 const describeStatus = (account: Account) => {
   if (!account.enabled) return '已暂停'
-  if (account.provider==='outlook')return account.cloud_state==='ready'?'Graph 已连接':account.cloud_state==='error'?'Graph 连接异常':'等待 Microsoft 授权'
+  if (account.provider==='outlook')return account.cloud_state==='ready'?'Graph 已连接':account.cloud_state==='error'?'Graph 连接异常':account.last_sync_at?'ChatGPT 手动归档':'等待 Microsoft 授权'
   if (!isSupported(account)) return '需要 OAuth2 授权'
   if (account.cloud_state === 'error') return account.last_sync_at?'同步中断':'连接待排查'
   if (account.cloud_state === 'ready') return '自动采集中'
@@ -914,8 +914,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
             </div>
             <span>上次新增 {stats?.last_added_at?niceDate(stats.last_added_at)+' · '+stats.last_added_count+' 封':'暂无记录'}</span>
             <span>成功同步 {niceDate(a.last_sync_at)}{a.cloud_state==='error'?' · 最近检查失败':''}</span>
-            <span>{stats?.history_complete?'历史归档已完成':
-             '历史归档进行中 · 已记录 '+(stats?.scanned_folders??0)+'/'+(a.last_scanned_folders||0)+' 个文件夹'}</span>
+            <span>{a.provider==='outlook'&&a.cloud_state==='not_configured'&&a.last_sync_at
+             ?'ChatGPT 已手动整理；网站自动同步尚未授权'
+             :stats?.history_complete?'历史归档已完成':
+              '历史归档进行中 · 已记录 '+(stats?.scanned_folders??0)+'/'+(a.last_scanned_folders||0)+' 个文件夹'}</span>
            </div>
            <div className="am-account-summary-actions">
             <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span>
