@@ -49,7 +49,7 @@ const tests=[
  ['UI distinguishes last success from newly imported count',ui.includes('最近检查 / 本次新增')&&ui.includes('上次新增 ')&&ui.includes('成功同步 ')&&ui.includes('自动重试已停止')],
  ['Per-account dialog does not inherit two-column grid',uiStyles.includes('.am-account-dialog .am-account-list')&&uiStyles.includes('grid-template-columns:minmax(0,1fr)')],
  ['Mail progress shows archive totals, last additions and historical backfill',ui.includes("mail_account_progress")&&ui.includes("archived_count")&&ui.includes("last_added_at")&&ui.includes("history_complete")],
- ['No automatic external images in mail overview',!ui.includes('<img ')&&ui.includes('am-account-metrics')],
+ ['Only explicitly configured logo URLs render as images; email body stays plain text',ui.includes('account?.logo_url&&!broken')&&ui.includes('referrerPolicy="no-referrer"')&&ui.includes('readableMailText(activeBody')&&!ui.includes('dangerouslySetInnerHTML')],
  ['Source mailbox opens trusted webmail',ui.includes('webmailHome')&&ui.includes('https://mail.google.com/mail/')&&ui.includes('https://outlook.live.com/mail/')&&ui.includes('https://mail.qq.com/')],
  ['Storage policy archives only academic priority and minimizes bulk mail',collector.includes('mailStoragePolicy')&&collector.includes('BODY.PEEK[HEADER]')&&collector.includes('storage_tier:mode')&&read('supabase/functions/mail-cloud-collector/storage-policy.ts').includes("tier:'index'")],
  ['Outlook Graph classifies before full MIME download',read('supabase/functions/mail-cloud-collector/outlook.ts').includes("mailStoragePolicy('outlook'")],
