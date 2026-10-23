@@ -1827,3 +1827,26 @@ html[data-ui] body .academic-mail-center .am-account-summary-actions .am-account
  }
  .academic-mail-center .am-account-summary-actions>a{flex:0 0 auto}
 }
+
+/* Filter types in place; hidden mail remains in the database and source inbox. */
+.academic-mail-center .am-type-picker{position:relative;flex:0 0 auto;z-index:35;font-size:11.5px}
+.academic-mail-center .am-type-picker>summary{list-style:none;cursor:pointer;white-space:nowrap;padding:6px 9px;border:1px solid #cbdcf4;border-radius:8px;background:#edf4ff;color:#375e9b;font-weight:650}
+.academic-mail-center .am-type-picker>summary::-webkit-details-marker{display:none}
+.academic-mail-center .am-type-options{position:absolute;z-index:50;right:0;top:calc(100% + 5px);width:210px;max-height:min(310px,58vh);overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding:9px;border:1px solid #c9d8ed;border-radius:9px;background:#fff;box-shadow:0 10px 25px rgba(43,67,110,.16)}
+.academic-mail-center .am-type-options label{display:flex;align-items:center;gap:7px;cursor:pointer;color:#364b67;border-radius:6px;padding:6px 7px;font-size:12px}
+.academic-mail-center .am-type-options label:hover{background:#edf4ff}
+.academic-mail-center .am-type-options label input,.academic-mail-center .am-noise-toggle input{accent-color:#537fd8;margin:0;flex:0 0 auto}
+.academic-mail-center .am-type-options>button{align-self:stretch;justify-content:center;border:1px solid #d1e1fa;background:#eef5ff;color:#426bb1;border-radius:7px;cursor:pointer}
+.academic-mail-center .am-organizer-bar .am-noise-toggle{display:flex;align-items:center;gap:6px;flex:0 0 auto;white-space:nowrap;color:#526680;font-size:11.5px;cursor:pointer;padding:4px 6px}
+/* Desktop drag handles, saved per browser. */
+html[data-ui] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-workspace{grid-template-columns:minmax(260px,var(--am-list-width,39%)) 8px minmax(290px,1fr);gap:0}
+.academic-mail-center .am-pane-divider,.academic-mail-center .am-parallel-divider{position:relative;cursor:col-resize;touch-action:none;min-width:8px;background:transparent;outline:none;align-self:stretch}
+.academic-mail-center .am-pane-divider::after,.academic-mail-center .am-parallel-divider::after{content:"";position:absolute;top:23%;bottom:23%;left:calc(50% - 1px);width:2px;background:#c7d6e9;border-radius:4px}
+.academic-mail-center .am-pane-divider:hover::after,.academic-mail-center .am-pane-divider:focus-visible::after,.academic-mail-center .am-parallel-divider:hover::after,.academic-mail-center .am-parallel-divider:focus-visible::after{background:#5c86d4}
+.academic-mail-center .am-parallel-text{grid-template-columns:minmax(0,var(--am-original-width,50%)) 8px minmax(0,1fr);gap:0;align-items:stretch}
+.academic-mail-center .am-parallel-text .am-original-col{padding-right:4px}
+.academic-mail-center .am-parallel-text .am-translation-col{padding-left:4px}
+@media(max-width:1100px){.academic-mail-center .am-parallel-text{grid-template-columns:minmax(0,1fr)}.academic-mail-center .am-parallel-divider{display:none}.academic-mail-center .am-parallel-text .am-original-col,.academic-mail-center .am-parallel-text .am-translation-col{padding:0}}
+@media(max-width:700px){html[data-ui] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-workspace{display:block}.academic-mail-center .am-pane-divider{display:none}.academic-mail-center .am-type-options{right:-25px}}
+html[data-ui][data-theme="dark"] body .academic-mail-center .am-type-picker>summary,html[data-ui][data-theme="dark"] body .academic-mail-center .am-type-options{background:#293b56;color:#d8e6ff;border-color:#526782}
+html[data-ui][data-theme="dark"] body .academic-mail-center .am-type-options label{color:#d8e6ff}

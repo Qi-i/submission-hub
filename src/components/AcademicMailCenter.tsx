@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PtrEvent, type KeyboardEvent as KeyEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   AlertCircle, Archive, ArrowLeft, Check, ChevronRight, Clock3, Download,
@@ -84,6 +84,16 @@ const responseLabels: Record<string,string> = {
 }
 const providerSymbols:Record<string,string> = {coremail:'C',qq:'Q','126':'126',gmail:'G',outlook:'O',other:'@'}
 const folderColors=['#4F83E9','#9B75D9','#36A897','#E6A465','#E37A91']
+function AccountLogo({account}:{account?:Account|null}){
+ const [broken,setBroken]=useState(false)
+ useEffect(()=>setBroken(false),[account?.logo_url])
+ return account?.logo_url&&!broken?<img src={account.logo_url} alt="" loading="lazy"
+  referrerPolicy="no-referrer" onError={()=>setBroken(true)}/>:
+  <>{account?.logo_symbol||providerSymbols[account?.provider||'other']||<Mail size={18}/>}</>
+}
+function initialRatio(key:string,fallback:number){
+ try{const value=Number(window.localStorage.getItem(key));return value>=.25&&value<=.7?value:fallback}catch{return fallback}
+}
 const logoLabel=(a:Account)=>a.short_label?.trim()||a.display_name?.trim()||a.address.split('@')[0]
 const providerLabels: Record<string,string> = {
   other: '自定义 IMAP / SMTP',
@@ -159,6 +169,12 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [folders,setFolders] = useState<MailFolder[]>([])
   const [labels,setLabels] = useState<MailLabel[]>([])
   const [folderFilter,setFolderFilter] = useState('all')
+  const [typeFilter,setTypeFilter]=useState<string[]>([])
+  const [hideNoise,setHideNoise]=useState(()=>{try{return window.localStorage.getItem('am-hide-noise-'+userId)!=='false'}catch{return true}})
+  const [listRatio,setListRatio]=useState(()=>initialRatio('am-list-ratio-'+userId,.39))
+  const [translationRatio,setTranslationRatio]=useState(()=>initialRatio('am-translation-ratio-'+userId,.5))
+  const outerRef=useRef<HTMLElement|null>(null),innerRef=useRef<HTMLDivElement|null>(null)
+  const dragTarget=useRef<'outer'|'inner'|null>(null)
   const [labelFilter,setLabelFilter] = useState('all')
   const [folderNew,setFolderNew] = useState('')
   const [labelNew,setLabelNew] = useState('')
@@ -222,13 +238,45 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [composeBody,setComposeBody] = useState('')
   const [replyId,setReplyId] = useState('')
   const listSequence = useRef(0)
+  useEffect(()=>{try{window.localStorage.setItem('am-hide-noise-'+userId,String(hideNoise))}catch{}},[hideNoise,userId])
+  useEffect(()=>{try{window.localStorage.setItem('am-list-ratio-'+userId,String(listRatio))}catch{}},[listRatio,userId])
+  useEffect(()=>{try{window.localStorage.setItem('am-translation-ratio-'+userId,String(translationRatio))}catch{}},[translationRatio,userId])
+  const toggleType=(id:string)=>{
+    const all=['unfiled',...folders.map(f=>f.id)]
+    setTypeFilter(v=>{const old=v.length?v:all;const next=old.includes(id)?old.filter(x=>x!==id):[...old,id];return next.length===all.length?[]:next})
+  }
+  const setRatioFromPointer=(which:'outer'|'inner',x:number)=>{
+    const r=(which==='outer'?outerRef.current:innerRef.current)?.getBoundingClientRect()
+    if(!r?.width)return
+    const minLeft=which==='outer'?260:170,minRight=which==='outer'?290:170
+    const low=Math.max(.25,minLeft/r.width),high=Math.min(.7,1-minRight/r.width)
+    if(low>high)return
+    const ratio=Math.max(low,Math.min(high,(x-r.left)/r.width))
+    if(which==='outer')setListRatio(ratio);else setTranslationRatio(ratio)
+  }
+  const pointerStart=(which:'outer'|'inner',e:PtrEvent<HTMLDivElement>)=>{
+    if(e.button!==0)return
+    dragTarget.current=which;e.currentTarget.setPointerCapture(e.pointerId)
+    setRatioFromPointer(which,e.clientX);e.preventDefault()
+  }
+  const pointerMove=(which:'outer'|'inner',e:PtrEvent<HTMLDivElement>)=>{if(dragTarget.current===which)setRatioFromPointer(which,e.clientX)}
+  const pointerStop=(e:PtrEvent<HTMLDivElement>)=>{
+    dragTarget.current=null
+    if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)
+  }
+  const dividerKey=(which:'outer'|'inner',e:KeyEvent<HTMLDivElement>)=>{
+    if(!['ArrowLeft','ArrowRight','Home'].includes(e.key))return
+    e.preventDefault()
+    const setter=which==='outer'?setListRatio:setTranslationRatio
+    setter(v=>e.key==='Home'?(which==='outer'?.39:.5):Math.max(.25,Math.min(.7,v+(e.key==='ArrowLeft'?-.03:.03))))
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300)
     return () => window.clearTimeout(timer)
   }, [search])
   useEffect(() => { setPage(0); setSelected(null); setMobileDetail(false) },
-    [scope, accountFilter, folderFilter, labelFilter, debouncedSearch])
+    [scope, accountFilter, folderFilter, labelFilter, typeFilter, hideNoise, debouncedSearch])
 
   const loadMetadata = useCallback(async () => {
     const accountQuery = (supabase.from('mail_accounts') as any)
@@ -275,6 +323,18 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     if(folderFilter==='unfiled')q=q.is('virtual_folder_id',null)
     else if(folderFilter!=='all')q=q.eq('virtual_folder_id',folderFilter)
     if(labelFilter!=='all')q=q.contains('user_labels',[labelFilter])
+    if(typeFilter.length){
+      const ids=typeFilter.filter(v=>v!=='unfiled'&&folders.some(f=>f.id===v))
+      const parts=[...(typeFilter.includes('unfiled')?['virtual_folder_id.is.null']:[]),...(ids.length?['virtual_folder_id.in.('+ids.join(',')+')']:[])]
+      if(parts.length)q=q.or(parts.join(','))
+    }
+    if(scope==='all'&&hideNoise){
+      const ads=folders.filter(f=>/征稿|推广|广告|营销|促销/i.test(f.name)).map(f=>f.id)
+      if(ads.length)q=q.or('virtual_folder_id.is.null,virtual_folder_id.not.in.('+ads.join(',')+')')
+      q=q.or('sender_address.is.null,and(sender_address.not.ilike.%github%,sender_address.not.ilike.%codex%)')
+      q=q.or('sender_name.is.null,and(sender_name.not.ilike.%github%,sender_name.not.ilike.%codex%)')
+      q=q.or('subject.is.null,and(subject.not.ilike.%github%,subject.not.ilike.%codex%)')
+    }
     const term=debouncedSearch.replace(/[^一-鿿\p{L}\p{N}\s._-]/gu,' ').slice(0,100).trim()
     const keywordOr=term?'subject.ilike.%'+term+'%,sender_address.ilike.%'+term+'%,body_text.ilike.%'+term+'%':''
     if(scope==='spam'&&keywordOr) q=q.or('and(or('+folderQuery+'),or('+keywordOr+'))')
@@ -288,7 +348,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     setMessages(items)
     setTotal(result.count||0)
     setSelected(current=>current && items.some(m=>m.id===current) ? current : items[0]?.id||null)
-  },[userId,page,scope,accountFilter,folderFilter,labelFilter,debouncedSearch])
+  },[userId,page,scope,accountFilter,folderFilter,labelFilter,typeFilter,hideNoise,folders,debouncedSearch])
 
   useEffect(()=>{void loadMetadata()},[loadMetadata])
   useEffect(()=>{void loadMessages()},[loadMessages])
@@ -757,6 +817,20 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <select aria-label="按自定义标签筛选" value={labelFilter} onChange={e=>setLabelFilter(e.target.value)}>
           <option value="all">所有标签</option>{labels.map(t=><option key={t.id} value={t.name}>{t.name}</option>)}
         </select>
+        <details className="am-type-picker">
+          <summary>类型复选{typeFilter.length?' · '+typeFilter.length+' 类':' · 全部'}</summary>
+          <div className="am-type-options" aria-label="跨邮箱邮件类型复选">
+            <button type="button" onClick={()=>setTypeFilter([])}>全部类型</button>
+            {folders.map(f=><label key={f.id}><input type="checkbox"
+              checked={!typeFilter.length||typeFilter.includes(f.id)} onChange={()=>toggleType(f.id)}/>
+              <span className="am-color-point" style={{background:f.color}}/>{f.name}</label>)}
+            <label><input type="checkbox" checked={!typeFilter.length||typeFilter.includes('unfiled')}
+              onChange={()=>toggleType('unfiled')}/>未分类</label>
+          </div>
+        </details>
+        <label className="am-noise-toggle" title="只在全部邮件视图隐藏 GitHub、Codex 和征稿推广邮件，不删除邮件">
+          <input type="checkbox" checked={hideNoise} onChange={e=>setHideNoise(e.target.checked)}/>隐藏开发 / 广告
+        </label>
         <button type="button" className={'am-organizer-manage '+(manageCollections?'active':'')} onClick={()=>setManageCollections(v=>!v)}>
           <Settings2 size={13}/>整理
         </button>
@@ -782,7 +856,8 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <button type="button" className="am-main-button" onClick={()=>{setWorkspace('accounts');setShowAdd(true)}}>添加邮箱 <ChevronRight size={16}/></button>
       </div>}
 
-      <section className={'am-workspace '+(mobileDetail?'show-detail':'')+(pref?.workspace?.compact?' am-compact':'')} aria-label="邮件列表和阅读区">
+      <section ref={outerRef} style={{'--am-list-width':(listRatio*100).toFixed(2)+'%'} as CSSProperties}
+        className={'am-workspace '+(mobileDetail?'show-detail':'')+(pref?.workspace?.compact?' am-compact':'')} aria-label="邮件列表和阅读区">
         <aside className="am-list-pane">
           <div className="am-list-heading"><span>邮件列表 <small>{total.toLocaleString('zh-CN')} 封匹配</small></span><span>{page+1} / {Math.max(1,Math.ceil(total/PAGE_SIZE))} 页</span></div>
           <div className="am-message-list" aria-busy={loading}>
@@ -792,7 +867,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div className="am-msg-from"><div className="am-from-group">
                 {accounts.find(a=>a.id===m.account_id)&&<span className="am-source-badge"
                   title={accounts.find(a=>a.id===m.account_id)?.address}>
-                  {accounts.find(a=>a.id===m.account_id)?.logo_symbol||providerSymbols[accounts.find(a=>a.id===m.account_id)?.provider||'other']}
+                  <AccountLogo account={accounts.find(a=>a.id===m.account_id)}/>
                   </span>}
                 <strong>{m.sender_name||m.sender_address||'未知发件人'}</strong>
                 </div><time>{shortDate(m.received_at)}</time></div>
@@ -807,6 +882,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           </div>
           <div className="am-pager"><button type="button" disabled={page===0} onClick={()=>setPage(n=>Math.max(0,n-1))}>上一页</button><span>{total?Math.min(page*PAGE_SIZE+1,total)+'–'+Math.min((page+1)*PAGE_SIZE,total):'0'} / {total}</span><button type="button" disabled={!canGoNext} onClick={()=>setPage(n=>n+1)}>下一页</button></div>
         </aside>
+        <div className="am-pane-divider" role="separator" tabIndex={0} aria-orientation="vertical"
+          aria-label="调整邮件列表与阅读区宽度" aria-valuemin={25} aria-valuemax={70} aria-valuenow={Math.round(listRatio*100)}
+          onPointerDown={e=>pointerStart('outer',e)} onPointerMove={e=>pointerMove('outer',e)}
+          onPointerUp={pointerStop} onPointerCancel={pointerStop} onKeyDown={e=>dividerKey('outer',e)}/>
         <article className="am-reader" ref={readerRef}>
           {!active?<div className="am-reader-empty"><FileText size={28}/><strong>选择一封邮件</strong><span>查看正文、来源邮箱、审稿状态及投稿关联</span></div>:<>
             <button type="button" className="am-back" onClick={()=>setMobileDetail(false)}><ArrowLeft size={15}/> 返回列表</button>
@@ -815,7 +894,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
               <div><span>发件人</span><strong>{active.sender_name||'未填写'} <small>{active.sender_address||''}</small></strong></div>
               <div><span>收件时间</span><strong>{niceDate(active.received_at)}</strong></div>
               <div><span>来源邮箱 / 服务器文件夹</span><strong className="am-reader-source">
-                  <span className="am-source-badge">{selectedAccount?.logo_symbol||providerSymbols[selectedAccount?.provider||'other']}</span>
+                  <span className="am-source-badge"><AccountLogo account={selectedAccount}/></span>
                   {selectedAccount?logoLabel(selectedAccount):'未知邮箱'} · {active.first_folder}</strong>
                   <small title={selectedAccount?.address}>{selectedAccount?.address}</small></div>
               <div><span>保存方式</span><strong>{active.storage_tier==='index'?'仅索引 · 原邮箱查看':active.storage_tier==='text'?'正文 · 不存附件':active.cloud_archive_path?'完整原文归档':'正文记录'}</strong>
@@ -851,10 +930,16 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
                  <Languages size={14}/>{translationLoading?'翻译中…':'重试 / 续传'}</button>
                 {translationProgress&&<span>已完成 {translationProgress.done}/{translationProgress.total} 段</span>}
               </div>}
-              <div className={translationVisible?'am-parallel-text':'am-single-text'}>
+              <div ref={innerRef} style={translationVisible?{'--am-original-width':(translationRatio*100).toFixed(2)+'%'} as CSSProperties:undefined}
+                className={translationVisible?'am-parallel-text':'am-single-text'}>
                 <div className="am-original-col"><strong>原文</strong><pre>{bodyLoading?'正在读取邮件正文…':readableMailText(activeBody||active.snippet||'无可读取的正文')}</pre></div>
-                {translationVisible&&<div className="am-translation-col"><strong>译文 · {translationLang==='zh'?'中文':'English'} {translation?.model_name?'· '+translation.model_name:''}</strong>
-                  <pre>{translation?.translated_text||translationLoading?'正在翻译邮件…':'译文尚未生成，可点击重试。'}</pre></div>}
+                {translationVisible&&<div className="am-parallel-divider" role="separator" tabIndex={0}
+                   aria-label="调整原文与译文宽度" aria-orientation="vertical"
+                   aria-valuemin={25} aria-valuemax={70} aria-valuenow={Math.round(translationRatio*100)}
+                   onPointerDown={e=>pointerStart('inner',e)} onPointerMove={e=>pointerMove('inner',e)}
+                   onPointerUp={pointerStop} onPointerCancel={pointerStop} onKeyDown={e=>dividerKey('inner',e)}/>}
+                 {translationVisible&&<div className="am-translation-col"><strong>译文 · {translationLang==='zh'?'中文':'English'} {translation?.model_name?'· '+translation.model_name:''}</strong>
+                  <pre>{translation?.translated_text?readableMailText(translation.translated_text):translationLoading?'正在翻译邮件…':'译文尚未生成，可点击重试。'}</pre></div>}
               </div>
             </div>
             <div className="am-annotation-panel">
@@ -904,7 +989,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
           const stats=accountProgress[a.id]
           const home=webmailHome(a)
           return <article key={a.id} className="am-account-summary" data-state={!a.enabled?'paused':a.cloud_state}>
-           <div className="am-account-mark am-brand-mark">{a.logo_symbol||providerSymbols[a.provider]||<Mail size={18}/>}</div>
+           <div className="am-account-mark am-brand-mark"><AccountLogo account={a}/></div>
            <div className="am-account-summary-main">
             <strong>{logoLabel(a)}</strong><small title={a.address}>{a.address}</small>
             <div className="am-account-metrics">
@@ -933,7 +1018,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <div className="am-account-list">
         {accounts.length===0&&<div className="am-empty"><Mail size={24}/>尚未添加任何邮箱</div>}
         {accounts.filter(a=>a.id===detailAccountId).map(a=><section key={a.id} className="am-account-card" data-provider={a.provider}>
-          <div className="am-account-heading"><div className="am-account-mark am-brand-mark">{a.logo_symbol||providerSymbols[a.provider]||<Mail size={19}/>}</div>
+          <div className="am-account-heading"><div className="am-account-mark am-brand-mark"><AccountLogo account={a}/></div>
              <div className="am-account-name"><strong>{logoLabel(a)}</strong><small>{a.address} · {providerLabels[a.provider]||a.provider}</small></div>
              <span className={'am-account-state '+(a.cloud_state==='ready'?'ready':a.cloud_state==='error'?'error':'')}>{describeStatus(a)}</span></div>
           <div className="am-account-data">
