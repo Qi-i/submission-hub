@@ -27,6 +27,17 @@ function imapString(value:string){
  if(/[\r\n\x00]/.test(value))throw new Error('Invalid IMAP argument')
  return '"'+value.replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'
 }
+async function withDeadline<T>(work:Promise<T>,phase:string,ms:number,onTimeout?:()=>void):Promise<T>{
+ let timer:ReturnType<typeof setTimeout>|undefined
+ try{
+  return await Promise.race([work,new Promise<never>((_,reject)=>{
+   timer=setTimeout(()=>{
+    try{onTimeout?.()}catch{}
+    reject(new Error('IMAP '+phase+' timed out after '+Math.ceil(ms/1000)+'s'))
+   },ms)
+  })])
+ }finally{if(timer!==undefined)clearTimeout(timer)}
+}
 class Imap {
  conn:Deno.Conn
  buffer:Uint8Array=new Uint8Array()
@@ -65,6 +76,12 @@ class Imap {
   return out
  }
  async cmd(command:string,wantLiteral=false){
+  const fetch=command.startsWith('UID FETCH')
+  return await withDeadline(this.runCmd(command,wantLiteral),
+   fetch?'message FETCH':command.split(' ')[0]+' command',
+   fetch?45000:30000,()=>{try{this.conn.close()}catch{}})
+ }
+ private async runCmd(command:string,wantLiteral=false){
   const tag='A'+String(++this.nextTag).padStart(4,'0')
   await this.conn.write(encoder.encode(tag+' '+command+'\r\n'))
   const lines:string[]=[]
@@ -141,6 +158,20 @@ async function ensurePublic(host:string){
  if(a.some(ip=>{const p=ip.split('.').map(Number),[x,y]=p;return p.length!==4||p.some(n=>n<0||n>255)||x===0||x===10||x===127||x>=224||x===169&&y===254||x===172&&y>=16&&y<=31||x===192&&y===168||x===100&&y>=64&&y<=127||x===192&&y===0||x===198&&y>=18&&y<=19})||b.some(ip=>/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(ip)||/::ffff:/i.test(ip)))throw Error('Blocked private or reserved mail server IP')
 }
 function cleanError(e:unknown){return String(e instanceof Error?e.message:e).replace(/password|token|secret/gi,'[credential]').slice(0,200)}
+async function dialImap(host:string,port:number,security:'ssl'|'starttls'):Promise<Deno.Conn>{
+ const stage=security==='ssl'?'TLS connection':'TCP connection'
+ let expired=false
+ const pending=security==='ssl'?Deno.connectTls({hostname:host,port}):Deno.connect({hostname:host,port})
+ const guarded=pending.then(conn=>{
+  if(expired){try{conn.close()}catch{};throw new Error('Late IMAP connection discarded')}
+  return conn
+ })
+ try{return await withDeadline(guarded,stage,30000)}
+ catch(error){
+  expired=true
+  throw new Error('IMAP '+stage+' failed: '+cleanError(error))
+ }
+}
 async function scanAccount(admin:any,account:any){
  const secretRes=await admin.rpc('mail_read_cloud_secret',{p_account_id:account.id})
  if(secretRes.error||!secretRes.data)throw new Error('Mailbox credential not configured')
@@ -151,22 +182,24 @@ async function scanAccount(admin:any,account:any){
  let conn:Deno.Conn
  let imap:Imap
  if(security==='starttls'){
-  const raw=await Deno.connect({hostname:host,port})
+  const raw=await dialImap(host,port,'starttls')
   try{
    const bootstrap=new Imap(raw)
-   if(!/^\* OK/i.test(await bootstrap.line()))throw Error('IMAP greeting unavailable')
+   if(!/^\* OK/i.test(await withDeadline(bootstrap.line(),'server greeting',15000,()=>{try{raw.close()}catch{}})))throw Error('IMAP greeting unavailable')
    await bootstrap.cmd('STARTTLS')
-   conn=await Deno.startTls(raw,{hostname:host})
+   conn=await withDeadline(Deno.startTls(raw,{hostname:host}),'STARTTLS handshake',30000,()=>{try{raw.close()}catch{}})
    imap=new Imap(conn)
   }catch(e){try{raw.close()}catch{}throw e}
  }else{
-  conn=await Deno.connectTls({hostname:host,port})
-  imap=new Imap(conn)
-  if(!/^\* OK/i.test(await imap.line()))throw Error('IMAP greeting unavailable')
+  conn=await dialImap(host,port,'ssl')
+  try{
+   imap=new Imap(conn)
+   if(!/^\* OK/i.test(await withDeadline(imap.line(),'server greeting',15000,()=>{try{conn.close()}catch{}})))throw Error('IMAP greeting unavailable')
+  }catch(error){try{conn.close()}catch{}throw error}
  }
  const now=Date.now()
  let processed=0
- let openedFolders=0, advertisedMessages=0, foundUids=0, folderOpenErrors=0, firstOpenStatus='unknown'
+ let openedFolders=0, advertisedMessages=0, foundUids=0, unindexedEmptySearch=0, folderOpenErrors=0, firstOpenStatus='unknown'
  let newMessages=0
  try{
   if(account.auth_kind==='xoauth2'){
@@ -207,7 +240,8 @@ async function scanAccount(admin:any,account:any){
     }
    }
    openedFolders++
-   advertisedMessages+=Number(/\* (\d+) EXISTS/i.exec(examined.lines.join(' '))?.[1]||0)
+   const folderMessages=Number(/\* (\d+) EXISTS/i.exec(examined.lines.join(' '))?.[1]||0)
+   advertisedMessages+=folderMessages
    const uidv=/UIDVALIDITY\s+(\d+)/i.exec(examined.lines.join(' '))?.[1]
    if(!uidv)throw new Error('IMAP server omitted UIDVALIDITY; refusing unsafe incremental cursor')
    const hash=await digest(folder.name)
@@ -221,7 +255,7 @@ async function scanAccount(admin:any,account:any){
     const response=await imap.cmd('UID SEARCH '+criteria)
     const found:number[]=[]
     for(const line of response.lines){
-     if(line.startsWith('* SEARCH'))for(const value of line.slice(8).trim().split(/\s+/)){
+     if(/^\* SEARCH(?:\s|$)/i.test(line))for(const value of line.slice(8).trim().split(/\s+/)){
       const id=Number(value)
       if(Number.isSafeInteger(id)&&id>0)found.push(id)
      }
@@ -235,12 +269,16 @@ async function scanAccount(admin:any,account:any){
     searches.push(await searchIds('UID '+(savedRecent+1)+':*'))
     if(savedBefore>1)searches.push(await searchIds('UID 1:'+(savedBefore-1)))
    }else searches.push(await searchIds('ALL'))
-   // IMAP UID n:* can return the last existing UID even when n is higher.
-   // Ignore stale matches so idle mailboxes do not download old messages again.
-   foundUids+=new Set(searches.flat()).size
+   // A completed mailbox may legitimately have no new UIDs.
+   // An unindexed nonempty folder whose UID query finds nothing is inconsistent.
+   if(folderMessages>0&&(!stored||(savedRecent===0&&savedBefore===0))&&searches.every(group=>group.length===0)){
+    unindexedEmptySearch++
+   }
+   // IMAP UID n:* may return the last existing UID even when n is higher.
    const ids=[...new Set(searches.flat())]
     .filter(uid=>!stored||uid>savedRecent||(savedBefore>1&&uid<savedBefore))
     .sort((a,b)=>a-b)
+   foundUids+=ids.length
    if(!ids.length){
     // Empty folders still need a completed checkpoint. Without it the progress
     // summary would treat them as unvisited and never show history complete.
@@ -365,8 +403,9 @@ async function scanAccount(admin:any,account:any){
    if(!completed)break
   }
   if(directory.length>0&&openedFolders===0)throw new Error('IMAP found folders but EXAMINE/SELECT failed (response '+firstOpenStatus+'); check folder names and mailbox permissions')
-  if(advertisedMessages>0&&foundUids===0)throw new Error('IMAP reports '+advertisedMessages+' messages, but UID SEARCH returned zero; refusing false successful sync')
-  return {processed:newMessages,checkedFolders:directory.length,openedFolders,folderOpenErrors,advertisedMessages,foundUids}
+  if(folderOpenErrors>0)throw new Error('IMAP could not open '+folderOpenErrors+' of '+directory.length+' folders; refusing incomplete sync')
+  if(unindexedEmptySearch>0)throw new Error('IMAP search returned no UIDs in '+unindexedEmptySearch+' nonempty folders without a saved cursor; refusing incomplete sync')
+  return {processed:newMessages,checkedFolders:openedFolders,openedFolders,folderOpenErrors,advertisedMessages,foundUids}
  }finally{try{conn.close()}catch{}}
 }
 const apiResponse=(data:unknown,status=200)=>new Response(status===204?null:JSON.stringify(data),{
@@ -415,7 +454,8 @@ Deno.serve(async req=>{
   const update:Record<string,unknown>={
    last_sync_at:new Date().toISOString(),last_error:null,cloud_state:'ready',
    consecutive_failures:0,next_attempt_at:null,
-   last_processed:result.processed,last_scanned_folders:result.checkedFolders
+   last_processed:result.processed,last_added_count:result.processed,
+   last_scanned_folders:result.checkedFolders
   }
   if(result.processed>0){
    update.last_added_at=new Date().toISOString()
