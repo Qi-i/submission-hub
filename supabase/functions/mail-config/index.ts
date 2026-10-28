@@ -70,7 +70,8 @@ Deno.serve(async req=>{
  const a=found.data
  if(body.action==='discover')return answer({candidates:await discover(a.address,a.provider)})
  if(body.action==='configure'){
-  if(!['coremail','qq','126','other'].includes(a.provider))return answer({error:'该服务商需要 OAuth2 授权，暂不支持密码方式'},422)
+  // Gmail personal accounts may use a Google-issued app password (never the primary account password).
+  if(!['coremail','qq','126','gmail','other'].includes(a.provider))return answer({error:'该服务商需要 OAuth2 授权，暂不支持密码方式'},422)
   const host=String(body.host||'').trim().toLowerCase(),smtp=String(body.smtp_host||'').trim().toLowerCase()
   const imapPort=Number(body.imap_port||993),smtpPort=Number(body.smtp_port||465)
   const imapSecurity=String(body.imap_security||'ssl'),smtpSecurity=String(body.smtp_security||'ssl')
