@@ -55,7 +55,15 @@ const tests=[
  ['Outlook Graph classifies before full MIME download',read('supabase/functions/mail-cloud-collector/outlook.ts').includes("mailStoragePolicy('outlook'")],
  ['NetEase 126 IMAP declares client identity before mailbox access',collector.includes("imap.cmd('ID (\"name\" \"Submission Hub\"")&&cfg.includes('A003 ID (')&&cfg.includes('A004 EXAMINE "INBOX"')],
  ['Mailbox settings open in a secondary dialog',ui.includes('detailAccountId')&&ui.includes('am-account-overview')&&ui.includes('am-account-dialog')&&ui.includes('am-account-summary')],
- ['Mail archive reports missing folders instead of false successful sync',collector.includes('openedFolders===0')&&collector.includes('advertisedMessages>0&&foundUids===0')],
+ ['Mail archive reports missing folders instead of false successful sync',collector.includes('openedFolders===0')&&collector.includes('unindexedEmptySearch>0')&&collector.includes('if(folderOpenErrors>0)')],
+ ['Idle QQ mailbox with a saved cursor is a valid zero-new-mail scan',
+  collector.includes('if(folderMessages>0&&(!stored||(savedRecent===0&&savedBefore===0))')&&
+  !collector.includes('advertisedMessages>0&&foundUids===0')],
+ ['IMAP connection, greeting and commands have bounded stages',
+  collector.includes('dialImap(host,port')&&collector.includes('withDeadline(imap.line()')&&
+  collector.includes('fetch?45000:30000')&&collector.includes('TLS connection failed')],
+ ['Every successful scan records zero rather than stale last-added count',
+  collector.includes('last_added_count:result.processed')],
  ['Mail archive strips null bytes before PostgreSQL index insert',collector.includes('replaceAll(String.fromCharCode(0)')&&collector.includes('Mail index save failed (DB ')],
  ['No repeated focus/60-second polling', !ui.includes('window.setInterval(')&&!ui.includes("addEventListener('focus',onReturn)")&&ui.includes('visibilitychange')],
  ['New mail triggers one debounced UI refresh',ui.includes("event:'INSERT'")&&ui.includes('postgres_changes')&&realtime.includes('alter publication supabase_realtime add table public.mail_messages')],
