@@ -225,7 +225,10 @@ async function scanAccount(admin:any,account:any){
    let examined: {lines:string[];literal:Uint8Array|null}
    try{
     examined=await imap.cmd('EXAMINE '+imapString(folder.name))
-   }catch{
+   }catch(error){
+    // Network/TLS/command timeouts must remain visible and must not be
+    // mistaken for a folder permission error on an already closed socket.
+    if(!String(error instanceof Error?error.message:error).startsWith('IMAP command failed: EXAMINE'))throw error
     // Some 126 IMAP gateways reject EXAMINE but allow SELECT. The collector
     // All fetched messages use BODY.PEEK[]; the scanner never changes remote mail flags.
     if(account.provider!=='126'){folderOpenErrors++;continue}
