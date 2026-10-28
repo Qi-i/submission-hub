@@ -61,7 +61,7 @@ const tests=[
   !collector.includes('advertisedMessages>0&&foundUids===0')],
  ['IMAP connection, greeting and commands have bounded stages',
   collector.includes('dialImap(host,port')&&collector.includes('withDeadline(imap.line()')&&
-  collector.includes('fetch?45000:30000')&&collector.includes('TLS connection failed')],
+  collector.includes('fetch?45000:30000')&&collector.includes("const stage=security==='ssl'?'TLS connection':'TCP connection'")],
  ['Every successful scan records zero rather than stale last-added count',
   collector.includes('last_added_count:result.processed')],
  ['Mail archive strips null bytes before PostgreSQL index insert',collector.includes('replaceAll(String.fromCharCode(0)')&&collector.includes('Mail index save failed (DB ')],
