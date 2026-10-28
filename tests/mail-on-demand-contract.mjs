@@ -59,6 +59,8 @@ const tests=[
  ['Idle QQ mailbox with a saved cursor is a valid zero-new-mail scan',
   collector.includes('if(folderMessages>0&&(!stored||(savedRecent===0&&savedBefore===0))')&&
   !collector.includes('advertisedMessages>0&&foundUids===0')],
+ ['IMAP EXAMINE transport timeouts are not swallowed as folder errors',
+  collector.includes("if(!String(error instanceof Error?error.message:error).startsWith('IMAP command failed: EXAMINE'))throw error")],
  ['IMAP connection, greeting and commands have bounded stages',
   collector.includes('dialImap(host,port')&&collector.includes('withDeadline(imap.line()')&&
   collector.includes('fetch?45000:30000')&&collector.includes("const stage=security==='ssl'?'TLS connection':'TCP connection'")],
