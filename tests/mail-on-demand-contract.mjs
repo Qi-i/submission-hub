@@ -69,9 +69,9 @@ const tests=[
  ['Mail archive strips null bytes before PostgreSQL index insert',collector.includes('replaceAll(String.fromCharCode(0)')&&collector.includes('Mail index save failed (DB ')],
  ['No repeated focus/60-second polling', !ui.includes('window.setInterval(')&&!ui.includes("addEventListener('focus',onReturn)")&&ui.includes('visibilitychange')],
  ['New mail triggers one debounced UI refresh',ui.includes("event:'INSERT'")&&ui.includes('postgres_changes')&&realtime.includes('alter publication supabase_realtime add table public.mail_messages')],
- ['Personal Gmail IMAP setup accepts Google app passwords rather than primary passwords',
+ ['Personal Gmail IMAP setup accepts app-password configuration and official endpoints',
   cfg.includes("['coremail','qq','126','gmail','other'].includes(a.provider)")&&
-  cfg.includes("password:pwd")===false],
+  cfg.includes("gmail:['imap.gmail.com','smtp.gmail.com',465,'ssl']")],
  ['CUGB official student mailbox can be selected',ui.includes('imap.email.cugb.edu.cn')&&ui.includes('smtp.email.cugb.edu.cn')&&cfg.includes("domain==='email.cugb.edu.cn'")],
  ['CUGB connection error distinguishes DNS/TLS/auth failures',cfg.includes('域名解析失败')&&cfg.includes('TLS 握手')&&cfg.includes('服务器拒绝账号认证')],
  ['Microsoft login no longer foregrounds Azure developer portal',ui.includes('<details className="am-oauth-help">')&&oauth.includes('MAIL_MICROSOFT_CLIENT_ID')],
