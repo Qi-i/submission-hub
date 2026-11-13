@@ -1,0 +1,41 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="8" x2="118" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.52" stop-color="#F7FBFF"/>
+      <stop offset="1" stop-color="#F2ECFF"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="84" y1="22" x2="106" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#6D5DFB"/>
+    </linearGradient>
+    <linearGradient id="node" x1="33" y1="86" x2="92" y2="68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="0.52" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="line" x1="38" y1="82" x2="92" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#334155" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <rect x="5" y="5" width="118" height="118" rx="35" fill="url(#bg)" stroke="#CBD5E1" stroke-opacity="0.35" stroke-width="2"/>
+  <path d="M14 88C36 68 52 75 74 58C95 42 102 38 116 36V123H14V88Z" fill="#DBEAFE" fill-opacity="0.34"/>
+  <path d="M78 98C94 84 102 76 123 72V123H62C64 114 70 106 78 98Z" fill="#C4B5FD" fill-opacity="0.24"/>
+  <g filter="url(#shadow)">
+    <path d="M36 22H84L104 42V96C104 102.6 98.6 108 92 108H36C29.4 108 24 102.6 24 96V34C24 27.4 29.4 22 36 22Z" fill="white" fill-opacity="0.93" stroke="#CBD5E1" stroke-opacity="0.28" stroke-width="1.5"/>
+    <path d="M84 22V36.8C84 40 86.6 42.6 89.8 42.6H104L84 22Z" fill="url(#fold)"/>
+    <rect x="40" y="42" width="36" height="6.4" rx="3.2" fill="#6D8DFB" fill-opacity="0.78"/>
+    <rect x="40" y="56" width="26" height="6.4" rx="3.2" fill="#A5B4FC" fill-opacity="0.62"/>
+  </g>
+  <path d="M44 86L64 72L88 86" stroke="url(#line)" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M64 78V98" stroke="url(#line)" stroke-width="6.4" stroke-linecap="round"/>
+  <circle cx="64" cy="72" r="16.4" fill="#6366F1" fill-opacity="0.16"/>
+  <circle cx="64" cy="72" r="11.4" fill="url(#node)"/>
+  <circle cx="40" cy="88" r="8.4" fill="#0EA5E9"/>
+  <circle cx="90" cy="88" r="8.4" fill="#8B5CF6"/>
+  <circle cx="64" cy="102" r="8.4" fill="#3B82F6"/>
+</svg>

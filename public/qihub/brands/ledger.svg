@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Qi-Ledger mark">
+<defs>
+<linearGradient id="a" x1="250" y1="140" x2="760" y2="520" gradientUnits="userSpaceOnUse"><stop stop-color="#2B91F5"/><stop offset="1" stop-color="#66D7F5"/></linearGradient>
+<linearGradient id="b" x1="335" y1="250" x2="760" y2="720" gradientUnits="userSpaceOnUse"><stop stop-color="#176CF0"/><stop offset=".55" stop-color="#0750D8"/><stop offset="1" stop-color="#0D2D85"/></linearGradient>
+<linearGradient id="c" x1="730" y1="470" x2="930" y2="690" gradientUnits="userSpaceOnUse"><stop stop-color="#43C8F5"/><stop offset=".48" stop-color="#1685F6"/><stop offset="1" stop-color="#0B55DE"/></linearGradient>
+<linearGradient id="d" x1="190" y1="305" x2="745" y2="820" gradientUnits="userSpaceOnUse"><stop stop-color="#E3F0FF"/><stop offset=".58" stop-color="#C9E1FB"/><stop offset="1" stop-color="#AACBEF"/></linearGradient>
+<linearGradient id="e" x1="315" y1="540" x2="315" y2="720" gradientUnits="userSpaceOnUse"><stop stop-color="#65D7F6"/><stop offset="1" stop-color="#38A8F4"/></linearGradient>
+<linearGradient id="f" x1="460" y1="470" x2="460" y2="720" gradientUnits="userSpaceOnUse"><stop stop-color="#35B8F6"/><stop offset="1" stop-color="#0875F1"/></linearGradient>
+<linearGradient id="g" x1="610" y1="390" x2="610" y2="720" gradientUnits="userSpaceOnUse"><stop stop-color="#177DF3"/><stop offset=".52" stop-color="#0760E7"/><stop offset="1" stop-color="#14389D"/></linearGradient>
+
+</defs>
+<g transform="translate(72 74) scale(.86)">
+<path d="M220 302C220 260 245 226 286 211L694 61C748 41 800 79 800 137V391L262 465C238 468 220 451 220 426Z" fill="url(#a)"/>
+<path d="M236 347C236 302 270 270 315 270H737C790 270 824 306 824 356V759C824 811 784 852 732 852H316C269 852 236 820 236 773Z" fill="url(#b)"/>
+<path d="M704 463H855C909 463 946 500 946 553V642C946 697 909 733 855 733H704Z" fill="url(#c)"/>
+
+<path d="M190 306C190 270 219 244 257 251L650 318C706 328 742 365 742 420V789C742 843 702 878 648 868L266 798C219 790 190 754 190 706Z" fill="url(#d)"/>
+<rect x="290" y="548" width="90" height="166" rx="31" fill="url(#e)"/><rect x="427" y="479" width="96" height="235" rx="32" fill="url(#f)"/><rect x="570" y="397" width="102" height="317" rx="34" fill="url(#g)"/>
+</g>
+</svg>
