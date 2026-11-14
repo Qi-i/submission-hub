@@ -65,12 +65,25 @@ export function parseBackupBundle(json: string): ParsedBackupBundle {
   }
 
   let preparation: PreparationSnapshot | null = null
-  if (record.preparation && typeof record.preparation === 'object') {
+  // Old v1/v2 backups may not contain preparation. But when it is supplied,
+  // malformed collections must fail before any paper/related data is written.
+  if (record.preparation !== undefined && record.preparation !== null) {
+    if (typeof record.preparation !== 'object' || Array.isArray(record.preparation)) {
+      throw new Error('投稿准备备份结构不正确，已停止导入以避免丢失数据。')
+    }
     const source = record.preparation as Record<string, unknown>
+    for (const name of ['journals', 'topics', 'drafts'] as const) {
+      const items = source[name]
+      if (items === undefined) continue // Support older partial snapshots.
+      if (!Array.isArray(items) || items.some(item =>
+        !item || typeof item !== 'object' || Array.isArray(item))) {
+        throw new Error(`投稿准备备份的 ${name} 数据无效，已停止导入。`)
+      }
+    }
     preparation = {
-      journals: Array.isArray(source.journals) ? source.journals as PreparationSnapshot['journals'] : [],
-      topics: Array.isArray(source.topics) ? source.topics as PreparationSnapshot['topics'] : [],
-      drafts: Array.isArray(source.drafts) ? source.drafts as PreparationSnapshot['drafts'] : [],
+      journals: (source.journals ?? []) as PreparationSnapshot['journals'],
+      topics: (source.topics ?? []) as PreparationSnapshot['topics'],
+      drafts: (source.drafts ?? []) as PreparationSnapshot['drafts'],
     }
   }
 
