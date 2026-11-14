@@ -60,7 +60,8 @@ jobs:
           mkdir -p release
           tar -czf "release/submission-hub-web-v${{ steps.metadata.outputs.version }}.tar.gz" -C dist .
           sha256sum "release/submission-hub-web-v${{ steps.metadata.outputs.version }}.tar.gz" > release/SHA256SUMS.txt
-      - name: Create GitHub Release
+      - id: publish
+        name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ steps.metadata.outputs.tag }}
@@ -69,8 +70,9 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Release $TAG_NAME already exists; refusing to overwrite an immutable online release." >&2
-            exit 1
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Immutable release $TAG_NAME already exists; unchanged. GitHub Pages deploy runs separately."
+            exit 0
           fi
           gh release create "$TAG_NAME" \
             "release/submission-hub-web-v${{ steps.metadata.outputs.version }}.tar.gz" \
@@ -79,10 +81,15 @@ jobs:
             --title "$RELEASE_TITLE" \
             --notes-file "$RELEASE_NOTES" \
             --latest
+          echo "created=true" >> "$GITHUB_OUTPUT"
       - name: Publish release summary
         run: |
           {
-            echo "## Released ${{ steps.metadata.outputs.tag }}"
+            if [ "${{ steps.publish.outputs.created }}" = "true" ]; then
+              echo "## Released ${{ steps.metadata.outputs.tag }}"
+            else
+              echo "## Existing immutable release ${{ steps.metadata.outputs.tag }} kept unchanged"
+            fi
             echo
             echo "- Verification: passed"
             echo "- Edition: online"
