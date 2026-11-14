@@ -79,6 +79,16 @@ assert(composer.includes('autoWrapProject(next)'), 'grid reflow must update auto
 assert(composer.includes('IndexedDB') && composer.includes('当前浏览器'), 'save semantics must explain local IndexedDB persistence')
 assert(history.includes('HISTORY_LIMIT') && history.includes('future'), 'Figure Composer history owner must keep bounded undo and redo stacks')
 
+const globalLayout = read('src/components/figure-composer/FigureGlobalLayoutPanel.tsx')
+assert(globalLayout.includes('function NumericDraftInput'), 'Figure global numeric settings must preserve an editable draft')
+assert(globalLayout.includes('onChange={event => setDraft(event.target.value)}'), 'numeric input must allow clearing before a complete number is entered')
+assert(globalLayout.includes('onBlur={commit}'), 'numeric changes must only commit after editing')
+assert(globalLayout.includes('if (!draft.trim()'), 'empty numeric drafts must revert rather than unexpectedly clamp to the minimum')
+for (const field of ['panelWidth', 'layoutScale', 'gap', 'margin', 'offsetX', 'offsetY']) {
+  assert(globalLayout.includes('onCommit={' + field + ' =>'), 'global numeric setting ' + field + ' must use delayed commit')
+}
+assert((globalLayout.match(/<NumericDraftInput/g) || []).length >= 7, 'all global canvas and label numeric settings should share reliable draft behavior')
+
 const sidebar = read('src/components/figure-composer/FigureSidebar.tsx')
 const layersIndex = sidebar.indexOf('图片与图层')
 const projectIndex = sidebar.indexOf('本地草稿库')
