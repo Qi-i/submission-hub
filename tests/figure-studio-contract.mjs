@@ -88,6 +88,8 @@ for (const field of ['panelWidth', 'layoutScale', 'gap', 'margin', 'offsetX', 'o
   assert(globalLayout.includes('onCommit={' + field + ' =>'), 'global numeric setting ' + field + ' must use delayed commit')
 }
 assert((globalLayout.match(/<NumericDraftInput/g) || []).length >= 7, 'all global canvas and label numeric settings should share reliable draft behavior')
+assert((globalLayout.match(/<NumericDraftInput key=\{project\.id\}/g) || []).length >= 7, 'switching figure projects must discard prior uncommitted numeric drafts')
+assert(globalLayout.includes('[project.id, project.labelDefaults.fontSize]'), 'label size draft must reset on project switch')
 
 const sidebar = read('src/components/figure-composer/FigureSidebar.tsx')
 const layersIndex = sidebar.indexOf('图片与图层')
