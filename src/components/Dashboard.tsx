@@ -73,6 +73,7 @@ export default function Dashboard() {
   const [papers, setPapers] = useState<Paper[]>([])
   const [journalProfiles, setJournalProfiles] = useState<JournalProfile[]>([])
   const [loading, setLoading] = useState(!isDemo)
+  const [paperLoadError, setPaperLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -144,8 +145,14 @@ export default function Dashboard() {
       .from('papers')
       .select('*')
       .order('submitted_date', { ascending: false, nullsFirst: false })
-    if (error) console.error('Load papers error:', error)
-    else setPapers(((data || []) as Paper[]).map(normalizePaperWorkflow))
+    if (error) {
+      console.error('Load papers error:', error)
+      // Keep the last readable list; a failed request is never an empty archive.
+      setPaperLoadError('投稿记录刷新失败，当前显示上次成功读取的数据。请检查网络后重试。')
+    } else {
+      setPaperLoadError('')
+      setPapers(((data || []) as Paper[]).map(normalizePaperWorkflow))
+    }
     setLoading(false)
   }, [isDemo])
 
@@ -172,6 +179,19 @@ export default function Dashboard() {
   useEffect(() => {
     if (tab === 'dashboard') void loadJournalProfiles()
   }, [tab, loadJournalProfiles])
+
+  useEffect(() => {
+    if (isDemo) return
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'visible') void loadPapers()
+    }
+    window.addEventListener('focus', refreshOnReturn)
+    document.addEventListener('visibilitychange', refreshOnReturn)
+    return () => {
+      window.removeEventListener('focus', refreshOnReturn)
+      document.removeEventListener('visibilitychange', refreshOnReturn)
+    }
+  }, [isDemo, loadPapers])
 
   const allAuthors = Array.from(new Set(papers.flatMap(paper => paper.authors || []))).sort()
   const matchName = user?.author_name || user?.username || ''
@@ -400,6 +420,10 @@ export default function Dashboard() {
 
       {tab === 'mail' && user && !isDemo && <AcademicMailCenter userId={user.id} />}
 
+      {paperLoadError && !isDemo && <div role="alert" className="paper-load-notice">
+        {paperLoadError} <button type="button" onClick={() => void loadPapers()}>重新读取</button>
+      </div>}
+
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
           {stats.map(status => <MetricCard key={status.key} icon={status.emoji} value={status.count} label={status.label} helper="点击筛选" color={status.color} tone={`${status.color}18`} active={statusFilter === status.key} onClick={() => setStatusFilter(statusFilter === status.key ? 'all' : status.key)} />)}
@@ -418,8 +442,25 @@ export default function Dashboard() {
           if (error) throw error
         } else {
           const updateData = { ...data, updated_at: new Date().toISOString() }
-          const { error } = await ((supabase.from('papers') as any).update(updateData)).eq('id', editing.id)
+          // Compare-and-swap on the exact version opened in this form.
+          // A second device's intervening status, timeline or attachment edit
+          // must not be silently replaced by an old full-form UPDATE.
+          const { data: saved, error } = await ((supabase.from('papers') as any)
+            .update(updateData)
+            .eq('id', editing.id)
+            .eq('updated_at', editing.updated_at)
+            .select('id, updated_at'))
           if (error) throw error
+          if (!saved?.length) {
+            const { data: latest, error: latestError } = await ((supabase.from('papers') as any)
+              .select('title,status,updated_at').eq('id', editing.id).maybeSingle())
+            if (latestError) throw latestError
+            await loadPapers()
+            throw new Error(latest
+              ? '另一设备或标签页已更新此稿件（当前版本 ' + latest.updated_at +
+                '，状态 ' + latest.status + '）。当前表单输入已保留，请核对最新稿件后再编辑；没有覆盖云端记录。'
+              : '此稿件已被删除或当前账号无权更新；表单输入仍保留，没有覆盖。')
+          }
         }
         setEditing(null)
         await Promise.all([loadPapers(), loadJournalProfiles()])
