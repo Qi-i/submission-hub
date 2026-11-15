@@ -465,9 +465,21 @@ export default function Dashboard() {
         setEditing(null)
         await Promise.all([loadPapers(), loadJournalProfiles()])
       }} onDelete={async id => {
+        if (editing === 'new' || editing.id !== id) return
         if (!confirm('确认删除这条投稿记录？')) return
-        const { error } = await supabase.from('papers').delete().eq('id', id)
+        // A stale edit form must never delete a record that another
+        // tab/device changed after this form was opened.
+        const { data: deleted, error } = await ((supabase.from('papers') as any)
+          .delete()
+          .eq('id', id)
+          .eq('updated_at', editing.updated_at)
+          .select('id'))
         if (error) { alert('删除失败: ' + error.message); return }
+        if (!deleted?.length) {
+          alert('稿件已在其他设备或标签页发生变化，未执行删除。请重新核对最新记录。')
+          await loadPapers()
+          return
+        }
         setEditing(null)
         await loadPapers()
       }} onClose={() => setEditing(null)} />}
