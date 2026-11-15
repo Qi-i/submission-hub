@@ -125,6 +125,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
   const currentId = isNew ? '' : paper.id
   const [form, setForm] = useState<FormState>(() => initial(paper, currentUsername))
   const [authorsText, setAuthorsText] = useState(form.authors.join(', '))
+  const initialDraftSignature = useRef(JSON.stringify({ form, authorsText }))
   const [uploading, setUploading] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [customTl, setCustomTl] = useState<string[]>([])
@@ -293,7 +294,14 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     }
   }
 
-  const close = () => { if (!saving && uploading === null) onClose() }
+  const close = () => {
+    if (saving || uploading !== null) return
+    const hasUnsavedChanges =
+      JSON.stringify({ form, authorsText }) !== initialDraftSignature.current
+    if (hasUnsavedChanges &&
+      !window.confirm('当前表单存在未保存的修改。确认放弃本次输入并退出吗？')) return
+    onClose()
+  }
 
   return <div className="modal-overlay" onClick={close}><div className="modal compact-form-modal" onClick={event => event.stopPropagation()}>
     <div className="compact-form-header"><div><h3>{isNew ? '新建投稿记录' : '编辑投稿记录'}</h3><p>{form.journal || '未填写期刊'} · {STATUSES.find(status => status.key === form.status)?.label || form.status}</p></div><button className="btn btn-ghost btn-icon" onClick={close} disabled={saving || uploading !== null}><X size={18} /></button></div>
