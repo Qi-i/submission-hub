@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Download, Eye, FileText, Loader, RefreshCw, Save, Sparkles, Trash2, Upload, X } from 'lucide-react'
 import { isSupabaseStoragePath } from '../lib/file-storage-path'
 import type { JournalRankLookupResult } from '../lib/journal-rank'
