@@ -28,9 +28,9 @@ const tests=[
   ui.includes('ChatGPT 手动归档')&&ui.includes('网站自动同步尚未授权')],
 
  ['Translation opens automatically with Chinese target',ui.includes("else {setTranslationLang('zh');setTranslationVisible(true)}")&&ui.includes('if(translationVisible&&active)void runTranslation()')],
- ['Cached translation must be checked before scheduling the model provider',
-   ui.includes("if(typeof r.data?.translated_text==='string'&&r.data.translated_text.trim())")&&
-   ui.indexOf("setTranslation(r.data)")<ui.indexOf("if(translationVisible&&active)void runTranslation()")&&
+ ['Translation uses single server-side SHA-validated cache check',
+   translator.includes('cached.data?.source_hash===sourceHash')&&
+   !ui.includes("supabase.from('mail_translations')")&&
    ui.match(/if\(translationVisible&&active\)void runTranslation\(\)/g)?.length===1],
  ['Concurrent mailbox refreshes discard stale results',
    ui.includes('const metadataSequence = useRef(0)')&&
