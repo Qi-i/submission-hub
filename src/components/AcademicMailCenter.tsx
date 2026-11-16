@@ -238,6 +238,9 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [composeBody,setComposeBody] = useState('')
   const [replyId,setReplyId] = useState('')
   const listSequence = useRef(0)
+  // Concurrent refreshes (return-to-tab, INSERT event and manual action)
+  // must not let an older account/folder snapshot replace a newer one.
+  const metadataSequence = useRef(0)
   useEffect(()=>{try{window.localStorage.setItem('am-hide-noise-'+userId,String(hideNoise))}catch{}},[hideNoise,userId])
   useEffect(()=>{try{window.localStorage.setItem('am-list-ratio-'+userId,String(listRatio))}catch{}},[listRatio,userId])
   useEffect(()=>{try{window.localStorage.setItem('am-translation-ratio-'+userId,String(translationRatio))}catch{}},[translationRatio,userId])
@@ -279,6 +282,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     [scope, accountFilter, folderFilter, labelFilter, typeFilter, hideNoise, debouncedSearch])
 
   const loadMetadata = useCallback(async () => {
+    const sequence = ++metadataSequence.current
     const accountQuery = (supabase.from('mail_accounts') as any)
       .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at,consecutive_failures,next_attempt_at,last_processed,last_scanned_folders,smtp_has_separate_key,oauth_client_id,oauth_identity,auth_kind,short_label,logo_symbol,logo_url')
       .eq('user_id', userId).order('created_at', {ascending: true})
@@ -296,6 +300,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
        (supabase.from('mail_labels') as any).select('id,name,color').eq('user_id',userId).order('name'),
        (supabase as any).rpc('mail_account_progress'),
     ])
+    if (sequence !== metadataSequence.current) return
     const failed = [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult,progressResult].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
