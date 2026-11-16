@@ -1,46 +1,8 @@
 name: Verify UI Geometry Contract
 
+# Actions quota guard: automatic checks/deploys/keepalives paused; manual only.
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/visual/ui-geometry-contract-check.mjs'
-      - 'tests/visual/journal-center-header-filter-check.mjs'
-      - 'tests/visual/header-action-coherence-check.mjs'
-      - 'tests/visual/responsive-workspace-density-check.mjs'
-      - 'tests/visual/submission-grid-parity-check.mjs'
-      - 'tests/visual/dark-theme-contract-check.mjs'
-      - 'tests/visual/application-density-family-check.mjs'
-      - 'tests/visual/journal-center-detail-readability-check.mjs'
-      - 'tests/visual/final-journal-card-polish-check.mjs'
-      - 'tests/visual/journal-metric-inline-density-check.mjs'
-      - 'tests/visual/journal-tier-color-separation-check.mjs'
-      - 'tests/visual/submission-status-surface-contract.mjs'
-      - 'tests/visual/card-inline-rhythm-check.mjs'
-      - 'tests/visual/journal-tier.tsx'
-      - '.github/workflows/ui-contract.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/visual/ui-geometry-contract-check.mjs'
-      - 'tests/visual/journal-center-header-filter-check.mjs'
-      - 'tests/visual/header-action-coherence-check.mjs'
-      - 'tests/visual/responsive-workspace-density-check.mjs'
-      - 'tests/visual/submission-grid-parity-check.mjs'
-      - 'tests/visual/dark-theme-contract-check.mjs'
-      - 'tests/visual/application-density-family-check.mjs'
-      - 'tests/visual/journal-center-detail-readability-check.mjs'
-      - 'tests/visual/final-journal-card-polish-check.mjs'
-      - 'tests/visual/journal-metric-inline-density-check.mjs'
-      - 'tests/visual/journal-tier-color-separation-check.mjs'
-      - 'tests/visual/submission-status-surface-contract.mjs'
-      - 'tests/visual/card-inline-rhythm-check.mjs'
-      - 'tests/visual/journal-tier.tsx'
-      - '.github/workflows/ui-contract.yml'
-
 permissions:
   contents: read
 

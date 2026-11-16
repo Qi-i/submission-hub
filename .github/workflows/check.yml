@@ -1,11 +1,8 @@
 name: Check
 
+# Actions quota guard: automatic checks/deploys paused; manual only.
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main, submission-workflow-enhancements, 'release/**']
-
+  workflow_dispatch:
 permissions:
   contents: read
 

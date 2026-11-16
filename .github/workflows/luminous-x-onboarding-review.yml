@@ -1,21 +1,8 @@
 name: Verify Luminous interfaces and onboarding
 
+# Actions quota guard: automatic checks/deploys paused; manual only.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/visual/**'
-      - 'vite.config.visual.ts'
-      - '.github/workflows/luminous-x-onboarding-review.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/visual/**'
-      - 'vite.config.visual.ts'
-      - '.github/workflows/luminous-x-onboarding-review.yml'
-
+  workflow_dispatch:
 permissions:
   contents: read
 
