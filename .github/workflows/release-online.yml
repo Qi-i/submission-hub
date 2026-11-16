@@ -1,5 +1,6 @@
 name: Release Online Edition
 
+# Actions quota guard: all validation is manual until account budget resets.
 on:
   workflow_dispatch:
     inputs:
@@ -9,11 +10,6 @@ on:
       title:
         description: Optional release title
         required: false
-  push:
-    branches: [main]
-    paths:
-      - 'package.json'
-
 permissions:
   contents: write
 

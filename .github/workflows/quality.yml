@@ -1,27 +1,8 @@
 name: Verify Online Build
 
+# Actions quota guard: all validation is manual until account budget resets.
 on:
   workflow_dispatch:
-  pull_request:
-  push:
-    branches: [main, 'release/**']
-    paths:
-      - 'src/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'supabase/**'
-      - 'docs/releases/**'
-      - 'README.md'
-      - 'public/release-info.json'
-      - 'index.html'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig*.json'
-      - 'vite.config.*'
-      - '.github/workflows/quality.yml'
-      - '.github/workflows/release-online.yml'
-      - '.github/workflows/update-doc-screenshots.yml'
-
 permissions:
   contents: read
 

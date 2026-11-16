@@ -1,15 +1,8 @@
 name: Supabase Keepalive
 
+# Actions quota guard: all validation is manual until account budget resets.
 on:
-  schedule:
-    # Four independent user-database reads per day, staggered from Live Memory.
-    - cron: '29 1,7,13,19 * * *'
   workflow_dispatch:
-  pull_request:
-    paths:
-      - '.github/workflows/supabase-keepalive.yml'
-      - 'supabase/013_project_activity_probe.sql'
-
 permissions:
   contents: read
 

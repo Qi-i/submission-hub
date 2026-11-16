@@ -1,26 +1,8 @@
 name: Capture Visual Review
 
+# Actions quota guard: all validation is manual until account budget resets.
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/visual/**'
-      - 'vite.config.visual.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/visual-review.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/visual/**'
-      - 'vite.config.visual.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/visual-review.yml'
-
 permissions:
   contents: read
 

@@ -1,11 +1,8 @@
 name: Check
 
+# Actions quota guard: all validation is manual until account budget resets.
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main, submission-workflow-enhancements, 'release/**']
-
+  workflow_dispatch:
 permissions:
   contents: read
 
