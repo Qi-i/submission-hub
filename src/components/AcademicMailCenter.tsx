@@ -412,26 +412,10 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   useEffect(()=>{if(readerRef.current)readerRef.current.scrollTop=0},[selected])
   useEffect(()=>{setNoteDraft(active?.user_note||'')},[active?.id,active?.user_note])
   useEffect(()=>{
+    // Never reuse a translation solely by message_id. The server checks its
+    // SHA-256 source hash and returns a verified cached result if unchanged.
     setTranslation(null)
-    if(!selected||!translationVisible||active?.id!==selected)return
-    let cancelled=false
-    // Check complete server-side translation first. Otherwise the old
-    // parallel auto-run issued an unnecessary model request even on a
-    // cache hit, increasing latency and potentially exhausting free credits.
-    void (async()=>{
-      const r=await (supabase.from('mail_translations') as any)
-       .select('translated_text,source_hash,model_name').eq('user_id',userId)
-       .eq('message_id',selected).eq('target_language',translationLang).maybeSingle()
-      if(cancelled)return
-      if(r.error){setError(r.error.message);return}
-      if(typeof r.data?.translated_text==='string'&&r.data.translated_text.trim()){
-        setTranslation(r.data)
-        return
-      }
-      if(translationVisible&&active)void runTranslation()
-    })()
-    return ()=>{cancelled=true}
-  },[userId,selected,active?.id,translationLang,translationVisible])
+  },[userId,selected,translationLang,translationVisible])
   const selectedAccount=useMemo(()=>accounts.find(a=>a.id===active?.account_id),[accounts,active])
   const suggestedPaper = useMemo(()=>{
     if(!active?.extraction?.manuscript_no||active.paper_id)return null
@@ -710,8 +694,12 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       if(job===translationJob.current)setTranslationLoading(false)
     }
   }
-  // Automatic translation now begins only after checking for an existing
-  // completed translation in the selected account and target language.
+  useEffect(()=>{
+    // Exactly one authenticated request per newly opened message/language.
+    // mail-translate verifies source_hash before deciding whether to call
+    // any model; stale or truncated original bodies cannot show old text.
+    if(translationVisible&&active)void runTranslation()
+  },[translationVisible,selected,translationLang,active?.id])
     const downloadOriginal=async()=>{
     if(!active?.cloud_archive_path)return
     setBusy('download')
