@@ -28,6 +28,14 @@ const tests=[
   ui.includes('ChatGPT 手动归档')&&ui.includes('网站自动同步尚未授权')],
 
  ['Translation opens automatically with Chinese target',ui.includes("else {setTranslationLang('zh');setTranslationVisible(true)}")&&ui.includes('if(translationVisible&&active)void runTranslation()')],
+ ['Cached translation must be checked before scheduling the model provider',
+   ui.includes("if(typeof r.data?.translated_text==='string'&&r.data.translated_text.trim())")&&
+   ui.indexOf("setTranslation(r.data)")<ui.indexOf("if(translationVisible&&active)void runTranslation()")&&
+   ui.match(/if\(translationVisible&&active\)void runTranslation\(\)/g)?.length===1],
+ ['Concurrent mailbox refreshes discard stale results',
+   ui.includes('const metadataSequence = useRef(0)')&&
+   ui.includes('const sequence = ++metadataSequence.current')&&
+   ui.includes('if (sequence !== metadataSequence.current) return')],
  ['Switching translation language cancels old result',ui.includes('[selected,translationLang,translationVisible]')],
  ['MagicZotero preset uses stated model and endpoint only',settings.includes('https://gpt.magiczotero.top/v1/chat/completions')&&settings.includes('magic-translate-gpt')&&settings.includes('setEndpointKey(\'\')')],
  ['MagicZotero requires test success before selecting route',settings.includes('candidate?.declared_free')&&settings.includes('if(id&&r.ok)')],
