@@ -200,16 +200,21 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     input.onchange = async event => {
       const selected = (event.target as HTMLInputElement).files?.[0]
       if (!selected) return
-      updateFile(index, 'n', selected.name)
-      updateFile(index, 'p', '上传中...')
+      // Never overwrite the previous private archive reference before a
+      // replacement upload succeeds. Failed uploads must not silently detach
+      // the existing original or mislabel it with the new file's name.
       setUploading(index)
       try {
         const result = await onUploadFile(selected)
-        if (!result) throw new Error('文件存储尚未配置完整，或文件类型、大小、网络和权限不符合要求。')
-        updateFile(index, 'p', result.fileUrl)
+        if (!result || !result.fileUrl) throw new Error('文件存储尚未配置完整，或文件类型、大小、网络和权限不符合要求。')
+        setForm(previous => ({
+          ...previous,
+          files: previous.files.map((file, fileIndex) => fileIndex === index
+            ? { ...file, n: result.fileName || selected.name, p: result.fileUrl }
+            : file),
+        }))
       } catch (error) {
         console.error('Upload file failed:', error)
-        updateFile(index, 'p', '')
         alert(error instanceof Error ? `上传失败：${error.message}` : '上传失败，请稍后重试。')
       } finally {
         setUploading(null)
