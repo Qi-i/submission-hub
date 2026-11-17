@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import './paper-field-merge.test.mjs'
 
 const root = process.cwd()
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
@@ -8,7 +9,41 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message)
 }
 
+const paperFormArchive = read('src/components/PaperFormArchive.tsx')
+const paperFormIntelligent = read('src/components/PaperFormIntelligent.tsx')
+assert(!paperFormIntelligent.includes('syncProfile(profile, false)'),
+  'Linking a journal must not silently populate or dirty an existing editor')
+assert(paperFormIntelligent.includes('syncProfile(latest, true)'),
+  'Explicit journal-profile update button must continue to work')
+assert(paperFormArchive.includes('JSON.stringify({ form, authorsText }) ==='),
+  'Untouched manuscript Save must not create a new revision or recompute fields')
+
+assert(paperFormArchive.includes('if (!result || !result.fileUrl)'),
+  'Private file replacement must require a completed upload URL')
+assert(!paperFormArchive.includes("updateFile(index, 'p', '上传中...')"),
+  'Pending replacement must not overwrite the previous archived file path')
+assert(!paperFormArchive.includes("updateFile(index, 'p', '')"),
+  'Failed replacement must not clear a valid existing original')
+assert(paperFormArchive.includes('n: result.fileName || selected.name, p: result.fileUrl'),
+  'Original file name and private path must change atomically only on successful upload')
+assert(paperFormArchive.includes('<fieldset className="compact-form-body" disabled={saving}'),
+  'During database save, the full editor must be read-only so later typing is not discarded')
+assert(paperFormArchive.includes('disabled={uploading !== null} onClick={addFile}') &&
+  paperFormArchive.includes('disabled={uploading !== null} onChange={event => updateFile(index'),
+  'An in-flight attachment replacement must retain its row and edited metadata')
+
+
 const dashboard = read('src/components/Dashboard.tsx')
+assert(dashboard.includes(".delete()") &&
+  dashboard.includes(".eq('updated_at', editing.updated_at)") &&
+  dashboard.includes("if (!deleted?.length)"),
+  'Stale manuscript delete must refuse zero-row CAS responses, not report success')
+assert(dashboard.includes('if (Object.keys(changes).length === 0)') &&
+  dashboard.includes('setEditing(null)'),
+  'Unmodified Save must not write any row to Supabase')
+assert(dashboard.includes('if (!retry.data?.length)') &&
+  dashboard.includes('rebasePaperFields('),
+  'Concurrent form edits must retain a second CAS guard and review overlapping fields')
 const journalCenter = read('src/components/JournalCenterWorkspace.tsx')
 const offlineJournalCenter = read('src/components/OfflineJournalCenterWorkspace.tsx')
 const journalCard = read('src/components/JournalCatalogCard.tsx')
