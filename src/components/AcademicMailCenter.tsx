@@ -279,8 +279,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300)
     return () => window.clearTimeout(timer)
   }, [search])
-  useEffect(() => { setPage(0); setSelected(null); setMobileDetail(false) },
-    [scope, accountFilter, folderFilter, labelFilter, typeFilter, hideNoise, debouncedSearch])
+  useEffect(() => {
+    // A changed mailbox filter invalidates the focused message. Restore the
+    // list immediately; never leave the reader covering an empty result set.
+    setPage(0);
+    setSelected(null);
+    setMobileDetail(false);
+    setReaderFocus(false);
+  }, [scope, accountFilter, folderFilter, labelFilter, typeFilter, hideNoise, debouncedSearch])
 
   const loadMetadata = useCallback(async () => {
     const sequence = ++metadataSequence.current
@@ -387,6 +393,20 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   },[userId,loadMetadata,loadMessages])
 
   const active=useMemo(()=>messages.find(m=>m.id===selected)||null,[messages,selected])
+  useEffect(()=>{
+    if (!active && !loading && readerFocus) setReaderFocus(false)
+  }, [active, loading, readerFocus])
+  useEffect(()=>{
+    if(!readerFocus)return
+    const onEscape=(event:KeyboardEvent)=>{
+      if(event.key!=='Escape')return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      setReaderFocus(false)
+    }
+    document.addEventListener('keydown',onEscape,true)
+    return()=>document.removeEventListener('keydown',onEscape,true)
+  },[readerFocus])
   useEffect(()=>{
     // Switching mail invalidates a previous translation job's UI updates.
     translationJob.current++
