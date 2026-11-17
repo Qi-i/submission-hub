@@ -357,7 +357,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
       <Section title="成果归档" subtitle="DOI、卷期页码、引用格式" tone="green"><div className="compact-grid two"><Field label="见刊 / 在线发表 URL"><input className="input" value={form.published_url} onChange={event => set('published_url', event.target.value)} placeholder="https://..." /></Field><Field label="DOI"><input className="input" value={form.doi} onChange={event => set('doi', event.target.value)} placeholder="10.xxxx/xxxxx" /></Field></div><Field label="卷期页码 / 在线发表信息" wide><input className="input" value={form.publication_info} onChange={event => set('publication_info', event.target.value)} placeholder="如：50(8), 123–145；Article 70113；Online first" /></Field><Field label="标准引用格式" wide><textarea className="textarea" value={form.citation} onChange={event => set('citation', event.target.value)} placeholder="可粘贴 GB/T、APA 或期刊要求的引用格式" /></Field></Section>
 
       <Section title="文件与备注" subtitle={onUploadFile ? '私有云附件可预览、下载、替换；移除后保存即同步删除' : '离线版仅记录文件名称和可选外部链接'} tone="slate">
-        <div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" onClick={addFile}>+ 添加文件</button></div>
+        <div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" disabled={uploading !== null} onClick={addFile}>+ 添加文件</button></div>
         {form.files.length === 0 && <div className="compact-file-empty">暂无附件，可添加投稿稿、检索证明、见刊文章等文件。</div>}
         {form.files.length > 0 && <div className="compact-files">{form.files.map((file, index) => {
           const managed = isSupabaseStoragePath(file.p)
@@ -367,10 +367,10 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
           const downloadable = managed ? !!onDownloadFile : external
           const storageText = busy ? '正在上传到私有云…' : managed ? '私有云文件 · 临时授权访问' : external ? '外部链接' : onUploadFile ? '尚未上传' : '未设置链接'
           return <div key={index} className={`compact-file-row archive-file-row ${onUploadFile ? 'is-managed' : 'is-offline'}`}>
-            <select className="select compact-file-type" value={file.t || '其它'} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>
+            <select className="select compact-file-type" value={file.t || '其它'} disabled={uploading !== null} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>
             <div className="compact-file-content">
               <span className={`compact-file-status-icon ${managed ? 'ready' : ''}`}>{busy ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</span>
-              <div className="compact-file-text"><input className="input compact-file-name" value={file.n} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><span className="compact-file-meta">{storageText}</span></div>
+              <div className="compact-file-text"><input className="input compact-file-name" value={file.n} disabled={uploading !== null} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><span className="compact-file-meta">{storageText}</span></div>
             </div>
             {onUploadFile ? <input type="hidden" value={file.p} readOnly /> : <input className="input compact-file-url" value={file.p} onChange={event => updateFile(index, 'p', event.target.value)} placeholder="可选在线文件 URL" />}
             <div className="compact-file-actions">
