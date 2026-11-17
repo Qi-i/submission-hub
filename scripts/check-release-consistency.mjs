@@ -51,12 +51,14 @@ assert(readme.includes('投稿管理 → 期刊中心 → 邮件聚合 → 投�
 
 assert(releaseWorkflow.includes("require('./package.json').version"), 'online release workflow does not derive the version from package.json')
 assert(releaseWorkflow.includes('docs/releases/v${VERSION}.md'), 'online release workflow does not load version-matched release notes')
-assert(releaseWorkflow.includes("paths:\n      - 'package.json'"), 'online release workflow is not bound to package-version changes')
+assert(/on:\s*\r?\n\s*workflow_dispatch:/.test(releaseWorkflow), 'online release workflow must be manually dispatched')
+assert(!/^\s{2}(?:push|pull_request|schedule|workflow_run):/m.test(releaseWorkflow), 'online release workflow must not trigger automatically')
 assert(releaseWorkflow.includes('Run complete online verification'), 'online release workflow does not run the release verification gate')
 assert(releaseWorkflow.includes('submission-hub-web-v${{ steps.metadata.outputs.version }}.tar.gz'), 'online release workflow does not package the deployable web snapshot')
 assert(!/offline/i.test(releaseWorkflow), 'online release workflow still contains offline delivery logic')
 
-assert(screenshotWorkflow.includes("branches: [main, 'release/**']"), 'screenshot workflow does not cover release branches')
+assert(/on:\s*\r?\n\s*workflow_dispatch:/.test(screenshotWorkflow), 'screenshot workflow must be manually dispatched')
+assert(!/^\s{2}(?:push|pull_request|schedule|workflow_run):/m.test(screenshotWorkflow), 'screenshot workflow must not trigger automatically')
 assert(screenshotWorkflow.includes('run: npm run check:release'), 'screenshot workflow does not verify release metadata')
 assert(screenshotWorkflow.includes('uses: actions/upload-artifact@v4'), 'screenshot workflow does not upload generated screenshots for review')
 assert(screenshotWorkflow.includes('contents: read'), 'screenshot workflow does not use read-only repository permissions')
