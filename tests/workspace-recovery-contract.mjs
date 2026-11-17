@@ -8,6 +8,16 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message)
 }
 
+const paperFormArchive = read('src/components/PaperFormArchive.tsx')
+assert(paperFormArchive.includes('if (!result || !result.fileUrl)'),
+  'Private file replacement must require a completed upload URL')
+assert(!paperFormArchive.includes("updateFile(index, 'p', '上传中...')"),
+  'Pending replacement must not overwrite the previous archived file path')
+assert(!paperFormArchive.includes("updateFile(index, 'p', '')"),
+  'Failed replacement must not clear a valid existing original')
+assert(paperFormArchive.includes('n: result.fileName || selected.name, p: result.fileUrl'),
+  'Original file name and private path must change atomically only on successful upload')
+
 const dashboard = read('src/components/Dashboard.tsx')
 const journalCenter = read('src/components/JournalCenterWorkspace.tsx')
 const offlineJournalCenter = read('src/components/OfflineJournalCenterWorkspace.tsx')
