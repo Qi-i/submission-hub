@@ -10,6 +10,14 @@ const assert = (condition, message) => {
 }
 
 const paperFormArchive = read('src/components/PaperFormArchive.tsx')
+const paperFormIntelligent = read('src/components/PaperFormIntelligent.tsx')
+assert(!paperFormIntelligent.includes('syncProfile(profile, false)'),
+  'Linking a journal must not silently populate or dirty an existing editor')
+assert(paperFormIntelligent.includes('syncProfile(latest, true)'),
+  'Explicit journal-profile update button must continue to work')
+assert(paperFormArchive.includes('JSON.stringify({ form, authorsText }) ==='),
+  'Untouched manuscript Save must not create a new revision or recompute fields')
+
 assert(paperFormArchive.includes('if (!result || !result.fileUrl)'),
   'Private file replacement must require a completed upload URL')
 assert(!paperFormArchive.includes("updateFile(index, 'p', '上传中...')"),
