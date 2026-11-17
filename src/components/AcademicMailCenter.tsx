@@ -207,6 +207,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [activeBody, setActiveBody] = useState('')
   const [bodyLoading, setBodyLoading] = useState(false)
   const [mobileDetail, setMobileDetail] = useState(false)
+  const [readerFocus, setReaderFocus] = useState(false)
   const readerRef = useRef<HTMLElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -861,7 +862,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       </div>}
 
       <section ref={outerRef} style={{'--am-list-width':(listRatio*100).toFixed(2)+'%'} as CSSProperties}
-        className={'am-workspace '+(mobileDetail?'show-detail':'')+(pref?.workspace?.compact?' am-compact':'')} aria-label="邮件列表和阅读区">
+        className={'am-workspace '+(mobileDetail?'show-detail':'')+(pref?.workspace?.compact?' am-compact':'')+(readerFocus?' am-reader-focus':'')} aria-label="邮件列表和阅读区">
         <aside className="am-list-pane">
           <div className="am-list-heading"><span>邮件列表 <small>{total.toLocaleString('zh-CN')} 封匹配</small></span><span>{page+1} / {Math.max(1,Math.ceil(total/PAGE_SIZE))} 页</span></div>
           <div className="am-message-list" aria-busy={loading}>
@@ -893,7 +894,20 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <article className="am-reader" ref={readerRef}>
           {!active?<div className="am-reader-empty"><FileText size={28}/><strong>选择一封邮件</strong><span>查看正文、来源邮箱、审稿状态及投稿关联</span></div>:<>
             <button type="button" className="am-back" onClick={()=>setMobileDetail(false)}><ArrowLeft size={15}/> 返回列表</button>
-            <div className="am-reader-top"><div className="am-reader-subtype"><span className={'am-chip am-cat-'+active.category}>{categories[active.category]||'其他'}</span>{isSpam(active)&&<span className="am-chip am-spam">原垃圾箱邮件</span>}</div><h3>{active.subject||'（无主题）'}</h3></div>
+            <div className="am-reader-top">
+              <div className="am-reader-heading-row">
+                <div className="am-reader-subtype">
+                  <span className={'am-chip am-cat-'+active.category}>{categories[active.category]||'其他'}</span>
+                  {isSpam(active)&&<span className="am-chip am-spam">原垃圾箱邮件</span>}
+                </div>
+                <button type="button" className="am-reader-focus-toggle"
+                  aria-pressed={readerFocus} onClick={()=>setReaderFocus(value=>!value)}
+                  title={readerFocus?'恢复邮件列表':'展开阅读区，便于直接截图'}>
+                  {readerFocus?'返回分栏':'专注阅读'}
+                </button>
+              </div>
+              <h3>{active.subject||'（无主题）'}</h3>
+            </div>
             <div className="am-meta">
               <div><span>发件人</span><strong>{active.sender_name||'未填写'} <small>{active.sender_address||''}</small></strong></div>
               <div><span>收件时间</span><strong>{niceDate(active.received_at)}</strong></div>
