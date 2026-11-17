@@ -9,6 +9,9 @@ const translate=read('supabase/functions/mail-translate/index.ts')
 const ingest=read('supabase/functions/mail-ingest/index.ts')
 const checks=[
  ['notes are owner scoped and preserved',migration.includes('user_note text not null')&&ui.includes('user_note:noteDraft')],
+ ['a zero-row or RLS-blocked mail update cannot pretend annotations were saved',
+  ui.includes(".update(changes).eq('id',id).eq('user_id',userId).select('id')")&&
+  ui.includes("saved.length!==1||saved[0]?.id!==id")],
  ['labels have owner RLS',migration.includes('mail_labels_owner')&&migration.includes('auth.uid())=user_id')],
  ['cross-account folders have owner foreign key',migration.includes('foreign key (user_id,virtual_folder_id)')&&migration.includes('mail_folders(user_id,id)')],
  ['virtual folders do not alter provider folders',ui.includes('virtual_folder_id:e.target.value||null')&&ui.includes('first_folder')],
@@ -16,6 +19,13 @@ const checks=[
  ['custom tag arrays filter server side',ui.includes("q=q.contains('user_labels',[labelFilter])")],
  ['tag deletion clears all user messages',cleanup.includes('array_remove(user_labels,l_name)')&&cleanup.includes('(select auth.uid())')],
  ['source account badges display on every list message',ui.includes('am-from-group')&&ui.includes('am-source-badge')],
+ ['desktop single-message reader can expand without refetching or duplicating the mail',
+  ui.includes("readerFocus?' am-reader-focus':'")&&
+  ui.includes("setReaderFocus(value=>!value)")&&
+  ui.includes("if (!active && !loading && readerFocus) setReaderFocus(false)")&&
+  ui.includes("if(event.key!=='Escape')return")&&
+  css.includes(".am-workspace.am-reader-focus")&&
+  css.includes(".am-reader-focus-toggle")],
  ['account logo editable while preserving actual email',ui.includes('brandEditing===a.id')&&ui.includes('short_label:brandShort.trim()')],
  ['translations are user-only via RLS and stored separately',migration.includes('mail_translations_owner')&&migration.includes('source_hash')],
  ['translation requires authenticated user and owned mail',translate.includes('db.auth.getUser(token)')&&translate.includes(".eq('user_id',uid).eq('id',id)")],

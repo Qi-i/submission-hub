@@ -207,6 +207,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [activeBody, setActiveBody] = useState('')
   const [bodyLoading, setBodyLoading] = useState(false)
   const [mobileDetail, setMobileDetail] = useState(false)
+  const [readerFocus, setReaderFocus] = useState(false)
   const readerRef = useRef<HTMLElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -238,6 +239,9 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [composeBody,setComposeBody] = useState('')
   const [replyId,setReplyId] = useState('')
   const listSequence = useRef(0)
+  // Concurrent refreshes (return-to-tab, INSERT event and manual action)
+  // must not let an older account/folder snapshot replace a newer one.
+  const metadataSequence = useRef(0)
   useEffect(()=>{try{window.localStorage.setItem('am-hide-noise-'+userId,String(hideNoise))}catch{}},[hideNoise,userId])
   useEffect(()=>{try{window.localStorage.setItem('am-list-ratio-'+userId,String(listRatio))}catch{}},[listRatio,userId])
   useEffect(()=>{try{window.localStorage.setItem('am-translation-ratio-'+userId,String(translationRatio))}catch{}},[translationRatio,userId])
@@ -275,10 +279,17 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300)
     return () => window.clearTimeout(timer)
   }, [search])
-  useEffect(() => { setPage(0); setSelected(null); setMobileDetail(false) },
-    [scope, accountFilter, folderFilter, labelFilter, typeFilter, hideNoise, debouncedSearch])
+  useEffect(() => {
+    // A changed mailbox filter invalidates the focused message. Restore the
+    // list immediately; never leave the reader covering an empty result set.
+    setPage(0);
+    setSelected(null);
+    setMobileDetail(false);
+    setReaderFocus(false);
+  }, [scope, accountFilter, folderFilter, labelFilter, typeFilter, hideNoise, debouncedSearch])
 
   const loadMetadata = useCallback(async () => {
+    const sequence = ++metadataSequence.current
     const accountQuery = (supabase.from('mail_accounts') as any)
       .select('id,address,display_name,provider,enabled,last_sync_at,last_error,cloud_state,imap_host,smtp_host,imap_port,smtp_port,imap_security,smtp_security,imap_username,smtp_username,last_checked_at,consecutive_failures,next_attempt_at,last_processed,last_scanned_folders,smtp_has_separate_key,oauth_client_id,oauth_identity,auth_kind,short_label,logo_symbol,logo_url')
       .eq('user_id', userId).order('created_at', {ascending: true})
@@ -296,6 +307,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
        (supabase.from('mail_labels') as any).select('id,name,color').eq('user_id',userId).order('name'),
        (supabase as any).rpc('mail_account_progress'),
     ])
+    if (sequence !== metadataSequence.current) return
     const failed = [a,p,all,review,pending,important,spam,submission,prefResult,folderResult,labelResult,progressResult].find(x=>x.error)
     if (failed?.error) {setError(failed.error.message); return}
     setAccounts(a.data||[])
@@ -382,6 +394,20 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
 
   const active=useMemo(()=>messages.find(m=>m.id===selected)||null,[messages,selected])
   useEffect(()=>{
+    if (!active && !loading && readerFocus) setReaderFocus(false)
+  }, [active, loading, readerFocus])
+  useEffect(()=>{
+    if(!readerFocus)return
+    const onEscape=(event:KeyboardEvent)=>{
+      if(event.key!=='Escape')return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      setReaderFocus(false)
+    }
+    document.addEventListener('keydown',onEscape,true)
+    return()=>document.removeEventListener('keydown',onEscape,true)
+  },[readerFocus])
+  useEffect(()=>{
     // Switching mail invalidates a previous translation job's UI updates.
     translationJob.current++
     setTranslationLoading(false)
@@ -407,16 +433,9 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   useEffect(()=>{if(readerRef.current)readerRef.current.scrollTop=0},[selected])
   useEffect(()=>{setNoteDraft(active?.user_note||'')},[active?.id,active?.user_note])
   useEffect(()=>{
+    // Never reuse a translation solely by message_id. The server checks its
+    // SHA-256 source hash and returns a verified cached result if unchanged.
     setTranslation(null)
-    if(!selected||!translationVisible)return
-    let cancelled=false
-    void (async()=>{
-      const r=await (supabase.from('mail_translations') as any)
-       .select('translated_text,source_hash,model_name').eq('user_id',userId)
-       .eq('message_id',selected).eq('target_language',translationLang).maybeSingle()
-      if(!cancelled&&r.data)setTranslation(r.data)
-    })()
-    return ()=>{cancelled=true}
   },[userId,selected,translationLang,translationVisible])
   const selectedAccount=useMemo(()=>accounts.find(a=>a.id===active?.account_id),[accounts,active])
   const suggestedPaper = useMemo(()=>{
@@ -594,9 +613,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const id=active.id
     setBusy('message')
     try{
-      const {error:saveError}=await (supabase.from('mail_messages') as any)
-        .update(changes).eq('id',id).eq('user_id',userId)
+      const {data:saved,error:saveError}=await (supabase.from('mail_messages') as any)
+        .update(changes).eq('id',id).eq('user_id',userId).select('id')
       if(saveError)throw saveError
+      if(!Array.isArray(saved)||saved.length!==1||saved[0]?.id!==id){
+        throw Error('邮件归档已变化或无权修改，未保存备注、标签或文件夹；请刷新列表')
+      }
+      // Never claim a note or cross-mailbox label was saved when RLS or a
+      // concurrent archive deletion made the UPDATE match zero rows.
       setMessages(current=>current.map(m=>m.id===id?{...m,...changes} as Message:m))
       setNotice('邮件信息已更新')
       void loadMetadata()
@@ -697,10 +721,11 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     }
   }
   useEffect(()=>{
-    // Opening bilingual view or changing the target language begins translating
-    // immediately. Completed segments are cached server-side, so no extra calls.
+    // Exactly one authenticated request per newly opened message/language.
+    // mail-translate verifies source_hash before deciding whether to call
+    // any model; stale or truncated original bodies cannot show old text.
     if(translationVisible&&active)void runTranslation()
-  },[translationVisible,selected,translationLang])
+  },[translationVisible,selected,translationLang,active?.id])
     const downloadOriginal=async()=>{
     if(!active?.cloud_archive_path)return
     setBusy('download')
@@ -857,7 +882,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
       </div>}
 
       <section ref={outerRef} style={{'--am-list-width':(listRatio*100).toFixed(2)+'%'} as CSSProperties}
-        className={'am-workspace '+(mobileDetail?'show-detail':'')+(pref?.workspace?.compact?' am-compact':'')} aria-label="邮件列表和阅读区">
+        className={'am-workspace '+(mobileDetail?'show-detail':'')+(pref?.workspace?.compact?' am-compact':'')+(readerFocus?' am-reader-focus':'')} aria-label="邮件列表和阅读区">
         <aside className="am-list-pane">
           <div className="am-list-heading"><span>邮件列表 <small>{total.toLocaleString('zh-CN')} 封匹配</small></span><span>{page+1} / {Math.max(1,Math.ceil(total/PAGE_SIZE))} 页</span></div>
           <div className="am-message-list" aria-busy={loading}>
@@ -889,7 +914,20 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <article className="am-reader" ref={readerRef}>
           {!active?<div className="am-reader-empty"><FileText size={28}/><strong>选择一封邮件</strong><span>查看正文、来源邮箱、审稿状态及投稿关联</span></div>:<>
             <button type="button" className="am-back" onClick={()=>setMobileDetail(false)}><ArrowLeft size={15}/> 返回列表</button>
-            <div className="am-reader-top"><div className="am-reader-subtype"><span className={'am-chip am-cat-'+active.category}>{categories[active.category]||'其他'}</span>{isSpam(active)&&<span className="am-chip am-spam">原垃圾箱邮件</span>}</div><h3>{active.subject||'（无主题）'}</h3></div>
+            <div className="am-reader-top">
+              <div className="am-reader-heading-row">
+                <div className="am-reader-subtype">
+                  <span className={'am-chip am-cat-'+active.category}>{categories[active.category]||'其他'}</span>
+                  {isSpam(active)&&<span className="am-chip am-spam">原垃圾箱邮件</span>}
+                </div>
+                <button type="button" className="am-reader-focus-toggle"
+                  aria-pressed={readerFocus} onClick={()=>setReaderFocus(value=>!value)}
+                  title={readerFocus?'恢复邮件列表':'展开阅读区，便于直接截图'}>
+                  {readerFocus?'返回分栏':'专注阅读'}
+                </button>
+              </div>
+              <h3>{active.subject||'（无主题）'}</h3>
+            </div>
             <div className="am-meta">
               <div><span>发件人</span><strong>{active.sender_name||'未填写'} <small>{active.sender_address||''}</small></strong></div>
               <div><span>收件时间</span><strong>{niceDate(active.received_at)}</strong></div>

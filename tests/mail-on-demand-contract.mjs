@@ -28,6 +28,14 @@ const tests=[
   ui.includes('ChatGPT 手动归档')&&ui.includes('网站自动同步尚未授权')],
 
  ['Translation opens automatically with Chinese target',ui.includes("else {setTranslationLang('zh');setTranslationVisible(true)}")&&ui.includes('if(translationVisible&&active)void runTranslation()')],
+ ['Translation uses single server-side SHA-validated cache check',
+   translator.includes('cached.data?.source_hash===sourceHash')&&
+   !ui.includes("supabase.from('mail_translations')")&&
+   ui.match(/if\(translationVisible&&active\)void runTranslation\(\)/g)?.length===1],
+ ['Concurrent mailbox refreshes discard stale results',
+   ui.includes('const metadataSequence = useRef(0)')&&
+   ui.includes('const sequence = ++metadataSequence.current')&&
+   ui.includes('if (sequence !== metadataSequence.current) return')],
  ['Switching translation language cancels old result',ui.includes('[selected,translationLang,translationVisible]')],
  ['MagicZotero preset uses stated model and endpoint only',settings.includes('https://gpt.magiczotero.top/v1/chat/completions')&&settings.includes('magic-translate-gpt')&&settings.includes('setEndpointKey(\'\')')],
  ['MagicZotero requires test success before selecting route',settings.includes('candidate?.declared_free')&&settings.includes('if(id&&r.ok)')],
