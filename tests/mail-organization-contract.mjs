@@ -22,6 +22,8 @@ const checks=[
  ['desktop single-message reader can expand without refetching or duplicating the mail',
   ui.includes("readerFocus?' am-reader-focus':'")&&
   ui.includes("setReaderFocus(value=>!value)")&&
+  ui.includes("if (!active && !loading && readerFocus) setReaderFocus(false)")&&
+  ui.includes("if(event.key!=='Escape')return")&&
   css.includes(".am-workspace.am-reader-focus")&&
   css.includes(".am-reader-focus-toggle")],
  ['account logo editable while preserving actual email',ui.includes('brandEditing===a.id')&&ui.includes('short_label:brandShort.trim()')],
