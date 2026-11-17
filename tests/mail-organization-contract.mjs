@@ -19,6 +19,11 @@ const checks=[
  ['custom tag arrays filter server side',ui.includes("q=q.contains('user_labels',[labelFilter])")],
  ['tag deletion clears all user messages',cleanup.includes('array_remove(user_labels,l_name)')&&cleanup.includes('(select auth.uid())')],
  ['source account badges display on every list message',ui.includes('am-from-group')&&ui.includes('am-source-badge')],
+ ['desktop single-message reader can expand without refetching or duplicating the mail',
+  ui.includes("readerFocus?' am-reader-focus':'")&&
+  ui.includes("setReaderFocus(value=>!value)")&&
+  css.includes(".am-workspace.am-reader-focus")&&
+  css.includes(".am-reader-focus-toggle")],
  ['account logo editable while preserving actual email',ui.includes('brandEditing===a.id')&&ui.includes('short_label:brandShort.trim()')],
  ['translations are user-only via RLS and stored separately',migration.includes('mail_translations_owner')&&migration.includes('source_hash')],
  ['translation requires authenticated user and owned mail',translate.includes('db.auth.getUser(token)')&&translate.includes(".eq('user_id',uid).eq('id',id)")],
