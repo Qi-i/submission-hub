@@ -251,6 +251,14 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
       alert('附件仍在上传，请等待完成后再保存。')
       return
     }
+    // A completely untouched existing form is not a new manuscript revision.
+    // Do not recalculate derived statuses, write an updated_at value or launch
+    // a remote CAS request merely because the user clicked Save.
+    if (!isNew && JSON.stringify({ form, authorsText }) ===
+        initialDraftSignature.current) {
+      onClose()
+      return
+    }
     if (form.prev_id && createsVersionCycle(currentId, form.prev_id, allPapers)) {
       alert('无法保存：所选前置版本会形成循环版本链。')
       return
