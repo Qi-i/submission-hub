@@ -318,7 +318,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
 
   return <div className="modal-overlay" onClick={close}><div className="modal compact-form-modal" onClick={event => event.stopPropagation()}>
     <div className="compact-form-header"><div><h3>{isNew ? '新建投稿记录' : '编辑投稿记录'}</h3><p>{form.journal || '未填写期刊'} · {STATUSES.find(status => status.key === form.status)?.label || form.status}</p></div><button className="btn btn-ghost btn-icon" onClick={close} disabled={saving || uploading !== null}><X size={18} /></button></div>
-    <div className="compact-form-body">
+    <fieldset className="compact-form-body" disabled={saving} aria-busy={saving}>
       <Section title="基本信息" subtitle="题名、期刊、主状态" tone="blue">
         <div className="compact-grid two"><Field label="文章语言"><select className="select" value={form.lang} onChange={event => set('lang', event.target.value)}><option value="zh">中文</option><option value="en">英文</option></select></Field><Field label="当前主状态"><select className="select" value={form.status} onChange={event => set('status', event.target.value)}>{STATUSES.map(status => <option key={status.key} value={status.key}>{status.emoji} {status.label}</option>)}</select></Field></div>
         <Field label="论文标题" wide><input className="input title-input" value={form.title} onChange={event => set('title', event.target.value)} /></Field>
@@ -383,7 +383,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
         })}</div>}
         <div className="compact-grid two textarea-grid"><Field label="沟通记录"><textarea className="textarea" value={form.followup_log} onChange={event => set('followup_log', event.target.value)} /></Field><Field label="备注 / 意见"><textarea className="textarea" value={form.notes} onChange={event => set('notes', event.target.value)} /></Field></div>
       </Section>
-    </div>
+    </fieldset>
     <div className="compact-form-footer">{!isNew ? <button type="button" className="btn btn-danger btn-sm" disabled={saving || uploading !== null} onClick={() => onDelete((paper as Paper).id)}><Trash2 size={14} /> 删除记录</button> : <div />}<div className="compact-footer-actions"><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading !== null}>取消</button><button type="button" className="btn btn-primary" onClick={save} disabled={saving || uploading !== null}><Save size={14} /> {saving ? '保存中...' : uploading !== null ? '附件上传中' : '保存'}</button></div></div>
   </div></div>
 }
