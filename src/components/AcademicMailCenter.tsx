@@ -592,9 +592,14 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const id=active.id
     setBusy('message')
     try{
-      const {error:saveError}=await (supabase.from('mail_messages') as any)
-        .update(changes).eq('id',id).eq('user_id',userId)
+      const {data:saved,error:saveError}=await (supabase.from('mail_messages') as any)
+        .update(changes).eq('id',id).eq('user_id',userId).select('id')
       if(saveError)throw saveError
+      if(!Array.isArray(saved)||saved.length!==1||saved[0]?.id!==id){
+        throw Error('邮件归档已变化或无权修改，未保存备注、标签或文件夹；请刷新列表')
+      }
+      // Never claim a note or cross-mailbox label was saved when RLS or a
+      // concurrent archive deletion made the UPDATE match zero rows.
       setMessages(current=>current.map(m=>m.id===id?{...m,...changes} as Message:m))
       setNotice('邮件信息已更新')
       void loadMetadata()
