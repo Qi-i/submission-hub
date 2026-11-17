@@ -9,6 +9,9 @@ const translate=read('supabase/functions/mail-translate/index.ts')
 const ingest=read('supabase/functions/mail-ingest/index.ts')
 const checks=[
  ['notes are owner scoped and preserved',migration.includes('user_note text not null')&&ui.includes('user_note:noteDraft')],
+ ['a zero-row or RLS-blocked mail update cannot pretend annotations were saved',
+  ui.includes(".update(changes).eq('id',id).eq('user_id',userId).select('id')")&&
+  ui.includes("saved.length!==1||saved[0]?.id!==id")],
  ['labels have owner RLS',migration.includes('mail_labels_owner')&&migration.includes('auth.uid())=user_id')],
  ['cross-account folders have owner foreign key',migration.includes('foreign key (user_id,virtual_folder_id)')&&migration.includes('mail_folders(user_id,id)')],
  ['virtual folders do not alter provider folders',ui.includes('virtual_folder_id:e.target.value||null')&&ui.includes('first_folder')],
