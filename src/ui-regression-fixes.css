@@ -467,3 +467,20 @@ body {
     font-size: 8.8px !important;
   }
 }
+
+
+/* Preserve the existing dense scrolling form geometry while the native
+   fieldset temporarily disables edits during a real database save. */
+.compact-form-modal fieldset.compact-form-body {
+  border:0;
+  margin:0;
+  min-width:0;
+  min-inline-size:0;
+  box-sizing:border-box;
+}
+.compact-form-modal fieldset.compact-form-body:disabled {
+  opacity:1;
+}
+.compact-form-modal fieldset.compact-form-body[aria-busy="true"] {
+  cursor:progress;
+}
