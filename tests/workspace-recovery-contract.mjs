@@ -26,6 +26,12 @@ assert(!paperFormArchive.includes("updateFile(index, 'p', '')"),
   'Failed replacement must not clear a valid existing original')
 assert(paperFormArchive.includes('n: result.fileName || selected.name, p: result.fileUrl'),
   'Original file name and private path must change atomically only on successful upload')
+assert(paperFormArchive.includes('<fieldset className="compact-form-body" disabled={saving}'),
+  'During database save, the full editor must be read-only so later typing is not discarded')
+assert(paperFormArchive.includes('disabled={uploading !== null} onClick={addFile}') &&
+  paperFormArchive.includes('disabled={uploading !== null} onChange={event => updateFile(index'),
+  'An in-flight attachment replacement must retain its row and edited metadata')
+
 
 const dashboard = read('src/components/Dashboard.tsx')
 const journalCenter = read('src/components/JournalCenterWorkspace.tsx')
