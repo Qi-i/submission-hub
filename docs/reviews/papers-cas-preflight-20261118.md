@@ -1,6 +1,8 @@
 # Submission Hub `papers` 服务端 CAS 前置核查 · 2026-11-18
 
-**结论：仓库静态证据不足以证明生产 CAS 可靠。尚未读取生产 Supabase 的数据库元数据，也未执行任何 DDL 或生产写入。**
+**结论（2026-11-18 生产库只读元数据已核验）：现有 `papers.updated_at` 不足以作为完全可靠的 CAS 版本号。已直接查询真实 Supabase 的系统目录；没有执行任何 DDL、DML 或读取稿件/邮箱/附件内容。**
+
+核验结果：`public.papers` 表存在，RLS 已开启，存在 SELECT、INSERT、UPDATE、DELETE 四项 RLS 策略；四项均包含 `auth.uid()` 身份约束，UPDATE 策略有显式 `WITH CHECK`。但该表的**非内部 UPDATE 触发器为 0**，`row_version` 列不存在，仅有 `updated_at TIMESTAMPTZ`。这意味着任何遗漏了客户端更新时间戳的写入路径都可能使基于时间戳的条件更新漏判冲突。建议迁移必须先经审核并备份，之后才能作为生产有效保护。
 
 仓库 `supabase/001_init.sql` 声明了 `papers.updated_at` 和按 `auth.uid() = user_id` 限定的 SELECT/INSERT/UPDATE/DELETE RLS 策略，但现有 `supabase/*.sql` 中未发现对 `papers` 自动推进 `updated_at` 的触发器。稿件表单旧客户端及未知的数据库写入路径未经过生产全量验证。
 
@@ -51,8 +53,10 @@ ORDER BY policyname;
 | --- | --- |
 | 仓库 schema 中存在 `papers.updated_at` | PASS（`supabase/001_init.sql`） |
 | 现有迁移中明确保证所有 `papers` UPDATE 改写时间戳 | FAIL（仓库未发现） |
-| 生产数据库触发器与 RLS 实际状态 | NOT RUN |
+| 生产数据库 RLS 实际状态 | PASS（已启用，4 条策略均按 `auth.uid()` 约束；UPDATE 有显式 WITH CHECK） |
+| 生产数据库 UPDATE 版本触发器 | FAIL（已只读确认：0 个） |
+| 生产数据库 `row_version` 列 | FAIL（已只读确认：不存在） |
 | 服务端 `row_version` 迁移已应用 | NOT RUN |
 | 双设备/旧客户端交错 UPDATE 与 DELETE 严格 CAS | NOT RUN |
 
-**禁止在没有生产 schema 只读核验及可恢复备份的情况下直接执行迁移。** 此 PR 不包含云端部署动作，也不能把未执行的 SQL 当成实际保护。
+**禁止在没有可恢复备份和实际客户端兼容性验证的情况下执行迁移。** 此 PR 不包含云端部署动作，也不能把未执行的 SQL 当成实际保护。
