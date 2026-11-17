@@ -8,6 +8,7 @@ import type { JournalProfile } from '../lib/preparation'
 import { findJournalProfile } from '../lib/journal-paper-sync'
 import { inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
 import { createOnlineBackup, importOnlineBackup } from '../lib/online-backup'
+import { changedPaperFields, rebasePaperFields } from '../lib/paper-field-merge'
 import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
 import PaperForm from './PaperForm'
@@ -441,25 +442,47 @@ export default function Dashboard() {
           const { error } = await supabase.from('papers').insert({ ...data, id: crypto.randomUUID(), user_id: user!.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any)
           if (error) throw error
         } else {
-          const updateData = { ...data, updated_at: new Date().toISOString() }
-          // Compare-and-swap on the exact version opened in this form.
-          // A second device's intervening status, timeline or attachment edit
-          // must not be silently replaced by an old full-form UPDATE.
-          const { data: saved, error } = await ((supabase.from('papers') as any)
-            .update(updateData)
-            .eq('id', editing.id)
-            .eq('updated_at', editing.updated_at)
-            .select('id, updated_at'))
-          if (error) throw error
-          if (!saved?.length) {
-            const { data: latest, error: latestError } = await ((supabase.from('papers') as any)
-              .select('title,status,updated_at').eq('id', editing.id).maybeSingle())
+          const opened = editing as unknown as Record<string, unknown>
+          const changes = changedPaperFields(opened, data as Record<string, unknown>)
+          if (Object.keys(changes).length === 0) {
+            // Opening a form, changing focus or pressing Save without edits
+            // must never increment updated_at or trigger another sync.
+            setEditing(null)
+            return
+          }
+          const saveChangedFields = (patch: Record<string, unknown>, expectedAt: string) =>
+            (supabase.from('papers') as any)
+              .update({ ...patch, updated_at: new Date().toISOString() })
+              .eq('id', editing.id)
+              .eq('updated_at', expectedAt)
+              .select('id, updated_at')
+
+          const first = await saveChangedFields(changes, editing.updated_at)
+          if (first.error) throw first.error
+          if (!first.data?.length) {
+            const { data: latest, error: latestError } = await
+              (supabase.from('papers') as any)
+                .select('*').eq('id', editing.id).maybeSingle()
             if (latestError) throw latestError
-            await loadPapers()
-            throw new Error(latest
-              ? '另一设备或标签页已更新此稿件（当前版本 ' + latest.updated_at +
-                '，状态 ' + latest.status + '）。当前表单输入已保留，请核对最新稿件后再编辑；没有覆盖云端记录。'
-              : '此稿件已被删除或当前账号无权更新；表单输入仍保留，没有覆盖。')
+            if (!latest) {
+              throw new Error('此稿件已被删除或当前账号无权更新；本次编辑未覆盖云端数据。')
+            }
+            const rebased = rebasePaperFields(
+              opened, latest as Record<string, unknown>, changes)
+            if (rebased.conflicts.length) {
+              throw new Error('另一设备修改了相同字段：' +
+                rebased.conflicts.join('、') +
+                '。仅这些字段需要核对，其他修改未被丢弃。')
+            }
+            // A second device may already have saved the same desired values.
+            // Otherwise apply only our disjoint field edits to its new version.
+            if (Object.keys(rebased.patch).length) {
+              const retry = await saveChangedFields(rebased.patch, latest.updated_at)
+              if (retry.error) throw retry.error
+              if (!retry.data?.length) {
+                throw new Error('保存期间又发生了新的编辑，请再次保存；表单内容已保留。')
+              }
+            }
           }
         }
         setEditing(null)
