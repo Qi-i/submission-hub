@@ -138,7 +138,6 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
     }
   }
 
-  let lastAutoLinked = ''
   const enhanceJournalLink = () => {
     addPresets()
     const journalInput = controlByLabel('目标期刊 / 会议') as HTMLInputElement | undefined
@@ -172,10 +171,9 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
     const nextLabel = `已关联期刊库：${profile.name}`
     if (label && label.textContent !== nextLabel) label.textContent = nextLabel
 
-    if (lastAutoLinked !== profile.id) {
-      lastAutoLinked = profile.id
-      window.setTimeout(() => syncProfile(profile, false), 0)
-    }
+    // Linking an existing journal is read-only. The visible “同步最新信息”
+    // button is the only operation allowed to populate or replace form fields.
+    // Merely opening a paper must never change APC, rankings or submission URLs.
   }
 
   addPresets()
