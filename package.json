@@ -33,7 +33,7 @@
     "check:workspace-recovery": "node tests/workspace-recovery-contract.mjs",
     "check:backup-structure": "node tests/backup-structure.test.mjs",
     "check:online-only": "node tests/online-only-contract.mjs",
-    "check:qihub-native-source": "node tests/qihub-native-source-feed.mjs",
+    "check:qihub-native-source": "node tests/qihub-native-source-feed.mjs && node tests/qihub-native-topic-crud.mjs",
     "check:mail-center": "node tests/academic-mail-center-contract.mjs",
     "check:submission-business": "node tests/submission-status-business.test.mjs",
     "check:paper-cas": "node tests/paper-field-merge.test.mjs",
