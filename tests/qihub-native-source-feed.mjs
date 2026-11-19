@@ -28,6 +28,7 @@ const {
   collectQiHubReadOnlySnapshot,
   listQiHubPrivateAttachmentCandidates,
   readQiHubPrivateAttachment,
+  compareAndSetQiHubPaperNotes,
 } = exports
 
 const ACCOUNT = '11111111-1111-1111-1111-111111111111'
@@ -223,3 +224,70 @@ await assert.rejects(
   /QIHUB_ATTACHMENT_OWNERSHIP_UNVERIFIED|QIHUB_SOURCE_SIGN_IN_REQUIRED/,
 )
 console.log('QiHub native authenticated source feed: paginated + scoped + stable')
+
+// True domain writeback: a single paper notes field with exact server
+// timestamp CAS and a returned affected row. A concurrent edit wins safely.
+let activeCasAccount = ACCOUNT
+let casWrites = 0
+const casRow = {
+  id:'paper-notes-one', user_id:ACCOUNT,
+  notes:'Remote original note',
+  updated_at:'2026-11-19T07:00:00.000Z',
+}
+const casQuery = (kind, changes) => {
+  const filters = {}
+  const query = {
+    eq(field,value){filters[field]=value;return this},
+    select(){return this},
+    async maybeSingle(){
+      if(filters.id!==casRow.id ||
+          filters.user_id!==activeCasAccount ||
+          casRow.user_id!==activeCasAccount ||
+          (filters.updated_at && filters.updated_at!==casRow.updated_at)){
+        return {data:null,error:null}
+      }
+      if(kind==='update'){Object.assign(casRow,changes);casWrites++}
+      return {data:structuredClone(casRow),error:null}
+    },
+  }
+  return query
+}
+const casClient = {
+  auth:{getUser:async()=>({
+    data:{user:activeCasAccount?{id:activeCasAccount}:null},
+    error:null,
+  })},
+  from(table){
+    assert.equal(table,'papers')
+    return {
+      select:()=>casQuery('read'),
+      update:changes=>{
+        assert.deepEqual(Object.keys(changes).sort(),['notes','updated_at'])
+        return casQuery('update',changes)
+      },
+    }
+  },
+}
+const casBefore = casRow.updated_at
+const savedNote = await compareAndSetQiHubPaperNotes(
+  casRow.id,casBefore,'Written from Android securely',casClient)
+assert.equal(savedNote.ok,true)
+assert.equal(casRow.notes,'Written from Android securely')
+assert.ok(Date.parse(casRow.updated_at)>Date.parse(casBefore))
+assert.equal(casWrites,1)
+const conflict = await compareAndSetQiHubPaperNotes(
+  casRow.id,casBefore,'STALE SHOULD NOT WIN',casClient)
+assert.deepEqual(conflict,{ok:false,conflict:true})
+assert.equal(casWrites,1)
+assert.equal(casRow.notes,'Written from Android securely')
+await assert.rejects(
+  compareAndSetQiHubPaperNotes(casRow.id,casRow.updated_at,'X'.repeat(10001),casClient),
+  /QIHUB_PAPER_NOTES_INVALID_INPUT/,
+)
+activeCasAccount='22222222-2222-2222-2222-222222222222'
+await assert.rejects(
+  compareAndSetQiHubPaperNotes(casRow.id,casRow.updated_at,'FOREIGN',casClient),
+  /QIHUB_PAPER_NOTES_NOT_AUTHORIZED/,
+)
+assert.equal(casWrites,1)
+console.log('QiHub paper notes: verified Supabase source CAS writeback and conflict refusal')

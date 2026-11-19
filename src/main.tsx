@@ -7,6 +7,7 @@ import {
   collectQiHubReadOnlySnapshot,
   listQiHubPrivateAttachmentCandidates,
   readQiHubPrivateAttachment,
+  compareAndSetQiHubPaperNotes,
 } from './integrations/qihubReadOnlySnapshot'
 
 // Only the real QiHub Android WebView defines the native snapshot channel.
@@ -25,6 +26,11 @@ if ('QiHubNativeAttachment' in window) {
       read: readQiHubPrivateAttachment,
     }),
     configurable: false,
+  })
+}
+if ('QiHubNativePaperEdit' in window) {
+  Object.defineProperty(window, '__qihubCasPaperNotes', {
+    value: compareAndSetQiHubPaperNotes, configurable: false,
   })
 }
 

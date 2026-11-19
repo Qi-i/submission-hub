@@ -215,3 +215,83 @@ export async function readQiHubPrivateAttachment(
     blob: file.blob,
   }
 }
+
+type PaperNotesCasClient = {
+  auth: Reader['auth']
+  from(table: string): {
+    select(fields: string): {
+      eq(field: string, value: string): {
+        eq(field: string, value: string): {
+          maybeSingle(): PromiseLike<{ data: unknown; error: unknown }>
+        }
+      }
+    }
+    update(changes: { notes: string | null; updated_at: string }): {
+      eq(field: string, value: string): {
+        eq(field: string, value: string): {
+          eq(field: string, value: string): {
+            select(fields: string): {
+              maybeSingle(): PromiseLike<{ data: unknown; error: unknown }>
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Minimal authorized real-domain writeback: notes ONLY. A user must
+ * explicitly approve. Never touch status, files, dates or related rows.
+ * SQL UPDATE matches the source updated_at atomically; zero returned
+ * rows mean CAS conflict and MUST NOT be interpreted as success.
+ */
+export async function compareAndSetQiHubPaperNotes(
+  paperId: string,
+  expectedUpdatedAt: string,
+  newNotes: string,
+  client: PaperNotesCasClient = supabase as unknown as PaperNotesCasClient,
+) {
+  const account = await activeAccount(client as unknown as Reader)
+  const parsed = Date.parse(expectedUpdatedAt)
+  if (!paperId || paperId.length > 128 ||
+      !Number.isFinite(parsed) ||
+      typeof newNotes !== 'string' || newNotes.length > 10000) {
+    throw Error('QIHUB_PAPER_NOTES_INVALID_INPUT')
+  }
+  const current = await client.from('papers')
+    .select('id,user_id,notes,updated_at')
+    .eq('user_id', account).eq('id', paperId).maybeSingle()
+  if (current.error || !current.data ||
+      typeof current.data !== 'object') {
+    throw Error('QIHUB_PAPER_NOTES_NOT_AUTHORIZED')
+  }
+  const original = current.data as {
+    id?:unknown;user_id?:unknown;updated_at?:unknown
+  }
+  if (original.id !== paperId || original.user_id !== account) {
+    throw Error('QIHUB_PAPER_NOTES_OWNER_MISMATCH')
+  }
+  if (original.updated_at !== expectedUpdatedAt) {
+    return { ok: false as const, conflict: true as const }
+  }
+  const updatedAt = new Date(Math.max(Date.now(), parsed + 1)).toISOString()
+  const changed = await client.from('papers')
+    .update({ notes: newNotes, updated_at: updatedAt })
+    .eq('id', paperId)
+    .eq('user_id', account)
+    .eq('updated_at', expectedUpdatedAt)
+    .select('id,user_id,notes,updated_at').maybeSingle()
+  if (changed.error) throw Error('QIHUB_PAPER_NOTES_WRITE_FAILED')
+  if (!changed.data) return { ok: false as const, conflict: true as const }
+  const result = changed.data as {
+    id?:unknown;user_id?:unknown;notes?:unknown;updated_at?:unknown
+  }
+  if (result.id !== paperId || result.user_id !== account ||
+      result.notes !== newNotes ||
+      typeof result.updated_at !== 'string' ||
+      Date.parse(result.updated_at) !== Date.parse(updatedAt) ||
+      account !== await activeAccount(client as unknown as Reader)) {
+    throw Error('QIHUB_PAPER_NOTES_ACK_IDENTITY_CHANGED')
+  }
+  return { ok: true as const, updatedAt }
+}
