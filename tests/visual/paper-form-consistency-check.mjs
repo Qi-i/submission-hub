@@ -14,7 +14,7 @@ async function openEditor() {
 try {
   const unchanged = await openEditor()
   await unchanged.locator('.compact-footer-actions button', { hasText: '保存' }).click()
-  await unchanged.locator('[data-editor-closed]').waitFor()
+  await unchanged.locator('[data-editor-closed]').waitFor({ state: 'attached' })
   assert.deepEqual(await unchanged.evaluate(() => ({
     closed: window.__paperFormProbe.closed,
     saved: window.__paperFormProbe.saved.length,
@@ -24,7 +24,7 @@ try {
   const status = await openEditor()
   await status.locator('.input.title-input').fill('A revised fictional sensor study')
   await status.locator('.compact-footer-actions button', { hasText: '保存' }).click()
-  await status.locator('[data-editor-closed]').waitFor()
+  await status.locator('[data-editor-closed]').waitFor({ state: 'attached' })
   const saved = await status.evaluate(() => window.__paperFormProbe.saved[0])
   assert.equal(saved.status, 'under_review', '拟录用 must not become formally accepted')
   assert.equal(saved.system_status, '拟录用')
@@ -59,7 +59,7 @@ try {
   await upload.waitForFunction(() => document.querySelector('.archive-file-row input[type="hidden"]')?.value === 'r2-storage://submission-hub/demo-new.pdf')
   assert.equal(await name.inputValue(), 'new.pdf')
   await upload.locator('.compact-footer-actions button', { hasText: '保存' }).click()
-  await upload.locator('[data-editor-closed]').waitFor()
+  await upload.locator('[data-editor-closed]').waitFor({ state: 'attached' })
   const updatedFiles = await upload.evaluate(() => window.__paperFormProbe.saved[0].files)
   assert.equal(updatedFiles[0].p, 'r2-storage://submission-hub/demo-new.pdf')
   assert.equal(updatedFiles[0].n, 'new.pdf')
@@ -72,7 +72,7 @@ try {
   assert.equal(await discard.locator('.compact-form-modal').isVisible(), true, 'dismissed discard must retain the draft')
   discard.once('dialog', dialog => dialog.accept())
   await discard.locator('.compact-footer-actions button', { hasText: '取消' }).click()
-  await discard.locator('[data-editor-closed]').waitFor()
+  await discard.locator('[data-editor-closed]').waitFor({ state: 'attached' })
   assert.equal(await discard.evaluate(() => window.__paperFormProbe.closed), 1)
   await discard.close()
   console.log('Manuscript editor: unchanged Save, tentative status, atomic attachment replacement, unsaved discard passed')
