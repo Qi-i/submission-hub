@@ -1,5 +1,7 @@
 # Submission Hub
 
+**QiHub Android 原生只读同步（2026-11-19）：** 已新增通过本站登录态和 Supabase RLS 查询的账号业务快照接口。涵盖论文、投稿时间线、期刊档案、研究选题及手稿五类实体，按 ID 分页完整读取，并双次比较防止分页期间编辑/删除造成不完整快照；不能用演示数据替代真实业务。接口仅在 QiHub Android 注入的原生通道存在时暴露，不传递账号密码、OAuth/refresh token，也不执行云端写入。QiHub 客户端负责加密存储及断网浏览；**论文附件字节、邮箱凭据/邮件正文、写回和离线冲突合并尚未接通**，不能宣称整站原生同步已经完成。
+
 <p align="center">
   <img src="public/logo.svg" alt="Submission Hub Logo" width="104" height="104" />
 </p>
