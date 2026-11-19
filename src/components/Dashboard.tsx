@@ -495,6 +495,21 @@ export default function Dashboard() {
       }} onDelete={async id => {
         if (editing === 'new' || editing.id !== id) return
         if (!confirm('确认删除这条投稿记录？')) return
+        const { data: current, error: readError } = await (supabase.from('papers') as any)
+          .select('*').eq('id', id).maybeSingle()
+        if (readError || !current) {
+          alert(readError ? '无法确认云端稿件当前状态，未执行删除。' : '稿件已不存在或无法访问，未执行删除。')
+          return
+        }
+        const changed = changedPaperFields(editing as unknown as Record<string, unknown>, current)
+        // The listing normalizes these two display-only values on load.
+        delete changed.status
+        delete changed.revision_round
+        if (current.updated_at !== editing.updated_at || Object.keys(changed).length) {
+          alert('稿件已在其他设备发生变化，未执行删除。请重新核对。')
+          await loadPapers()
+          return
+        }
         const { data: deleted, error } = await ((supabase.from('papers') as any)
           .delete().eq('id', id)
           .eq('updated_at', editing.updated_at)

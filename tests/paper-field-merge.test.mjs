@@ -61,6 +61,8 @@ test('dashboard uses row-scoped CAS, preserves drafts on conflict, and rejects s
   assert.match(dashboard, /if \(!first\.data\?\.length\)/)
   assert.match(dashboard, /if \(!retry\.data\?\.length\)/)
   assert.match(dashboard, /\.delete\(\)\.eq\('id', id\)/)
+  assert.match(dashboard, /const \{ data: current, error: readError \} = await/)
+  assert.match(dashboard, /current\.updated_at !== editing\.updated_at/)
   assert.match(dashboard, /if \(!deleted\?\.length\)/)
   assert.doesNotMatch(dashboard, /\.update\(updateData\)\.eq\('id'/)
 })
