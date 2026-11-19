@@ -9,6 +9,7 @@ import {
   readQiHubPrivateAttachment,
   compareAndSetQiHubPaperNotes,
 } from './integrations/qihubReadOnlySnapshot'
+import { mutateQiHubResearchTopic } from './integrations/qihubResearchTopicCrud'
 
 // Only the real QiHub Android WebView defines the native snapshot channel.
 // Keep all Supabase authentication inside this source application; native
@@ -31,6 +32,11 @@ if ('QiHubNativeAttachment' in window) {
 if ('QiHubNativePaperEdit' in window) {
   Object.defineProperty(window, '__qihubCasPaperNotes', {
     value: compareAndSetQiHubPaperNotes, configurable: false,
+  })
+}
+if ('QiHubNativeTopicCrud' in window) {
+  Object.defineProperty(window, '__qihubResearchTopicCrud', {
+    value: mutateQiHubResearchTopic, configurable: false,
   })
 }
 
