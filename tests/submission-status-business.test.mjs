@@ -33,13 +33,15 @@ const basicPaper = {
 }
 
 test('preliminary decisions and submission receipts are not terminal', () => {
-  for (const status of ['拟录用', '建议录用', '稿件已接收', 'Submission Received', '修回稿已提交']) {
+  for (const status of ['拟录用', '拟录用通知', '建议录用', '稿件已接收', 'Submission Received', '修回稿已提交']) {
     assert.equal(intelligence.isTerminalSubmissionEvent(status), false, status)
   }
-  for (const status of ['正式录用', 'Accepted', 'Published', '退稿', 'Withdrawn']) {
+  for (const status of ['正式录用', 'Accepted', 'Published', '退稿', 'Withdrawn', 'Not Accepted', '返修后拒稿']) {
     assert.equal(intelligence.isTerminalSubmissionEvent(status), true, status)
   }
   assert.equal(intelligence.inferMainSubmissionStatus('拟录用', 'under_review'), 'under_review')
+  assert.equal(intelligence.inferMainSubmissionStatus('Not Accepted', 'under_review'), 'rejected')
+  assert.equal(intelligence.inferMainSubmissionStatus('返修后拒稿', 'under_review'), 'rejected')
 })
 
 test('nonterminal decision never infers a resolution date', () => {
