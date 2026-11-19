@@ -1,7 +1,7 @@
 export type MainSubmissionStatus = 'preparing' | 'submitted' | 'under_review' | 'revision' | 'accepted' | 'rejected' | 'withdrawn'
 
 const terminalAccepted = /(正式录用|已录用|录用通知|接收发表|accepted|acceptance|published|online published|proof received|校样|见刊|在线发表)/i
-const tentativeAccepted = /(拟录用|建议录用|待录用|录用待定|acceptance pending|pending acceptance|provisional acceptance|conditional(?:ly)? accept(?:ed|ance)|accepted pending)/i
+const tentativeAccepted = /(拟录用|建议录用|待录用|录用待定|acceptance pending|pending acceptance|provisional(?:ly)? accept(?:ed|ance)|conditional(?:ly)? accept(?:ed|ance)|accepted pending)/i
 const rejected = /(不予录用|拒绝录用|未录用|不予接收|not accepted|unaccepted|退稿|拒稿|被拒|reject|rejected|declined)/i
 const withdrawn = /(撤稿|撤回投稿|withdraw|withdrawn)/i
 const revisionRequest = /(major revision|minor revision|required revision|revision required|revise and resubmit|大修|小修|退修|返修|修回通知|要求修改|修改后重审|修改后再审|退改|修改稿件)/i
