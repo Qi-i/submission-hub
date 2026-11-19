@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Download, Eye, FileText, Loader, RefreshCw, Save, Sparkles, Trash2, Upload, X } from 'lucide-react'
 import { isSupabaseStoragePath } from '../lib/file-storage-path'
 import type { JournalRankLookupResult } from '../lib/journal-rank'
@@ -125,6 +125,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
   const currentId = isNew ? '' : paper.id
   const [form, setForm] = useState<FormState>(() => initial(paper, currentUsername))
   const [authorsText, setAuthorsText] = useState(form.authors.join(', '))
+  const initialDraftSignature = useRef(JSON.stringify({ form, authorsText }))
   const [uploading, setUploading] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [customTl, setCustomTl] = useState<string[]>([])
@@ -199,16 +200,21 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     input.onchange = async event => {
       const selected = (event.target as HTMLInputElement).files?.[0]
       if (!selected) return
-      updateFile(index, 'n', selected.name)
-      updateFile(index, 'p', '上传中...')
+      // Never overwrite the previous private archive reference before a
+      // replacement upload succeeds. Failed uploads must not silently detach
+      // the existing original or mislabel it with the new file's name.
       setUploading(index)
       try {
         const result = await onUploadFile(selected)
-        if (!result) throw new Error('文件存储尚未配置完整，或文件类型、大小、网络和权限不符合要求。')
-        updateFile(index, 'p', result.fileUrl)
+        if (!result || !result.fileUrl) throw new Error('文件存储尚未配置完整，或文件类型、大小、网络和权限不符合要求。')
+        setForm(previous => ({
+          ...previous,
+          files: previous.files.map((file, fileIndex) => fileIndex === index
+            ? { ...file, n: result.fileName || selected.name, p: result.fileUrl }
+            : file),
+        }))
       } catch (error) {
         console.error('Upload file failed:', error)
-        updateFile(index, 'p', '')
         alert(error instanceof Error ? `上传失败：${error.message}` : '上传失败，请稍后重试。')
       } finally {
         setUploading(null)
@@ -243,6 +249,14 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     if (saving) return
     if (uploading !== null) {
       alert('附件仍在上传，请等待完成后再保存。')
+      return
+    }
+    // A completely untouched existing form is not a new manuscript revision.
+    // Do not recalculate derived statuses, write an updated_at value or launch
+    // a remote CAS request merely because the user clicked Save.
+    if (!isNew && JSON.stringify({ form, authorsText }) ===
+        initialDraftSignature.current) {
+      onClose()
       return
     }
     if (form.prev_id && createsVersionCycle(currentId, form.prev_id, allPapers)) {
@@ -293,11 +307,18 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
     }
   }
 
-  const close = () => { if (!saving && uploading === null) onClose() }
+  const close = () => {
+    if (saving || uploading !== null) return
+    const hasUnsavedChanges =
+      JSON.stringify({ form, authorsText }) !== initialDraftSignature.current
+    if (hasUnsavedChanges &&
+      !window.confirm('当前表单存在未保存的修改。确认放弃本次输入并退出吗？')) return
+    onClose()
+  }
 
   return <div className="modal-overlay" onClick={close}><div className="modal compact-form-modal" onClick={event => event.stopPropagation()}>
     <div className="compact-form-header"><div><h3>{isNew ? '新建投稿记录' : '编辑投稿记录'}</h3><p>{form.journal || '未填写期刊'} · {STATUSES.find(status => status.key === form.status)?.label || form.status}</p></div><button className="btn btn-ghost btn-icon" onClick={close} disabled={saving || uploading !== null}><X size={18} /></button></div>
-    <div className="compact-form-body">
+    <fieldset className="compact-form-body" disabled={saving} aria-busy={saving}>
       <Section title="基本信息" subtitle="题名、期刊、主状态" tone="blue">
         <div className="compact-grid two"><Field label="文章语言"><select className="select" value={form.lang} onChange={event => set('lang', event.target.value)}><option value="zh">中文</option><option value="en">英文</option></select></Field><Field label="当前主状态"><select className="select" value={form.status} onChange={event => set('status', event.target.value)}>{STATUSES.map(status => <option key={status.key} value={status.key}>{status.emoji} {status.label}</option>)}</select></Field></div>
         <Field label="论文标题" wide><input className="input title-input" value={form.title} onChange={event => set('title', event.target.value)} /></Field>
@@ -336,7 +357,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
       <Section title="成果归档" subtitle="DOI、卷期页码、引用格式" tone="green"><div className="compact-grid two"><Field label="见刊 / 在线发表 URL"><input className="input" value={form.published_url} onChange={event => set('published_url', event.target.value)} placeholder="https://..." /></Field><Field label="DOI"><input className="input" value={form.doi} onChange={event => set('doi', event.target.value)} placeholder="10.xxxx/xxxxx" /></Field></div><Field label="卷期页码 / 在线发表信息" wide><input className="input" value={form.publication_info} onChange={event => set('publication_info', event.target.value)} placeholder="如：50(8), 123–145；Article 70113；Online first" /></Field><Field label="标准引用格式" wide><textarea className="textarea" value={form.citation} onChange={event => set('citation', event.target.value)} placeholder="可粘贴 GB/T、APA 或期刊要求的引用格式" /></Field></Section>
 
       <Section title="文件与备注" subtitle={onUploadFile ? '私有云附件可预览、下载、替换；移除后保存即同步删除' : '离线版仅记录文件名称和可选外部链接'} tone="slate">
-        <div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" onClick={addFile}>+ 添加文件</button></div>
+        <div className="compact-file-head"><span>文件归档</span><button type="button" className="btn btn-ghost btn-sm" disabled={uploading !== null} onClick={addFile}>+ 添加文件</button></div>
         {form.files.length === 0 && <div className="compact-file-empty">暂无附件，可添加投稿稿、检索证明、见刊文章等文件。</div>}
         {form.files.length > 0 && <div className="compact-files">{form.files.map((file, index) => {
           const managed = isSupabaseStoragePath(file.p)
@@ -346,10 +367,10 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
           const downloadable = managed ? !!onDownloadFile : external
           const storageText = busy ? '正在上传到私有云…' : managed ? '私有云文件 · 临时授权访问' : external ? '外部链接' : onUploadFile ? '尚未上传' : '未设置链接'
           return <div key={index} className={`compact-file-row archive-file-row ${onUploadFile ? 'is-managed' : 'is-offline'}`}>
-            <select className="select compact-file-type" value={file.t || '其它'} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>
+            <select className="select compact-file-type" value={file.t || '其它'} disabled={uploading !== null} onChange={event => updateFile(index, 't', event.target.value)}>{FILE_TYPE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select>
             <div className="compact-file-content">
               <span className={`compact-file-status-icon ${managed ? 'ready' : ''}`}>{busy ? <Loader size={15} className="spinner" /> : <FileText size={15} />}</span>
-              <div className="compact-file-text"><input className="input compact-file-name" value={file.n} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><span className="compact-file-meta">{storageText}</span></div>
+              <div className="compact-file-text"><input className="input compact-file-name" value={file.n} disabled={uploading !== null} onChange={event => updateFile(index, 'n', event.target.value)} placeholder="文件名称" /><span className="compact-file-meta">{storageText}</span></div>
             </div>
             {onUploadFile ? <input type="hidden" value={file.p} readOnly /> : <input className="input compact-file-url" value={file.p} onChange={event => updateFile(index, 'p', event.target.value)} placeholder="可选在线文件 URL" />}
             <div className="compact-file-actions">
@@ -362,7 +383,7 @@ export default function PaperFormArchive({ paper, allPapers, currentUsername, on
         })}</div>}
         <div className="compact-grid two textarea-grid"><Field label="沟通记录"><textarea className="textarea" value={form.followup_log} onChange={event => set('followup_log', event.target.value)} /></Field><Field label="备注 / 意见"><textarea className="textarea" value={form.notes} onChange={event => set('notes', event.target.value)} /></Field></div>
       </Section>
-    </div>
+    </fieldset>
     <div className="compact-form-footer">{!isNew ? <button type="button" className="btn btn-danger btn-sm" disabled={saving || uploading !== null} onClick={() => onDelete((paper as Paper).id)}><Trash2 size={14} /> 删除记录</button> : <div />}<div className="compact-footer-actions"><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading !== null}>取消</button><button type="button" className="btn btn-primary" onClick={save} disabled={saving || uploading !== null}><Save size={14} /> {saving ? '保存中...' : uploading !== null ? '附件上传中' : '保存'}</button></div></div>
   </div></div>
 }
