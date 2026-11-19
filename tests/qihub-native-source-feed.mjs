@@ -15,9 +15,20 @@ const output = ts.transpileModule(code, {
 }).outputText
 new Function('exports', 'require', output)(exports, (name) => {
   if (name === '../lib/supabase') return { supabase: {} }
+  if (name === '../lib/storage') return {
+    isManagedStoredFile: reference =>
+      typeof reference === 'string' &&
+      (reference.startsWith('r2-storage://') ||
+       reference.startsWith('supabase-storage://')),
+    fetchStoredFile: async () => { throw Error('Unexpected live file fetch') },
+  }
   throw Error('Unexpected native-feed import: ' + name)
 })
-const { collectQiHubReadOnlySnapshot } = exports
+const {
+  collectQiHubReadOnlySnapshot,
+  listQiHubPrivateAttachmentCandidates,
+  readQiHubPrivateAttachment,
+} = exports
 
 const ACCOUNT = '11111111-1111-1111-1111-111111111111'
 const TABLES = [
@@ -127,5 +138,88 @@ switched.onRead(n => { if (n === 6) switched.setUser('different-owner') })
 await assert.rejects(
   collectQiHubReadOnlySnapshot(switched),
   /QIHUB_SOURCE_INVENTORY_CHANGED/,
+)
+
+const fileSource = makeFake()
+fileSource.data.papers = [{
+  id: 'paper-1',
+  user_id: ACCOUNT,
+  title: 'Real published manuscript',
+  files: [
+    {n: 'source.pdf', p: 'r2-storage://papers/private/test.pdf'},
+    {n: 'external', p: 'https://example.com/unmanaged.pdf'},
+  ],
+}]
+const refs = await listQiHubPrivateAttachmentCandidates(fileSource)
+assert.equal(refs.accountId, ACCOUNT)
+assert.deepEqual(refs.items, [{
+  paperId: 'paper-1',
+  reference: 'r2-storage://papers/private/test.pdf',
+  fileName: 'source.pdf',
+}])
+const realFile = new TextEncoder().encode('GENUINE AUTHOR PAPER CONTENT').buffer
+const attachmentClient = {
+  auth: fileSource.auth,
+  from: table => {
+    assert.equal(table, 'papers')
+    return {
+      select: fields => {
+        assert.equal(fields, 'id,user_id,files')
+        return {
+          eq: (field, owner) => {
+            assert.equal(field, 'user_id')
+            const ownerMatches = owner === ACCOUNT
+            return {
+              eq: (idField, id) => {
+                assert.equal(idField, 'id')
+                return {
+                  maybeSingle: async () => ({
+                    data: ownerMatches
+                      ? fileSource.data.papers.find(p => p.id === id) || null
+                      : null,
+                    error: null,
+                  }),
+                }
+              },
+            }
+          },
+        }
+      },
+    }
+  },
+}
+let actualReads = 0
+const readSource = async (reference, name) => {
+  actualReads++
+  assert.equal(reference, 'r2-storage://papers/private/test.pdf')
+  assert.equal(name, 'source.pdf')
+  const blob = new Blob([realFile], {type: 'application/pdf'})
+  return { blob, arrayBuffer: realFile }
+}
+const downloaded = await readQiHubPrivateAttachment(
+  'paper-1', 'r2-storage://papers/private/test.pdf', 'source.pdf',
+  attachmentClient, readSource,
+)
+assert.equal(downloaded.accountId, ACCOUNT)
+assert.equal(downloaded.blob.size, realFile.byteLength)
+assert.match(downloaded.sha256, /^[a-f0-9]{64}$/)
+assert.equal(actualReads, 1)
+await assert.rejects(
+  readQiHubPrivateAttachment('paper-1', 'r2-storage://papers/not-in-paper',
+    'source.pdf', attachmentClient, readSource),
+  /QIHUB_ATTACHMENT_NOT_IN_PAPER/,
+)
+await assert.rejects(
+  readQiHubPrivateAttachment('paper-1', 'r2-storage://papers/private/test.pdf',
+    'wrong.pdf', attachmentClient, readSource),
+  /QIHUB_ATTACHMENT_NOT_IN_PAPER/,
+)
+assert.equal(actualReads, 1,
+  'Foreign/nonexistent references must fail before any storage GET')
+fileSource.setUser('different-owner')
+await assert.rejects(
+  readQiHubPrivateAttachment('paper-1', 'r2-storage://papers/private/test.pdf',
+    'source.pdf', attachmentClient, readSource),
+  /QIHUB_ATTACHMENT_OWNERSHIP_UNVERIFIED|QIHUB_SOURCE_SIGN_IN_REQUIRED/,
 )
 console.log('QiHub native authenticated source feed: paginated + scoped + stable')
