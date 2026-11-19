@@ -138,7 +138,6 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
     }
   }
 
-  let lastAutoLinked = ''
   const enhanceJournalLink = () => {
     addPresets()
     const journalInput = controlByLabel('目标期刊 / 会议') as HTMLInputElement | undefined
@@ -148,7 +147,6 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
 
     if (!profile || !tools) {
       suggestion?.remove()
-      lastAutoLinked = ''
       return
     }
 
@@ -172,10 +170,8 @@ function installFormEnhancements(journalProfiles: JournalProfile[]) {
     const nextLabel = `已关联期刊库：${profile.name}`
     if (label && label.textContent !== nextLabel) label.textContent = nextLabel
 
-    if (lastAutoLinked !== profile.id) {
-      lastAutoLinked = profile.id
-      window.setTimeout(() => syncProfile(profile, false), 0)
-    }
+    // Linking a journal never mutates the form. Only the explicit sync button
+    // copies mutable journal metadata into the manuscript.
   }
 
   addPresets()

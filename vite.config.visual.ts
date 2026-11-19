@@ -13,6 +13,7 @@ export default defineConfig({
         review: resolve(__dirname, 'tests/visual/index.html'),
         navigation: resolve(__dirname, 'tests/visual/navigation-memory.html'),
         journalTier: resolve(__dirname, 'tests/visual/journal-tier.html'),
+        paperFormConsistency: resolve(__dirname, 'tests/visual/paper-form-consistency.html'),
       },
     },
   },

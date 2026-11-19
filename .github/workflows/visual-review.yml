@@ -66,6 +66,8 @@ jobs:
         run: |
           set -euxo pipefail
           node tests/visual/timeline-interval-analysis-check.mjs | tee /tmp/timeline-interval-analysis-check.log
+      - name: Verify manuscript editor state and attachment replacement
+        run: node tests/visual/paper-form-consistency-check.mjs
       - name: Capture editor modal diagnostics
         if: always()
         run: |
