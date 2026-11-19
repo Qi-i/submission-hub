@@ -115,7 +115,7 @@ function normalizedEvent(event: string) {
 }
 
 function isSubmissionEvent(event: string) {
-  return /(submitted|submission received|new submission|resubmitted|resubmission|revised manuscript submitted|revision submitted|revised submission|投稿成功|已投稿|首投|修回提交|修订稿提交|返修提交|重新提交)/.test(normalizedEvent(event))
+  return /(submitted|submission received|new submission|resubmitted|resubmission|revised manuscript submitted|revision submitted|revised submission|投稿成功|已投稿|首投|收稿|稿件已收|稿件已接收|修回提交|修回稿提交|修回稿已提交|修订稿提交|修订稿已提交|修改稿已提交|返修提交|重新提交)/.test(normalizedEvent(event))
 }
 
 function isResponseEvent(event: string) {
@@ -156,6 +156,8 @@ function analyseTimeline(items: TimelineDraft[], todayTime: number, includeToday
     if (!Number.isFinite(time)) continue
 
     if (isSubmissionEvent(item.event)) {
+      // A receipt/duplicate submission event must not restart an already waiting review round.
+      if (activeRound) continue
       activeRound = { number: nextRoundNumber, startIndex: index, startTime: time, startEvent: item.event }
       rowInsights.set(index, { label: `${roundName(nextRoundNumber)}起点`, kind: 'start' })
       nextRoundNumber += 1
