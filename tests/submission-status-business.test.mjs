@@ -29,7 +29,7 @@ const basicPaper = {
   system_status: '拟录用',
   resolve_date: null,
   last_status_date: '2026-03-15',
-  timeline: '2026-02-01 投稿成功\\n2026-03-15 拟录用',
+  timeline: '2026-02-01 投稿成功\n2026-03-15 拟录用',
 }
 
 test('preliminary decisions and submission receipts are not terminal', () => {
@@ -56,7 +56,7 @@ test('definitive decision resolves at its dated event, not a later preliminary n
     ...basicPaper,
     status: 'accepted',
     system_status: '正式录用',
-    timeline: '2026-02-01 投稿成功\\n2026-03-10 正式录用\\n2026-03-15 拟录用',
+    timeline: '2026-02-01 投稿成功\n2026-03-10 正式录用\n2026-03-15 拟录用',
   }
   assert.equal(mergePaperWithJournalProfile(paper).resolve_date, '2026-03-10')
   assert.equal(mergePaperWithJournalProfile({ ...paper, timeline: '' }).resolve_date, '2026-03-15')
@@ -75,16 +75,16 @@ test('revision cycle counting deduplicates requests but counts a request after r
     '2026-02-02 小修',
     '2026-02-03 小修',
   ]
-  assert.equal(intelligence.inferRevisionRound(events.join('\\n')), 2)
-  assert.equal(intelligence.inferRevisionRound([...events].reverse().join('\\n')), 2)
-  assert.equal(intelligence.inferRevisionRound('2026-01-15 大修\\n2026-01-20 resubmitted\\n2026-02-02 Minor Revision'), 2)
+  assert.equal(intelligence.inferRevisionRound(events.join('\n')), 2)
+  assert.equal(intelligence.inferRevisionRound([...events].reverse().join('\n')), 2)
+  assert.equal(intelligence.inferRevisionRound('2026-01-15 大修\n2026-01-20 resubmitted\n2026-02-02 Minor Revision'), 2)
   assert.equal(intelligence.inferRevisionRound('未知状态', '', 3), 3)
-  assert.equal(intelligence.inferRevisionRound('2026-01-15 大修\\n未注明日期\\n2026-01-20 修回稿提交'), 1)
+  assert.equal(intelligence.inferRevisionRound('2026-01-15 大修\n未注明日期\n2026-01-20 修回稿提交'), 1)
 })
 
 test('timeline UI uses the shared classification and cycle-count kernel', () => {
   const source = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
-  assert.match(source, /!isTerminalSubmissionEvent\\(lastItem\\.event\\)/)
-  assert.match(source, /revisionCount: inferRevisionRound\\(/)
-  assert.doesNotMatch(source, /items\\.filter\\(item => isRevisionOutcomeEvent\\(/)
+  assert.match(source, /!isTerminalSubmissionEvent\(lastItem\.event\)/)
+  assert.match(source, /revisionCount: inferRevisionRound\(/)
+  assert.doesNotMatch(source, /items\.filter\(item => isRevisionOutcomeEvent\(/)
 })
