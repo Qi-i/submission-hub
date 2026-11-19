@@ -3,11 +3,11 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import ts from 'typescript'
 
-function loadTypeScript(relativePath, mocks = {}) {
-  const source = readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8')
+function loadTypeScript(relativePath, mocks = {}, suffix = '') {
+  const source = readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8') + suffix
   const compiled = ts.transpileModule(source, {
     fileName: relativePath,
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
   }).outputText
   const module = { exports: {} }
   const resolveMock = id => {
@@ -23,6 +23,14 @@ const { mergePaperWithJournalProfile } = loadTypeScript('src/lib/journal-paper-s
   './journal-display': { isDomesticJournal: () => false, primaryJournalRankItems: () => [] },
   './submission-intelligence': intelligence,
 })
+
+const { __analyseTimelineForTests: analyseTimeline } = loadTypeScript('src/components/Timeline.tsx', {
+  react: { useState: () => [] },
+  'lucide-react': {},
+  '../lib/types': { TIMELINE_PRESETS: [] },
+  '../lib/submission-intelligence': intelligence,
+  'react/jsx-runtime': { jsx: () => null, jsxs: () => null },
+}, '\nexport const __analyseTimelineForTests = analyseTimeline;')
 
 const basicPaper = {
   status: 'under_review',
@@ -82,6 +90,21 @@ test('revision cycle counting deduplicates requests but counts a request after r
   assert.equal(intelligence.inferRevisionRound('2026-01-15 大修\n2026-01-20 resubmitted\n2026-02-02 Minor Revision'), 2)
   assert.equal(intelligence.inferRevisionRound('未知状态', '', 3), 3)
   assert.equal(intelligence.inferRevisionRound('2026-01-15 大修\n未注明日期\n2026-01-20 修回稿提交'), 1)
+})
+
+test('timeline reviewer response is measured from submission, not the duplicate receipt', () => {
+  const events = [
+    { date: '2026-01-01', event: 'Submitted' },
+    { date: '2026-01-02', event: 'Submission Received' },
+    { date: '2026-01-11', event: 'Major Revision' },
+    { date: '2026-01-12', event: 'Major Revision' },
+    { date: '2026-01-15', event: 'Revision Submitted' },
+    { date: '2026-02-01', event: 'Minor Revision' },
+  ]
+  const analysis = analyseTimeline(events, Date.UTC(2026, 1, 2), true)
+  assert.equal(analysis.firstResponseDays, 10)
+  assert.equal(analysis.completedRounds.length, 2)
+  assert.equal(analysis.revisionCount, 2)
 })
 
 test('timeline UI uses the shared classification and cycle-count kernel', () => {
