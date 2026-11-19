@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { fetchStoredFile, isManagedStoredFile } from '../lib/storage'
 
 /**
  * QiHub Android receives the actual authenticated Supabase records through
@@ -120,5 +121,97 @@ export async function collectQiHubReadOnlySnapshot(
     capturedAt: new Date().toISOString(),
     complete: true,
     collections: second,
+  }
+}
+
+/** Only the real logged-in paper/attachment references the user owns.
+ * Unmanaged external URLs are deliberately excluded; a URL is not an
+ * original byte copy and must not silently become a "synced attachment".
+ */
+export async function listQiHubPrivateAttachmentCandidates(
+  client: Reader = supabase as unknown as Reader,
+) {
+  const snapshot = await collectQiHubReadOnlySnapshot(client)
+  const items: Array<{paperId: string; reference: string; fileName: string}> = []
+  for (const paper of snapshot.collections.papers) {
+    if (!Array.isArray(paper.files)) continue
+    for (const attachment of paper.files) {
+      if (!attachment || typeof attachment !== 'object') continue
+      const file = attachment as {p?:unknown;n?:unknown}
+      if (typeof file.p !== 'string' || !isManagedStoredFile(file.p)) continue
+      items.push({
+        paperId: paper.id,
+        reference: file.p,
+        fileName: typeof file.n === 'string' ? file.n : 'attachment',
+      })
+      if (items.length > 4000) throw Error('QIHUB_ATTACHMENT_TOO_MANY')
+    }
+  }
+  return { accountId: snapshot.accountId, items }
+}
+
+type AttachmentReadClient = {
+  auth: Reader['auth']
+  from(table: string): {
+    select(fields: string): {
+      eq(field: string, value: string): {
+        eq(field: string, value: string): {
+          maybeSingle(): PromiseLike<{data:unknown;error:unknown}>
+        }
+      }
+    }
+  }
+}
+
+/** Re-check the exact paper/filename/referenced path on the live server
+ * immediately before retrieving the actual file via the site's existing
+ * R2 signed-GET + authenticated-proxy fallback or Supabase Storage path.
+ */
+export async function readQiHubPrivateAttachment(
+  paperId: string,
+  reference: string,
+  fileName: string,
+  client: AttachmentReadClient = supabase as unknown as AttachmentReadClient,
+  readFile = fetchStoredFile,
+) {
+  const account = await activeAccount(client as unknown as Reader)
+  if (!paperId || !isManagedStoredFile(reference) ||
+      typeof fileName !== 'string' || fileName.length > 255) {
+    throw Error('QIHUB_ATTACHMENT_INVALID_REFERENCE')
+  }
+  const response = await client.from('papers').select('id,user_id,files')
+    .eq('user_id', account).eq('id', paperId).maybeSingle()
+  if (response.error || !response.data ||
+      typeof response.data !== 'object') {
+    throw Error('QIHUB_ATTACHMENT_OWNERSHIP_UNVERIFIED')
+  }
+  const paper = response.data as {
+    id?:unknown;user_id?:unknown;files?:unknown
+  }
+  if (paper.id !== paperId || paper.user_id !== account ||
+      !Array.isArray(paper.files) ||
+      !paper.files.some(entry => entry && typeof entry === 'object' &&
+        (entry as {p?:unknown}).p === reference &&
+        (entry as {n?:unknown}).n === fileName)) {
+    throw Error('QIHUB_ATTACHMENT_NOT_IN_PAPER')
+  }
+  const file = await readFile(reference, fileName)
+  const bytes = file.arrayBuffer
+  if (bytes.byteLength < 1 || bytes.byteLength > 20 * 1024 * 1024) {
+    throw Error('QIHUB_ATTACHMENT_SIZE_LIMIT')
+  }
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  const sha256 = Array.from(digest, x => x.toString(16).padStart(2, '0')).join('')
+  if (account !== await activeAccount(client as unknown as Reader)) {
+    throw Error('QIHUB_ATTACHMENT_ACCOUNT_CHANGED')
+  }
+  return {
+    accountId: account,
+    paperId,
+    reference,
+    fileName,
+    mime: file.blob.type || 'application/octet-stream',
+    sha256,
+    blob: file.blob,
   }
 }
