@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeftRight, Calendar, Check, Clock3, Edit3, Plus, Trash2, X } from 'lucide-react'
 import { TIMELINE_PRESETS } from '../lib/types'
+import { inferRevisionRound, isTerminalSubmissionEvent } from '../lib/submission-intelligence'
 
 interface Props {
   value: string
@@ -122,15 +123,6 @@ function isResponseEvent(event: string) {
   return /(major revision|minor revision|revision required|revise and resubmit|reviews? returned|decision made|accepted|acceptance|rejected|reject|declined|desk reject|大修|小修|退修|修回意见|返修意见|审稿意见|录用|接收|拒稿|退稿)/.test(normalizedEvent(event))
 }
 
-function isRevisionOutcomeEvent(event: string) {
-  if (isSubmissionEvent(event)) return false
-  return /(major revision|minor revision|revision required|revise and resubmit|大修|小修|退修|修回意见|返修意见)/.test(normalizedEvent(event))
-}
-
-function isTerminalEvent(event: string) {
-  return /(accepted|accept|published|online published|rejected|reject|withdrawn|withdraw|录用|接收|见刊|在线发表|拒稿|被拒|退稿|撤稿)/.test(normalizedEvent(event))
-}
-
 function roundName(number: number) {
   return number === 1 ? '首轮' : `第${number}轮`
 }
@@ -241,7 +233,7 @@ function analyseTimeline(items: TimelineDraft[], todayTime: number, includeToday
     completedRounds,
     currentRound,
     firstResponseDays: completedRounds[0]?.days ?? null,
-    revisionCount: items.filter(item => isRevisionOutcomeEvent(item.event)).length,
+    revisionCount: inferRevisionRound(items.map(item => `${item.date} ${item.event}`).join('\n')),
     totalDays,
     longestStage,
   }
@@ -301,7 +293,7 @@ export default function Timeline({ value, onChange, customOpts, onAddCustomOpt }
   const todayDate = today()
   const todayTime = timeValue(todayDate)
   const gapToToday = Number.isFinite(lastTime) && Number.isFinite(todayTime) ? daysBetween(lastTime, todayTime) : null
-  const showTodayGap = !!lastItem && gapToToday !== null && gapToToday > 0 && !isTerminalEvent(lastItem.event)
+  const showTodayGap = !!lastItem && gapToToday !== null && gapToToday > 0 && !isTerminalSubmissionEvent(lastItem.event)
   const cumulativeToToday = showTodayGap && Number.isFinite(firstFiniteTime) ? daysBetween(firstFiniteTime, todayTime) : null
   const analysis = analyseTimeline(parsedItems, todayTime, showTodayGap)
   const todayIndex = parsedItems.length
