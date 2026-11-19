@@ -1,4 +1,5 @@
 import { isDomesticJournal, primaryJournalRankItems, type RankedJournalProfile } from './journal-display'
+import { isTerminalSubmissionEvent } from './submission-intelligence'
 import type { JournalProfile } from './preparation'
 import type { Paper } from './types'
 
@@ -28,8 +29,6 @@ function domesticRanks(profile: RankedJournalProfile) {
     .map(item => item.value === '收录' ? item.label : `${item.label} ${item.value}`)
 }
 
-const terminalStatePattern = /(accepted|accept|published|online|proof|录用|接收|见刊|在线发表|校样|rejected|reject|declined|拒稿|被拒|退稿|withdrawn|withdraw|撤稿)/i
-
 function normalizeTimelineDate(value: string) {
   const match = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/)
   if (!match) return value
@@ -40,13 +39,13 @@ function inferResolveDate(paper: Paper) {
   if (paper.resolve_date) return paper.resolve_date
 
   const terminalByMainStatus = ['accepted', 'rejected', 'withdrawn'].includes(paper.status)
-  const terminalBySystemStatus = terminalStatePattern.test(paper.system_status || '')
+  const terminalBySystemStatus = isTerminalSubmissionEvent(paper.system_status)
   if (!terminalByMainStatus && !terminalBySystemStatus) return null
 
   const timelineRows = (paper.timeline || '').split('\n').map(row => row.trim()).filter(Boolean)
   for (let index = timelineRows.length - 1; index >= 0; index -= 1) {
     const match = timelineRows[index].match(/^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})\s*(.*)$/)
-    if (!match || !terminalStatePattern.test(match[2] || '')) continue
+    if (!match || !isTerminalSubmissionEvent(match[2])) continue
     return normalizeTimelineDate(match[1])
   }
 

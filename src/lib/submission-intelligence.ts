@@ -1,13 +1,13 @@
 export type MainSubmissionStatus = 'preparing' | 'submitted' | 'under_review' | 'revision' | 'accepted' | 'rejected' | 'withdrawn'
 
 const terminalAccepted = /(正式录用|已录用|录用通知|接收发表|accepted|acceptance|published|online published|proof received|校样|见刊|在线发表)/i
-const tentativeAccepted = /(拟录用|建议录用|待录用|录用待定)/i
-const rejected = /(不予录用|拒绝录用|退稿|拒稿|被拒|reject|rejected|declined)/i
+const tentativeAccepted = /(拟录用|建议录用|待录用|录用待定|acceptance pending|pending acceptance|provisional(?:ly)? accept(?:ed|ance)|conditional(?:ly)? accept(?:ed|ance)|accepted pending)/i
+const rejected = /(不予录用|拒绝录用|未录用|不予接收|not accepted|unaccepted|退稿|拒稿|被拒|reject|rejected|declined)/i
 const withdrawn = /(撤稿|撤回投稿|withdraw|withdrawn)/i
 const revisionRequest = /(major revision|minor revision|required revision|revision required|revise and resubmit|大修|小修|退修|返修|修回通知|要求修改|修改后重审|修改后再审|退改|修改稿件)/i
-const revisionSubmission = /(revision submitted|revised manuscript submitted|修回稿已提交|修回稿提交|修改稿已提交|修改稿提交|返修稿已提交|返修稿提交)/i
+const revisionSubmission = /(revision submitted|revised manuscript submitted|revised submission|resubmitted|resubmission|修回稿已提交|修回稿提交|修改稿已提交|修改稿提交|返修稿已提交|返修稿提交|修回提交|修订稿提交|返修提交)/i
 const reviewOrDecision = /(with journal administrator|with editor|editor invited|out for review|under review|required reviews complete|review complete|decision pending|初审|编辑部处理中|编辑处理中|待分稿|分稿中|责任编辑处理中|送外审|外审|专家评审|同行评议|审稿中|专家审回|复审|终审|主编终审|编委会审定|等待决定|决策中|审定中)/i
-const submitted = /(submitted|submission received|new submission|manuscript received|投稿成功|已投稿|收稿|稿件已收|新稿件|待编辑处理)/i
+const submitted = /(submitted|submission received|new submission|manuscript received|投稿成功|已投稿|收稿|稿件已收|稿件已接收|已接收稿件|已收稿|收稿确认|新稿件|待编辑处理)/i
 const preparing = /(draft|preparing|准备中|尚未投稿|投稿准备)/i
 
 function eventText(line: string) {
@@ -23,45 +23,66 @@ export function inferMainSubmissionStatus(systemStatus?: string | null, currentS
   if (!text) return fallback
 
   // More specific Chinese phrases are evaluated before broad words such as “退” or “修改”.
-  if (terminalAccepted.test(text)) return 'accepted'
-  if (tentativeAccepted.test(text)) return 'under_review'
   if (withdrawn.test(text)) return 'withdrawn'
-  if (revisionRequest.test(text) || revisionSubmission.test(text)) return 'revision'
   if (rejected.test(text)) return 'rejected'
+  // A tentative notice may also contain the words "录用通知": check it first.
+  if (tentativeAccepted.test(text)) return 'under_review'
+  if (terminalAccepted.test(text)) return 'accepted'
+  if (revisionRequest.test(text) || revisionSubmission.test(text)) return 'revision'
   if (reviewOrDecision.test(text)) return 'under_review'
   if (submitted.test(text)) return 'submitted'
   if (preparing.test(text)) return 'preparing'
   return fallback
 }
 
+// The status vocabulary is shared by cards, statistics, the timeline and terminal-date inference.
+// Preliminary decisions and submission receipts must not stop the active review clock.
+export function isTerminalSubmissionEvent(value?: string | null): boolean {
+  if (!value?.trim()) return false
+  return ['accepted', 'rejected', 'withdrawn'].includes(inferMainSubmissionStatus(value, 'under_review'))
+}
+
 export function isRevisionRequestStatus(value?: string | null) {
   return revisionRequest.test(value || '') && !revisionSubmission.test(value || '')
 }
 
+function datedTimelineEvent(line: string): number | null {
+  const match = line.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:\s|$)/)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const timestamp = Date.UTC(year, month - 1, day)
+  const parsed = new Date(timestamp)
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
+    ? timestamp : null
+}
+
 export function inferRevisionRound(timeline?: string | null, systemStatus?: string | null, fallback = 0) {
   const lines = (timeline || '').split('\n').map(line => line.trim()).filter(Boolean)
+  const dated = lines.map(line => ({ line, date: datedTimelineEvent(line) }))
+  // Legacy imports can be newest-first; reorder only if every event has a valid date.
+  // Undated/mixed timelines keep their authored sequence rather than inventing chronology.
+  const orderedLines = dated.every(item => item.date !== null)
+    ? dated.sort((left, right) => (left.date as number) - (right.date as number)).map(item => item.line)
+    : lines
   let rounds = 0
   let roundOpen = false
-  let reviewedAfterSubmission = false
 
-  for (const line of lines) {
+  for (const line of orderedLines) {
     const event = eventText(line)
     if (isRevisionRequestStatus(event)) {
-      if (!roundOpen && (rounds === 0 || reviewedAfterSubmission)) {
+      // Multiple requests before a returned revision belong to the same round.
+      // After a revised manuscript is submitted, the next explicit request opens a new round,
+      // even if the editorial system did not log the intervening review stage.
+      if (!roundOpen) {
         rounds += 1
         roundOpen = true
-        reviewedAfterSubmission = false
       }
       continue
     }
 
-    if (revisionSubmission.test(event)) {
-      if (roundOpen) roundOpen = false
-      reviewedAfterSubmission = false
-      continue
-    }
-
-    if (!roundOpen && rounds > 0 && reviewOrDecision.test(event)) reviewedAfterSubmission = true
+    if (revisionSubmission.test(event) && roundOpen) roundOpen = false
   }
 
   if (rounds === 0 && isRevisionRequestStatus(systemStatus)) rounds = 1
