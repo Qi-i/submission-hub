@@ -1,13 +1,13 @@
 export type MainSubmissionStatus = 'preparing' | 'submitted' | 'under_review' | 'revision' | 'accepted' | 'rejected' | 'withdrawn'
 
 const terminalAccepted = /(正式录用|已录用|录用通知|接收发表|accepted|acceptance|published|online published|proof received|校样|见刊|在线发表)/i
-const tentativeAccepted = /(拟录用|建议录用|待录用|录用待定)/i
+const tentativeAccepted = /(拟录用|建议录用|待录用|录用待定|acceptance pending|pending acceptance|provisional acceptance|conditional(?:ly)? accept(?:ed|ance)|accepted pending)/i
 const rejected = /(不予录用|拒绝录用|未录用|不予接收|not accepted|unaccepted|退稿|拒稿|被拒|reject|rejected|declined)/i
 const withdrawn = /(撤稿|撤回投稿|withdraw|withdrawn)/i
 const revisionRequest = /(major revision|minor revision|required revision|revision required|revise and resubmit|大修|小修|退修|返修|修回通知|要求修改|修改后重审|修改后再审|退改|修改稿件)/i
 const revisionSubmission = /(revision submitted|revised manuscript submitted|revised submission|resubmitted|resubmission|修回稿已提交|修回稿提交|修改稿已提交|修改稿提交|返修稿已提交|返修稿提交|修回提交|修订稿提交|返修提交)/i
 const reviewOrDecision = /(with journal administrator|with editor|editor invited|out for review|under review|required reviews complete|review complete|decision pending|初审|编辑部处理中|编辑处理中|待分稿|分稿中|责任编辑处理中|送外审|外审|专家评审|同行评议|审稿中|专家审回|复审|终审|主编终审|编委会审定|等待决定|决策中|审定中)/i
-const submitted = /(submitted|submission received|new submission|manuscript received|投稿成功|已投稿|收稿|稿件已收|新稿件|待编辑处理)/i
+const submitted = /(submitted|submission received|new submission|manuscript received|投稿成功|已投稿|收稿|稿件已收|稿件已接收|已接收稿件|已收稿|收稿确认|新稿件|待编辑处理)/i
 const preparing = /(draft|preparing|准备中|尚未投稿|投稿准备)/i
 
 function eventText(line: string) {
