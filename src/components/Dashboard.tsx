@@ -7,6 +7,7 @@ import { STATUSES } from '../lib/types'
 import type { JournalProfile } from '../lib/preparation'
 import { findJournalProfile } from '../lib/journal-paper-sync'
 import { inferMainSubmissionStatus, inferRevisionRound } from '../lib/submission-intelligence'
+import { changedPaperFields, nextPaperUpdatedAt, rebasePaperFields } from '../lib/paper-field-merge'
 import { createOnlineBackup, importOnlineBackup } from '../lib/online-backup'
 import { DEMO_PAPERS } from '../lib/demo-data'
 import PaperCard from './PaperCard'
@@ -73,6 +74,7 @@ export default function Dashboard() {
   const [papers, setPapers] = useState<Paper[]>([])
   const [journalProfiles, setJournalProfiles] = useState<JournalProfile[]>([])
   const [loading, setLoading] = useState(!isDemo)
+  const [paperLoadError, setPaperLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -144,8 +146,13 @@ export default function Dashboard() {
       .from('papers')
       .select('*')
       .order('submitted_date', { ascending: false, nullsFirst: false })
-    if (error) console.error('Load papers error:', error)
-    else setPapers(((data || []) as Paper[]).map(normalizePaperWorkflow))
+    if (error) {
+      console.error('Load papers error:', error)
+      setPaperLoadError('投稿记录刷新失败，仍显示最近成功读取的数据。')
+    } else {
+      setPaperLoadError('')
+      setPapers(((data || []) as Paper[]).map(normalizePaperWorkflow))
+    }
     setLoading(false)
   }, [isDemo])
 
@@ -172,6 +179,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (tab === 'dashboard') void loadJournalProfiles()
   }, [tab, loadJournalProfiles])
+
+  useEffect(() => {
+    if (isDemo) return
+    const onVisible = () => { if (document.visibilityState === 'visible') void loadPapers() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [isDemo, loadPapers])
 
   const allAuthors = Array.from(new Set(papers.flatMap(paper => paper.authors || []))).sort()
   const matchName = user?.author_name || user?.username || ''
@@ -400,6 +414,12 @@ export default function Dashboard() {
 
       {tab === 'mail' && user && !isDemo && <AcademicMailCenter userId={user.id} />}
 
+      {paperLoadError && !isDemo && tab === 'dashboard' && (
+        <div className="paper-load-notice" role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0', padding: '6px 10px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontSize: 13 }}>
+          {paperLoadError} <button type="button" className="btn btn-ghost btn-sm" onClick={() => void loadPapers()}>重新读取</button>
+        </div>
+      )}
+
       {tab === 'dashboard' && <>
         <div className="metric-grid dashboard-metrics" style={{ ['--metric-columns' as any]: 8 }}>
           {stats.map(status => <MetricCard key={status.key} icon={status.emoji} value={status.count} label={status.label} helper="点击筛选" color={status.color} tone={`${status.color}18`} active={statusFilter === status.key} onClick={() => setStatusFilter(statusFilter === status.key ? 'all' : status.key)} />)}
@@ -417,16 +437,89 @@ export default function Dashboard() {
           const { error } = await supabase.from('papers').insert({ ...data, id: crypto.randomUUID(), user_id: user!.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any)
           if (error) throw error
         } else {
-          const updateData = { ...data, updated_at: new Date().toISOString() }
-          const { error } = await ((supabase.from('papers') as any).update(updateData)).eq('id', editing.id)
-          if (error) throw error
+          const opened = editing as unknown as Record<string, unknown>
+          const changes = changedPaperFields(opened, data as Record<string, unknown>)
+          if (!Object.keys(changes).length) {
+            setEditing(null)
+            return
+          }
+          const saveChangedFields = (patch: Record<string, unknown>, observedAt?: string | null) => {
+            const query = (supabase.from('papers') as any)
+              .update({ ...patch, updated_at: nextPaperUpdatedAt(observedAt) })
+              .eq('id', editing.id)
+            return (observedAt ? query.eq('updated_at', observedAt) : query.is('updated_at', null))
+              .select('id, updated_at')
+          }
+
+          const readCurrent = async () => {
+            const { data: latest, error } = await (supabase.from('papers') as any)
+              .select('*').eq('id', editing.id).maybeSingle()
+            if (error) throw error
+            if (!latest) throw new Error('此稿件已被删除或无权更新；未覆盖云端数据。')
+            return latest as Record<string, unknown>
+          }
+          // Read once before writing. Legacy clients can change fields without
+          // advancing updated_at because production has no timestamp trigger yet.
+          const initialLatest = await readCurrent()
+          const initialRebase = rebasePaperFields(opened, initialLatest, changes)
+          if (initialRebase.conflicts.length) {
+            throw new Error('另一设备修改了相同字段：' + initialRebase.conflicts.join('、') +
+              '。请核对后重试；当前表单内容仍保留。')
+          }
+          if (!Object.keys(initialRebase.patch).length) {
+            setEditing(null)
+            await loadPapers()
+            return
+          }
+
+          const first = await saveChangedFields(initialRebase.patch, initialLatest.updated_at as string | null)
+          if (first.error) throw first.error
+          if (!first.data?.length) {
+            const latest = await readCurrent()
+            const rebased = rebasePaperFields(opened, latest, changes)
+            if (rebased.conflicts.length) {
+              throw new Error('另一设备修改了相同字段：' + rebased.conflicts.join('、') +
+                '。请核对后重试；当前表单内容仍保留。')
+            }
+            if (Object.keys(rebased.patch).length) {
+              const retry = await saveChangedFields(rebased.patch, latest.updated_at as string | null)
+              if (retry.error) throw retry.error
+              if (!retry.data?.length) {
+                throw new Error('保存过程中再次检测到其他设备的编辑，当前表单内容已保留，请重新保存。')
+              }
+            }
+          }
         }
         setEditing(null)
         await Promise.all([loadPapers(), loadJournalProfiles()])
       }} onDelete={async id => {
+        if (editing === 'new' || editing.id !== id) return
         if (!confirm('确认删除这条投稿记录？')) return
-        const { error } = await supabase.from('papers').delete().eq('id', id)
+        const { data: current, error: readError } = await (supabase.from('papers') as any)
+          .select('*').eq('id', id).maybeSingle()
+        if (readError || !current) {
+          alert(readError ? '无法确认云端稿件当前状态，未执行删除。' : '稿件已不存在或无法访问，未执行删除。')
+          return
+        }
+        const changed = changedPaperFields(editing as unknown as Record<string, unknown>, current)
+        // The listing normalizes these two display-only values on load.
+        delete changed.status
+        delete changed.revision_round
+        if (current.updated_at !== editing.updated_at || Object.keys(changed).length) {
+          alert('稿件已在其他设备发生变化，未执行删除。请重新核对。')
+          await loadPapers()
+          return
+        }
+        const { data: deleted, error } = await ((supabase.from('papers') as any)
+          .delete().eq('id', id)
+          .eq('updated_at', editing.updated_at)
+          .select('id'))
         if (error) { alert('删除失败: ' + error.message); return }
+        if (!deleted?.length) {
+          alert('稿件已在其他设备发生变化，未执行删除。请重新核对。')
+          await loadPapers()
+          return
+        }
         setEditing(null)
         await loadPapers()
       }} onClose={() => setEditing(null)} />}
