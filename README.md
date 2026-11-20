@@ -207,3 +207,4 @@ npm run verify
 
 
 **Outlook OAuth2**：网页支持 Microsoft 设备授权登录、Graph 全文件夹（含垃圾箱）归档原始 EML、云端刷新令牌和 Graph 发信。初次连接需要填写用户注册的免费 Microsoft 公共客户端 ID 并在微软页面批准权限。邮件中心同步采用多彩玻璃卡片、响应式双列、渐变顶部信息区和统一模型模块布局。详情见 [邮件聚合使用说明](docs/academic-mail-center.md)。
+**QiHub Android 原生手稿 CRUD 开发分支（2026-11-20）：** 新增对 `manuscript_drafts` 21 项可编辑业务字段的原站写入适配器，保留手稿与研究选题、主/备选期刊、正式投稿论文以及准备清单之间的关系。原站 Supabase 登录及 RLS 校验真实记录归属，修改和删除使用 `updated_at` 版本条件并以服务器返回的实际行确认结果；关联的选题、期刊、论文 ID 必须在当前登录账户中存在。不开发 Android 原生科研组图。此开发分支仍需 TypeScript/Flutter 自动化验证以及 Android 真机端到端验收。
