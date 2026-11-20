@@ -69,6 +69,8 @@ for (const incorrect of [
 
 let actor = owner
 let linkedTopic = true
+let linkedJournal = true
+let linkedPaper = true
 let current = null
 let race = false
 const writes = []
@@ -84,8 +86,8 @@ function query(table, action, payload) {
         const allowed = table === 'research_topics'
           ? linkedTopic && filters.id === topicId
           : table === 'journal_profiles'
-            ? filters.id === journalId
-            : table === 'papers' && filters.id === paperId
+            ? linkedJournal && filters.id === journalId
+            : table === 'papers' && linkedPaper && filters.id === paperId
         return { data: allowed && filters.user_id === owner
           ? { id: filters.id, user_id: owner } : null, error: null }
       }
@@ -168,6 +170,18 @@ await assert.rejects(mutateQiHubManuscriptDraft({
 }, db), /INVALID_OWNED_REFERENCE_research_topics/)
 assert.equal(writes.length, 2)
 linkedTopic = true
+linkedJournal = false
+await assert.rejects(mutateQiHubManuscriptDraft({
+  operation: 'update', id, expectedUpdatedAt: old, fields: input,
+}, db), /INVALID_OWNED_REFERENCE_journal_profiles/)
+assert.equal(writes.length, 2)
+linkedJournal = true
+linkedPaper = false
+await assert.rejects(mutateQiHubManuscriptDraft({
+  operation: 'update', id, expectedUpdatedAt: old, fields: input,
+}, db), /INVALID_OWNED_REFERENCE_papers/)
+assert.equal(writes.length, 2)
+linkedPaper = true
 
 race = true
 assert.equal((await mutateQiHubManuscriptDraft({
