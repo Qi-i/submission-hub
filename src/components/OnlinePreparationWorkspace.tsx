@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSourceRefresh } from '../lib/use-source-refresh'
 import { lookupJournalRanks } from '../lib/journal-rank-client'
 import { deriveAutomaticJournalProfiles } from '../lib/journal-auto-catalog'
 import { supabase } from '../lib/supabase'
@@ -62,10 +63,10 @@ export default function OnlinePreparationWorkspace({ userId, section, onSectionC
   const [error, setError] = useState('')
   const loadVersion = useRef(0)
 
-  const load = useCallback(async (showLoading = true) => {
+  const load = useCallback(async (showLoading = true, refreshOnly = false) => {
     const version = ++loadVersion.current
     if (showLoading) setLoading(true)
-    setError('')
+    if (!refreshOnly) setError('')
 
     try {
       const [journalResult, topicResult, draftResult, paperResult] = await Promise.all([
@@ -81,7 +82,7 @@ export default function OnlinePreparationWorkspace({ userId, section, onSectionC
 
       let journals = ((journalResult.data || []) as JournalProfile[]).map(normalizeJournal)
       const automaticJournals = deriveAutomaticJournalProfiles((paperResult.data || []) as Paper[], journals, userId)
-      if (automaticJournals.length) {
+      if (automaticJournals.length && !refreshOnly) {
         let persisted: JournalProfile[] = []
         const fullInsert = await (supabase.from('journal_profiles') as any)
           .insert(automaticJournals)
@@ -109,6 +110,7 @@ export default function OnlinePreparationWorkspace({ userId, section, onSectionC
       }
 
       if (version !== loadVersion.current) return
+      setError('')
       setSnapshot({
         journals,
         topics: ((topicResult.data || []) as ResearchTopic[]).map(topic => ({
@@ -130,7 +132,7 @@ export default function OnlinePreparationWorkspace({ userId, section, onSectionC
     } catch (caught) {
       if (version !== loadVersion.current) return
       console.error('Load preparation workspace failed:', caught)
-      setError(readableError(caught, '投稿准备数据加载失败'))
+      if (!refreshOnly) setError(readableError(caught, '投稿准备数据加载失败'))
     } finally {
       if (version === loadVersion.current && showLoading) setLoading(false)
     }
@@ -140,6 +142,7 @@ export default function OnlinePreparationWorkspace({ userId, section, onSectionC
     void load()
     return () => { loadVersion.current += 1 }
   }, [load])
+  useSourceRefresh(() => load(false, true), !loading && !!userId)
 
   const saveJournal = async (data: Partial<JournalProfile> & Pick<JournalProfile, 'name'>) => {
     const now = new Date().toISOString()

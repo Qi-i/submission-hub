@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSourceRefresh } from '../lib/use-source-refresh'
 import { Search, Star } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
@@ -44,19 +45,22 @@ export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
   const [search, setSearch] = useState('')
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [editor, setEditor] = useState<JournalProfile | 'new' | null>(null)
+  const readVersion = useRef(0)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (showLoading = true) => {
+    const version = ++readVersion.current
+    if (showLoading) setLoading(true)
     try {
       const [journalResult, paperResult] = await Promise.all([
         (supabase.from('journal_profiles') as any).select('*').order('updated_at', { ascending: false }),
         (supabase.from('papers') as any).select('*').order('updated_at', { ascending: false }),
       ])
+      if (version !== readVersion.current) return
       if (journalResult.error) throw journalResult.error
       if (paperResult.error) throw paperResult.error
       let current = ((journalResult.data || []) as JournalProfile[]).map(normalizeJournal)
       const automatic = deriveAutomaticJournalProfiles((paperResult.data || []) as Paper[], current, userId)
-      if (automatic.length) {
+      if (automatic.length && showLoading) {
         const fullInsert = await (supabase.from('journal_profiles') as any).insert(automatic).select('*')
         if (!fullInsert.error) current = [...((fullInsert.data || []) as JournalProfile[]).map(normalizeJournal), ...current]
         else {
@@ -65,15 +69,16 @@ export default function JournalCenterWorkspace({ userId, onChanged }: Props) {
         }
         invalidateOnlineJournalProfileCache()
       }
-      setJournals(current)
+      if (version === readVersion.current) setJournals(current)
     } catch (error) {
       console.error('Load Journal Center failed:', error)
     } finally {
-      setLoading(false)
+      if (version === readVersion.current) setLoading(false)
     }
   }, [userId])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { void load(); return () => { readVersion.current++ } }, [load])
+  useSourceRefresh(() => load(false), !loading && !editor && !!userId)
 
   const visible = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()

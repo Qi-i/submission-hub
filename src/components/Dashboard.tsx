@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
+import { useSourceRefresh } from '../lib/use-source-refresh'
 import type { Paper } from '../lib/types'
 import { STATUSES } from '../lib/types'
 import type { JournalProfile } from '../lib/preparation'
@@ -89,6 +90,8 @@ export default function Dashboard() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [transferring, setTransferring] = useState(false)
+  const paperReadVersion = useRef(0)
+  const journalReadVersion = useRef(0)
 
   const canAccessAdmin = user?.is_admin === true && !isDemo
   const effectiveLayoutMode = uiMode === 'luminous-x' ? layoutMode : 'workflow'
@@ -137,6 +140,7 @@ export default function Dashboard() {
   }
 
   const loadPapers = useCallback(async () => {
+    const version = ++paperReadVersion.current
     if (isDemo) {
       setPapers(DEMO_PAPERS.map(normalizePaperWorkflow))
       setLoading(false)
@@ -146,6 +150,7 @@ export default function Dashboard() {
       .from('papers')
       .select('*')
       .order('submitted_date', { ascending: false, nullsFirst: false })
+    if (version !== paperReadVersion.current) return
     if (error) {
       console.error('Load papers error:', error)
       setPaperLoadError('投稿记录刷新失败，仍显示最近成功读取的数据。')
@@ -154,9 +159,10 @@ export default function Dashboard() {
       setPapers(((data || []) as Paper[]).map(normalizePaperWorkflow))
     }
     setLoading(false)
-  }, [isDemo])
+  }, [isDemo, user?.id])
 
   const loadJournalProfiles = useCallback(async () => {
+    const version = ++journalReadVersion.current
     if (isDemo) {
       setJournalProfiles([])
       return
@@ -164,28 +170,26 @@ export default function Dashboard() {
     const { data, error } = await (supabase.from('journal_profiles') as any)
       .select('*')
       .order('updated_at', { ascending: false })
+    if (version !== journalReadVersion.current) return
     if (error) {
       console.error('Load journal profiles for submission cards failed:', error)
       return
     }
     setJournalProfiles(((data || []) as JournalProfile[]).map(normalizeJournalProfile))
-  }, [isDemo])
+  }, [isDemo, user?.id])
 
   useEffect(() => {
     void loadPapers()
     void loadJournalProfiles()
+    return () => { paperReadVersion.current++; journalReadVersion.current++ }
   }, [loadPapers, loadJournalProfiles])
 
   useEffect(() => {
     if (tab === 'dashboard') void loadJournalProfiles()
   }, [tab, loadJournalProfiles])
 
-  useEffect(() => {
-    if (isDemo) return
-    const onVisible = () => { if (document.visibilityState === 'visible') void loadPapers() }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [isDemo, loadPapers])
+  useSourceRefresh(() => Promise.all([loadPapers(), loadJournalProfiles()]),
+    !isDemo && !!user && !loading && !editing && !transferring && !showSettings && (tab === 'dashboard' || tab === 'stats'))
 
   const allAuthors = Array.from(new Set(papers.flatMap(paper => paper.authors || []))).sort()
   const matchName = user?.author_name || user?.username || ''
