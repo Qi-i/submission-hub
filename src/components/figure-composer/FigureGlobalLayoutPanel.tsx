@@ -68,6 +68,10 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
   }, [project.id, project.labelDefaults.fontSize])
 
   const commitLabelFontSize = () => {
+    if (!labelFontSizeDraft.trim()) {
+      setLabelFontSizeDraft(String(project.labelDefaults.fontSize))
+      return
+    }
     const parsed = Number(labelFontSizeDraft)
     const next = Number.isFinite(parsed) ? Math.max(8, Math.min(240, parsed)) : project.labelDefaults.fontSize
     setLabelFontSizeDraft(String(next))
@@ -112,7 +116,7 @@ export default function FigureGlobalLayoutPanel({ project, onCanvas, onLabelDefa
           value={labelFontSizeDraft}
           onChange={event => setLabelFontSizeDraft(event.target.value)}
           onBlur={commitLabelFontSize}
-          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
+          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setLabelFontSizeDraft(String(project.labelDefaults.fontSize)) }}
         />
         <select aria-label="标签位置" value={project.labelDefaults.position} onChange={event => onLabelDefaults({ position: event.target.value as FigureLabelSettings['position'] })}><option value="top-left">左上</option><option value="top-right">右上</option><option value="bottom-left">左下</option><option value="bottom-right">右下</option></select>
       </div>

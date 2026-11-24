@@ -17,8 +17,10 @@ export function parseAttachments(value) {
     const data = file?.content_base64
     if (typeof name !== 'string' || !name.trim() || name.length > 200 || /[\x00-\x1f\x7f]/.test(name))
       throw Error('附件名称无效')
-    if (typeof data !== 'string' || !data.length || data.length > Math.ceil(MAX_ATTACHMENT_BYTES/3)*4 ||
-        !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(data))
+    if (typeof data !== 'string' || !data.length || data.length % 4 !== 0 ||
+        data.length > Math.ceil(MAX_ATTACHMENT_BYTES/3)*4 ||
+        /[^A-Za-z0-9+/=]/.test(data) ||
+        (data.includes('=') && data.indexOf('=') < data.length - (data.endsWith('==') ? 2 : 1)))
       throw Error('附件编码或大小无效')
     const bytes = data.length/4*3-(data.endsWith('==')?2:data.endsWith('=')?1:0)
     total += bytes

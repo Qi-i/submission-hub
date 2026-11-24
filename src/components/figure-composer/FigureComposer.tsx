@@ -162,9 +162,10 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     const style = getComputedStyle(viewport)
     const availableWidth = Math.max(80, viewport.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - 18)
     const availableHeight = Math.max(80, viewport.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0) - 18)
-    const nextZoom = Math.max(.2, Math.min(1.5, Math.min(availableWidth / Math.max(1, project.canvas.width), availableHeight / Math.max(1, project.canvas.height))))
+    const nextZoom = Math.max(.02, Math.min(1.5, Math.min(availableWidth / Math.max(1, project.canvas.width), availableHeight / Math.max(1, project.canvas.height))))
     setZoom(Number(nextZoom.toFixed(3)))
     requestAnimationFrame(() => {
+      if (!autoFitViewRef.current) return
       viewport.scrollLeft = 0
       viewport.scrollTop = 0
     })
@@ -177,7 +178,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
 
   const setZoomLevel = useCallback((value: number) => {
     autoFitViewRef.current = false
-    const nextZoom = Math.max(.1, Math.min(4, value))
+    const nextZoom = Math.max(.02, Math.min(4, value))
     const viewport = canvasViewportRef.current
     if (!viewport) {
       setZoom(nextZoom)
@@ -203,7 +204,7 @@ export default function FigureComposer({ drafts, initialDraftId = null, onDraftF
     const viewport = canvasViewportRef.current
     if (!viewport) return
     autoFitViewRef.current = true
-    const frame = requestAnimationFrame(() => applyFitCanvasRef.current())
+    const frame = requestAnimationFrame(() => { if (autoFitViewRef.current) applyFitCanvasRef.current() })
     const observer = new ResizeObserver(() => {
       if (autoFitViewRef.current) applyFitCanvasRef.current()
     })

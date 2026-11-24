@@ -147,9 +147,9 @@ export default function FigureToolbar({ selectedCount, panelCount, zoom, layoutP
     view: <>
       <button type="button" aria-label="适配画布" title="适配画布" onClick={onFitView}><Scan size={13} /> 适配</button>
       <button type="button" title="100%" onClick={() => onZoom(1)}>100%</button>
-      <button type="button" title="缩小视图" aria-label="缩小视图" onClick={() => onZoom(Math.max(0.1, zoom - 0.25))}><ZoomOut size={14} /></button>
+      <button type="button" title="缩小视图" aria-label="缩小视图" disabled={zoom<=.02} onClick={() => onZoom(Math.max(.02, zoom / 1.25))}><ZoomOut size={14} /></button>
       <b className="figure-composer__zoom-value">{Math.round(zoom * 100)}%</b>
-      <button type="button" title="放大视图" aria-label="放大视图" onClick={() => onZoom(Math.min(4, zoom + 0.25))}><ZoomIn size={14} /></button>
+      <button type="button" title="放大视图" aria-label="放大视图" disabled={zoom>=4} onClick={() => onZoom(Math.min(4, zoom * 1.25))}><ZoomIn size={14} /></button>
     </>,
     edit: <>
       <button type="button" disabled={!canUndo} title="撤销编辑" aria-label="撤销编辑" onClick={onUndo}><Undo2 size={13} /></button>

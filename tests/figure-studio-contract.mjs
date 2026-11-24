@@ -71,6 +71,7 @@ assert(!composer.includes('drafts[0]'), 'generic Figure Composer must not bind t
 assert(composer.includes('selectAllPanels'), 'Figure Composer must expose select-all for multi-panel operations')
 assert(composer.includes('fitCanvasToViewport'), 'Figure Composer must expose a one-click fit-canvas view')
 assert(composer.includes('autoFitViewRef'), 'manual zoom must be able to exit automatic fit mode')
+assert(composer.includes('if (autoFitViewRef.current) applyFitCanvasRef.current()'), 'deferred automatic fit must respect manual zoom')
 assert(composer.includes("window.prompt('请输入新建组图工程名称'"), 'new Figure Composer projects must prompt for a project name')
 assert(composer.includes('figure-composer__project-name-input'), 'project name must be directly editable in the workbench header')
 assert(!composer.includes('FigurePreflightPanel') && !composer.includes('投稿尺寸检查'), 'retired 投稿尺寸检查 UI must not render in Figure Composer')
@@ -90,6 +91,7 @@ for (const field of ['panelWidth', 'layoutScale', 'gap', 'margin', 'offsetX', 'o
 assert((globalLayout.match(/<NumericDraftInput/g) || []).length >= 7, 'all global canvas and label numeric settings should share reliable draft behavior')
 assert((globalLayout.match(/<NumericDraftInput key=\{project\.id\}/g) || []).length >= 7, 'switching figure projects must discard prior uncommitted numeric drafts')
 assert(globalLayout.includes('[project.id, project.labelDefaults.fontSize]'), 'label size draft must reset on project switch')
+assert(globalLayout.includes('if (!labelFontSizeDraft.trim())'), 'clearing label size must not commit the minimum size')
 
 const sidebar = read('src/components/figure-composer/FigureSidebar.tsx')
 const layersIndex = sidebar.indexOf('图片与图层')

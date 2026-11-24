@@ -496,19 +496,19 @@
 }
 .figure-composer__label-core {
   display: grid;
-  grid-template-columns: auto minmax(0, 1.35fr) 58px minmax(0, .8fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
   align-items: center;
   gap: 4px;
 }
 .figure-composer__label-core > :is(select, input) {
   min-width: 0;
   width: 100%;
-  font-size: 10.5px !important;
+  font-size: 12px !important;
 }
 .figure-composer__label-core .figure-composer__check {
   margin: 0 2px 0 0 !important;
   white-space: nowrap;
-  font-size: 10.5px !important;
+  font-size: 12px !important;
 }
 .figure-composer__label-advanced { margin-top: 3px !important; }
 
@@ -626,6 +626,5 @@
   }
   .figure-composer__header > .figure-composer__toolbar { max-height: none !important; }
   .figure-composer__workspace { overflow: visible !important; }
-  .figure-composer__label-core { grid-template-columns: auto 1fr 48px; }
-  .figure-composer__label-core > select:last-child { grid-column: 2 / -1; }
+  .figure-composer__label-core { grid-template-columns: minmax(0,1fr) minmax(0,1.35fr); }
 }
