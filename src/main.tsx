@@ -12,6 +12,7 @@ import {
 import { mutateQiHubResearchTopic } from './integrations/qihubResearchTopicCrud'
 import { mutateQiHubJournalProfile } from './integrations/qihubJournalProfileCrud'
 import { mutateQiHubManuscriptDraft } from './integrations/qihubManuscriptDraftCrud'
+import { mutateQiHubPaper, mutateQiHubTimelineEvent } from './integrations/qihubPaperTimelineCrud'
 
 // Only the real QiHub Android WebView defines the native snapshot channel.
 // Keep all Supabase authentication inside this source application; native
@@ -45,6 +46,12 @@ if ('QiHubNativeTopicCrud' in window) {
   })
   Object.defineProperty(window, '__qihubManuscriptDraftCrud', {
     value: mutateQiHubManuscriptDraft, configurable: false,
+  })
+  Object.defineProperty(window, '__qihubPaperCrud', {
+    value: mutateQiHubPaper, configurable: false,
+  })
+  Object.defineProperty(window, '__qihubTimelineEventCrud', {
+    value: mutateQiHubTimelineEvent, configurable: false,
   })
 }
 
