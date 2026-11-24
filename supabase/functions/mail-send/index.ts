@@ -1,4 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.49.4'
+import {buildMime,parseAttachments} from './mime.mjs'
 const decoder=new TextDecoder()
 const encoder=new TextEncoder()
 const json=(x:any,status=200)=>new Response(status===204?null:JSON.stringify(x),{status,headers:{
@@ -19,7 +20,6 @@ function encodeBase64(str:string){
  let b='';for(let i=0;i<bytes.length;i+=8192)b+=String.fromCharCode(...bytes.slice(i,i+8192))
  return btoa(b)
 }
-function fold64(value:string){return value.match(/.{1,76}/g)?.join('\r\n')||''}
 function safeAddress(value:unknown){
  const v=String(value||'').trim()
  if(!/^[a-zA-Z0-9.!#$%&'*+\/?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/.test(v)||v.length>254)throw new Error('Invalid email address')
@@ -51,12 +51,16 @@ class SMTP{
    }
    throw Error('SMTP multiline response too long')
   }
+  async write(value:string){
+   const bytes=encoder.encode(value)
+   for(let offset=0;offset<bytes.length;){const n=await this.conn.write(bytes.subarray(offset));if(n<=0)throw Error('SMTP write failed');offset+=n}
+  }
   async cmd(value:string,code:number){
-   await this.conn.write(encoder.encode(value+'\r\n'))
+   await this.write(value+'\r\n')
    await this.expect(code)
   }
 }
-async function sendOutlook(admin:any,account:any,to:string,subject:string,content:string,replyTo:string){
+async function sendOutlook(admin:any,account:any,to:string,subject:string,content:string,replyTo:string,mime:string,hasAttachments:boolean){
  const token=await admin.rpc('mail_read_cloud_secret',{p_account_id:account.id})
  if(token.error||!token.data||!account.oauth_client_id||account.auth_kind!=='oauth2')
   throw Error('Outlook OAuth2 授权已失效，请重新连接')
@@ -87,17 +91,18 @@ async function sendOutlook(admin:any,account:any,to:string,subject:string,conten
     throw Error('原邮件指定的实际回复收件人为 '+(actual||'未知')+'，与当前收件人不一致；请核对后再发送')
    const reply=await fetch('https://graph.microsoft.com/v1.0/me/messages/'+encodeURIComponent(originalId)+'/reply',{
     method:'POST',redirect:'error',headers:{Authorization:'Bearer '+data.access_token,
-     'Content-Type':'application/json',Prefer:'IdType="ImmutableId"'},
-    body:JSON.stringify({comment:content})
+     'Content-Type':hasAttachments?'text/plain':'application/json',Prefer:'IdType="ImmutableId"'},
+    body:hasAttachments?encodeBase64(mime):JSON.stringify({comment:content})
    })
    if(reply.status!==202)throw Error('Microsoft Graph 回复未被接受（HTTP '+reply.status+'）')
    return 'reply'
   }
+  throw Error('缺少原邮件的 Graph 对话引用，请重新同步后回复')
  }
   const sending=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{
   method:'POST',redirect:'error',headers:{Authorization:'Bearer '+data.access_token,
-   'Content-Type':'application/json'},
-  body:JSON.stringify({message:{subject,body:{contentType:'Text',content},
+   'Content-Type':hasAttachments?'text/plain':'application/json'},
+  body:hasAttachments?encodeBase64(mime):JSON.stringify({message:{subject,body:{contentType:'Text',content},
    toRecipients:[{emailAddress:{address:to}}]},saveToSentItems:true})
  })
  if(sending.status!==202)throw Error('Microsoft Graph 发信未被接受（HTTP '+sending.status+'）')
@@ -128,9 +133,13 @@ Deno.serve(async req=>{
   if(!subject||subject.length>500||!content.trim()||content.length>100000)throw Error('Invalid subject or text')
   if(replyTo && !/^<[^\r\n<>]{3,300}>$/.test(replyTo))throw Error('Invalid In-Reply-To header')
  }catch{return json({error:'收件人、主题或正文无效'},422)}
+ let attachments:ReturnType<typeof parseAttachments>
+ try{attachments=parseAttachments(body.attachments)}catch(e){return json({error:String(e instanceof Error?e.message:e)},422)}
+ const mime=buildMime({from:safeAddress(a.address),to,subject,content,replyTo,attachments,
+  boundary:'qihub-'+crypto.randomUUID(),id:crypto.randomUUID()+'@submission-hub.local',date:new Date().toUTCString()})
  if(a.provider==='outlook'){
   try{
-   const mode=await sendOutlook(admin,a,to,subject,content,replyTo)
+   const mode=await sendOutlook(admin,a,to,subject,content,replyTo,mime,attachments.length>0)
    return json({sent:true,provider:'outlook',mode,
     message:mode==='reply'?'Microsoft Graph 已接受同一会话中的回复':'Microsoft Graph 已接受新邮件，存入已发送邮件'})
   }catch(e){
@@ -166,16 +175,7 @@ Deno.serve(async req=>{
   await client.cmd('MAIL FROM:<'+safeAddress(a.address)+'>',250)
   await client.cmd('RCPT TO:<'+to+'>',250)
   await client.cmd('DATA',354)
-  const message=[
-    'From: <'+safeAddress(a.address)+'>','To: <'+to+'>',
-    'Subject: =?UTF-8?B?'+encodeBase64(subject)+'?=',
-    'Date: '+new Date().toUTCString(),
-    'Message-ID: <'+crypto.randomUUID()+'@submission-hub.local>',
-    ...(replyTo?['In-Reply-To: '+replyTo,'References: '+replyTo]:[]),
-    'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: base64','',''+fold64(encodeBase64(content)),
-  ].join('\r\n')+'\r\n.\r\n'
-  await conn.write(encoder.encode(message))
+  await client.write(mime.replace(/\r\n$/,'')+'\r\n.\r\n')
   await client.expect(250)
   try{await client.cmd('QUIT',221)}catch{}
   return json({sent:true})

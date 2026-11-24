@@ -110,3 +110,7 @@ OAuth2 设备授权码放在私有数据库并由 Vault 加密，15 分钟左右
 - IMAP 一次完成文件夹的历史 UID 发现，并持久保存逐文件夹游标；后续只查询大于已处理游标的新 UID，以及尚未完成回填的旧 UID。服务器无法普遍提供云端 Webhook，故每 10 分钟的低频 Cron 仅作轻量检查；无可同步邮箱或全部处于退避期时，SQL 不触发 Edge Function。
 - Outlook 用户通过 Microsoft 设备登录页授权。网站管理员首次需要注册 Microsoft Entra 公共客户端，并在 Edge Secrets 配置 `MAIL_MICROSOFT_CLIENT_ID`，之后普通用户不用进入 Azure 管理中心。尚未配置这一站点凭据时，Outlook OAuth 仍不能完成。
 - CUGB 个性化邮箱设置示例提供 `imap.email.cugb.edu.cn:993`（SSL）与 `smtp.email.cugb.edu.cn:465`（SSL）。校方公开客户端指南还使用 `www.email.cugb.edu.cn`，遇到 SSL 问题可尝试校方列出的 `edu.icoremail.net`；它们是可选主机，不代表身份认证已经通过。务必使用完整邮箱登录名并确认邮箱客户端协议权限及密码/授权码。测试会分别报告 DNS/TLS/超时/认证层的故障，且不会发送测试邮件。
+
+## Web 邮件附件（增量开发）
+
+撰写及回复支持最多 10 个非空附件，单封合计 2 MiB；选择后可逐个删除。SMTP 使用 multipart/mixed MIME，Outlook 有附件时使用 Microsoft Graph MIME 发送与原会话回复，无需新增 OAuth 权限。服务器确认接收前不清除编辑内容。更大的科研文件仍须使用原邮箱或共享链接；实际 SMTP/Graph 发送需部署后验证。

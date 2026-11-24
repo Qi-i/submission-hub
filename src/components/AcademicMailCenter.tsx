@@ -237,6 +237,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
   const [composeTo,setComposeTo] = useState('')
   const [composeSubject,setComposeSubject] = useState('')
   const [composeBody,setComposeBody] = useState('')
+  const [composeFiles,setComposeFiles] = useState<File[]>([])
   const [replyId,setReplyId] = useState('')
   const listSequence = useRef(0)
   // Concurrent refreshes (return-to-tab, INSERT event and manual action)
@@ -762,17 +763,30 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     setComposeTo(reply?(active?.sender_address||''):'')
     setComposeSubject(reply?(active?.subject?.startsWith('Re:')?active.subject:'Re: '+(active?.subject||'')):'')
     setComposeBody('')
+    setComposeFiles([])
     setReplyId(reply?(active?.internet_message_id||''):'')
     setShowCompose(true)
   }
+  const addComposeFiles=(files:FileList|null)=>{
+    const next=[...composeFiles,...Array.from(files||[])]
+    if(next.length>10||next.some(file=>!file.size)||next.reduce((sum,file)=>sum+file.size,0)>2*1024*1024){
+      setError('每封邮件最多 10 个非空附件，合计不超过 2 MiB。');return
+    }
+    setComposeFiles(next)
+  }
   const sendMail=async()=>{
     if(!composeAccount||!composeTo.trim()||!composeSubject.trim()||!composeBody.trim())return
-    if(!confirm('确认使用选定邮箱发送邮件？发送后无法撤回。'))return
+    if(!confirm(`确认向 ${composeTo.trim()} 发送邮件${composeFiles.length?`（含 ${composeFiles.length} 个附件）`:''}？发送后无法撤回。`))return
     setBusy('send')
     try{
+      const attachments=await Promise.all(composeFiles.map(async file=>{
+        const bytes=new Uint8Array(await file.arrayBuffer());let binary=''
+        for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192))
+        return {name:file.name,content_type:file.type||'application/octet-stream',content_base64:btoa(binary)}
+      }))
       const response=await callFunction('mail-send',{account_id:composeAccount,to:composeTo.trim(),
-        subject:composeSubject.trim(),content:composeBody,reply_to:replyId})
-      setShowCompose(false);setComposeBody('')
+        subject:composeSubject.trim(),content:composeBody,reply_to:replyId,attachments})
+      setShowCompose(false);setComposeBody('');setComposeFiles([])
       setNotice(response.message||'邮件已被服务器接受，稍后可在已发送文件夹核对')
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
@@ -1179,7 +1193,7 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     </>:<MailPersonalization userId={userId} settings={pref} busy={busy!==null} onUpdate={savePref} onSaveKey={saveAIKey} onToast={showToast} onRefresh={loadMetadata}/>}
     {showCompose&&<div className="am-compose-backdrop" role="dialog" aria-modal="true" aria-label="撰写邮件">
       <div className="am-compose">
-        <header><strong>撰写邮件</strong><button type="button" onClick={()=>setShowCompose(false)} aria-label="关闭"><X size={17}/></button></header>
+        <header><strong>撰写邮件</strong><button type="button" disabled={busy==='send'} onClick={()=>setShowCompose(false)} aria-label="关闭"><X size={17}/></button></header>
         <label>发件邮箱<select value={composeAccount} onChange={e=>setComposeAccount(e.target.value)}>
           <option value="">请选择已授权发信的邮箱</option>
           {accounts.filter(a=>a.enabled&&(!!a.smtp_host||(a.provider==='outlook'&&a.cloud_state==='ready'))).map(a=><option value={a.id} key={a.id}>{a.address}</option>)}
@@ -1187,8 +1201,13 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
         <label>收件人<input type="email" value={composeTo} onChange={e=>setComposeTo(e.target.value)} placeholder="person@example.com"/></label>
         <label>主题<input value={composeSubject} onChange={e=>setComposeSubject(e.target.value)} placeholder="邮件主题"/></label>
         <label>正文<textarea rows={11} value={composeBody} onChange={e=>setComposeBody(e.target.value)} placeholder="输入纯文本邮件…"/></label>
-        <footer><span>使用 SSL/TLS SMTP 发出；发送前需确认。</span>
-          <button type="button" className="am-quiet-button" onClick={()=>setShowCompose(false)}>取消</button>
+        <section className="am-compose-attachments" aria-label="邮件附件">
+          <label className="am-attachment-picker"><FileText size={15}/> 添加附件<input aria-label="添加附件" type="file" multiple disabled={busy!==null} onChange={e=>{addComposeFiles(e.target.files);e.target.value=''}}/></label>
+          <small>{composeFiles.length} 个附件 · {(composeFiles.reduce((n,f)=>n+f.size,0)/1024/1024).toFixed(2)} / 2 MiB</small>
+          {composeFiles.map((file,index)=><div className="am-attachment-row" key={`${file.name}-${index}`}><FileText size={14}/><span title={file.name}>{file.name}</span><small>{Math.ceil(file.size/1024)} KB</small><button type="button" aria-label={`移除 ${file.name}`} disabled={busy!==null} onClick={()=>setComposeFiles(old=>old.filter((_,i)=>i!==index))}><X size={14}/></button></div>)}
+        </section>
+        <footer><span>使用选定邮箱的 SMTP / Microsoft Graph；发送前需确认。</span>
+          <button type="button" className="am-quiet-button" disabled={busy==='send'} onClick={()=>setShowCompose(false)}>取消</button>
           <button type="button" className="am-main-button" disabled={!composeAccount||!composeTo.trim()||!composeSubject.trim()||!composeBody.trim()||busy!==null} onClick={()=>void sendMail()}>{busy==='send'?'发送中…':'确认并发送'}</button>
         </footer>
       </div>

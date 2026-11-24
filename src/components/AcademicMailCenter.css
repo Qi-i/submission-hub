@@ -1979,3 +1979,13 @@ html[data-ui][data-theme="dark"] body .academic-mail-center .am-type-options lab
     break-inside:auto;white-space:pre-wrap;color:#17263d;
   }
 }
+
+/* Desktop mail composer: compact, independently scrollable attachment rows. */
+.am-compose-attachments{display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px 0}
+.am-compose-attachments .am-attachment-picker{display:flex;flex-direction:row;align-items:center;gap:8px;cursor:pointer;font-size:13px}
+.am-attachment-picker input{max-width:100%;font-size:12px;flex:1;min-width:0}
+.am-compose-attachments small{font-size:11px;opacity:.82}
+.am-attachment-row{display:flex;align-items:center;gap:8px;min-width:0;padding:5px 8px;border:1px solid currentColor;border-color:color-mix(in srgb,currentColor 16%,transparent);border-radius:7px}
+.am-attachment-row>span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.am-attachment-row>small{white-space:nowrap}
+.am-attachment-row>button{padding:4px;display:grid;place-items:center;background:transparent;border:0;color:inherit}
