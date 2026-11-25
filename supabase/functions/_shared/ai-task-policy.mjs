@@ -10,6 +10,8 @@ export function taskPolicy(pref,task){
  if(raw&&typeof raw==='object'&&Array.isArray(raw.routes)){
   return {routes:valid(raw.routes),fallback:raw.routes.length>1,allowPaid:task!=='mail_translation'&&raw.allowPaid===true,inherit:false}
  }
+ if(raw!==undefined&&raw!==null)return {routes:[],fallback:false,allowPaid:false,inherit:false}
+ if(pref.ai_shared_disabled===true)return {routes:[],fallback:false,allowPaid:false,inherit:true}
  const fallback=pref.ai_failover_enabled===true
  const routes=fallback?valid(pref.ai_route_order):valid([primary])
  return {routes,fallback,allowPaid:task!=='mail_translation'&&pref.ai_allow_paid===true&&!fallback,inherit:true}

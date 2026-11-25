@@ -4,15 +4,16 @@ import {supabase} from '../lib/supabase'
 import type {MailToastKind} from './MailToast'
 import {normalizeEndpoint,authOf,type AiProtocol,type AiAuth,type ChatTokenField} from '../../supabase/functions/_shared/ai-protocol.mjs'
 import {AI_TASKS,taskPolicy,type AiTask,type AiTaskPolicy} from '../../supabase/functions/_shared/ai-task-policy.mjs'
+import {modelBase} from '../../supabase/functions/_shared/ai-model-catalog.mjs'
 export type MailViewKind='all'|'important'|'review_invite'|'pending'|'submission_update'|'spam'
 export type MailView={id:string;title:string;kind:MailViewKind}
 export type MailSettings={
  user_id:string;workspace:{compact?:boolean;show_statistics?:boolean;views?:MailView[]};
  ai_enabled:boolean;ai_model:string;ai_daily_limit:number;ai_analyze_existing:boolean;ai_started_at?:string|null;
  ai_key_ready:boolean;last_ai_error:string|null;ai_endpoint_id?:string|null;ai_system_prompt?:string;ai_allow_paid?:boolean;ai_glm_platform?:'zai'|'bigmodel';
- ai_failover_enabled?:boolean;ai_route_order?:string[];ai_slow_mode?:boolean;ai_max_wait_seconds?:number;ai_glm_probe_ms?:number|null;ai_glm_probe_times?:Record<string,number>;ai_task_routes?:Partial<Record<AiTask,AiTaskPolicy|null>>
+ ai_failover_enabled?:boolean;ai_route_order?:string[];ai_slow_mode?:boolean;ai_max_wait_seconds?:number;ai_glm_probe_ms?:number|null;ai_glm_probe_times?:Record<string,number>;ai_task_routes?:Partial<Record<AiTask,AiTaskPolicy|null>>;ai_shared_disabled?:boolean
 }
-type Endpoint={id:string;label:string;api_url:string;model:string;declared_free:boolean;allow_paid:boolean;key_ready:boolean;last_test_at:string|null;last_test_status:string|null;last_test_latency_ms?:number|null;api_protocol?:AiProtocol;auth_scheme?:AiAuth;chat_token_field?:ChatTokenField;config_revision?:string;vision_test_status?:string|null}
+type Endpoint={id:string;label:string;api_url:string;model:string;declared_free:boolean;allow_paid:boolean;key_ready:boolean;last_test_at:string|null;last_test_status:string|null;last_test_latency_ms?:number|null;api_protocol?:AiProtocol;auth_scheme?:AiAuth;chat_token_field?:ChatTokenField;config_revision?:string;vision_test_status?:string|null;credential_source_id?:string|null}
 const taskLabels:Record<AiTask,string>={mail_translation:'邮件翻译',mail_analysis:'邮件自动分析',ledger_text:'账单文字智能导入',ledger_vision:'账单截图识别'}
 const protocolLabels:Record<AiProtocol,string>={chat:'OpenAI Chat Completions',messages:'Anthropic Messages',responses:'OpenAI Responses',gemini:'Gemini GenerateContent'}
 const presets=[{label:'OpenAI',url:'https://api.openai.com/v1',protocol:'responses'},{label:'Anthropic',url:'https://api.anthropic.com/v1',protocol:'messages'},{label:'Gemini',url:'https://generativelanguage.googleapis.com/v1beta',protocol:'gemini'},{label:'OpenAI 兼容 / 中转',url:'',protocol:'chat'}] as const
@@ -51,6 +52,14 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  const [testResult,setTestResult]=useState('')
  const [localError,setLocalError]=useState('')
  const [saving,setSaving]=useState(false)
+ const [catalogSource,setCatalogSource]=useState<string|null>(null)
+ const [catalog,setCatalog]=useState<{id:string;label:string}[]>([])
+ const [catalogCursor,setCatalogCursor]=useState<string|null>(null)
+ const [catalogQuery,setCatalogQuery]=useState('')
+ const [newSharedModel,setNewSharedModel]=useState('')
+ const [catalogBusy,setCatalogBusy]=useState(false)
+ const [catalogNotice,setCatalogNotice]=useState('')
+ const [analyzing,setAnalyzing]=useState(false)
  useEffect(()=>setPrompt(settings?.ai_system_prompt||DEFAULT_PROMPT),[settings?.ai_system_prompt])
  useEffect(()=>{if(localError)onToast('error',localError)},[localError,onToast])
  useEffect(()=>{if(testResult){
@@ -59,14 +68,14 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
    onToast(kind,testResult)
  }},[testResult,onToast])
  const reload=useCallback(async()=>{
-  const r=await (supabase.from('mail_ai_endpoints') as any).select('id,label,api_url,model,declared_free,allow_paid,key_ready,last_test_at,last_test_status,last_test_latency_ms,api_protocol,auth_scheme,chat_token_field,config_revision,vision_test_status').eq('user_id',userId).order('created_at',{ascending:true})
+  const r=await (supabase.from('mail_ai_endpoints') as any).select('id,label,api_url,model,declared_free,allow_paid,key_ready,last_test_at,last_test_status,last_test_latency_ms,api_protocol,auth_scheme,chat_token_field,config_revision,vision_test_status,credential_source_id').eq('user_id',userId).order('created_at',{ascending:true})
   if(r.error)setLocalError(r.error.message)
   else setEndpoints((r.data||[]) as Endpoint[])
  },[userId])
  useEffect(()=>{void reload()},[reload])
  const call=async(action:string,details:Record<string,unknown>={})=>{
   const {data,error}=await supabase.auth.getSession()
-  if(error||!data.session?.access_token)throw Error('请先重新登录')
+  if(error||!data.session?.access_token||data.session.user.id!==userId)throw Error('请先重新登录当前账号')
   const response=await fetch(import.meta.env.VITE_SUPABASE_URL+'/functions/v1/mail-ai-settings',{
    method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},
    body:JSON.stringify({action,...details})
@@ -104,7 +113,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
    candidate=normalizeEndpoint(url,protocol,model.trim())
    authOf(protocol,auth)
    const old=endpoints.find(e=>e.id===editId)
-   if(old&&(old.api_url!==candidate||old.model!==model.trim()||(old.api_protocol||'chat')!==protocol||(old.auth_scheme||'bearer')!==auth||(old.chat_token_field||'max_tokens')!==tokenField||old.declared_free!==free||old.allow_paid!==(free?false:paid))&&!endpointKey.trim())throw Error('接口或计费配置已改变，请重新填写 Key 后保存')
+   if(old&&(modelBase(old)!==modelBase({api_url:candidate,api_protocol:protocol,model:model.trim()})||(old.api_protocol||'chat')!==protocol||(old.auth_scheme||'bearer')!==auth)&&!endpointKey.trim())throw Error('服务地址或认证协议已改变，请重新填写 Key 后保存')
   }catch(e){setLocalError(e instanceof Error?e.message:String(e));return}
   setSaving(true)
   try{
@@ -118,7 +127,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   }catch(e){setLocalError(e instanceof Error?e.message:String(e));await reload()}
   finally{setSaving(false)}
  }
- const startEdit=(e:Endpoint)=>{setEditId(e.id);setLabel(e.label);setUrl(e.api_url);setModel(e.model);setProtocol(e.api_protocol||'chat');setAuth(e.auth_scheme||'bearer');setTokenField(e.chat_token_field||'max_tokens');setFree(e.declared_free);setPaid(e.allow_paid);setEndpointKey('');setTestResult('');setLocalError('');setShowApiEditor(true)}
+ const startEdit=(e:Endpoint)=>{setEditId(e.id);setLabel(e.label);setUrl(e.api_protocol==='gemini'?modelBase(e):e.api_url);setModel(e.model);setProtocol(e.api_protocol||'chat');setAuth(e.auth_scheme||'bearer');setTokenField(e.chat_token_field||'max_tokens');setFree(e.declared_free);setPaid(e.allow_paid);setEndpointKey('');setTestResult('');setLocalError('');setShowApiEditor(true)}
  const test=async(id:string|null,autoDetect=false,modelOverride?:string,vision=false)=>{
   const endpoint=id?endpoints.find(e=>e.id===id):null
   const paidTest=!!endpoint&&!endpoint.declared_free
@@ -139,12 +148,53 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
  const remove=async(id:string)=>{
   if(!confirm('删除这个模型接口？'))return
   setSaving(true)
-  try{if(settings?.ai_endpoint_id===id)await onUpdate({ai_endpoint_id:null,ai_enabled:false})
-   await call('delete_endpoint',{endpoint_id:id})
+  try{
+   await call('delete_endpoint',{endpoint_id:id,config_revision:endpoints.find(e=>e.id===id)?.config_revision})
    if(editId===id)resetDraft()
-   await reload()
+   await reload();await onRefresh()
   }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
   finally{setSaving(false)}
+ }
+ const openCatalog=(id:string)=>{setCatalogSource(id);setCatalog([]);setCatalogCursor(null);setCatalogQuery('');setNewSharedModel('');setCatalogNotice('')}
+ const root=endpoints.find(e=>e.id===catalogSource&&!e.credential_source_id&&e.key_ready)
+ const discover=async(more=false)=>{
+  if(!root||catalogBusy)return
+  setCatalogBusy(true);setCatalogNotice('')
+  try{
+   const r=await call('discover_models',{endpoint_id:root.id,config_revision:root.config_revision,...(more?{cursor:catalogCursor}:{})})
+   if(!Array.isArray(r.models))throw Error('未取得模型目录')
+   setCatalog(previous=>Array.from(new Map([...(more?previous:[]),...r.models as {id:string;label:string}[]].map(m=>[m.id,m])).values()).slice(0,1000))
+   setCatalogCursor(typeof r.next==='string'&&r.next!==catalogCursor?r.next:null)
+   setCatalogNotice(r.truncated?'本页模型过多，仅显示前500项，也可手动添加。':'模型目录不代表已通过调用测试或免费。')
+  }catch(e){setCatalogNotice(e instanceof Error?e.message:String(e))}
+  finally{setCatalogBusy(false)}
+ }
+ const addShared=async()=>{
+  if(!root||catalogBusy||!newSharedModel.trim())return
+  setCatalogBusy(true);setCatalogNotice('')
+  try{
+   await call('add_shared_model',{endpoint_id:root.id,config_revision:root.config_revision,model:newSharedModel.trim(),label:root.label+' · '+newSharedModel.trim()})
+   setNewSharedModel('');await reload();await onRefresh();setCatalogNotice('模型已添加，共用原 Key；请单独确认计费并进行文本/视觉测试。')
+  }catch(e){setCatalogNotice(e instanceof Error?e.message:String(e))}
+  finally{setCatalogBusy(false)}
+ }
+ const analyzePending=async()=>{
+  if(analyzing||busy)return
+  const p=taskPolicy(settings||{},'mail_analysis')
+  if(!p.routes.length){setLocalError('请先配置邮件分析任务线路');return}
+  const paidRoute=p.allowPaid&&!p.fallback&&p.routes.some(id=>endpoints.some(e=>'endpoint:'+e.id===id&&!e.declared_free&&e.allow_paid))
+  if(!confirm('分析当前待处理邮件（最多2封），将使用配置的模型'+(paidRoute?'，可能产生费用':'')+'。是否执行？'))return
+  setAnalyzing(true);setLocalError('');setTestResult('')
+  try{
+   const {data,error}=await supabase.auth.getSession()
+   if(error||data.session?.user.id!==userId)throw Error('请先重新登录当前账号')
+   const res=await fetch(import.meta.env.VITE_SUPABASE_URL+'/functions/v1/mail-ai-analyze',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({manual:true,allow_paid:paidRoute}),redirect:'error',signal:AbortSignal.timeout(130000)})
+   const r=await res.json()
+   if(!res.ok)throw Error(r.error||'分析失败')
+   setTestResult('本次完成 '+r.analyzed+' 封，失败 '+r.errors+' 封，模型请求 '+r.attempts+' 次。'+(r.eligibleRoutes===0?' 无可用线路、额度为零或仍处于冷却期。':''))
+   await onRefresh()
+  }catch(e){setLocalError(e instanceof Error?e.message:String(e))}
+  finally{setAnalyzing(false)}
  }
  const availableRoutes=[
   {id:'glm:glm-4.7-flash',label:'GLM-4.7-Flash · '+(settings?.ai_glm_platform==='bigmodel'?'BigModel':'Z.AI'),
@@ -184,7 +234,8 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   <div className="am-personal-section">
    <h4><Sparkles size={16}/> 共享 AI 模型库</h4>
    <label className="am-choice-label">公共默认线路
-    <select value={settings?.ai_endpoint_id||''} onChange={e=>void onUpdate({ai_endpoint_id:e.target.value||null,ai_enabled:false,ai_allow_paid:false})}>
+    <select disabled={busy||saving} value={settings?.ai_shared_disabled?'disabled':settings?.ai_endpoint_id||''} onChange={e=>void onUpdate(e.target.value==='disabled'?{ai_shared_disabled:true,ai_enabled:false}:{ai_shared_disabled:false,ai_endpoint_id:e.target.value||null,ai_enabled:false,ai_allow_paid:false})}>
+     <option value="disabled">暂停公共方案</option>
      <option value="">Z.AI · GLM 免费 Flash</option>
      {endpoints.map(e=><option key={e.id} value={e.id}>{e.label} · {e.model}</option>)}
     </select></label>
@@ -207,17 +258,26 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
      <button type="button" className="am-quiet-button" onClick={fillGarden} disabled={busy||saving}>预填 MagicZotero 翻译 API</button>
      <span>{endpoints.length} 个</span></div>
     {endpoints.map(e=><div key={e.id} className="am-endpoint-row">
-     <div><strong>{e.label}</strong><small>{protocolLabels[e.api_protocol||'chat']} · {e.model} · {e.declared_free?'自定义标记为免费':'可能收费'} · {e.key_ready?'已授权':'未授权'} · {e.last_test_status==='ok'?'已测试':'待验证'}</small></div>
+     <div><strong>{e.label}</strong><small>{protocolLabels[e.api_protocol||'chat']} · {e.model} · {e.declared_free?'自定义标记为免费':'可能收费'} · {e.key_ready?'已授权':'未授权'} · {e.last_test_status==='ok'?'已测试':'待验证'}</small><small>{e.credential_source_id?'共享授权：'+(endpoints.find(r=>r.id===e.credential_source_id)?.label||'原服务不可见'):'独立授权'+(endpoints.some(r=>r.credential_source_id===e.id)?' · '+endpoints.filter(r=>r.credential_source_id===e.id).length+' 个关联模型':'')}</small></div>
      <button type="button" disabled={busy||saving} onClick={()=>startEdit(e)}>编辑</button>
      <button type="button" disabled={!e.key_ready||!!testing||busy} onClick={()=>void test(e.id)}>文本测试</button>
      <button type="button" disabled={!e.key_ready||!!testing||busy} onClick={()=>void test(e.id,false,undefined,true)}>{e.vision_test_status==='ok'?'视觉已通过':'视觉测试'}</button>
+     {!e.credential_source_id&&<button type="button" disabled={!e.key_ready||busy||saving||catalogBusy} onClick={()=>openCatalog(e.id)}>添加同源模型</button>}
      {e.declared_free&&e.key_ready&&e.last_test_status==='ok'&&
       <button type="button" disabled={busy||saving||settings?.ai_endpoint_id===e.id}
-       onClick={()=>void onUpdate({ai_endpoint_id:e.id,ai_enabled:false,ai_allow_paid:false,ai_failover_enabled:false})}>
-       {settings?.ai_endpoint_id===e.id?'当前翻译线路':'用于翻译'}</button>}
+       onClick={()=>void onUpdate({ai_endpoint_id:e.id,ai_shared_disabled:false,ai_enabled:false,ai_allow_paid:false,ai_failover_enabled:false})}>
+       {settings?.ai_endpoint_id===e.id?'当前公共线路':'设为公共默认'}</button>}
      <button type="button" disabled={busy||saving} onClick={()=>void remove(e.id)} aria-label="删除接口"><Trash2 size={14}/></button>
-    </div>)}
+   </div>)}
    </div>
+   {catalogSource&&<div className="am-model-preset">
+    <div className="am-section-heading"><strong>共享授权 · {root?.label||'服务已失效'}</strong><button type="button" disabled={catalogBusy} onClick={()=>setCatalogSource(null)}>关闭</button></div>
+    {root&&<><div className="am-add-form"><button type="button" className="am-quiet-button" disabled={catalogBusy} onClick={()=>void discover()}>{catalogBusy?'处理中…':'获取服务商模型列表'}</button>
+     <label>手动填写模型 ID<input value={newSharedModel} onChange={e=>setNewSharedModel(e.target.value)} disabled={catalogBusy} maxLength={128}/></label>
+     <button type="button" className="am-main-button" disabled={catalogBusy||!newSharedModel.trim()} onClick={()=>void addShared()}>添加并复用授权</button></div>
+     {catalog.length>0&&<div className="am-add-form"><label>筛选模型<input value={catalogQuery} onChange={e=>setCatalogQuery(e.target.value)}/></label><label>从目录选择<select value="" disabled={catalogBusy} onChange={e=>setNewSharedModel(e.target.value)}><option value="">选择模型</option>{catalog.filter(m=>!endpoints.some(e=>e.model===m.id&&(e.id===root.id||e.credential_source_id===root.id))&&(m.id+' '+m.label).toLowerCase().includes(catalogQuery.toLowerCase())).map(m=><option key={m.id} value={m.id}>{m.label===m.id?m.id:m.label+' · '+m.id}</option>)}</select></label>{catalogCursor&&<button type="button" disabled={catalogBusy||catalog.length>=1000} onClick={()=>void discover(true)}>加载更多</button>}</div>}</>}
+    {catalogNotice&&<small role="status">{catalogNotice}</small>}
+   </div>}
    <details className="am-model-editor" open={!!editId||showApiEditor||undefined}
     onToggle={e=>setShowApiEditor(e.currentTarget.open)}><summary>{editId?'编辑自定义 API':'新增自定义 API'}</summary>
     <div className="am-add-form">
@@ -228,7 +288,7 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
      <label className="am-full-field">API Base URL 或完整请求地址<input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://api.example.com/v1"/><small>{requestAddress?'实际请求：'+requestAddress:'请填写与所选协议匹配的 HTTPS 地址'}</small></label>
      <label>认证方式<select value={auth} onChange={e=>setAuth(e.target.value as AiAuth)}><option value="bearer">Authorization: Bearer</option>{protocol==='messages'&&<option value="x-api-key">x-api-key</option>}{protocol==='gemini'&&<option value="x-goog-api-key">x-goog-api-key</option>}</select></label>
      {protocol==='chat'&&<label>输出 Token 参数<select value={tokenField} onChange={e=>setTokenField(e.target.value as ChatTokenField)}><option value="max_tokens">max_tokens（兼容接口）</option><option value="max_completion_tokens">max_completion_tokens（新模型）</option></select></label>}
-     <label>API Key<input type="password" autoComplete="new-password" value={endpointKey} onChange={e=>setEndpointKey(e.target.value)} placeholder={editId?'留空保持原 Key':'填写接口授权 Key'}/></label>
+     <label>API Key<input type="password" autoComplete="new-password" value={endpointKey} onChange={e=>setEndpointKey(e.target.value)} placeholder={editId?'留空保持原授权':'填写接口授权 Key'}/><small>{endpoints.find(e=>e.id===editId)?.credential_source_id?'输入新 Key 会解除共享，转为独立授权。':'轮换共享 Key 后关联模型需重新测试。'}</small></label>
     </div>
     <label className="am-option"><input type="checkbox" checked={free} onChange={e=>{setFree(e.target.checked);if(e.target.checked)setPaid(false)}}/> 已确认免费接口（服务商实际计费由用户核对）</label>
     <label className="am-option"><input type="checkbox" checked={paid&&!free} disabled={free} onChange={e=>setPaid(e.target.checked)}/> 允许付费分析调用</label>
@@ -293,6 +353,8 @@ export default function MailPersonalization({userId,settings,busy,onUpdate,onSav
   </details>
   <details className="am-personal-section am-analysis-settings">
    <summary>分析指令与调用额度</summary>
+   <p>定时模型分析保持关闭。可按已配置的分析线路主动处理待分析邮件。</p>
+   <div className="am-add-form"><label>分析每日请求额度<select value={settings?.ai_daily_limit??20} disabled={busy||analyzing} onChange={e=>void onUpdate({ai_daily_limit:Number(e.target.value)})}>{[0,5,10,20,30,50].map(n=><option key={n} value={n}>{n} 次</option>)}</select></label><button type="button" className="am-main-button" disabled={analyzing||busy||settings?.ai_daily_limit===0} onClick={()=>void analyzePending()}>{analyzing?'分析中…':'立即分析待处理邮件'}</button></div>
    <label className="am-choice-label">分析系统指令<textarea rows={5} maxLength={6000} value={prompt} onChange={e=>setPrompt(e.target.value)} /></label>
    <div className="am-add-form"><button type="button" className="am-main-button" disabled={!prompt.trim()||busy||prompt===settings?.ai_system_prompt} onClick={()=>void onUpdate({ai_system_prompt:prompt.trim()})}>保存分析指令</button>
     <button type="button" className="am-quiet-button" onClick={()=>setPrompt(DEFAULT_PROMPT)}>恢复默认文本</button></div>

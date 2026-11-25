@@ -38,7 +38,7 @@ const tests=[
    ui.includes('if (sequence !== metadataSequence.current) return')],
  ['Switching translation language cancels old result',ui.includes('[selected,translationLang,translationVisible]')],
  ['MagicZotero preset uses stated model and endpoint only',settings.includes('https://gpt.magiczotero.top/v1/chat/completions')&&settings.includes('magic-translate-gpt')&&settings.includes('setEndpointKey(\'\')')],
- ['Custom translation route requires explicit selection after successful test',settings.includes("e.declared_free&&e.key_ready&&e.last_test_status==='ok'")&&settings.includes("'用于翻译'")&&!settings.includes('测试通过，已设为默认翻译模型')],
+ ['Custom shared route requires explicit selection after successful test',settings.includes("e.declared_free&&e.key_ready&&e.last_test_status==='ok'")&&settings.includes("'设为公共默认'")&&!settings.includes('测试通过，已设为默认翻译模型')],
 
  ['Mail translation no longer uses arbitrary site daily quota',
   !translator.includes('mail_claim_ai_slot')&&!translator.includes('source.slice(0,8500)')&&!settings.includes('每日 AI 请求上限')],

@@ -1,5 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.49.4'
 import {buildAiRequest,extractAiText,checkedEndpoint,routeFields} from '../_shared/ai-protocol.mjs'
+import {modelCatalogRequest,catalogPage,sharedModelUrl} from '../_shared/ai-model-catalog.mjs'
 const cors={'content-type':'application/json','cache-control':'no-store','access-control-allow-origin':'https://qi-i.github.io','access-control-allow-methods':'POST,OPTIONS','access-control-allow-headers':'authorization,apikey,content-type'}
 const reply=(data:unknown,status=200)=>new Response(status===204?null:JSON.stringify(data),{status,headers:cors})
 const glmEndpoints={
@@ -103,19 +104,17 @@ Deno.serve(async req=>{
   }
   return reply({...first,platform:preferred})
  }
- if(action==='save_endpoint_key'||action==='test_endpoint'||action==='test_vision'||action==='delete_endpoint'){
+ if(['save_endpoint_key','test_endpoint','test_vision','delete_endpoint','discover_models','add_shared_model'].includes(action)){
   const id=String(body.endpoint_id||'')
   if(!/^[a-f0-9-]{36}$/i.test(id))return reply({error:'模型服务编号无效'},422)
   const lookup=await db.from('mail_ai_endpoints').select('*').eq('id',id).eq('user_id',userId).maybeSingle()
   if(lookup.error||!lookup.data)return reply({error:'找不到当前用户的模型接口'},404)
   const endpoint=lookup.data
   if(action==='delete_endpoint'){
-   const affected=await db.from('mail_preferences').select('ai_endpoint_id').eq('user_id',userId).maybeSingle()
-   if(affected.data?.ai_endpoint_id===id)await db.from('mail_preferences').update({ai_endpoint_id:null,ai_enabled:false,ai_allow_paid:false}).eq('user_id',userId)
-   const removed=await db.rpc('mail_destroy_endpoint_secret',{p_endpoint_id:id})
-   if(removed.error)return reply({error:'无法清理加密凭据'},500)
-   const deleted=await db.from('mail_ai_endpoints').delete().eq('id',id).eq('user_id',userId)
-   return deleted.error?reply({error:'删除接口失败'},500):reply({ok:true})
+   if(body.config_revision!==endpoint.config_revision)return reply({error:'配置已改变，请刷新后删除'},409)
+   const removed=await db.rpc('mail_remove_ai_model',{p_owner:userId,p_id:id,p_revision:endpoint.config_revision})
+   if(removed.error)return reply({error:'删除接口失败'},500)
+   return removed.data===true?reply({ok:true}):reply({error:'仍有模型共享此密钥，或配置已变化；请先移除依赖模型或为其配置独立 Key'},409)
   }
   let config:ReturnType<typeof routeFields>,destination:string
   try{config=routeFields(endpoint);destination=await checkedEndpoint(endpoint.api_url,config.protocol,endpoint.model,Deno.resolveDns?.bind(Deno))}
@@ -127,6 +126,35 @@ Deno.serve(async req=>{
    const stored=await db.rpc('mail_save_endpoint_key_for_config',{p_endpoint_id:id,p_revision:endpoint.config_revision,p_secret:secret})
    if(stored.error)return reply({error:'加密保存 API Key 失败'},500)
    return stored.data===true?reply({ok:true,key_ready:true}):reply({error:'接口配置已改变，请重新加载后授权'},409)
+  }
+  if(action==='discover_models'||action==='add_shared_model'){
+   if(endpoint.credential_source_id||!endpoint.key_ready)return reply({error:'请选择持有独立密钥的已授权服务模型'},422)
+   if(body.config_revision!==endpoint.config_revision)return reply({error:'服务配置已变化，请刷新后再操作'},409)
+   if(action==='add_shared_model'){
+    const model=typeof body.model==='string'?body.model.trim():''
+    const label=typeof body.label==='string'?body.label.trim().slice(0,80):model.slice(0,80)
+    if(!label)return reply({error:'模型名称不能为空'},422)
+    let target:string
+    try{target=sharedModelUrl(endpoint,model)}catch{return reply({error:'模型 ID 无效'},422)}
+    const added=await db.rpc('mail_add_shared_ai_model',{p_owner:userId,p_source:id,p_revision:endpoint.config_revision,p_label:label,p_model:model,p_url:target,p_token_field:endpoint.chat_token_field})
+    if(added.error)return reply({error:'新增共享模型失败'},500)
+    return added.data?reply({ok:true,id:added.data}):reply({error:'模型已存在、服务配置变化或模型数量达到上限'},409)
+   }
+   const secret=await db.rpc('mail_read_endpoint_key_for_config',{p_endpoint_id:id,p_revision:endpoint.config_revision})
+   if(!secret.data)return reply({error:'该服务未取得有效授权'},422)
+   const cursor=typeof body.cursor==='string'&&body.cursor.length<=512?body.cursor:null
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000)
+   try{
+    const request=modelCatalogRequest(endpoint,secret.data,cursor)
+    const res=await fetch(request.url,{method:'GET',headers:request.headers,redirect:'error',signal:controller.signal})
+    if(!res.ok){await res.body?.cancel();return reply({error:'服务商不支持模型发现或未授权（HTTP '+res.status+'），可手动添加模型 ID'},422)}
+    const reader=res.body?.getReader(),decoder=new TextDecoder()
+    let raw='',size=0
+    if(!reader)throw Error('empty response')
+    try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2*1024*1024){await reader.cancel();throw Error('catalog too large')}raw+=decoder.decode(value,{stream:true})}raw+=decoder.decode()}finally{reader.releaseLock()}
+    const page=catalogPage(config.protocol,JSON.parse(raw))
+    return reply({ok:true,models:page.models.slice(0,500),next:page.next,truncated:page.models.length>500})
+   }catch{return reply({error:'无法取得模型目录，可继续手动填写模型 ID'},422)}finally{clearTimeout(timer)}
   }
   if(!endpoint.key_ready)return reply({error:'请先为当前配置保存 Key'},422)
   if(!endpoint.declared_free&&body.allow_paid_test!==true)return reply({error:'此接口可能收费，需明确同意本次测试'},422)

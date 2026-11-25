@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {normalizeEndpoint,checkedEndpoint,buildAiRequest,extractAiText,authOf,routeFields} from '../supabase/functions/_shared/ai-protocol.mjs'
 import {taskPolicy,endpointEligible} from '../supabase/functions/_shared/ai-task-policy.mjs'
+import {modelBase,modelCatalogRequest,catalogPage,sharedModelUrl} from '../supabase/functions/_shared/ai-model-catalog.mjs'
+import {ledgerEvidenceId,buildLedgerDraft} from '../supabase/functions/_shared/ai-ledger-draft.mjs'
 
 const fixtures=[
  {protocol:'chat',auth:'bearer',model:'test-chat',base:'https://api.example.com/v1',url:'https://api.example.com/v1/chat/completions',response:{choices:[{finish_reason:'stop',message:{content:'OK'}}]}},
@@ -65,7 +67,7 @@ test('server integration shares one adapter, keeps credentials version-bound and
  const sql=read('supabase/044_mail_ai_protocols.sql')
  assert.match(sql,/api_protocol text not null default 'chat'/)
  assert.match(sql,/config_revision=p_revision for update/)
- assert.match(sql,/revoke insert, update on public\.mail_ai_endpoints from authenticated/)
+ assert.match(sql,/revoke insert, update, delete on public\.mail_ai_endpoints from authenticated/)
  assert.match(sql,/revoke all on function public\.mail_read_endpoint_key_for_config\(uuid,uuid\) from public,anon,authenticated/)
 })
 
@@ -100,4 +102,45 @@ test('multimodal inputs map to the actual image structures of all four protocols
   if(f.protocol==='gemini')assert.deepEqual(body.contents[0].parts[1].inlineData,{mimeType:'image/png',data:'aGVsbG8='})
  }
  assert.throws(()=>buildAiRequest({model:'test',key:'test-key'},{user:'bill',images:[{mime:'text/html',data:'aGVsbG8='}]}))
+})
+
+test('model discovery uses only the existing provider base and preserves protocol-specific auth',()=>{
+ for(const f of fixtures){
+  const e={api_url:f.url,model:f.model,api_protocol:f.protocol,auth_scheme:f.auth}
+  assert.equal(modelBase(e),f.base)
+  const r=modelCatalogRequest(e,'test-key','https://evil.example/next')
+  assert.equal(new URL(r.url).origin,new URL(f.url).origin)
+  assert.equal(new URL(r.url).pathname,new URL(f.base+'/models').pathname)
+  assert.equal(r.headers.Authorization??r.headers[f.auth],f.auth==='bearer'?'Bearer test-key':'test-key')
+  assert.equal(sharedModelUrl(e,'new-model'),f.protocol==='gemini'?f.base+'/models/new-model:generateContent':f.url)
+ }
+ assert.deepEqual(catalogPage('messages',{data:[{id:'model-a',display_name:'A'},{id:'model-a'},{id:'bad id'}],has_more:true,last_id:'model-a'}),{models:[{id:'model-a',label:'A'}],next:'model-a'})
+ assert.deepEqual(catalogPage('gemini',{models:[{name:'models/vision',supportedGenerationMethods:['generateContent']},{name:'models/embed',supportedGenerationMethods:['embedContent']}]}).models,[{id:'vision',label:'vision'}])
+ assert.throws(()=>sharedModelUrl({api_url:fixtures[3].url,model:fixtures[3].model,api_protocol:'gemini'},'../redirect'))
+})
+test('shared credentials remain owner-scoped and version-bound; deleted default pauses inherited tasks',()=>{
+ const sql=readFileSync(new URL('../supabase/044_mail_ai_protocols.sql',import.meta.url),'utf8')
+ assert.match(sql,/root.user_id=e.user_id and root.credential_source_id is null and root.key_ready/)
+ assert.match(sql,/where c.credential_source_id=new.id and c.user_id=new.user_id/)
+ assert.match(sql,/if exists\(select 1 from public.mail_ai_endpoints where credential_source_id=p_id\) then return false/)
+ assert.match(sql,/delete from vault.secrets where id=sid/)
+ assert.deepEqual(taskPolicy({ai_shared_disabled:true},'ledger_text').routes,[])
+ assert.deepEqual(taskPolicy({ai_task_routes:{ledger_text:{oops:true}}},'ledger_text').routes,[])
+})
+test('all clients receive one stable sparse import batch without inventing dates or currency',async()=>{
+ const batchId=await ledgerEvidenceId('  lunch  ',[{data:'aGVsbG8='},{data:'d29ybGQ='}])
+ assert.equal(batchId,await ledgerEvidenceId('lunch',[{data:'d29ybGQ='},{data:'aGVsbG8='}]))
+ const evidence={name:'午餐',amount:12.5,income:false,kind:'ordinary',date:'2026-11-25',operation:{currency:'CNY',amountMinor:1250,occurredAt:'2026-11-25',source:{platform:'test',orderId:'a'}}}
+ const batch=await buildLedgerDraft(batchId,[evidence,evidence,{name:'unknown',amount:5,kind:'refund',operation:{currency:'JPY',amountMinor:5,originalTransactionRef:'old'}}])
+ assert.equal(batch.operations[0].amountMinor,1250)
+ assert.equal(batch.operations[0].occurredAt,undefined)
+ assert.notEqual(batch.operations[0].clientId,batch.operations[1].clientId)
+ assert.equal(batch.operations[2].amountMinor,5)
+ assert.equal(batch.operations[2].type,'refund.create')
+ assert.equal(batch.operations[2].originalTransactionRef,'old')
+ assert.deepEqual(await buildLedgerDraft(batchId,[evidence]),await buildLedgerDraft(batchId,[evidence]))
+ const missing=(await buildLedgerDraft(batchId,[{name:'unknown',amount:8,kind:'ordinary'}])).operations[0]
+ assert.equal(missing.currency,null);assert.equal(missing.amountMinor,null);assert.equal(missing.type,null)
+ const conflict=(await buildLedgerDraft(batchId,[{...evidence,operation:{currency:'CNY',amountMinor:100}}])).operations[0]
+ assert.equal(conflict.amountMinor,null)
 })

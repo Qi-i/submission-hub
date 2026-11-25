@@ -1,6 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.49.4'
 import {buildAiRequest,extractAiText,checkedEndpoint,routeFields} from '../_shared/ai-protocol.mjs'
 import {taskPolicy,endpointEligible} from '../_shared/ai-task-policy.mjs'
+import {ledgerEvidenceId,buildLedgerDraft} from '../_shared/ai-ledger-draft.mjs'
 const cors={'content-type':'application/json','cache-control':'no-store','access-control-allow-origin':'https://qi-i.github.io','access-control-allow-methods':'POST,OPTIONS','access-control-allow-headers':'authorization,apikey,content-type'}
 const reply=(data:unknown,status=200)=>new Response(status===204?null:JSON.stringify(data),{status,headers:cors})
 const maxEncoded=8*1024*1024
@@ -53,10 +54,12 @@ Deno.serve(async req=>{
   if(images.reduce((sum,i)=>sum+i.data.length,0)>maxEncoded||!text&&!images.length)throw Error('请提供账单内容；图片总大小不超过6 MiB')
  }catch{return reply({error:'账单内容无效或超限；文字最多5万字、图片最多6张合计6 MiB'},422)}
  const task=images.length?'ledger_vision':'ledger_text'
+ const batchId=await ledgerEvidenceId(text,images)
  const prefs=await db.from('mail_preferences').select('*').eq('user_id',uid).maybeSingle()
  if(prefs.error||!prefs.data)return reply({error:'请先在 Web 配置共享 AI 线路'},422)
  const policy=taskPolicy(prefs.data,task)
- const list=await db.from('mail_ai_endpoints').select('*').eq('user_id',uid).limit(100)
+ const ids=policy.routes.filter(id=>id.startsWith('endpoint:')).map(id=>id.slice(9))
+ const list=ids.length?await db.from('mail_ai_endpoints').select('*').eq('user_id',uid).in('id',ids):{data:[],error:null}
  if(list.error)return reply({error:'线路配置暂不可用'},503)
  const deadline=Date.now()+105000
  let attempted=0
@@ -89,9 +92,10 @@ Deno.serve(async req=>{
    const output=extractAiText(route.protocol,JSON.parse(await boundedText(result.body,2*1024*1024)))
    if(!output)continue
    const transactions=drafts(output)
+   const batch=await buildLedgerDraft(batchId,transactions)
    // The response is only a proposed draft. This function never writes ledger
    // data, stores images, returns provider secrets or receives ledger tokens.
-   return reply({ok:true,task,model:route.name,transactions,committed:false})
+   return reply({ok:true,task,model:route.name,transactions,batch,committed:false})
   }catch{continue}finally{clearTimeout(timer)}
  }
  return reply({error:attempted?'候选模型未返回完整账单结果，请检查 Web 配置或分批重试':'没有符合此任务能力与付费许可的已验证线路，请在 Web 配置'},attempted?422:409)

@@ -10,7 +10,7 @@ const worker=read('supabase/functions/mail-ai-analyze/index.ts')
 const ui=read('src/components/AcademicMailCenter.tsx')
 const personal=read('src/components/MailPersonalization.tsx')
 const migration=read('supabase/021_mail_connection_custom_models.sql')
-const endpointCleanup=read('supabase/023_mail_endpoint_cleanup.sql')
+const endpointCleanup=read('supabase/044_mail_ai_protocols.sql')
 const category=read('supabase/024_mail_ai_category.sql')
 const smtpMigration=read('supabase/025_mail_health_smtp_secret.sql')
 const aiReauthMigration=read('supabase/026_mail_ai_endpoint_reauthorization.sql')
@@ -33,7 +33,7 @@ for(const [name,condition] of [
  ['cloud polling gated on verified mailboxes',config.includes("cloud_state:'not_configured'")&&config.includes("cloud_state:ok?'ready':'not_configured'")],
  ['custom endpoint RLS',migration.includes('enable row level security')&&migration.includes('mail_ai_endpoints_owner')],
  ['per endpoint secret in Vault',migration.includes('vault.create_secret')&&modelApi.includes('mail_save_endpoint_key')],
- ['key destruction',endpointCleanup.includes('vault.delete_secret')&&modelApi.includes('mail_destroy_endpoint_secret')],
+ ['key destruction',endpointCleanup.includes('delete from vault.secrets')&&modelApi.includes('mail_remove_ai_model')],
  ['model test without an email payload',modelApi.includes("user:'连接测试。请回复 OK'")&&modelApi.includes('buildAiRequest(')],
  ['manual AI prompt',worker.includes("pref.ai_system_prompt")&&personal.includes('保存分析指令')],
  ['instruction safety invariant',worker.includes('不得实际发送邮件、调用工具或修改论文状态')],

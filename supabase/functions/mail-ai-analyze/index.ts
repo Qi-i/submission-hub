@@ -61,11 +61,16 @@ Deno.serve(async req=>{
   if(auth.error||!auth.data.user)return reply({error:'Unauthorized'},401)
   owner=auth.data.user.id
  }
- let q=admin.from('mail_preferences').select('*').eq('ai_enabled',true).gt('ai_daily_limit',0)
+ let manual=false,allowPaid=false
+ if(owner){
+  try{const body=await req.json();manual=body?.manual===true;allowPaid=body?.allow_paid===true}catch{}
+ }
+ let q=admin.from('mail_preferences').select('*').gt('ai_daily_limit',0)
+ if(!manual)q=q.eq('ai_enabled',true)
  if(owner)q=q.eq('user_id',owner)
  const settings=await q.limit(20)
  if(settings.error)return reply({error:'Preferences unavailable'},500)
- let analyzed=0,errors=0,attempts=0
+ let analyzed=0,errors=0,attempts=0,eligibleRoutes=0
  const deadline=Date.now()+115000 // Free Edge wall-clock is 150s; leave space for DB operations.
  for(const pref of settings.data||[]){
   if(Date.now()>deadline-12000||analyzed+errors>=3)break
@@ -74,7 +79,8 @@ Deno.serve(async req=>{
   const policy=taskPolicy(pref,'mail_analysis')
   const fallbackOn=policy.fallback
   const ordered=policy.routes
-  const custom=await admin.from('mail_ai_endpoints').select('*').eq('user_id',pref.user_id).limit(40)
+  const customIds=ordered.filter(id=>id.startsWith('endpoint:')).map(id=>id.slice(9))
+  const custom=customIds.length?await admin.from('mail_ai_endpoints').select('*').eq('user_id',pref.user_id).in('id',customIds):{data:[],error:null}
   if(custom.error)continue
   const byId=new Map((custom.data||[]).map(x=>[x.id,x]))
   const keyCache=new Map<string,string>()
@@ -89,6 +95,7 @@ Deno.serve(async req=>{
    }else if(id.startsWith('endpoint:')){
     const customId=id.slice(9),cfg=byId.get(customId)
     if(!endpointEligible(cfg,'mail_analysis',policy))continue
+    if(manual&&!cfg?.declared_free&&!allowPaid)continue
     let url:string,config:ReturnType<typeof routeFields>
     try{config=routeFields(cfg);url=await checkedEndpoint(cfg.api_url,config.protocol,cfg.model,Deno.resolveDns?.bind(Deno))}catch{continue}
     let key=keyCache.get(id)
@@ -97,9 +104,10 @@ Deno.serve(async req=>{
    }
   }
   if(!routes.length)continue
+  eligibleRoutes+=routes.length
   let mquery=admin.from('mail_messages').select('id,user_id,subject,sender_address,body_text,received_at,ai_state')
    .eq('user_id',pref.user_id).eq('ai_state','pending').order('first_saved_at',{ascending:true}).limit(2)
-  if(!pref.ai_analyze_existing){
+  if(!manual&&!pref.ai_analyze_existing){
    if(!pref.ai_started_at)continue
    mquery=mquery.gte('first_saved_at',pref.ai_started_at)
   }
@@ -134,8 +142,8 @@ Deno.serve(async req=>{
       ai_summary:String(value.summary).slice(0,280),ai_tags:tags,ai_action:text(value.action,180),
       ai_priority:clamp(Math.round(Number(value.priority)||0),0,3),ai_category:category,
       ai_state:'done',ai_model:route.name+' / '+route.model,ai_analyzed_at:new Date().toISOString(),ai_error:null
-     }).eq('id',m.id).eq('user_id',pref.user_id).eq('ai_state','pending')
-     if(!save.error){done=true;analyzed++
+     }).eq('id',m.id).eq('user_id',pref.user_id).eq('ai_state','pending').select('id').maybeSingle()
+     if(!save.error&&save.data){done=true;analyzed++
       await admin.from('mail_preferences').update({ai_retry_after:null,last_ai_error:null}).eq('user_id',pref.user_id)
      }
      break
@@ -163,5 +171,5 @@ Deno.serve(async req=>{
    if(Date.now()>deadline-30000)break
   }
  }
- return reply({analyzed,errors,attempts})
+ return reply({analyzed,errors,attempts,eligibleRoutes})
 })

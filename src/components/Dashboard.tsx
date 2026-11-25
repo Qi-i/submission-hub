@@ -24,6 +24,7 @@ import { Search, Plus, Download, Upload, LogOut, ChevronDown, FileText, Filter, 
 import PersonalStats from './PersonalStats'
 import AdminPanel from './AdminPanel'
 import AcademicMailCenter from './AcademicMailCenter'
+import LedgerAiWorkspace from './LedgerAiWorkspace'
 
 type ViewFilter = 'all' | 'me' | 'author'
 type Tab = 'preparation' | 'journals' | 'dashboard' | 'mail' | 'stats' | 'admin'
@@ -87,6 +88,9 @@ export default function Dashboard() {
   const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
   const [preparationSection, setPreparationSection] = useState<PreparationSection>('overview')
   const [showSettings, setShowSettings] = useState(false)
+  const [ledgerAiOpen,setLedgerAiOpen]=useState(()=>window.location.hash==='#ledger-ai')
+  useEffect(()=>{const open=()=>{if(window.location.hash==='#ledger-ai')setLedgerAiOpen(true)};window.addEventListener('hashchange',open);return()=>window.removeEventListener('hashchange',open)},[])
+  const closeLedgerAi=()=>{setLedgerAiOpen(false);if(window.location.hash==='#ledger-ai')history.replaceState(null,'',window.location.pathname+window.location.search)}
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [transferring, setTransferring] = useState(false)
@@ -385,6 +389,7 @@ export default function Dashboard() {
                 <div className="header-account-identity">{user.display_name || user.username}<small>Submission Hub</small></div>
                 {!isDemo && <button type="button" role="menuitem" onClick={() => { setUserMenuOpen(false); setShowSettings(true) }}>
                   <Settings size={15}/> 个人设置</button>}
+                {!isDemo && <button type="button" role="menuitem" onClick={()=>{setUserMenuOpen(false);setLedgerAiOpen(true)}}><FileText size={15}/> 账单智能识别</button>}
                 <button type="button" role="menuitem" onClick={() => { cycleTheme(); setUserMenuOpen(false) }}>
                   {mode === 'light' ? <Moon size={15}/> : mode === 'dark' ? <Monitor size={15}/> : <Sun size={15}/>} 切换主题</button>
                 <div className="header-account-divider"/>
@@ -529,6 +534,7 @@ export default function Dashboard() {
       }} onClose={() => setEditing(null)} />}
 
       {showSettings && <AccountSettingsModal onClose={() => setShowSettings(false)} />}
+      {ledgerAiOpen&&user&&!isDemo&&<LedgerAiWorkspace key={user.id} userId={user.id} onClose={closeLedgerAi}/>}
     </div>
   )
 }

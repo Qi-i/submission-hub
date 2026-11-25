@@ -138,7 +138,7 @@ Deno.serve(async req=>{
  const possible:Route[]=[]
  let customList:Record<string,any>[]=[]
  if(choices.some(id=>id.startsWith('endpoint:'))){
-  const all=await db.from('mail_ai_endpoints').select('*').eq('user_id',uid).limit(35)
+  const all=await db.from('mail_ai_endpoints').select('*').eq('user_id',uid).in('id',choices.filter(id=>id.startsWith('endpoint:')).map(id=>id.slice(9)))
   customList=all.data||[]
  }
  for(const rid of choices){
