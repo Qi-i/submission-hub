@@ -34,7 +34,7 @@
     "check:backup-structure": "node tests/backup-structure.test.mjs",
     "check:online-only": "node tests/online-only-contract.mjs",
     "check:qihub-native-source": "node tests/qihub-native-source-feed.mjs && node tests/qihub-native-topic-crud.mjs && node tests/qihub-native-journal-crud.mjs && node tests/qihub-native-manuscript-crud.mjs && node tests/qihub-native-paper-timeline-crud.mjs",
-    "check:mail-center": "node tests/academic-mail-center-contract.mjs && node tests/mail-attachment-mime-contract.mjs",
+    "check:mail-center": "node tests/academic-mail-center-contract.mjs && node tests/mail-attachment-mime-contract.mjs && node --test tests/mail-ai-protocols.test.mjs",
     "check:submission-business": "node tests/submission-status-business.test.mjs",
     "check:paper-cas": "node tests/paper-field-merge.test.mjs",
     "verify": "npm run check:release && npm run check:privacy && npm run check:figure-studio && npm run check:preparation-unified && npm run check:workspace-recovery && npm run check:backup-structure && npm run check:online-only && npm run check:qihub-native-source && npm run check:mail-center && npm run check:submission-business && npm run check:paper-cas && node tests/journal-auto-catalog-check.mjs && npm run check:journal-selection && npm run check:journal-rank-display && node tests/visual/document-storage-check.mjs && npm run build",

@@ -20,12 +20,13 @@ Deno.serve(async req=>{
  const medium=body.level==='medium'
  if(body.level!=='short'&&!medium)return response({error:'Invalid test level'},422)
  const dest='https://gpt.magiczotero.top/v1/chat/completions'
- const list=await admin.from('mail_ai_endpoints').select('id,api_url,model,declared_free,allow_paid,key_ready')
+ const list=await admin.from('mail_ai_endpoints').select('id,api_url,model,declared_free,allow_paid,key_ready,config_revision')
   .eq('api_url',dest).eq('model','magic-translate-gpt')
+  .eq('api_protocol','chat').eq('auth_scheme','bearer').eq('chat_token_field','max_tokens')
   .eq('declared_free',true).eq('allow_paid',false).eq('key_ready',true).limit(1)
  if(list.error||!list.data?.length)return response({error:'No authorized free MagicZotero endpoint'},422)
  const endpoint=list.data[0]
- const secret=await admin.rpc('mail_read_endpoint_key',{p_endpoint_id:endpoint.id})
+ const secret=await admin.rpc('mail_read_endpoint_key_for_config',{p_endpoint_id:endpoint.id,p_revision:endpoint.config_revision})
  if(secret.error||!secret.data)return response({error:'Saved credential unavailable'},422)
  const synthetic=medium
   ?Array.from({length:7},(_,i)=>'Paragraph '+(i+1)+': The authors conducted a systematic landslide susceptibility evaluation, verified spatial cross-validation, and retained the DOI 10.1016/j.enggeo.2026.123456.').join('\n')

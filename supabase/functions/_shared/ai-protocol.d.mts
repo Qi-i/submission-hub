@@ -1,0 +1,11 @@
+export type AiProtocol='chat'|'messages'|'responses'|'gemini';
+export type AiAuth='bearer'|'x-api-key'|'x-goog-api-key';
+export type ChatTokenField='max_tokens'|'max_completion_tokens';
+export const PROTOCOLS:Readonly<Record<AiProtocol,string>>;
+export function protocolOf(value?:unknown):AiProtocol;
+export function authOf(protocol:unknown,value?:unknown):AiAuth;
+export function normalizeEndpoint(raw:string,protocol?:AiProtocol,model?:string):string;
+export function checkedEndpoint(raw:string,protocol:AiProtocol,model:string,resolve?: (host:string,type:'A'|'AAAA')=>Promise<string[]>):Promise<string>;
+export function routeFields(row:Record<string,unknown>):{protocol:AiProtocol;auth:AiAuth;tokenField:ChatTokenField};
+export function buildAiRequest(route:{model:string;key?:string;secret?:string;protocol?:string;auth?:string;tokenField?:string},options:{system?:string;user:string;maxTokens?:number;temperature?:number;images?:{mime:string;data:string}[]}):{headers:Record<string,string>;body:Record<string,unknown>};
+export function extractAiText(protocol:unknown,data:unknown):string|null;

@@ -1,18 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.49.4'
+import {buildAiRequest,extractAiText,checkedEndpoint,routeFields} from '../_shared/ai-protocol.mjs'
 const cors={'content-type':'application/json','cache-control':'no-store','access-control-allow-origin':'https://qi-i.github.io','access-control-allow-methods':'POST,OPTIONS','access-control-allow-headers':'authorization,apikey,content-type'}
 const reply=(data:unknown,status=200)=>new Response(status===204?null:JSON.stringify(data),{status,headers:cors})
-const validHost=(h:string)=>/^(?=.{4,190}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(h)&&!/(^|\.)(local|localhost|internal|lan|home|onion|arpa|test|invalid)$/.test(h)
-async function verifyUrl(raw:string){
- const u=new URL(raw)
- if(u.protocol!=='https:'||u.port||u.username||u.password||u.search||u.hash||!validHost(u.hostname))
-  throw Error('API 地址必须是无附加凭据的公网 HTTPS URL（443 端口）')
- const a=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(u.hostname,'A').catch(()=>[] as string[]):Promise.resolve([] as string[])) as string[]
- const b=await (typeof Deno.resolveDns==='function'?Deno.resolveDns(u.hostname,'AAAA').catch(()=>[] as string[]):Promise.resolve([] as string[])) as string[]
- // Advisory DNS data may be unavailable at Edge; HTTPS + cert verifies the API endpoint.
- if(a.some(ip=>{const p=ip.split('.').map(Number),[x,y]=p;return p.length!==4||p.some(n=>n<0||n>255)||x===0||x===10||x===127||x>=224||x===169&&y===254||x===172&&y>=16&&y<=31||x===192&&y===168||x===100&&y>=64&&y<=127||x===192&&y===0||x===198&&y>=18&&y<=19})||b.some(ip=>/^(::|::1|f[cd]|fe[89ab]|ff|2001:db8)/i.test(ip)||/::ffff:/i.test(ip)))throw Error('API 地址解析到内网或保留地址')
- if(!u.pathname.endsWith('/chat/completions'))throw Error('请输入完整的 OpenAI 兼容 /chat/completions 地址')
- return u.href
-}
 const glmEndpoints={
  zai:'https://api.z.ai/api/paas/v4/chat/completions',
  bigmodel:'https://open.bigmodel.cn/api/paas/v4/chat/completions'
@@ -31,20 +20,19 @@ function codeInfo(status:number,code:string,reason:string){
  if(status===400||status===404)return {category:'config',message:'模型或请求参数被服务商拒绝（HTTP '+status+'）。'+(reason?' '+reason:'')}
  return {category:'server',message:'服务商返回 HTTP '+status+(reason?'：'+reason:'')}
 }
-async function modelTest(url:string,model:string,key:string,timeoutMs=60000){
- await verifyUrl(url)
+async function modelTest(url:string,model:string,key:string,timeoutMs=60000,config:{protocol?:string;auth?:string;tokenField?:string}={},vision=false){
  const t0=Date.now(),controller=new AbortController()
  const timer=setTimeout(()=>controller.abort(),Math.min(90000,Math.max(15000,timeoutMs)))
  try{
-  const result=await fetch(url,{method:'POST',redirect:'error',signal:controller.signal,headers:{
-   Authorization:'Bearer '+key,'Content-Type':'application/json'
-  },body:JSON.stringify({model,messages:[{role:'user',content:'连接测试。请回复 OK'}],max_tokens:16})})
+  const request=buildAiRequest({model,key,...config},vision?{user:'What is the dominant color in the image? Reply with only the English color name.',maxTokens:512,images:[{mime:'image/png',data:'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAARUlEQVR4nO3OsQEAEADAMPz/M7slI0NzQeYef1mvA7dCUkgKSSEpJIWkkBSSQlJICkkhKSSFpJAUkkJSSApJISkkhaSQHEnhAV+0eRpfAAAAAElFTkSuQmCC'}]}:{user:'连接测试。请回复 OK',maxTokens:512})
+  const result=await fetch(url,{method:'POST',redirect:'error',signal:controller.signal,
+   headers:request.headers,body:JSON.stringify(request.body)})
   const raw=await result.text()
   let data:Record<string,any>={}
-  try{data=JSON.parse(raw.slice(0,6000))}catch{}
+  try{if(raw.length<=256000)data=JSON.parse(raw)}catch{}
   if(!result.ok){
    const biz=String(data?.error?.code??data?.code??'').slice(0,20)
-   const hint=String(data?.error?.message??data?.message??'').replace(/https?:\/\/\S+/g,'[url]').slice(0,120)
+   const hint='' // Do not echo upstream errors, which may contain credentials.
    const info=codeInfo(result.status,biz,hint)
    const retryRaw=result.headers.get('retry-after')
    const retryNum=retryRaw?Number(retryRaw):NaN
@@ -53,12 +41,13 @@ async function modelTest(url:string,model:string,key:string,timeoutMs=60000){
     retry_after_seconds:Number.isFinite(retryNum)?Math.min(3600,Math.max(0,retryNum)):null,
     latency_ms:Date.now()-t0}
   }
-  const ok=Array.isArray(data?.choices)&&data.choices.length>0
+  const output=extractAiText(config.protocol,data)
+  const ok=vision?!!output&&/^red[.!\s]*$/i.test(output.trim()):!!output
   return {ok,reachable:true,category:ok?'ok':'format',
-   message:ok?'模型接口正常，已返回有效响应':'HTTP 200，但服务商响应结构与 Chat Completions 不一致',
+   message:ok?'模型接口正常，已返回有效文本':'HTTP 200，但没有获得完整文本，请核对协议、模型和输出参数',
    latency_ms:Date.now()-t0}
  }catch(e){return {ok:false,reachable:false,category:'network',
-   message:'连接测试请求失败：'+(e instanceof Error?e.message.slice(0,110):'网络异常'),latency_ms:Date.now()-t0}}
+   message:'连接测试请求失败，请检查网络、TLS 或超时',latency_ms:Date.now()-t0}}
  finally{clearTimeout(timer)}
 }
 Deno.serve(async req=>{
@@ -114,7 +103,7 @@ Deno.serve(async req=>{
   }
   return reply({...first,platform:preferred})
  }
- if(action==='save_endpoint_key'||action==='test_endpoint'||action==='delete_endpoint'){
+ if(action==='save_endpoint_key'||action==='test_endpoint'||action==='test_vision'||action==='delete_endpoint'){
   const id=String(body.endpoint_id||'')
   if(!/^[a-f0-9-]{36}$/i.test(id))return reply({error:'模型服务编号无效'},422)
   const lookup=await db.from('mail_ai_endpoints').select('*').eq('id',id).eq('user_id',userId).maybeSingle()
@@ -128,21 +117,27 @@ Deno.serve(async req=>{
    const deleted=await db.from('mail_ai_endpoints').delete().eq('id',id).eq('user_id',userId)
    return deleted.error?reply({error:'删除接口失败'},500):reply({ok:true})
   }
-  try{await verifyUrl(endpoint.api_url)}catch(e){return reply({error:e instanceof Error?e.message:'接口地址不安全'},422)}
+  let config:ReturnType<typeof routeFields>,destination:string
+  try{config=routeFields(endpoint);destination=await checkedEndpoint(endpoint.api_url,config.protocol,endpoint.model,Deno.resolveDns?.bind(Deno))}
+  catch(e){return reply({error:e instanceof Error?e.message:'接口地址不安全'},422)}
   if(action==='save_endpoint_key'){
+   if(body.config_revision!==endpoint.config_revision)return reply({error:'接口配置已改变，请重新加载后授权'},409)
    const secret=String(body.api_key||'').trim()
    if(secret.length<8||secret.length>4096)return reply({error:'请输入正确的 API Key'},422)
-   const stored=await db.rpc('mail_save_endpoint_key',{p_endpoint_id:id,p_secret:secret})
+   const stored=await db.rpc('mail_save_endpoint_key_for_config',{p_endpoint_id:id,p_revision:endpoint.config_revision,p_secret:secret})
    if(stored.error)return reply({error:'加密保存 API Key 失败'},500)
-   const update=await db.from('mail_ai_endpoints').update({key_ready:true}).eq('id',id).eq('user_id',userId)
-   return update.error?reply({error:'更新 Key 状态失败'},500):reply({ok:true,key_ready:true})
+   return stored.data===true?reply({ok:true,key_ready:true}):reply({error:'接口配置已改变，请重新加载后授权'},409)
   }
-  const keyInfo=await db.rpc('mail_read_endpoint_key',{p_endpoint_id:id})
+  if(!endpoint.key_ready)return reply({error:'请先为当前配置保存 Key'},422)
+  if(!endpoint.declared_free&&body.allow_paid_test!==true)return reply({error:'此接口可能收费，需明确同意本次测试'},422)
+  const keyInfo=await db.rpc('mail_read_endpoint_key_for_config',{p_endpoint_id:id,p_revision:endpoint.config_revision})
   if(!keyInfo.data)return reply({error:'请先保存该模型的 Key'},422)
   const pref=await db.from('mail_preferences').select('ai_max_wait_seconds').eq('user_id',userId).maybeSingle()
   const timeoutMs=Math.min(90000,Math.max(20000,Number(pref.data?.ai_max_wait_seconds||65)*1000))
-  const result=await modelTest(endpoint.api_url,endpoint.model,keyInfo.data,timeoutMs)
-  await db.from('mail_ai_endpoints').update({last_test_at:new Date().toISOString(),last_test_status:result.ok?'ok':'error: '+result.message,last_test_latency_ms:result.ok?Math.round(result.latency_ms):endpoint.last_test_latency_ms}).eq('id',id).eq('user_id',userId)
+  const vision=action==='test_vision'
+  const result=await modelTest(destination,endpoint.model,keyInfo.data,timeoutMs,config,vision)
+  const verified=await db.from('mail_ai_endpoints').update(vision?{vision_test_status:result.ok?'ok':'error: '+result.message}:{last_test_at:new Date().toISOString(),last_test_status:result.ok?'ok':'error: '+result.message,last_test_latency_ms:result.ok?Math.round(result.latency_ms):endpoint.last_test_latency_ms}).eq('id',id).eq('user_id',userId).eq('config_revision',endpoint.config_revision).select('id').maybeSingle()
+  if(verified.error||!verified.data)return reply({error:'测试期间配置改变，请重新测试'},409)
   return reply(result)
  }
  return reply({error:'未知操作'},400)

@@ -38,7 +38,7 @@ const tests=[
    ui.includes('if (sequence !== metadataSequence.current) return')],
  ['Switching translation language cancels old result',ui.includes('[selected,translationLang,translationVisible]')],
  ['MagicZotero preset uses stated model and endpoint only',settings.includes('https://gpt.magiczotero.top/v1/chat/completions')&&settings.includes('magic-translate-gpt')&&settings.includes('setEndpointKey(\'\')')],
- ['MagicZotero requires test success before selecting route',settings.includes('candidate?.declared_free')&&settings.includes('if(id&&r.ok)')],
+ ['Custom translation route requires explicit selection after successful test',settings.includes("e.declared_free&&e.key_ready&&e.last_test_status==='ok'")&&settings.includes("'用于翻译'")&&!settings.includes('测试通过，已设为默认翻译模型')],
 
  ['Mail translation no longer uses arbitrary site daily quota',
   !translator.includes('mail_claim_ai_slot')&&!translator.includes('source.slice(0,8500)')&&!settings.includes('每日 AI 请求上限')],
@@ -46,7 +46,7 @@ const tests=[
   translator.includes('chunksOf(source)')&&translator.includes('chunkIndex')&&
   translator.includes('mail_translation_chunks')&&ui.includes('已完成 ')&&ui.includes('chunk_index:index')],
  ['Long translations have dynamic output budget and no 25k result truncation',
-  translator.includes('max_tokens:Math.min(6500')&&chunkSchema.includes('drop constraint if exists mail_translations_translated_text_check')],
+  translator.includes('maxTokens:Math.min(6500')&&chunkSchema.includes('drop constraint if exists mail_translations_translated_text_check')],
  ['Provider 429 preserves error code instead of treating it as app daily limit',
   translator.includes('safeUpstreamCode')&&translator.includes('limitMeaning(code,route.url)')&&
   translator.includes('与网站翻译次数无关')],

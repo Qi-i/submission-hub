@@ -741,11 +741,17 @@ export default function AcademicMailCenter({userId}: {userId: string}) {
     const savePref=async(change:Partial<MailSettings>):Promise<void>=>{
     setBusy('pref')
     try{
-      const next={...pref,...change,user_id:userId}
-      const {error:err}=await (supabase.from('mail_preferences') as any)
-        .upsert(next,{onConflict:'user_id'})
-      if(err)throw err
-      setPref(next as MailSettings)
+      // Persist only changed columns, rather than overwriting another device's
+      // newer model routing, credential state or task preferences.
+      let query=(supabase.from('mail_preferences') as any).update(change).eq('user_id',userId)
+      if(change.ai_task_routes!==undefined)query=query.eq('ai_task_routes',JSON.stringify(pref?.ai_task_routes||{}))
+      const updated=await query.select('*').maybeSingle()
+      if(updated.error)throw updated.error
+      if(updated.data){setPref(updated.data as MailSettings);return}
+      if(pref)throw Error('设置已在其他端改变，请刷新后重试')
+      const inserted=await (supabase.from('mail_preferences') as any).insert({user_id:userId,...change}).select('*').single()
+      if(inserted.error)throw inserted.error
+      setPref(inserted.data as MailSettings)
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
