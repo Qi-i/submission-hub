@@ -10,25 +10,25 @@
 :root {
   --app-font-sans: "Segoe UI Variable Text", "SF Pro Text", Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Noto Sans CJK SC", system-ui, sans-serif;
   --app-page-width: 2400px;
-  --app-page-gutter: 18px;
+  --app-page-gutter: 20px;
   --app-page-gap: 12px;
   --app-panel-gap: 12px;
-  --app-control-height: 34px;
-  --app-control-radius: 10px;
-  --app-small-radius: 8px;
-  --app-panel-radius: 16px;
-  --app-card-radius: 18px;
-  --app-page-title-size: 21px;
-  --app-card-title-size: 14.5px;
-  --app-body-size: 11px;
-  --app-caption-size: 9.5px;
+  --app-control-height: 36px;
+  --app-control-radius: 8px;
+  --app-small-radius: 6px;
+  --app-panel-radius: 12px;
+  --app-card-radius: 12px;
+  --app-page-title-size: 24px;
+  --app-card-title-size: 15px;
+  --app-body-size: 13px;
+  --app-caption-size: 11px;
 
   /* Purpose-specific density tokens: one family, different information loads. */
-  --app-catalog-gap: 10px;
-  --app-catalog-card-padding-x: 13px;
+  --app-catalog-gap: 12px;
+  --app-catalog-card-padding-x: 12px;
   --app-catalog-card-padding-top: 12px;
-  --app-catalog-card-padding-bottom: 9px;
-  --app-workbench-gap: 10px;
+  --app-catalog-card-padding-bottom: 12px;
+  --app-workbench-gap: 12px;
 
   /* Keep old tokens as aliases while legacy layers are gradually retired. */
   --release-page-width: var(--app-page-width);
@@ -151,9 +151,9 @@ html[data-ui] body :is(
   color: var(--ui-title, var(--text-primary)) !important;
   font-family: var(--app-font-sans) !important;
   font-size: var(--app-page-title-size) !important;
-  font-weight: 760 !important;
+  font-weight: 600 !important;
   line-height: 1.15 !important;
-  letter-spacing: -.025em !important;
+  letter-spacing: 0 !important;
 }
 
 html[data-ui] body :is(
@@ -163,7 +163,7 @@ html[data-ui] body :is(
   .lx-status-copy p
 ) {
   color: var(--ui-muted, var(--text-secondary)) !important;
-  font-size: 10.5px !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
   line-height: 1.45 !important;
 }
@@ -172,9 +172,9 @@ html[data-ui] body .paper-grid .paper-card-v3 .card-title,
 html[data-ui] body .journal-center-card .card-title {
   color: var(--ui-title, var(--text-primary)) !important;
   font-size: var(--app-card-title-size) !important;
-  font-weight: 650 !important;
+  font-weight: 600 !important;
   line-height: 1.48 !important;
-  letter-spacing: -.018em !important;
+  letter-spacing: 0 !important;
 }
 
 html[data-ui] body :is(
@@ -273,7 +273,7 @@ html[data-ui] body :is(
 ) {
   border-color: var(--ui-border, var(--border-light)) !important;
   background-color: transparent;
-  box-shadow: var(--ui-shadow, 0 12px 34px rgba(15, 23, 42, .07));
+  box-shadow: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -287,8 +287,8 @@ html[data-ui] body :is(
   .stats-module-controls > button
 ) {
   font-family: var(--app-font-sans) !important;
-  font-size: 11px !important;
-  font-weight: 680 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
   border-radius: var(--app-small-radius) !important;
 }
 
@@ -342,19 +342,25 @@ html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
   column-gap: var(--app-catalog-gap) !important;
 }
 
-@media (min-width: 1100px) and (max-width: 1599px) {
+@media (min-width: 1100px) and (max-width: 1399px) {
+  html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1400px) and (max-width: 1699px) {
   html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }
 
-@media (min-width: 1600px) and (max-width: 2199px) {
+@media (min-width: 1700px) and (max-width: 2399px) {
   html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 }
 
-@media (min-width: 2200px) {
+@media (min-width: 2400px) {
   html[data-ui] body .journal-center-grid.paper-grid.journal-catalog-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   }
@@ -372,8 +378,8 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card.paper-
   justify-content: flex-start !important;
   align-items: stretch !important;
   align-content: stretch !important;
-  gap: 5px !important;
-  row-gap: 5px !important;
+  gap: 8px !important;
+  row-gap: 8px !important;
   column-gap: 0 !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -415,13 +421,13 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journ
   height: 28px !important;
   padding: 0 8px !important;
   border-radius: 9px !important;
-  font-size: 10.5px !important;
+  font-size: 12px !important;
   line-height: 1 !important;
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__substatus {
   min-height: 20px !important;
-  font-size: 9.8px !important;
+  font-size: 11px !important;
   line-height: 1.2 !important;
 }
 
