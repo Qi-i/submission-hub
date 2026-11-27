@@ -512,22 +512,22 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journ
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics > div {
-  flex: 1 1 58px !important;
-  min-width: 54px !important;
-  min-height: 36px !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  min-height: 30px !important;
   height: auto !important;
   padding: 4px 6px !important;
   border-radius: 8px !important;
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics b {
-  font-size: 10.5px !important;
+  font-size: 12px !important;
   line-height: 1.05 !important;
 }
 
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .journal-catalog-card__metrics small,
 html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card .prep-journal-apc-cny {
-  font-size: 9px !important;
+  font-size: 11px !important;
   line-height: 1.1 !important;
 }
 
@@ -548,6 +548,25 @@ html[data-ui] body .journal-center-grid.paper-grid > .journal-center-card > .jou
  * -------------------------------------------------------------------------- */
 html[data-ui] body .preparation-workspace .prep-primary-section-head {
   border-radius: var(--app-panel-radius) !important;
+  min-height: 0 !important;
+  padding: 8px 10px !important;
+}
+html[data-ui] body .preparation-workspace .prep-primary-section-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+}
+html[data-ui] body .preparation-workspace .prep-primary-section-grid > section {
+  min-width: 0;
+  width: 100%;
+}
+html[data-ui] body .preparation-workspace :is(.prep-topic-strip,.prep-overview-draft-list,.prep-overview-journal-list) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)) !important;
+  min-width: 0;
+}
+@media(max-width: 900px) {
+  html[data-ui] body .preparation-workspace .prep-primary-section-grid {grid-template-columns: minmax(0,1fr) !important;}
 }
 
 html[data-ui] body .preparation-workspace .prep-primary-section-head h2 {

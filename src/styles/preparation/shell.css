@@ -12,20 +12,16 @@
 }
 
 .prep-topbar {
-  min-height: 76px;
-  padding: 14px 16px;
+  min-height: 48px;
+  padding: 6px 10px;
   display: grid;
-  grid-template-columns: minmax(280px,1fr) auto;
+  grid-template-columns: minmax(120px,1fr) auto;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
   border: 1px solid var(--prep-border);
   border-radius: var(--prep-radius-lg);
-  background:
-    radial-gradient(circle at 6% 0%, rgba(35,191,211,.10), transparent 34%),
-    radial-gradient(circle at 92% 0%, rgba(198,91,199,.10), transparent 32%),
-    var(--prep-surface);
-  box-shadow: var(--prep-shadow-soft);
-  backdrop-filter: blur(18px) saturate(135%);
+  background: var(--prep-surface);
+  box-shadow: none;
 }
 
 .prep-heading { min-width: 0; }
@@ -86,12 +82,12 @@
 
 .prep-primary-section-head,
 .prep-panel-head {
-  min-height: 58px;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 11px 14px;
+  padding: 7px 10px;
   border: 1px solid var(--prep-border);
   border-radius: var(--prep-radius-md);
   background: var(--prep-surface);
@@ -157,7 +153,7 @@
   opacity: .62;
 }
 .prep-check-card h3 {
-  min-height: 2.7em;
+  min-height: 0;
   margin: 5px 0 8px !important;
   color: var(--prep-text) !important;
   font-size: 12.4px !important;

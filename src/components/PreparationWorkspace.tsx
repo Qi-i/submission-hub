@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ArrowRight, BookOpen, CheckCircle2, CircleAlert, Clock3,
-  ClipboardCheck, FilePenLine, Images, LayoutDashboard, Lightbulb, LoaderCircle, PackageCheck, Plus, Scale, Search, Star, Target,
+  ClipboardCheck, FilePenLine, Images, Lightbulb, LoaderCircle, PackageCheck, Plus, Scale, Search, Star, Target,
 } from 'lucide-react'
 import type { JournalRankLookupResult } from '../lib/journal-rank'
 import { journalPrimaryRankItems, journalRankTone, type RankedJournalProfile } from '../lib/journal-display'
@@ -290,9 +290,7 @@ export default function PreparationWorkspace({
   return <div className="preparation-workspace" data-section={primarySection}>
     {section !== 'figures' && <div className="prep-topbar">
       <div className="prep-heading">
-        <span className="prep-eyebrow">PRE-SUBMISSION WORKSPACE</span>
         <h1>投稿准备</h1>
-        <p>把选题、草稿与目标期刊组织成一条清晰的投稿前流程。</p>
       </div>
       {(uiMode === 'luminous-x' && canPortalActions && luminousXActionSlot ? createPortal(
         <div className="prep-top-actions prep-top-actions-portal">
@@ -315,9 +313,7 @@ export default function PreparationWorkspace({
       <section className="prep-dashboard">
         <div className="prep-dashboard-head">
           <div>
-            <span><LayoutDashboard size={15} /> 投稿前仪表盘</span>
             <h2>当前准备状态</h2>
-            <p>所有指标均由你的选题、草稿和期刊数据实时计算。</p>
           </div>
           <button onClick={() => setSection('drafts')}>查看全部草稿 <ArrowRight size={13} /></button>
         </div>
@@ -364,13 +360,6 @@ export default function PreparationWorkspace({
           </div>
         </div>
       </section>
-
-      <div className="prep-metrics">
-        <div data-tone="topic"><span>选题</span><b>{activeTopics}</b><small>推进中</small></div>
-        <div data-tone="draft"><span>草稿</span><b>{normalized.drafts.length}</b><small>准备记录</small></div>
-        <div data-tone="ready"><span>就绪</span><b>{readyDrafts}</b><small>接近投稿</small></div>
-        <div data-tone="journal"><span>期刊</span><b>{favoriteJournals}</b><small>已收藏</small></div>
-      </div>
 
       <div className="prep-overview-grid">
         <section className="prep-panel prep-panel-draft prep-overview-drafts">
