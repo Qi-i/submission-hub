@@ -561,6 +561,56 @@ html[data-ui] body .preparation-workspace .prep-primary-section-grid > section {
   min-width: 0;
   width: 100%;
 }
+/* The old decorative pseudo-element extends beyond the page at narrow and wide
+   viewports. The heading and real actions are the only required content. */
+html[data-ui] body .preparation-workspace > .prep-topbar::after {
+  content: none !important;
+  display: none !important;
+}
+html[data-ui] body .preparation-workspace :is(.prep-draft-card,.prep-draft-main,.prep-draft-meta) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+html[data-ui] body .preparation-workspace .prep-draft-card.compact .prep-draft-main {
+  grid-template-columns: minmax(0,1fr) !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  padding: 10px !important;
+  grid-template-rows: auto !important;
+  grid-auto-rows: auto;
+}
+html[data-ui] body .preparation-workspace .prep-draft-card.compact {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  align-content: start !important;
+}
+html[data-ui] body .preparation-workspace .prep-draft-card.compact .prep-promote {
+  position: static !important;
+  transform: none !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 10px 10px auto !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+}
+html[data-ui] body .preparation-workspace .prep-draft-card.compact h3 {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  font-size: 14px !important;
+}
+html[data-ui] body .preparation-workspace .prep-draft-card.compact .prep-draft-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+html[data-ui] body .preparation-workspace .prep-draft-card.compact .prep-draft-meta > span {
+  font-size: 11px !important;
+  min-width: 0 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
 html[data-ui] body .preparation-workspace :is(.prep-topic-strip,.prep-overview-draft-list,.prep-overview-journal-list) {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)) !important;
   min-width: 0;
