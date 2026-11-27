@@ -352,8 +352,8 @@
 .figure-composer__field-grid label,
 .figure-composer__details-body > label,
 .figure-composer__export-preset {
-  gap: 2px !important;
-  font-size: 10.5px !important;
+  gap: 4px !important;
+  font-size: 12px !important;
 }
 
 .figure-composer__import-row {
@@ -392,8 +392,8 @@
   background: color-mix(in srgb, var(--prep-surface) 92%, transparent) !important;
 }
 .figure-composer__compact-details > summary {
-  min-height: 28px !important;
-  height: 28px !important;
+  min-height: 32px !important;
+  height: auto !important;
   padding: 0 6px !important;
   display: flex !important;
   align-items: center !important;
@@ -401,8 +401,8 @@
   list-style: none !important;
   cursor: pointer;
   color: var(--prep-text-muted);
-  font-size: 10.5px !important;
-  font-weight: 700;
+  font-size: 12px !important;
+  font-weight: 600;
 }
 .figure-composer__compact-details > summary::-webkit-details-marker { display: none; }
 .figure-composer__compact-details > summary::after {
@@ -480,7 +480,7 @@
   position: absolute;
   right: 5px;
   color: var(--prep-text-muted);
-  font-size: 9.5px;
+  font-size: 11px;
   font-style: normal;
   pointer-events: none;
 }
