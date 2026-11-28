@@ -129,6 +129,13 @@ export default function Dashboard() {
   const changeTab = (next: Tab) => {
     closeTools()
     setUserMenuOpen(false)
+    if(next!=='mail'){
+      const url=new URL(window.location.href)
+      if(url.searchParams.get('view')==='ai-settings'){
+        url.searchParams.delete('view')
+        history.replaceState(history.state,'',url.pathname+url.search+url.hash)
+      }
+    }
     if (next === 'preparation') setPreparationSection('overview')
     setTab(next)
   }
