@@ -6,7 +6,7 @@
   min-height: 58px !important;
   height: auto !important;
   display: grid !important;
-  grid-template-columns: minmax(260px, 1fr) auto !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) !important;
   align-items: center !important;
   gap: 14px !important;
   padding: 8px 10px 8px 13px !important;
@@ -29,8 +29,8 @@
 .preparation-workspace > .prep-topbar .prep-eyebrow { display: none !important; }
 .preparation-workspace > .prep-topbar .prep-heading h1 { margin: 0 !important; font-size: 21px !important; line-height: 1.12 !important; letter-spacing: -.02em !important; white-space: nowrap !important; color: var(--prep-text) !important; }
 .preparation-workspace > .prep-topbar .prep-heading p { margin: 0 !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; color: var(--prep-text-muted) !important; font-size: 10px !important; }
-.preparation-workspace > .prep-topbar .prep-top-actions { min-width: 0 !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 6px !important; flex-wrap: nowrap !important; }
-.preparation-workspace > .prep-topbar .prep-search { width: clamp(230px, 25vw, 390px) !important; min-width: 190px !important; height: 34px !important; }
+.preparation-workspace > .prep-topbar .prep-top-actions { min-width: 0 !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 6px !important; flex-wrap: wrap !important; }
+.preparation-workspace > .prep-topbar .prep-search { flex: 1 1 190px; width: clamp(160px, 19vw, 290px) !important; min-width: 140px !important; height: 36px !important; }
 .preparation-workspace > .prep-topbar .prep-figure-tool-entry,
 .preparation-workspace > .prep-topbar .btn { min-height: 34px !important; height: 34px !important; white-space: nowrap !important; }
 

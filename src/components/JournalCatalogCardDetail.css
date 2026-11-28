@@ -146,8 +146,8 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
 
 html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journal-catalog-card__oa-key {
   flex: 0 0 auto !important;
-  font-size: 8.8px !important;
-  font-weight: 820 !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
   line-height: 1 !important;
   letter-spacing: .04em !important;
   opacity: .72 !important;
@@ -160,8 +160,8 @@ html[data-ui] body .paper-grid.journal-catalog-grid .journal-center-card .journa
   overflow: visible !important;
   text-overflow: clip !important;
   white-space: nowrap !important;
-  font-size: 10.2px !important;
-  font-weight: 760 !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
   line-height: 1 !important;
 }
 

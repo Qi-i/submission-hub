@@ -1931,7 +1931,9 @@ html[data-ui][data-theme="dark"] body .academic-mail-center .am-type-options lab
   gap:7px;
 }
 .academic-mail-center.am-mode-inbox .am-meta>div{
-  padding:8px 12px;border-radius:8px;
+  padding:6px 10px;border-radius:6px;
+  background:var(--am-soft);
+  border:0;
 }
 .academic-mail-center.am-mode-inbox .am-meta strong{
   font-size:13px;line-height:1.4;overflow-wrap:anywhere;
@@ -1940,7 +1942,22 @@ html[data-ui][data-theme="dark"] body .academic-mail-center .am-type-options lab
   line-height:1.75;font-size:15px;
   max-width:100%;overflow-wrap:anywhere;
   background:var(--am-surface);
+  border:0;
 }
+/* Distinguish the reading surface from the message index without shrinking
+   either pane or imposing a new fixed height. */
+.academic-mail-center.am-mode-inbox .am-reader-top{background:var(--am-surface)}
+.academic-mail-center.am-mode-inbox .am-reader-top h3{color:var(--am-ink)}
+.academic-mail-center.am-mode-inbox .am-msg-from strong,
+.academic-mail-center.am-mode-inbox .am-msg-subject{color:var(--am-ink)}
+.academic-mail-center.am-mode-inbox .am-message p{color:var(--am-muted)}
+.academic-mail-center.am-mode-inbox .am-msg-from time{font-size:12px}
+.academic-mail-center.am-mode-inbox .am-message[data-category]{border-left:3px solid transparent}
+.academic-mail-center.am-mode-inbox .am-message[data-category="editorial"]{border-left-color:#5e947d}
+.academic-mail-center.am-mode-inbox .am-message[data-category="review_invite"]{border-left-color:#6093be}
+.academic-mail-center.am-mode-inbox .am-message[data-category="submission_update"]{border-left-color:#9a84b8}
+.academic-mail-center.am-mode-inbox .am-message[data-spam="true"]{border-left-color:#bd8c59}
+.academic-mail-center.am-mode-inbox .am-message.selected{border-left-color:var(--am-blue);box-shadow:none}
 @media(min-width:701px){
   html[data-ui] body .app-layout-mail .academic-mail-center.am-mode-inbox .am-workspace.am-reader-focus{
     grid-template-columns:minmax(0,1fr)!important;gap:0;
