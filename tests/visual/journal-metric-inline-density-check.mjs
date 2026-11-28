@@ -34,7 +34,11 @@ try {
 
           const railStyle = getComputedStyle(metrics)
           if (railStyle.display !== 'flex' || railStyle.flexWrap !== 'wrap') failures.push(`journal ${cardIndex + 1}: metric rail does not wrap whole chips`)
-          if (!['start','normal','flex-start'].includes(railStyle.justifyContent)) failures.push(`journal ${cardIndex + 1}: metric rail still distributes spare width (${railStyle.justifyContent})`)
+          // Chromium can serialize start alignment as flow-start. Measure the
+          // actual first chip as well instead of relying on spelling alone.
+          if (!['start','normal','flex-start','flow-start'].includes(railStyle.justifyContent) ||
+              Math.abs(items[0].getBoundingClientRect().left-metrics.getBoundingClientRect().left-parseFloat(railStyle.paddingLeft||'0'))>3)
+            failures.push(`journal ${cardIndex + 1}: metric rail still distributes spare width (${railStyle.justifyContent})`)
           if(metrics.scrollWidth > metrics.clientWidth + 2) failures.push(`journal ${cardIndex+1}: metric rail overflows by ${metrics.scrollWidth-metrics.clientWidth}px`)
 
           items.forEach((item, itemIndex) => {
