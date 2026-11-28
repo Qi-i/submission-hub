@@ -397,6 +397,8 @@ export default function Dashboard() {
                 {!isDemo && <button type="button" role="menuitem" onClick={() => { setUserMenuOpen(false); setShowSettings(true) }}>
                   <Settings size={15}/> 个人设置</button>}
                 {!isDemo && <button type="button" role="menuitem" onClick={()=>{setUserMenuOpen(false);setLedgerAiOpen(true)}}><FileText size={15}/> 账单智能识别</button>}
+                {!isDemo && <a role="menuitem" href="?view=ai-settings" target="_blank" rel="noopener noreferrer" onClick={()=>setUserMenuOpen(false)}><Settings size={15}/> 共享 AI 模型库 <ExternalLink size={12}/></a>}
+                <a role="menuitem" href="https://qihub.pages.dev/" target="_blank" rel="noopener noreferrer" onClick={()=>setUserMenuOpen(false)}><ExternalLink size={15}/> QiHub 工作台</a>
                 <button type="button" role="menuitem" onClick={() => { cycleTheme(); setUserMenuOpen(false) }}>
                   {mode === 'light' ? <Moon size={15}/> : mode === 'dark' ? <Monitor size={15}/> : <Sun size={15}/>} 切换主题</button>
                 <div className="header-account-divider"/>
