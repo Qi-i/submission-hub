@@ -109,6 +109,35 @@ html[data-ui='luminous'] body .app-layout > .journal-center-workspace {
   margin: 0 !important;
   box-sizing: border-box !important;
 }
+/* Grid tracks must shrink to the actual available viewport, including when
+   a search field has an intrinsic desktop width. */
+html[data-ui] body .app-layout > .journal-center-workspace {
+  min-width: 0 !important;
+  grid-template-columns: minmax(0,1fr) !important;
+}
+html[data-ui] body .journal-center-workspace > :is(.lx-status-bar,.journal-center-toolbar,.journal-center-grid) {
+  min-width: 0 !important;
+}
+@media(max-width:760px){
+  html[data-ui] body .journal-center-workspace .journal-center-toolbar__actions {
+    min-width:0 !important;
+    max-width:100% !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+  }
+  html[data-ui] body .journal-center-workspace .journal-center-search {
+    min-width:0 !important;
+    max-width:100% !important;
+    width:100% !important;
+    grid-column:1/-1;
+    box-sizing:border-box;
+  }
+  html[data-ui] body .journal-center-workspace .journal-center-search input {
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    box-sizing:border-box;
+  }
+}
 
 html[data-ui='luminous-x'] body .app-layout > :is(
   .lx-status-bar,
