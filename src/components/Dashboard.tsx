@@ -84,7 +84,7 @@ export default function Dashboard() {
   const [showFilterDrop, setShowFilterDrop] = useState(false)
   const [showTools, setShowTools] = useState(false)
   const [editing, setEditing] = useState<Paper | 'new' | null>(null)
-  const [tab, setTab] = useState<Tab>('dashboard')
+  const [tab, setTab] = useState<Tab>(()=>new URLSearchParams(window.location.search).get('view')==='ai-settings'&&!isDemo?'mail':'dashboard')
   const [layoutMode, setLayoutMode] = useState<LuminousXLayoutMode>('workflow')
   const [preparationSection, setPreparationSection] = useState<PreparationSection>('overview')
   const [showSettings, setShowSettings] = useState(false)

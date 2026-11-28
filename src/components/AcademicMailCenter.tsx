@@ -162,7 +162,7 @@ const readableMailText = (input?: string | null) => {
 }
 
 export default function AcademicMailCenter({userId}: {userId: string}) {
-  const [workspace, setWorkspace] = useState<Workspace>('inbox')
+  const [workspace, setWorkspace] = useState<Workspace>(()=>new URLSearchParams(window.location.search).get('view')==='ai-settings'?'personalize':'inbox')
   const [pref,setPref] = useState<MailSettings|null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
   const [accountProgress,setAccountProgress]=useState<Record<string,AccountProgress>>({})
