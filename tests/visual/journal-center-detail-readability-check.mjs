@@ -79,7 +79,7 @@ try {
           const metrics = card.querySelector('.journal-catalog-card__metrics')
           const metricCards = metrics ? Array.from(metrics.children).filter(node => node instanceof HTMLElement && getComputedStyle(node).display !== 'none') : []
           if (metrics && metricCards.length) {
-            if (getComputedStyle(metrics).display !== 'grid') failures.push(`journal ${index + 1}: metric rail still inherits flexible full-width stretching`)
+            if (getComputedStyle(metrics).display !== 'flex' || getComputedStyle(metrics).flexWrap !== 'wrap' || metrics.scrollWidth > metrics.clientWidth+2) failures.push(`journal ${index + 1}: metric rail cannot fit its content-sized chips`)
             metricCards.forEach((metric, metricIndex) => {
               const rect = metric.getBoundingClientRect()
               const isApc = metric.classList.contains('prep-journal-apc-metric')

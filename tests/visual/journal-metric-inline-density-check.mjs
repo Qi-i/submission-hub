@@ -1,7 +1,7 @@
 import { chromium } from 'playwright'
 
 const baseUrl = 'http://127.0.0.1:4174/tests/visual/index.html'
-const browser = await chromium.launch({ headless: true })
+const browser = await chromium.launch({ headless: true, ...(process.env.VISUAL_BROWSER_EXECUTABLE ? {executablePath:process.env.VISUAL_BROWSER_EXECUTABLE} : {}) })
 const failures = []
 
 async function openJournalCenter(page, ui) {
@@ -15,8 +15,8 @@ async function openJournalCenter(page, ui) {
 }
 
 try {
-  for (const ui of ['luminous', 'luminous-x']) {
-    const page = await browser.newPage({ viewport: { width: 1707, height: 960 } })
+  for (const ui of ['luminous', 'luminous-x']) for (const width of [1280,1440,1707,2048]) {
+    const page = await browser.newPage({ viewport: { width, height: 960 } })
     try {
       await openJournalCenter(page, ui)
       const result = await page.evaluate(() => {
@@ -33,8 +33,13 @@ try {
           checkedMetrics = true
 
           const railStyle = getComputedStyle(metrics)
-          if (railStyle.display !== 'grid') failures.push(`journal ${cardIndex + 1}: metric rail is not a content-sized grid (${railStyle.display})`)
-          if (railStyle.justifyContent !== 'start' && railStyle.justifyContent !== 'normal') failures.push(`journal ${cardIndex + 1}: metric rail still distributes spare width (${railStyle.justifyContent})`)
+          if (railStyle.display !== 'flex' || railStyle.flexWrap !== 'wrap') failures.push(`journal ${cardIndex + 1}: metric rail does not wrap whole chips`)
+          // Chromium can serialize start alignment as flow-start. Measure the
+          // actual first chip as well instead of relying on spelling alone.
+          if (!['start','normal','flex-start','flow-start'].includes(railStyle.justifyContent) ||
+              Math.abs(items[0].getBoundingClientRect().left-metrics.getBoundingClientRect().left-parseFloat(railStyle.paddingLeft||'0'))>3)
+            failures.push(`journal ${cardIndex + 1}: metric rail still distributes spare width (${railStyle.justifyContent})`)
+          if(metrics.scrollWidth > metrics.clientWidth + 2) failures.push(`journal ${cardIndex+1}: metric rail overflows by ${metrics.scrollWidth-metrics.clientWidth}px`)
 
           items.forEach((item, itemIndex) => {
             const style = getComputedStyle(item)
@@ -77,7 +82,7 @@ try {
         if (!checkedApc) failures.push('journal fixture has no APC metric to verify')
         return failures
       })
-      failures.push(...result.map(message => `${ui}: ${message}`))
+      failures.push(...result.map(message => `${ui} ${width}px: ${message}`))
     } finally {
       await page.close()
     }
